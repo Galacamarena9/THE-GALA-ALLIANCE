@@ -1,0 +1,55 @@
+import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
+import { ACTORS, actorBySlug } from '@/lib/domain/roles';
+import { ButtonLink } from '@/components/ui';
+import { PublicFooter, PublicHeader } from '@/components/PublicShell';
+
+/** Qué problema del sistema actual resolvemos para cada actor (tesis del TFG, en lenguaje de producto). */
+const PAIN: Record<string, { problem: string; answer: string }> = {
+  atletas: { problem: 'Hoy, si no vas con la selección, no juegas los mejores campeonatos o no tienes un agente con contactos, eres invisible.', answer: 'Tu Passport te pone delante de universidades verificadas por tu nivel real, con datos comparables y el encaje explicado.' },
+  familias: { problem: 'Un proceso opaco, en otro idioma, con costes que nadie explica y agencias que cobran miles de euros por información.', answer: 'El proceso paso a paso, el coste neto real de cada opción y control total sobre la privacidad de tu hijo o hija.' },
+  universidades: { problem: 'Encontrar talento internacional depende de intermediarios y de perfiles que no se pueden comparar ni verificar.', answer: 'Perfiles estructurados con el origen de cada dato, matching por beca y un pipeline propio, sin intermediarios.' },
+  coaches: { problem: 'Horas viendo vídeos sueltos sin contexto académico ni económico.', answer: 'Búsqueda por deporte, posición, año, nota y vídeo, shortlists privadas y Gala IA para buscar en lenguaje natural.' },
+  agentes: { problem: 'Tu agenda tiene límite y los atletas no pueden comprobar quién eres.', answer: 'Perfil de agencia verificada, cartera con consentimiento expreso del atleta y talento que no conocías.' },
+  marcas: { problem: 'Encontrar atletas auténticos con los que colaborar de forma transparente es caro y lento.', answer: 'Publica ofertas con condiciones claras y recibe candidaturas de atletas mayores de edad.' },
+};
+
+export function generateStaticParams() {
+  return ACTORS.map((a) => ({ slug: a.slug }));
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const a = actorBySlug(slug);
+  return { title: a ? `Para ${a.plural.toLowerCase()}` : 'The Gala Alliance', description: a?.promise };
+}
+
+export default async function ForActorPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const a = actorBySlug(slug);
+  if (!a) notFound();
+  const pain = PAIN[slug];
+  return (
+    <>
+      <PublicHeader />
+      <main className="mx-auto max-w-6xl px-5 py-16 sm:px-8">
+        <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-brass">Para {a.plural.toLowerCase()}</p>
+        <h1 className="mt-3 max-w-4xl text-[40px] leading-tight text-paper sm:text-6xl">{a.promise}</h1>
+        <div className="mt-12 grid gap-px overflow-hidden rounded-[var(--radius-card)] border border-line bg-line sm:grid-cols-2">
+          <div className="bg-ink p-7"><p className="text-xs uppercase tracking-wide text-faint">Hoy</p><p className="mt-2 text-lg text-muted">{pain.problem}</p></div>
+          <div className="bg-surface p-7"><p className="text-xs uppercase tracking-wide text-brass">Con The Gala Alliance</p><p className="mt-2 text-lg text-paper">{pain.answer}</p></div>
+        </div>
+        <h2 className="mt-14 text-2xl text-paper">Tu espacio incluye</h2>
+        <ul className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {a.services.map((s) => <li key={s} className="rounded-xl border border-line bg-surface p-4 text-paper">{s}</li>)}
+        </ul>
+        <p className="mt-6 text-sm text-muted">Además, como todos los usuarios: escaparate de atletas, becas y oportunidades, directorio de universidades con datos oficiales, centro de información, calculadora de becas, mensajes seguros, Actualidad y Gala IA.</p>
+        <div className="mt-10 flex flex-wrap gap-3">
+          <ButtonLink href={`/signup?role=${a.role}`} className="px-6 py-3">Crear cuenta de {a.label.toLowerCase()}</ButtonLink>
+          <ButtonLink href="/guia" variant="secondary" className="px-6 py-3">Leer la guía</ButtonLink>
+        </div>
+      </main>
+      <PublicFooter />
+    </>
+  );
+}
