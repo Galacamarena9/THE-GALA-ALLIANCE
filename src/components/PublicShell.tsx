@@ -1,13 +1,13 @@
 import Link from 'next/link';
-import { ArrowRight, BadgeCheck, Lock, ShieldCheck } from 'lucide-react';
+import { ArrowRight, BadgeCheck, ChevronDown, Lock, ShieldCheck } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 import { ButtonLink } from '@/components/ui';
 import { MobileMenu } from '@/components/PublicMobileMenu';
 import { ACTORS } from '@/lib/domain/roles';
 
 const NAV = [
+  { href: '/#test', label: 'Test gratis' },
   { href: '/#como-funciona', label: 'Cómo funciona' },
-  { href: '/#para-quien', label: 'Para quién' },
   { href: '/guia', label: 'Guía' },
   { href: '/calculadora', label: 'Calculadora' },
   { href: '/precios', label: 'Precios' },
@@ -25,6 +25,24 @@ export function PublicHeader() {
           <Logo />
           <nav aria-label="Principal" className="hidden flex-1 justify-center md:flex">
             <ul className="flex items-center gap-1">
+              <li className="group relative">
+                <Link href="/#para-quien" className="flex items-center gap-1 rounded-lg px-3 py-2 text-[13px] font-medium text-muted transition-colors hover:text-paper group-focus-within:text-paper">
+                  Para quién <ChevronDown className="h-3.5 w-3.5 transition-transform group-hover:rotate-180" aria-hidden />
+                </Link>
+                {/* Desplegable accesible con ratón y teclado (focus-within), sin JavaScript. */}
+                <div className="invisible absolute left-1/2 top-full z-50 w-[520px] -translate-x-1/2 pt-2 opacity-0 transition-all duration-200 group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100">
+                  <ul className="grid grid-cols-2 gap-1 rounded-2xl border border-line-strong bg-surface p-2 shadow-[var(--shadow-premium)]">
+                    {ACTORS.map((a) => (
+                      <li key={a.role}>
+                        <Link href={`/para/${a.slug}`} className="block rounded-xl px-3 py-2.5 transition-colors hover:bg-brass/10">
+                          <span className="block text-sm font-semibold text-paper">{a.plural}</span>
+                          <span className="line-clamp-1 block text-xs text-muted">{a.promise}</span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </li>
               {NAV.map((n) => (
                 <li key={n.href}>
                   <Link href={n.href} className="rounded-lg px-3 py-2 text-[13px] font-medium text-muted transition-colors hover:text-paper">
@@ -38,7 +56,7 @@ export function PublicHeader() {
             <ButtonLink href="/login" variant="ghost" className="h-9 px-3 text-[13px]">Iniciar sesión</ButtonLink>
             <ButtonLink href="/signup" className="h-9 px-4 text-[13px] font-bold">Crear cuenta gratis</ButtonLink>
           </div>
-          <MobileMenu items={[...NAV, ...ACTORS.map((a) => ({ href: `/para/${a.slug}`, label: `Para ${a.plural.toLowerCase()}` }))]} />
+          <MobileMenu items={[...NAV, { href: '/inversores', label: 'Inversores' }, ...ACTORS.map((a) => ({ href: `/para/${a.slug}`, label: `Para ${a.plural.toLowerCase()}` }))]} />
         </div>
       </header>
       <div className="h-16" aria-hidden />

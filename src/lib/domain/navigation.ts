@@ -7,10 +7,14 @@ export interface NavItem {
   icon: IconName;
   /** Una frase que explica para qué sirve (buscador, inicio y ayudas). */
   desc?: string;
+  /** Secundario: aparece tras "Ver más" para que la barra no abrume. */
+  more?: boolean;
 }
 export interface NavSection {
   title: string;
   items: NavItem[];
+  /** Plegada por defecto (se abre sola si contiene la página actual). */
+  collapsed?: boolean;
 }
 export type IconName =
   | 'home' | 'showcase' | 'trophy' | 'campus' | 'book' | 'calc' | 'spark' | 'path' | 'id' | 'inbox'
@@ -50,20 +54,21 @@ export const PERSONAL_SERVICES: Record<AppRole, NavItem[]> = {
     { href: '/app/applications', label: 'Mis candidaturas', icon: 'inbox', desc: 'Estado de cada beca a la que te has apuntado.' },
     { href: '/app/plan', label: 'Mi plan', icon: 'tag', desc: 'Informe del perfil, Sports CV, shortlist y calendario.' },
     { href: '/app/documents', label: 'Documentos', icon: 'doc', desc: 'Checklist y archivos privados del proceso.' },
-    { href: '/app/offers', label: 'Comparar ofertas', icon: 'scale', desc: 'Coste neto, riesgos y memo de decisión.' },
-    { href: '/app/academia', label: 'Academia SAT/TOEFL', icon: 'grad', desc: 'Práctica con preguntas tipo examen y fechas oficiales.' },
-    { href: '/app/campaigns', label: 'Ofertas de marcas', icon: 'megaphone', desc: 'Colaboraciones con marcas (solo mayores de edad).' },
-    { href: '/app/agents', label: 'Agentes', icon: 'handshake', desc: 'Agentes que quieren representarte y los que aceptaste.' },
+    { href: '/app/offers', label: 'Comparar ofertas', icon: 'scale', desc: 'Coste neto, riesgos y memo de decisión.', more: true },
+    { href: '/app/academia', label: 'Academia SAT/TOEFL', icon: 'grad', desc: 'Práctica con preguntas tipo examen y fechas oficiales.', more: true },
+    { href: '/app/campaigns', label: 'Marcas y patrocinios', icon: 'megaphone', desc: 'Colaboraciones con marcas (solo mayores de edad).', more: true },
+    { href: '/app/agents', label: 'Agentes', icon: 'handshake', desc: 'Agentes que quieren representarte y los que aceptaste.', more: true },
   ],
   parent: [
     { href: '/app/family', label: 'Panel familiar', icon: 'family', desc: 'El proceso de tu hijo o hija y lo que necesita tu aprobación.' },
     { href: '/app/plan', label: 'Plan familiar', icon: 'tag', desc: 'Informe, shortlist y calendario generados al momento.' },
     { href: '/app/documents', label: 'Documentos', icon: 'doc', desc: 'Checklist y archivos privados del proceso.' },
     { href: '/app/offers', label: 'Comparar ofertas', icon: 'scale', desc: 'Coste neto, riesgos y memo de decisión.' },
-    { href: '/app/academia', label: 'Academia SAT/TOEFL', icon: 'grad', desc: 'Práctica con preguntas tipo examen y fechas oficiales.' },
+    { href: '/app/academia', label: 'Academia SAT/TOEFL', icon: 'grad', desc: 'Práctica con preguntas tipo examen y fechas oficiales.', more: true },
   ],
   university: [
-    { href: '/app/opportunities?view=mine', label: 'Nuestras becas', icon: 'trophy', desc: 'Publica y gestiona vuestras becas.' },
+    { href: '/app/opportunities?view=mine', label: 'Nuestras becas', icon: 'trophy', desc: 'Gestiona vuestras becas publicadas.' },
+    { href: '/app/opportunities/new', label: 'Publicar una beca', icon: 'megaphone', desc: 'Sale al momento si pasa los controles automáticos.' },
     { href: '/app/applications', label: 'Pipeline de recruiting', icon: 'pipeline', desc: 'Candidatos por estado, con historial y notas.' },
     { href: '/app/lists', label: 'Shortlists', icon: 'list', desc: 'Atletas guardados y búsquedas con alertas.' },
     { href: '/app/organization', label: 'Perfil y equipo', icon: 'building', desc: 'Datos de la universidad, verificación y miembros.' },
@@ -80,7 +85,7 @@ export const PERSONAL_SERVICES: Record<AppRole, NavItem[]> = {
     { href: '/app/organization', label: 'Agencia', icon: 'building', desc: 'Datos de la agencia, verificación y equipo.' },
   ],
   brand: [
-    { href: '/app/campaigns?view=mine', label: 'Mis ofertas', icon: 'megaphone', desc: 'Campañas publicadas y candidaturas.' },
+    { href: '/app/campaigns?view=mine', label: 'Mis campañas', icon: 'megaphone', desc: 'Campañas con atletas mayores de edad y sus candidaturas.' },
     { href: '/app/lists', label: 'Atletas guardados', icon: 'list', desc: 'Atletas que te interesan.' },
     { href: '/app/organization', label: 'Marca', icon: 'building', desc: 'Datos de la marca, verificación y equipo.' },
   ],
@@ -95,6 +100,17 @@ export const ACCOUNT_SERVICES: NavItem[] = [
   { href: '/app/settings', label: 'Privacidad y datos', icon: 'shield', desc: 'Visibilidad, descarga de datos y baja de la cuenta.' },
 ];
 
+export const LEARN_SERVICES: NavItem[] = [
+  { href: '/app/ia', label: 'Gala IA', icon: 'spark', desc: 'Pregunta lo que quieras sobre el proceso, a cualquier hora.' },
+  { href: '/app/calculator', label: 'Calculadora de coste', icon: 'calc', desc: 'Coste real a 4 años con viajes, seguro y subidas.' },
+  { href: '/app/guia', label: 'Centro de información', icon: 'book', desc: 'Divisiones, requisitos, documentos y visado con fuentes oficiales.' },
+  { href: '/app/portal/atletas', label: 'Portales por perfil', icon: 'compass', desc: 'Qué ofrece la plataforma a cada tipo de usuario.', more: true },
+];
+
+/**
+ * Barra lateral por actor: lo esencial a la vista y lo secundario tras "Ver más".
+ * Grupos: Mi espacio (por rol) · Descubrir · Red · Aprender y decidir · Cuenta (plegada).
+ */
 export function sidebarFor(roles: AppRole[]): NavSection[] {
   const sections: NavSection[] = [{ title: 'Inicio', items: [{ href: '/app', label: 'Inicio', icon: 'home', desc: 'Tu resumen y los siguientes pasos.' }] }];
   const order: AppRole[] = ['athlete', 'parent', 'university', 'coach', 'agent', 'brand', 'admin'];
@@ -103,11 +119,11 @@ export function sidebarFor(roles: AppRole[]): NavSection[] {
     const label = role === 'admin' ? 'Administración' : `Mi espacio · ${ACTORS.find((a) => a.role === role)?.label}`;
     sections.push({ title: label, items: PERSONAL_SERVICES[role] });
   }
-  sections.push({ title: 'Red y visibilidad', items: NETWORK_SERVICES });
-  sections.push({ title: 'Oportunidades', items: OPPORTUNITY_SERVICES });
-  sections.push({ title: 'Herramientas', items: TOOL_SERVICES });
-  sections.push({ title: 'Cuenta', items: ACCOUNT_SERVICES });
-  // Quitar duplicados entre secciones personales (p. ej. atleta + familia): se queda la primera aparición.
+  sections.push({ title: 'Descubrir', items: [...NETWORK_SERVICES.filter((i) => i.href === '/app/discover'), ...OPPORTUNITY_SERVICES] });
+  sections.push({ title: 'Red', items: NETWORK_SERVICES.filter((i) => i.href !== '/app/discover') });
+  sections.push({ title: 'Aprender y decidir', items: LEARN_SERVICES });
+  sections.push({ title: 'Cuenta', items: ACCOUNT_SERVICES, collapsed: true });
+  // Sin duplicados entre secciones (p. ej. atleta + familia): se queda la primera aparición.
   const seen = new Set<string>();
   return sections.map((s) => ({ ...s, items: s.items.filter((i) => (seen.has(i.href) ? false : (seen.add(i.href), true))) })).filter((s) => s.items.length);
 }
