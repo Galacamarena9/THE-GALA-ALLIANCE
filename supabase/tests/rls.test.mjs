@@ -479,6 +479,106 @@ try {
   await check('nadie puede etiquetar a un menor en una publicación', async () => {
     await expectError(() => as(u.uni, `insert into news_posts (organization_id, author_id, kind, title, body, athlete_id) values ($1, $2, 'signing', 'Fichaje menor', 'Texto de prueba suficientemente largo.', $3)`, [uniId, u.uni, u.minor]), /minors_not_taggable/);
   });
+
+  results.push('\nNotificaciones internas');
+  await check('el sistema avisa al atleta, a la familia del menor y a quien contactó', async () => {
+    eq((await as(u.adult, `select count(*)::int n from notifications where kind = 'contact.new'`)).rows[0].n >= 1, true, 'atleta:');
+    eq((await as(u.parent, `select count(*)::int n from notifications where kind = 'contact.guardian_review'`)).rows[0].n >= 1, true, 'familia:');
+    eq((await as(u.coach, `select count(*)::int n from notifications where kind = 'contact.accepted'`)).rows[0].n >= 1, true, 'coach:');
+  });
+  await check('nadie lee ni crea notificaciones ajenas', async () => {
+    eq((await as(u.brand, `select count(*)::int n from notifications where user_id = $1`, [u.adult])).rows[0].n, 0);
+    await expectError(() => as(u.brand, `insert into notifications (user_id, kind, title) values ($1, 'x', 'Falsa')`, [u.adult]));
+  });
+  await check('el usuario marca como leída, pero no puede reescribirla', async () => {
+    await as(u.adult, `update notifications set read_at = now() where user_id = $1`, [u.adult]);
+    await expectError(() => as(u.adult, `update notifications set title = 'otra' where user_id = $1`, [u.adult]), /notification_immutable/);
+  });
+
+  results.push('\nAcademia SAT/TOEFL');
+  await check('el atleta guarda su progreso y la familia del menor lo sigue', async () => {
+    await as(u.minor, `insert into academy_progress (user_id, exam, topic_id) values ($1, 'sat', 'rw-conventions')`, [u.minor]);
+    await as(u.minor, `insert into academy_attempts (user_id, exam, correct, total) values ($1, 'sat', 7, 10)`, [u.minor]);
+    eq((await as(u.parent, `select count(*)::int n from academy_attempts where user_id = $1`, [u.minor])).rows[0].n, 1);
+  });
+  await check('una organización no ve el estudio de un atleta', async () => {
+    eq((await as(u.coach, `select count(*)::int n from academy_attempts where user_id = $1`, [u.minor])).rows[0].n, 0);
+    eq((await as(u.brand, `select count(*)::int n from academy_progress where user_id = $1`, [u.minor])).rows[0].n, 0);
+  });
+  await check('no se pueden registrar más aciertos que preguntas', async () => {
+    await expectError(() => as(u.adult, `insert into academy_attempts (user_id, exam, correct, total) values ($1, 'toefl', 11, 10)`, [u.adult]));
+  });
+
+  results.push('\nBúsquedas guardadas');
+  await check('un coach guarda una búsqueda; un atleta no puede', async () => {
+    await as(u.coach, `insert into saved_searches (owner_id, label, filters) values ($1, 'Bases 2027', '{"sport":"basketball","grad":"2027"}')`, [u.coach]);
+    await expectError(() => as(u.adult, `insert into saved_searches (owner_id, label, filters) values ($1, 'Yo', '{}')`, [u.adult]), /recruiter_role_required/);
+  });
+  await check('solo se aceptan filtros conocidos y solo las ve su dueño', async () => {
+    await expectError(() => as(u.coach, `insert into saved_searches (owner_id, label, filters) values ($1, 'Raro', '{"dob":"2010"}')`, [u.coach]));
+    eq((await as(u.coach2, `select count(*)::int n from saved_searches`)).rows[0].n, 0);
+  });
+
+  results.push('\nNovedades del atleta');
+  await check('las novedades siguen la visibilidad del perfil', async () => {
+    await as(u.adult, `insert into athlete_updates (athlete_id, kind, body) values ($1, 'result', '24 puntos y 8 rebotes en la final autonómica')`, [u.adult]);
+    eq((await as(u.brand, `select count(*)::int n from athlete_updates where athlete_id = $1`, [u.adult])).rows[0].n, 1, 'marca ve al adulto:');
+    eq((await as(null, `select count(*)::int n from athlete_updates where athlete_id = $1`, [u.adult])).rows[0].n, 0, 'anónimo no:');
+  });
+  await check('la novedad de un menor solo la ven reclutadores verificados', async () => {
+    await as(u.minor, `insert into athlete_updates (athlete_id, kind, body) values ($1, 'academic', 'He aprobado el primer trimestre con media de 9')`, [u.minor]);
+    eq((await as(u.brand, `select count(*)::int n from athlete_updates where athlete_id = $1`, [u.minor])).rows[0].n, 0, 'marca:');
+    eq((await as(u.coach, `select count(*)::int n from athlete_updates where athlete_id = $1`, [u.minor])).rows[0].n, 1, 'coach verificado:');
+  });
+  await check('un menor no puede publicar datos de contacto', async () => {
+    await expectError(() => as(u.minor, `insert into athlete_updates (athlete_id, kind, body) values ($1, 'other', 'Escríbeme a mi instagram @yo')`, [u.minor]), /contact_data_not_allowed/);
+  });
+  await check('nadie publica en nombre de otro atleta', async () => {
+    await as(u.brand, `insert into athlete_updates (athlete_id, kind, body) values ($1, 'other', 'Texto suplantado por la marca')`, [u.brand]).catch(() => {});
+    eq((await as(u.admin, `select count(*)::int n from athlete_updates where body like '%suplantado%' and athlete_id <> $1`, [u.brand])).rows[0].n, 0);
+  });
+
+  results.push('\nPlanes y servicios (validación comercial)');
+  let srId;
+  await check('un usuario solicita un plan y no puede autoaprobarse', async () => {
+    srId = (await as(u.uni, `insert into service_requests (user_id, plan_code, organization_id, status) values ($1, 'org_recruit', $2, 'won') returning id`, [u.uni, uniId])).rows[0].id;
+    eq((await as(u.uni, `select status from service_requests where id = $1`, [srId])).rows[0].status, 'new');
+    eq((await as(u.uni, `update service_requests set status = 'won' where id = $1`, [srId])).rowCount, 0);
+  });
+  await check('no se puede solicitar en nombre de una organización ajena', async () => {
+    await expectError(() => as(u.brand, `insert into service_requests (user_id, plan_code, organization_id) values ($1, 'org_recruit', $2)`, [u.brand, uniId]), /not_org_member/);
+  });
+  await check('el admin gestiona el pipeline; otros no lo ven', async () => {
+    await as(u.admin, `update service_requests set status = 'contacted', admin_note = 'Llamada el lunes' where id = $1`, [srId]);
+    eq((await as(u.brand, `select count(*)::int n from service_requests where id = $1`, [srId])).rows[0].n, 0);
+  });
+
+  results.push('\nPanel de mando');
+  await check('solo el admin obtiene métricas y liquidez', async () => {
+    const m = (await as(u.admin, `select admin_metrics(30) as m`)).rows[0].m;
+    eq(m.north_star >= 2, true, 'north star:');
+    eq(m.queues.service_requests_new, 0, 'cola de solicitudes:');
+    await as(u.admin, `select * from admin_liquidity()`);
+    await expectError(() => as(u.coach, `select admin_metrics(30)`), /admin_only/);
+    await expectError(() => as(u.brand, `select * from admin_liquidity()`), /admin_only/);
+  });
+  await check('la universidad no puede tocar el SAT medio oficial', async () => {
+    await expectError(() => as(u.uni, `update institutions set sat_avg = 1500 where id = $1`, [instId]), /official_data_admin_only/);
+  });
+
+  results.push('\nBloqueo');
+  await check('el atleta bloquea a una organización: deja de verle y no puede volver a pedir contacto', async () => {
+    eq(await countVisible(u.coach, u.adult), 1, 'antes:');
+    await as(u.adult, `update contact_requests set status = 'blocked' where id = $1`, [reqId]);
+    eq(await countVisible(u.coach, u.adult), 0, 'después (coach):');
+    eq(await countVisible(u.coach2, u.adult), 0, 'después (otro coach de la misma universidad):');
+    eq(await countVisible(u.brand, u.adult), 1, 'otra organización sigue viéndole:');
+    await expectError(() => as(u.coach, `insert into contact_requests (organization_id, requested_by, athlete_id, message)
+      values ($1, $2, $3, 'Volvemos a intentarlo con otra propuesta')`, [uniId, u.coach, u.adult]), /blocked_by_athlete/);
+  });
+  await check('quien contactó no sabe si fue un rechazo o un bloqueo', async () => {
+    eq((await as(u.coach, `select count(*)::int n from notifications where kind = 'contact.closed'`)).rows[0].n, 1);
+  });
 } finally {
   console.log(results.join('\n'));
   console.log(`\n${passed} pruebas OK · ${failed} fallidas`);
