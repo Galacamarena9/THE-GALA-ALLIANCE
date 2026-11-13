@@ -12,7 +12,8 @@ export interface NavSection {
 }
 export type IconName =
   | 'home' | 'showcase' | 'trophy' | 'campus' | 'book' | 'calc' | 'spark' | 'path' | 'id' | 'inbox'
-  | 'megaphone' | 'handshake' | 'family' | 'pipeline' | 'list' | 'building' | 'shield' | 'users' | 'chat' | 'news';
+  | 'megaphone' | 'handshake' | 'family' | 'pipeline' | 'list' | 'building' | 'shield' | 'users' | 'chat' | 'news'
+  | 'grad' | 'bell' | 'tag' | 'chart';
 
 /** Servicios comunes: todos los usuarios los tienen. */
 export const COMMON_SERVICES: NavItem[] = [
@@ -31,12 +32,14 @@ export const PERSONAL_SERVICES: Record<AppRole, NavItem[]> = {
   athlete: [
     { href: '/app/athlete', label: 'Mi camino', icon: 'path' },
     { href: '/app/athlete/passport', label: 'Mi Passport', icon: 'id' },
+    { href: '/app/academia', label: 'Academia SAT/TOEFL', icon: 'grad' },
     { href: '/app/applications', label: 'Mis candidaturas', icon: 'inbox' },
     { href: '/app/campaigns', label: 'Ofertas de marcas', icon: 'megaphone' },
     { href: '/app/agents', label: 'Agentes', icon: 'handshake' },
   ],
   parent: [
     { href: '/app/family', label: 'Panel familiar', icon: 'family' },
+    { href: '/app/academia', label: 'Academia SAT/TOEFL', icon: 'grad' },
   ],
   university: [
     { href: '/app/opportunities?view=mine', label: 'Nuestras becas', icon: 'trophy' },
@@ -60,6 +63,7 @@ export const PERSONAL_SERVICES: Record<AppRole, NavItem[]> = {
     { href: '/app/organization', label: 'Marca', icon: 'building' },
   ],
   admin: [
+    { href: '/app/admin/panel', label: 'Panel de mando', icon: 'chart' },
     { href: '/app/admin', label: 'Revisión y verificación', icon: 'shield' },
   ],
 };
@@ -74,6 +78,13 @@ export function sidebarFor(roles: AppRole[]): NavSection[] {
     const label = role === 'admin' ? 'Admin' : `Espacio ${ACTORS.find((a) => a.role === role)?.label.toLowerCase()}`;
     sections.push({ title: label, items: PERSONAL_SERVICES[role] });
   }
-  sections.push({ title: 'Cuenta', items: [{ href: '/app/settings', label: 'Privacidad y datos', icon: 'shield' }] });
+  sections.push({
+    title: 'Cuenta',
+    items: [
+      { href: '/app/notifications', label: 'Notificaciones', icon: 'bell' },
+      { href: '/precios', label: 'Planes y servicios', icon: 'tag' },
+      { href: '/app/settings', label: 'Privacidad y datos', icon: 'shield' },
+    ],
+  });
   return sections;
 }

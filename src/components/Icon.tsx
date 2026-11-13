@@ -22,6 +22,10 @@ const PATHS: Record<IconName, string> = {
   chat: 'M3 5h14v9H8l-4 3v-3H3zM6 9h8M6 11.5h5',
   news: 'M3 4h11v12H5a2 2 0 0 1-2-2zM14 7h3v7a2 2 0 0 1-2 2M6 7h5M6 10h5M6 13h3',
   users: 'M7 8a2.5 2.5 0 1 0 0-.01M2.5 16c0-2.7 2-4.5 4.5-4.5s4.5 1.8 4.5 4.5M13 6a2 2 0 1 1 0 4M13.5 12c2 .3 3.5 1.8 3.5 4',
+  grad: 'M2 7.5 10 4l8 3.5-8 3.5zM5 9v4c0 1.2 2.2 2.5 5 2.5s5-1.3 5-2.5V9M18 7.5V12',
+  bell: 'M5 13V9a5 5 0 0 1 10 0v4l1.5 2h-13zM8.5 17a1.5 1.5 0 0 0 3 0',
+  tag: 'M3 10V3h7l7 7-7 7zM6.5 6.5h.01',
+  chart: 'M3 17h14M5 14V9M9 14V5M13 14v-3M17 14V7',
 };
 
 export function Icon({ name, className = 'h-[18px] w-[18px]' }: { name: IconName; className?: string }) {

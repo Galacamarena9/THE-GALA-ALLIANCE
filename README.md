@@ -15,6 +15,15 @@ Stack: Next.js 16 (App Router) · Supabase (Postgres + Auth + RLS) · Netlify ·
 Admin (Trust & Safety): verificación de organizaciones, revisión de becas y ofertas, cola de denuncias DSA,
 solicitudes RGPD, verificación de enlaces e importación de universidades desde College Scorecard.
 
+Además:
+- **Academia SAT/TOEFL** (SAT digital y TOEFL 2026, práctica con explicación, calendario oficial).
+- **Búsquedas guardadas con alertas** respetando la RLS, **novedades del atleta**, **notificaciones internas** y **bloqueo efectivo**.
+- Tema oscuro, claro y de alto contraste.
+- Negocio: **/precios** (gratis para atletas; Core 247 € y Elite 497 € para familias; planes para organizaciones), con pipeline comercial concierge.
+- **Panel de mando** del admin (North Star, embudo, colas, liquidez por posición y feedback del piloto).
+
+Documentación: [modelo de negocio](docs/BUSINESS_MODEL.md) · [qué se portó de Lovable y por qué](docs/LOVABLE_PORT.md) · [despliegue](docs/DEPLOYMENT.md).
+
 ## Seguridad y legal (resumen)
 
 - **RLS en todas las tablas**, probada con 84 casos por rol (`npm run test:rls`).

@@ -9,10 +9,18 @@ import { signOut } from '@/app/actions/auth';
 import { cx } from '@/components/ui';
 import { Sidebar } from './Sidebar';
 import { MobileNav } from './MobileNav';
+import { createClient } from '@/lib/supabase/server';
+import { ThemeToggle } from '@/components/growth';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await requireSession();
   const sections = sidebarFor(session.roles);
+  const supabase = await createClient();
+  const { count: unread } = await supabase
+    .from('notifications')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', session.userId)
+    .is('read_at', null);
 
   return (
     <div className="min-h-dvh">
@@ -51,6 +59,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               <span className="block text-paper">{session.displayName}</span>
               <span className="text-faint">{session.roles.map(roleLabel).join(' · ')}</span>
             </span>
+            <div className="hidden lg:block"><ThemeToggle /></div>
+            <Link href="/app/notifications" className="relative rounded-lg p-1.5 text-muted hover:bg-surface hover:text-paper" aria-label={unread ? `Notificaciones: ${unread} sin leer` : 'Notificaciones'}>
+              <Icon name="bell" className="h-5 w-5" />
+              {!!unread && <span className="absolute -right-0.5 -top-0.5 min-w-4 rounded-full bg-brass px-1 text-center text-[10px] font-semibold leading-4 text-ink">{unread > 9 ? '9+' : unread}</span>}
+            </Link>
             <form action={signOut}>
               <button className="rounded-lg px-2.5 py-1.5 text-sm text-muted hover:bg-surface hover:text-paper">Salir</button>
             </form>

@@ -34,6 +34,22 @@ const SERVICES = [
   ['Gala IA', 'Tu asistente del proceso y buscador de talento en lenguaje natural.'],
 ];
 
+const STEPS = [
+  ['Crea tu Passport', 'Deporte, posición, vídeo, notas e idiomas en un perfil comparable. Gratis y con privacidad por bloques.'],
+  ['Mira dónde encajas', 'Encaje explicado con universidades y becas revisadas, y el coste neto real para tu familia.'],
+  ['Conecta con seguridad', 'Solo organizaciones verificadas pueden contactar. Con menores, la familia aprueba y ve la conversación.'],
+  ['Decide con datos', 'Compara ofertas, sigue tus plazos y prepara SAT y TOEFL con la Academia.'],
+];
+
+const FAQ: [string, string][] = [
+  ['¿Cuánto cuesta?', 'Para atletas es gratis para siempre: perfil, escaparate, candidaturas y recibir contacto. Las familias que quieren ayuda experta pueden contratar servicios de pago único; las organizaciones tienen sus propios planes.'],
+  ['¿Pagar da más visibilidad?', 'No. Ningún plan compra prioridad en el escaparate ni "destacados". El orden depende del encaje con lo que busca cada organización.'],
+  ['¿Garantizáis una beca?', 'No, y desconfía de quien lo haga. Organizamos la información y el proceso; la decisión es de la universidad y de la familia.'],
+  ['¿Es seguro para menores?', 'Sí, por diseño: perfiles privados para anónimos, marcas y agentes; contacto solo de organizaciones verificadas y con la familia en el circuito; sin publicidad perfilada.'],
+  ['¿Necesito el SAT o el TOEFL?', 'La NCAA no exige SAT/ACT desde 2023, pero muchas universidades piden un examen de inglés y algunas el SAT para admisión o becas académicas. La Academia te ayuda a prepararlos.'],
+  ['¿De dónde salen los datos de las universidades?', 'Del College Scorecard del U.S. Department of Education y de las webs oficiales de cada universidad, siempre con la fuente y la fecha visibles.'],
+];
+
 const TRUST = [
   'Perfiles de menores privados por defecto, nunca visibles para marcas ni agentes.',
   'Universidades, clubes, agencias y marcas verificadas antes de publicar o contactar.',
@@ -106,6 +122,23 @@ export default function Home() {
           </div>
         </section>
 
+        <section aria-labelledby="como" className="mx-auto max-w-6xl px-5 py-16 sm:px-8">
+          <h2 id="como" className="text-3xl text-paper">Cómo funciona</h2>
+          <ol className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {STEPS.map(([t, d], i) => (
+              <li key={t} className="rounded-[var(--radius-card)] border border-line bg-surface p-6">
+                <p className="font-display text-sm italic text-brass">0{i + 1}</p>
+                <h3 className="mt-2 text-lg text-paper">{t}</h3>
+                <p className="mt-2 text-sm text-muted">{d}</p>
+              </li>
+            ))}
+          </ol>
+          <div className="mt-8 flex flex-wrap items-center gap-3">
+            <ButtonLink href="/precios" variant="secondary">Ver planes y precios</ButtonLink>
+            <span className="text-sm text-faint">Gratis para atletas, para siempre.</span>
+          </div>
+        </section>
+
         <section className="mx-auto max-w-6xl px-5 py-20 sm:px-8">
           <div className="grid gap-10 rounded-[var(--radius-card)] border border-brass/30 bg-surface p-8 sm:grid-cols-[1fr_1.2fr] sm:p-12">
             <div>
@@ -123,8 +156,33 @@ export default function Home() {
             </ul>
           </div>
         </section>
+        <section aria-labelledby="faq" className="mx-auto max-w-4xl px-5 pb-20 sm:px-8">
+          <h2 id="faq" className="text-3xl text-paper">Preguntas frecuentes</h2>
+          <div className="mt-8 divide-y divide-line rounded-[var(--radius-card)] border border-line bg-surface">
+            {FAQ.map(([q, a]) => (
+              <details key={q} className="group px-6 py-4">
+                <summary className="cursor-pointer list-none text-[15px] text-paper marker:hidden">
+                  <span className="mr-2 text-brass group-open:hidden">+</span><span className="mr-2 hidden text-brass group-open:inline">−</span>{q}
+                </summary>
+                <p className="mt-2 text-sm leading-relaxed text-muted">{a}</p>
+              </details>
+            ))}
+          </div>
+        </section>
       </main>
 
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@graph': [
+              { '@type': 'Organization', name: 'The Gala Alliance', description: 'Plataforma de reclutamiento deportivo internacional y becas en Estados Unidos.' },
+              { '@type': 'FAQPage', mainEntity: FAQ.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })) },
+            ],
+          }).replace(/</g, '\\u003c'),
+        }}
+      />
       <PublicFooter />
     </div>
   );

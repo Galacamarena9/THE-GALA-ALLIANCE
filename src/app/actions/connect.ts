@@ -54,7 +54,7 @@ export async function sendMessage(_prev: FormState, formData: FormData): Promise
 }
 
 const REASONS = ['child_safety', 'harassment', 'fake_or_misleading', 'spam', 'illegal_content', 'privacy', 'other'] as const;
-const ENTITIES = ['athlete_profile', 'opportunity', 'campaign', 'organization', 'contact_request', 'news_post', 'institution'] as const;
+const ENTITIES = ['athlete_profile', 'opportunity', 'campaign', 'organization', 'contact_request', 'news_post', 'institution', 'athlete_update'] as const;
 
 export async function reportContent(_prev: FormState, formData: FormData): Promise<FormState> {
   await requireSession();

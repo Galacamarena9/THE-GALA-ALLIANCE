@@ -17,6 +17,7 @@ export function PublicHeader() {
             <li className="mx-1 h-4 w-px bg-line-strong" aria-hidden />
             <li><Link href="/guia" className="rounded-full px-3 py-1.5 text-muted hover:bg-surface hover:text-paper">Guía</Link></li>
             <li><Link href="/calculadora" className="rounded-full px-3 py-1.5 text-muted hover:bg-surface hover:text-paper">Calculadora</Link></li>
+            <li><Link href="/precios" className="rounded-full px-3 py-1.5 text-muted hover:bg-surface hover:text-paper">Precios</Link></li>
           </ul>
         </nav>
         <div className="flex items-center gap-2">

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { FeedbackForm } from '@/components/growth';
 import { requireSession } from '@/lib/session';
 import { COMMON_SERVICES, PERSONAL_SERVICES } from '@/lib/domain/navigation';
 import { roleHome, roleLabel } from '@/lib/domain/roles';
@@ -63,6 +64,11 @@ export default async function HomePage() {
             </li>
           ))}
         </ul>
+      </section>
+      <section aria-labelledby="feedback" className="mt-10 max-w-2xl">
+        <h2 id="feedback" className="mb-1 text-xl text-paper">Ayúdanos a mejorarla</h2>
+        <p className="mb-3 text-sm text-muted">Estamos en piloto. Si algo no funciona o te falta, cuéntanoslo: lo lee el equipo fundador.</p>
+        <FeedbackForm page="/app" />
       </section>
     </>
   );

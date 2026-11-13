@@ -36,13 +36,31 @@ export const LEGAL: LegalDoc[] = [
         ],
       },
       {
+        heading: 'Base jurídica de cada tratamiento',
+        body: [
+          'Cuenta, Passport, candidaturas y mensajes: ejecución del contrato (art. 6.1.b RGPD).',
+          'Perfil visible, novedades, publicaciones con tu nombre, cookies no esenciales y comunicaciones comerciales: consentimiento (art. 6.1.a), retirable en cualquier momento.',
+          'Seguridad, prevención del fraude, moderación y métricas agregadas del servicio: interés legítimo (art. 6.1.f).',
+          'Atención de derechos, registros de consentimiento y obligaciones del DSA: obligación legal (art. 6.1.c).',
+          'Solicitudes de planes y servicios: medidas precontractuales a petición tuya (art. 6.1.b).',
+        ],
+      },
+      {
         heading: 'Bases jurídicas',
         body: [
           'Ejecución del contrato (prestar el servicio que solicitas), consentimiento (perfil visible, publicaciones con tu nombre, cookies no esenciales), interés legítimo (seguridad, prevención de fraude y moderación) y obligación legal (atención de derechos, DSA).',
           'Menores en España: desde los 14 años pueden consentir por sí mismos cuando la base es el consentimiento; por debajo, se requiere el de quien ejerza la patria potestad o tutela (art. 7 LOPDGDD). No admitimos cuentas de menores de 13 años.',
         ],
       },
-      { heading: 'Con quién compartimos', body: ['Con las organizaciones verificadas que tú eliges (al aplicar, aceptar un contacto o una representación) y con proveedores encargados del tratamiento: alojamiento y base de datos (Supabase), despliegue (Netlify) y asistente de IA (Anthropic, sin almacenar conversaciones). Contratos de encargo y transferencias internacionales: [completar con DPA y garantías].'] },
+      { heading: 'Con quién compartimos', body: ['Con las organizaciones verificadas que tú eliges (al aplicar, aceptar un contacto o una representación) y con proveedores encargados del tratamiento.'] },
+      {
+        heading: 'Encargados del tratamiento',
+        body: [
+          'Supabase (base de datos, autenticación y almacenamiento) · Netlify (alojamiento web) · Anthropic (asistente Gala IA; no usamos tus conversaciones para entrenar modelos).',
+          'Cuando se activen: Resend (emails transaccionales) y Stripe (pagos). Se informará antes de activarlos.',
+          'Contratos de encargo (DPA) y garantías para transferencias internacionales: [completar con cada proveedor antes del lanzamiento].',
+        ],
+      },
       { heading: 'Conservación', body: ['Mientras tu cuenta esté activa y, tras su cierre, el plazo mínimo necesario para atender responsabilidades legales. Registros de consentimiento y auditoría: [plazo a validar].'] },
       { heading: 'Tus derechos', body: ['Acceso, rectificación, supresión, oposición, limitación y portabilidad desde Privacidad y datos (descarga en JSON y solicitudes con seguimiento). Respondemos en un mes. Puedes reclamar ante la Agencia Española de Protección de Datos (aepd.es).'] },
       { heading: 'Registros educativos (EE. UU.)', body: ['Cuando una institución educativa estadounidense nos encargue tratar registros educativos de sus estudiantes, lo haremos únicamente bajo contrato y conforme a FERPA, como proveedor de servicios bajo el control directo de la institución. [Revisión jurídica en EE. UU. pendiente].'] },
@@ -56,7 +74,15 @@ export const LEGAL: LegalDoc[] = [
       { heading: 'Cuentas', body: ['Edad mínima: 13 años. Familias, universidades, coaches, agentes y marcas deben ser mayores de edad. Las organizaciones se verifican antes de publicar o contactar.'] },
       { heading: 'Contenido y conducta', body: ['Eres responsable de la veracidad de tus datos. Está prohibido publicar información falsa, suplantar organizaciones, pedir datos de contacto a menores fuera de la plataforma o hacer ofertas que condicionen resultados deportivos a pagos.'] },
       { heading: 'Moderación y recursos (DSA)', body: ['Puedes denunciar cualquier contenido. Revisamos cada denuncia, priorizando la seguridad infantil, y comunicamos decisiones motivadas. Puedes recurrir una decisión escribiendo a [email].'] },
-      { heading: 'Servicios de pago', body: ['[Completar cuando se activen: precios, renovación, desistimiento de 14 días cuando corresponda y reembolsos].'] },
+      {
+        heading: 'Planes y servicios de pago',
+        body: [
+          'Para atletas, el perfil, el escaparate, las candidaturas y recibir contacto son gratuitos. Ningún plan compra visibilidad ni prioridad en búsquedas, ni garantiza admisión, beca o contrato.',
+          'Los servicios para familias (Core y Elite) son de pago único; los planes para organizaciones se detallan en /precios. Solicitar un plan no genera ningún cargo: el precio y el alcance se confirman por escrito antes de pagar.',
+          'Consumidores: derecho de desistimiento de 14 días naturales cuando corresponda; si pides que el servicio empiece antes, se descontará la parte ya prestada. [Completar con el formulario de desistimiento y la política de reembolsos antes de activar cobros].',
+        ],
+      },
+      { heading: 'Resolución de conflictos', body: ['Escríbenos primero a [email]. Como consumidor, puedes acudir a los tribunales de tu domicilio y a los organismos de consumo de tu comunidad autónoma. [Indicar si nos adherimos a una entidad de resolución alternativa de litigios]. La plataforma europea ODR cerró el 20 de julio de 2025, por eso no se enlaza.'] },
     ],
   },
   {

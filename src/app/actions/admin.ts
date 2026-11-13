@@ -85,6 +85,8 @@ const SCORECARD_FIELDS = [
   'school.price_calculator_url',
   'latest.cost.attendance.academic_year',
   'latest.cost.tuition.out_of_state',
+  'latest.admissions.sat_scores.average.overall',
+  'latest.admissions.admission_rate.overall',
 ].join(',');
 
 const toHttps = (u: unknown) => {
@@ -123,6 +125,8 @@ export async function importFromScorecard(_prev: FormState, formData: FormData):
     price_calculator_url: toHttps(r['school.price_calculator_url']),
     cost_attendance_usd: typeof r['latest.cost.attendance.academic_year'] === 'number' ? Math.round(r['latest.cost.attendance.academic_year'] as number) : null,
     tuition_out_of_state_usd: typeof r['latest.cost.tuition.out_of_state'] === 'number' ? Math.round(r['latest.cost.tuition.out_of_state'] as number) : null,
+    sat_avg: typeof r['latest.admissions.sat_scores.average.overall'] === 'number' ? Math.round(r['latest.admissions.sat_scores.average.overall'] as number) : null,
+    admission_rate: typeof r['latest.admissions.admission_rate.overall'] === 'number' ? Number((r['latest.admissions.admission_rate.overall'] as number).toFixed(4)) : null,
     data_source: 'college_scorecard',
     source_fetched_at: now,
   }));

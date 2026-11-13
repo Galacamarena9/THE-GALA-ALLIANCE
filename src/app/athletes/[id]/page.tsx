@@ -32,6 +32,7 @@ export default async function AthleteProfilePage({ params }: { params: Promise<{
   const { profile: p, person, academics, stats, languages, achievements } = passport;
   const catalog = await loadCatalog();
   const { data: links } = await supabase.from('athlete_links').select('id, kind, url, verified').eq('athlete_id', id);
+  const { data: updates } = await supabase.from('athlete_updates').select('id, kind, body, link_url, created_at').eq('athlete_id', id).gt('expires_at', new Date().toISOString()).order('created_at', { ascending: false }).limit(5);
   const sport = catalog.sports.find((s) => s.id === p.sport_id)?.name_es;
   const pos = catalog.positions.find((x) => x.id === p.primary_position_id)?.name_es;
   const pos2 = catalog.positions.find((x) => x.id === p.secondary_position_id)?.name_es;
@@ -110,6 +111,19 @@ export default async function AthleteProfilePage({ params }: { params: Promise<{
                 </ul>
               ) : <EmptyState title="Estadísticas no visibles o sin datos" />}
             </Card>
+            {!!updates?.length && (
+              <Card>
+                <CardTitle kicker="Últimos 30 días">Novedades</CardTitle>
+                <ul className="divide-y divide-line">
+                  {updates.map((u) => (
+                    <li key={u.id} className="flex items-start justify-between gap-3 py-2 text-sm">
+                      <span className="text-paper">{u.body}{u.link_url && <> · <a href={u.link_url} target="_blank" rel="noopener noreferrer" className="text-brass hover:underline">{domainOf(u.link_url)} ↗</a></>}</span>
+                      {session && !isOwner && <ReportButton entityType="athlete_update" entityId={u.id} label="Denunciar" />}
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            )}
             {p.bio && <Card><CardTitle kicker="Sobre mí">Presentación</CardTitle><p className="whitespace-pre-line text-muted">{p.bio}</p></Card>}
             {achievements.length > 0 && (
               <Card>

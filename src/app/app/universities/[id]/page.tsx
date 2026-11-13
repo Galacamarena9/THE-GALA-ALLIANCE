@@ -60,7 +60,10 @@ export default async function UniversityPage({ params }: { params: Promise<{ id:
             <dl className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-xl bg-ink/50 p-4"><dt className="text-xs text-faint">Coste total anual (media)</dt><dd className="font-display text-2xl tabular-nums text-paper">{usd(inst.cost_attendance_usd)}</dd></div>
               <div className="rounded-xl bg-ink/50 p-4"><dt className="text-xs text-faint">Matrícula (no residentes del estado)</dt><dd className="font-display text-2xl tabular-nums text-paper">{usd(inst.tuition_out_of_state_usd)}</dd></div>
+              <div className="rounded-xl bg-ink/50 p-4"><dt className="text-xs text-faint">SAT medio de admitidos</dt><dd className="font-display text-2xl tabular-nums text-paper">{inst.sat_avg ?? 'Sin dato'}</dd></div>
+              <div className="rounded-xl bg-ink/50 p-4"><dt className="text-xs text-faint">Tasa de admisión</dt><dd className="font-display text-2xl tabular-nums text-paper">{inst.admission_rate == null ? 'Sin dato' : `${Math.round(Number(inst.admission_rate) * 100)} %`}</dd></div>
             </dl>
+            <p className="mt-3 text-xs text-muted">El SAT medio orienta tu preparación, no es un mínimo: muchas universidades son test-optional. Prepáralo en la <a href="/app/academia" className="text-brass hover:underline">Academia</a>.</p>
             <p className="mt-4 text-xs text-faint">
               Fuente: {inst.data_source === 'college_scorecard' ? <a className="text-brass hover:underline" href="https://collegescorecard.ed.gov/" target="_blank" rel="noopener noreferrer">College Scorecard, U.S. Department of Education ↗</a> : 'introducido por el equipo'}
               {inst.source_fetched_at && ` · consultado el ${new Date(inst.source_fetched_at).toLocaleDateString('es-ES')}`}.

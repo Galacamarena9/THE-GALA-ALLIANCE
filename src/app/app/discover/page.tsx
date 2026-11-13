@@ -9,6 +9,7 @@ import { AthleteCard, type DirectoryRow } from '@/components/AthleteCard';
 import { EmptyState, Notice, PageHeader, inputClass } from '@/components/ui';
 import { saveAthlete } from '@/app/actions/lists';
 import { AiSearchBar } from '@/components/AiSearchBar';
+import { SaveSearchForm } from '@/components/growth';
 
 export const metadata: Metadata = { title: 'Descubrir talento' };
 
@@ -122,6 +123,11 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
         </div>
       </form>
 
+      {canSave && (
+        <div className="mb-4">
+          <SaveSearchForm filters={Object.fromEntries((['sport', 'position', 'grad', 'division', 'gpa', 'video', 'q'] as const).filter((k) => sp[k]).map((k) => [k, String(sp[k])]))} />
+        </div>
+      )}
       {gpaNote && <p className="mb-4 text-xs text-faint">{gpaNote}</p>}
       {error && <Notice tone="danger">No se ha podido cargar el directorio.</Notice>}
       <p className="mb-4 text-sm text-muted">{count ?? 0} atleta(s)</p>

@@ -14,7 +14,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="es">
+    <html lang="es" suppressHydrationWarning>
+      <head>
+        {/* Aplica el tema elegido antes de pintar (evita parpadeo). Preferencia de interfaz, sin datos personales. */}
+        <script dangerouslySetInnerHTML={{ __html: "try{var t=localStorage.getItem('tga_theme');if(t==='light'||t==='contrast')document.documentElement.dataset.theme=t}catch(e){}" }} />
+      </head>
       <body className="min-h-dvh">
         {children}
         <CookieBanner />

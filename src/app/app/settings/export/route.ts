@@ -12,7 +12,8 @@ export async function GET() {
   if (!uid) return NextResponse.json({ error: 'auth_required' }, { status: 401 });
 
   const own = (table: string, column = 'user_id') => supabase.from(table).select('*').eq(column, uid);
-  const [profile, privateData, roles, athlete, academics, finances, stats, languages, achievements, links, applications, saved, consents, requests] =
+  const [profile, privateData, roles, athlete, academics, finances, stats, languages, achievements, links, applications, saved, consents, requests,
+    updates, academyProgress, academyAttempts, searches, notifications, serviceRequests, feedback] =
     await Promise.all([
       own('profiles', 'id'),
       own('private_profile_data'),
@@ -28,6 +29,13 @@ export async function GET() {
       own('saved_athletes', 'owner_id'),
       own('consents'),
       own('data_subject_requests'),
+      own('athlete_updates', 'athlete_id'),
+      own('academy_progress'),
+      own('academy_attempts'),
+      own('saved_searches', 'owner_id'),
+      own('notifications'),
+      own('service_requests'),
+      own('user_feedback'),
     ]);
 
   const body = {
@@ -47,6 +55,12 @@ export async function GET() {
     saved_athletes: saved.data,
     consents: consents.data,
     data_requests: requests.data,
+    athlete_updates: updates.data,
+    academy: { progress: academyProgress.data, attempts: academyAttempts.data },
+    saved_searches: searches.data,
+    notifications: notifications.data,
+    service_requests: serviceRequests.data,
+    feedback: feedback.data,
   };
 
   return new NextResponse(JSON.stringify(body, null, 2), {

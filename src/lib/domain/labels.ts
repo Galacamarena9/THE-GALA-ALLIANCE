@@ -134,3 +134,8 @@ export function daysUntil(date: string, now: number = Date.now()) {
 export function daysSince(iso: string, now: number = Date.now()) {
   return Math.floor((now - new Date(iso).getTime()) / 86_400_000);
 }
+
+/** Semilla que cambia cada minuto (para barajar preguntas de forma estable en servidor y cliente). */
+export function minuteSeed(now: number = Date.now()) {
+  return Math.floor(now / 60_000);
+}
