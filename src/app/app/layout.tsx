@@ -1,16 +1,24 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
+import { Bell, Sparkles } from 'lucide-react';
 import { Logo } from '@/components/Logo';
-import { Icon } from '@/components/Icon';
 import { requireSession } from '@/lib/session';
-import { ACTORS, roleLabel } from '@/lib/domain/roles';
+import { roleLabel } from '@/lib/domain/roles';
 import { sidebarFor } from '@/lib/domain/navigation';
 import { signOut } from '@/app/actions/auth';
-import { cx } from '@/components/ui';
 import { Sidebar } from './Sidebar';
 import { MobileNav } from './MobileNav';
+import { CommandPalette } from './CommandPalette';
+import { UserMenu } from './UserMenu';
 import { createClient } from '@/lib/supabase/server';
-import { ThemeToggle } from '@/components/growth';
+
+/** Perfil "público" de cada tipo de usuario (lo que ven los demás). */
+function profileHref(roles: string[]) {
+  if (roles.includes('athlete')) return '/app/athlete/passport';
+  if (roles.includes('parent')) return '/app/family';
+  if (roles.some((r) => ['university', 'coach', 'agent', 'brand'].includes(r))) return '/app/organization';
+  return '/app/settings';
+}
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await requireSession();
@@ -24,75 +32,38 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-dvh">
-      <header className="sticky top-0 z-40 border-b border-line bg-ink/90 backdrop-blur">
-        <div className="flex items-center justify-between gap-4 px-4 py-3 sm:px-6">
-          <div className="flex items-center gap-3">
-            <Suspense><MobileNav sections={sections} /></Suspense>
-            <Logo href="/app" />
+      <header className="sticky top-0 z-40 border-b border-line bg-ink/85 backdrop-blur-xl">
+        <div className="flex h-16 items-center gap-3 px-4 sm:px-6">
+          <div className="w-auto shrink-0 lg:w-[232px]"><Logo href="/app" /></div>
+          <div className="flex flex-1 justify-end md:justify-start">
+            <CommandPalette sections={sections} />
           </div>
-          {/* Portales por tipo de usuario: el tuyo resaltado; los demás explican qué ofrece ese lado. */}
-          <nav aria-label="Portales" className="hidden xl:block">
-            <ul className="flex items-center gap-1">
-              {ACTORS.map((a) => {
-                const mine = session.roles.includes(a.role);
-                return (
-                  <li key={a.role}>
-                    <Link
-                      href={`/app/portal/${a.slug}`}
-                      className={cx(
-                        'rounded-full px-3 py-1.5 text-[13px] transition-colors',
-                        mine ? 'bg-brass/15 text-brass' : 'text-muted hover:bg-surface hover:text-paper',
-                      )}
-                    >
-                      {a.plural}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </nav>
-          <div className="flex items-center gap-2">
-            <Link href="/app/ia" className="hidden items-center gap-1.5 rounded-full border border-brass/50 px-3 py-1.5 text-[13px] text-brass hover:bg-brass/10 sm:inline-flex">
-              <Icon name="spark" className="h-4 w-4" /> Gala IA
+          <div className="flex items-center gap-1.5">
+            <Link href="/app/ia" className="btn-shine hidden items-center gap-1.5 rounded-xl border border-brass/40 bg-brass/10 px-3 py-1.5 text-[13px] font-medium text-brass transition-all hover:bg-brass/20 sm:inline-flex">
+              <Sparkles className="h-4 w-4" aria-hidden /> Gala IA
             </Link>
-            <span className="hidden text-right text-xs leading-tight md:block">
-              <span className="block text-paper">{session.displayName}</span>
-              <span className="text-faint">{session.roles.map(roleLabel).join(' · ')}</span>
-            </span>
-            <div className="hidden lg:block"><ThemeToggle /></div>
-            <Link href="/app/notifications" className="relative rounded-lg p-1.5 text-muted hover:bg-surface hover:text-paper" aria-label={unread ? `Notificaciones: ${unread} sin leer` : 'Notificaciones'}>
-              <Icon name="bell" className="h-5 w-5" />
-              {!!unread && <span className="absolute -right-0.5 -top-0.5 min-w-4 rounded-full bg-brass px-1 text-center text-[10px] font-semibold leading-4 text-ink">{unread > 9 ? '9+' : unread}</span>}
+            <Link href="/app/notifications" className="relative rounded-xl p-2 text-muted transition-colors hover:bg-surface hover:text-paper" aria-label={unread ? `Notificaciones: ${unread} sin leer` : 'Notificaciones'}>
+              <Bell className="h-5 w-5" aria-hidden strokeWidth={1.8} />
+              {!!unread && <span className="absolute right-0.5 top-0.5 min-w-4 rounded-full bg-brass px-1 text-center text-[10px] font-bold leading-4 text-ink">{unread > 9 ? '9+' : unread}</span>}
             </Link>
-            <form action={signOut}>
-              <button className="rounded-lg px-2.5 py-1.5 text-sm text-muted hover:bg-surface hover:text-paper">Salir</button>
-            </form>
+            <UserMenu name={session.displayName} roles={session.roles.map(roleLabel).join(' · ')} profileHref={profileHref(session.roles)} signOut={signOut} />
           </div>
         </div>
-        <nav aria-label="Portales" className="overflow-x-auto border-t border-line px-3 xl:hidden">
-          <ul className="flex gap-1 py-1.5">
-            {ACTORS.map((a) => (
-              <li key={a.role}>
-                <Link
-                  href={`/app/portal/${a.slug}`}
-                  className={cx('block whitespace-nowrap rounded-full px-3 py-1 text-xs', session.roles.includes(a.role) ? 'bg-brass/15 text-brass' : 'text-muted')}
-                >
-                  {a.plural}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
       </header>
 
       <div className="flex">
-        <aside className="sticky top-[61px] hidden h-[calc(100dvh-61px)] w-64 shrink-0 overflow-y-auto border-r border-line px-3 py-6 lg:block">
+        <aside className="sticky top-16 hidden h-[calc(100dvh-4rem)] w-[260px] shrink-0 overflow-y-auto border-r border-line bg-ink px-3 py-6 lg:block">
           <Suspense><Sidebar sections={sections} /></Suspense>
+          <div className="mx-3 mt-8 rounded-2xl border border-brass/25 bg-gradient-to-br from-brass/15 to-transparent p-4">
+            <p className="text-sm font-bold text-paper">¿No sabes por dónde empezar?</p>
+            <p className="mt-1 text-xs leading-relaxed text-muted">Pulsa <kbd className="rounded border border-line-strong px-1 text-[10px]">Ctrl K</kbd> y escribe lo que quieres hacer, o pregunta a Gala IA.</p>
+          </div>
         </aside>
-        <main className="min-w-0 flex-1 px-5 py-8 sm:px-8 lg:px-10">
+        <main id="main-content" className="min-w-0 flex-1 px-5 pb-28 pt-8 sm:px-8 lg:px-10 lg:pb-12">
           <div className="mx-auto max-w-6xl">{children}</div>
         </main>
       </div>
+      <Suspense><MobileNav sections={sections} /></Suspense>
     </div>
   );
 }

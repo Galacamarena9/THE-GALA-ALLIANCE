@@ -28,9 +28,9 @@ function Rich({ text }: { text: string }) {
   );
 }
 
-export function AskGala({ compact = false }: { compact?: boolean }) {
+export function AskGala({ compact = false, initialQuestion = '' }: { compact?: boolean; initialQuestion?: string }) {
   const [messages, setMessages] = useState<Msg[]>([]);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState(initialQuestion);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);

@@ -1,36 +1,54 @@
 @import "tailwindcss";
 
-/* Tipografías autoalojadas (sin peticiones a Google: mejor para RGPD y rendimiento). */
+/* Tipografías autoalojadas (sin peticiones a Google: mejor para RGPD y rendimiento). Sora para titulares, Inter para el resto. */
 @import "@fontsource-variable/inter";
-@import "@fontsource/lora/500.css";
-@import "@fontsource/lora/500-italic.css";
-@import "@fontsource/lora/600.css";
+@import "@fontsource-variable/sora";
 
 /*
- * Tokens de The Gala Alliance.
- * Fondo #121212 · superficies #1E1E1E · texto #F5F5F5 · latón mate #C5A059 · bordes #2C2C2C
- * Titulares en serif editorial (Lora); datos y formularios en Inter.
+ * Tokens de The Gala Alliance (estilo heredado de la versión de Lovable).
+ * Fondo azul noche #0A0E1A · tarjetas #0E1220 · bordes #202432 · oro #E2AA28 · verde de confianza #1A9E74.
  */
 @theme {
-  --color-ink: #121212;
-  --color-surface: #1e1e1e;
-  --color-surface-2: #252525;
-  --color-line: #2c2c2c;
-  --color-line-strong: #3a3a3a;
-  --color-paper: #f5f5f5;
-  --color-muted: #a3a3a3;
-  --color-faint: #737373;
-  --color-brass: #c5a059;
-  --color-brass-soft: #d9bf86;
-  --color-brass-deep: #8f7238;
-  --color-ok: #6fbf8e;
-  --color-warn: #e0b45a;
-  --color-danger: #e07a6a;
+  --color-ink: #0a0e1a;
+  --color-surface: #0e1220;
+  --color-surface-2: #161b2c;
+  --color-line: #202432;
+  --color-line-strong: #2f3548;
+  --color-paper: #fafafa;
+  --color-muted: #9097a8;
+  --color-faint: #7a8092;
+  --color-brass: #e2aa28;
+  --color-brass-soft: #ecbe50;
+  --color-brass-deep: #a57a1d;
+  --color-trust: #1a9e74;
+  --color-ok: #3ccf91;
+  --color-warn: #f5b942;
+  --color-danger: #f06b5b;
 
   --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "Lora", Georgia, "Times New Roman", serif;
+  --font-serif: "Sora Variable", "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Sora Variable", "Inter Variable", ui-sans-serif, system-ui, sans-serif;
 
-  --radius-card: 14px;
+  --radius-card: 16px;
+
+  --shadow-gold: 0 4px 24px rgb(226 170 40 / 0.18);
+  --shadow-elevated: 0 4px 24px rgb(0 0 0 / 0.4);
+  --shadow-premium: 0 25px 50px -12px rgb(0 0 0 / 0.6);
+
+  --animate-fade-in-up: fade-in-up 0.6s ease-out both;
+  --animate-float: float 4s ease-in-out infinite;
+  --animate-shimmer: shimmer 2.4s infinite;
+  --animate-gradient-shift: gradient-shift 8s ease infinite;
+  --animate-pulse-glow: pulse-glow 2.4s ease-in-out infinite;
+}
+
+@keyframes fade-in-up { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+@keyframes gradient-shift { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 16px rgb(226 170 40 / 0.15); border-color: rgb(226 170 40 / 0.25); }
+  50% { box-shadow: 0 0 28px rgb(226 170 40 / 0.32); border-color: rgb(226 170 40 / 0.45); }
 }
 
 html {
@@ -41,18 +59,19 @@ html {
 /* Tema claro (recuperado de Lovable, adaptado a la paleta latón). Contrastes AA sobre fondo crema. */
 html[data-theme="light"] {
   color-scheme: light;
-  --color-ink: #f6f3ec;
+  --color-ink: #f5f6fa;
   --color-surface: #ffffff;
-  --color-surface-2: #f0ece3;
-  --color-line: #e2dccf;
-  --color-line-strong: #cfc6b4;
-  --color-paper: #161616;
-  --color-muted: #4f4a42;
-  --color-faint: #6b645a;
-  --color-brass: #85662a;
-  --color-brass-soft: #a5803a;
-  --color-brass-deep: #6e5422;
-  --color-ok: #2f7d4f;
+  --color-surface-2: #eef0f6;
+  --color-line: #dfe2ec;
+  --color-line-strong: #c9cede;
+  --color-paper: #0a0e1a;
+  --color-muted: #4a5063;
+  --color-faint: #5f6578;
+  --color-brass: #8a6410;
+  --color-brass-soft: #a87a14;
+  --color-brass-deep: #6b4e0c;
+  --color-trust: #11795a;
+  --color-ok: #1f7a4d;
   --color-warn: #8a6100;
   --color-danger: #b23b2a;
 }
@@ -84,10 +103,51 @@ body {
 }
 
 h1, h2, h3, .font-display {
-  font-family: var(--font-serif);
-  font-weight: 500;
-  letter-spacing: -0.02em;
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.025em;
 }
+
+/* Aparición al hacer scroll (ver components/Reveal.tsx). Sin JS el contenido se ve igual. */
+.reveal { opacity: 0; transform: translateY(20px); transition: opacity 0.7s ease-out, transform 0.7s cubic-bezier(.2,.8,.2,1); }
+.reveal.is-visible { opacity: 1; transform: none; }
+.reveal-left { transform: translateX(-20px); }
+.reveal-scale { transform: scale(0.97); }
+html:not(.js) .reveal { opacity: 1; transform: none; }
+/* Red de seguridad: si el observador no llega a ejecutarse, el contenido aparece igualmente a los 2,5 s. */
+@keyframes reveal-fallback { to { opacity: 1; transform: none; } }
+.reveal:not(.is-visible) { animation: reveal-fallback 0.6s ease-out 2.5s forwards; }
+
+/* Botón con brillo que recorre la superficie al pasar el ratón. */
+.btn-shine { position: relative; overflow: hidden; isolation: isolate; }
+.btn-shine::after {
+  content: ""; position: absolute; inset: 0; z-index: -1; transform: translateX(-120%);
+  background: linear-gradient(110deg, transparent 30%, rgb(255 255 255 / 0.35) 50%, transparent 70%);
+  transition: transform 0.7s ease;
+}
+.btn-shine:hover::after { transform: translateX(120%); }
+
+/* Texto con degradado dorado animado. */
+.text-gold-gradient {
+  background: linear-gradient(90deg, #f3cf6b, #e2aa28, #f6d98a, #e2aa28);
+  background-size: 300% 100%;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: gradient-shift 8s ease infinite;
+}
+
+/* Rejilla luminosa de fondo y halo. */
+.bg-grid {
+  background-image:
+    linear-gradient(to right, rgb(255 255 255 / 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(255 255 255 / 0.035) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+}
+.glow-gold { background: radial-gradient(closest-side, rgb(226 170 40 / 0.22), transparent); }
+.glow-trust { background: radial-gradient(closest-side, rgb(26 158 116 / 0.18), transparent); }
+
+/* Partículas doradas flotantes (decorativas). */
+.particle { position: absolute; width: 4px; height: 4px; border-radius: 9999px; background: rgb(226 170 40 / 0.55); box-shadow: 0 0 10px rgb(226 170 40 / 0.6); animation: float 6s ease-in-out infinite; }
 
 ::selection {
   background: color-mix(in srgb, var(--color-brass) 35%, transparent);

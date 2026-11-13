@@ -5,13 +5,13 @@ const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).jo
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
 const variantClass: Record<Variant, string> = {
-  primary: 'bg-brass text-ink hover:bg-brass-soft disabled:bg-brass-deep disabled:text-ink/70',
-  secondary: 'border border-line-strong bg-surface text-paper hover:border-brass/60 hover:bg-surface-2',
-  ghost: 'text-muted hover:text-paper hover:bg-surface',
+  primary: 'btn-shine bg-brass font-semibold text-ink shadow-[var(--shadow-gold)] hover:bg-brass-soft disabled:bg-brass-deep disabled:text-ink/70',
+  secondary: 'border border-line-strong bg-surface/60 text-paper backdrop-blur-sm hover:border-brass/50 hover:bg-surface-2',
+  ghost: 'text-muted hover:bg-surface hover:text-paper',
   danger: 'border border-danger/40 text-danger hover:bg-danger/10',
 };
 const base =
-  'inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors disabled:cursor-not-allowed';
+  'inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.97] disabled:cursor-not-allowed disabled:hover:scale-100';
 
 export function Button({ variant = 'primary', className, ...props }: ComponentProps<'button'> & { variant?: Variant }) {
   return <button className={cx(base, variantClass[variant], className)} {...props} />;
@@ -23,7 +23,7 @@ export function ButtonLink({ variant = 'primary', className, ...props }: Compone
 
 export function Card({ className, children, ...props }: ComponentProps<'section'>) {
   return (
-    <section className={cx('rounded-[var(--radius-card)] border border-line bg-surface p-5 sm:p-6', className)} {...props}>
+    <section className={cx('rounded-[var(--radius-card)] border border-line bg-surface p-5 shadow-[inset_0_1px_0_rgb(255_255_255/0.04)] transition-colors duration-300 sm:p-6', className)} {...props}>
       {children}
     </section>
   );
@@ -33,8 +33,8 @@ export function CardTitle({ children, kicker, action }: { children: ReactNode; k
   return (
     <div className="mb-4 flex items-start justify-between gap-4">
       <div>
-        {kicker && <p className="mb-1 text-[11px] font-medium uppercase tracking-[0.16em] text-brass">{kicker}</p>}
-        <h2 className="text-xl text-paper">{children}</h2>
+        {kicker && <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-brass">{kicker}</p>}
+        <h2 className="text-lg font-bold leading-snug text-paper sm:text-xl">{children}</h2>
       </div>
       {action}
     </div>
@@ -44,8 +44,8 @@ export function CardTitle({ children, kicker, action }: { children: ReactNode; k
 type Tone = 'neutral' | 'brass' | 'ok' | 'warn' | 'danger';
 const toneClass: Record<Tone, string> = {
   neutral: 'border-line-strong text-muted',
-  brass: 'border-brass/50 text-brass',
-  ok: 'border-ok/40 text-ok',
+  brass: 'border-brass/40 bg-brass/10 text-brass',
+  ok: 'border-ok/30 bg-ok/10 text-ok',
   warn: 'border-warn/40 text-warn',
   danger: 'border-danger/40 text-danger',
 };
@@ -61,8 +61,8 @@ export function PageHeader({ kicker, title, description, action }: { kicker?: st
   return (
     <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div className="max-w-2xl">
-        {kicker && <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.18em] text-brass">{kicker}</p>}
-        <h1 className="text-3xl text-paper sm:text-4xl">{title}</h1>
+        {kicker && <p className="mb-3 inline-flex items-center rounded-full border border-line bg-surface px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-brass">{kicker}</p>}
+        <h1 className="text-3xl font-bold tracking-tight text-paper sm:text-4xl">{title}</h1>
         {description && <p className="mt-3 text-[15px] leading-relaxed text-muted">{description}</p>}
       </div>
       {action}
@@ -84,12 +84,12 @@ export function Field({ label, hint, error, children, htmlFor }: { label: string
 }
 
 export const inputClass =
-  'w-full rounded-lg border border-line-strong bg-ink px-3 py-2.5 text-sm text-paper placeholder:text-faint transition-colors hover:border-faint focus:border-brass focus:outline-none';
+  'w-full rounded-xl border border-line-strong bg-ink/60 px-3 py-2.5 text-sm text-paper placeholder:text-faint transition-all duration-200 hover:border-faint focus:border-brass/60 focus:outline-none focus:ring-2 focus:ring-brass/20';
 
 export function EmptyState({ title, children, action }: { title: string; children?: ReactNode; action?: ReactNode }) {
   return (
     <div className="flex flex-col items-center rounded-[var(--radius-card)] border border-dashed border-line-strong px-6 py-12 text-center">
-      <p className="font-display text-lg text-paper">{title}</p>
+      <p className="font-display text-lg font-bold text-paper">{title}</p>
       {children && <div className="mt-2 max-w-md text-sm text-muted">{children}</div>}
       {action && <div className="mt-5">{action}</div>}
     </div>

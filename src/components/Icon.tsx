@@ -26,6 +26,11 @@ const PATHS: Record<IconName, string> = {
   bell: 'M5 13V9a5 5 0 0 1 10 0v4l1.5 2h-13zM8.5 17a1.5 1.5 0 0 0 3 0',
   tag: 'M3 10V3h7l7 7-7 7zM6.5 6.5h.01',
   chart: 'M3 17h14M5 14V9M9 14V5M13 14v-3M17 14V7',
+  compare: 'M3 4h4v12H3zM8 4h4v12H8zM13 4h4v12h-4z',
+  doc: 'M5 2h7l4 4v12H5zM12 2v4h4M8 10h6M8 13h6',
+  scale: 'M10 3v14M5 17h10M4 7h12M4 7l-2 5a3 3 0 0 0 4 0L4 7zM16 7l-2 5a3 3 0 0 0 4 0l-2-5',
+  user: 'M10 10a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM3 17c1-3.5 4-5 7-5s6 1.5 7 5',
+  compass: 'M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM13 7l-2 4-4 2 2-4 4-2z',
 };
 
 export function Icon({ name, className = 'h-[18px] w-[18px]' }: { name: IconName; className?: string }) {

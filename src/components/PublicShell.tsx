@@ -1,66 +1,112 @@
 import Link from 'next/link';
+import { ArrowRight, BadgeCheck, Lock, ShieldCheck } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 import { ButtonLink } from '@/components/ui';
+import { MobileMenu } from '@/components/PublicMobileMenu';
 import { ACTORS } from '@/lib/domain/roles';
 
-/** Cabecera pública: secciones por tipo de usuario + servicios comunes. */
+const NAV = [
+  { href: '/#como-funciona', label: 'Cómo funciona' },
+  { href: '/#para-quien', label: 'Para quién' },
+  { href: '/guia', label: 'Guía' },
+  { href: '/calculadora', label: 'Calculadora' },
+  { href: '/precios', label: 'Precios' },
+];
+
+/** Cabecera pública fija con desenfoque, como en la versión de Lovable. */
 export function PublicHeader() {
   return (
-    <header className="relative z-10 border-b border-line/60">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-5 sm:px-8">
-        <Logo />
-        <nav aria-label="Secciones" className="hidden lg:block">
-          <ul className="flex items-center gap-1 text-[13px]">
-            {ACTORS.map((a) => (
-              <li key={a.role}><Link href={`/para/${a.slug}`} className="rounded-full px-3 py-1.5 text-muted hover:bg-surface hover:text-paper">{a.plural}</Link></li>
-            ))}
-            <li className="mx-1 h-4 w-px bg-line-strong" aria-hidden />
-            <li><Link href="/guia" className="rounded-full px-3 py-1.5 text-muted hover:bg-surface hover:text-paper">Guía</Link></li>
-            <li><Link href="/calculadora" className="rounded-full px-3 py-1.5 text-muted hover:bg-surface hover:text-paper">Calculadora</Link></li>
-            <li><Link href="/precios" className="rounded-full px-3 py-1.5 text-muted hover:bg-surface hover:text-paper">Precios</Link></li>
-          </ul>
-        </nav>
-        <div className="flex items-center gap-2">
-          <ButtonLink href="/login" variant="ghost" className="px-3">Entrar</ButtonLink>
-          <ButtonLink href="/signup" className="whitespace-nowrap px-3 sm:px-4">Crear cuenta</ButtonLink>
+    <>
+      <header className="fixed inset-x-0 top-0 z-50 border-b border-brass/20 bg-ink/85 backdrop-blur-xl">
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-[100] focus:rounded-md focus:bg-brass focus:px-4 focus:py-2 focus:text-sm focus:text-ink">
+          Saltar al contenido
+        </a>
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
+          <Logo />
+          <nav aria-label="Principal" className="hidden flex-1 justify-center md:flex">
+            <ul className="flex items-center gap-1">
+              {NAV.map((n) => (
+                <li key={n.href}>
+                  <Link href={n.href} className="rounded-lg px-3 py-2 text-[13px] font-medium text-muted transition-colors hover:text-paper">
+                    {n.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+          <div className="hidden items-center gap-2 md:flex">
+            <ButtonLink href="/login" variant="ghost" className="h-9 px-3 text-[13px]">Iniciar sesión</ButtonLink>
+            <ButtonLink href="/signup" className="h-9 px-4 text-[13px] font-bold">Crear cuenta gratis</ButtonLink>
+          </div>
+          <MobileMenu items={[...NAV, ...ACTORS.map((a) => ({ href: `/para/${a.slug}`, label: `Para ${a.plural.toLowerCase()}` }))]} />
         </div>
-      </div>
-      <nav aria-label="Secciones" className="overflow-x-auto border-t border-line/60 px-3 lg:hidden">
-        <ul className="flex gap-1 py-2 text-xs">
-          {ACTORS.map((a) => <li key={a.role}><Link href={`/para/${a.slug}`} className="block whitespace-nowrap rounded-full px-3 py-1 text-muted">{a.plural}</Link></li>)}
-          <li><Link href="/guia" className="block rounded-full px-3 py-1 text-muted">Guía</Link></li>
-          <li><Link href="/calculadora" className="block rounded-full px-3 py-1 text-muted">Calculadora</Link></li>
-        </ul>
-      </nav>
-    </header>
+      </header>
+      <div className="h-16" aria-hidden />
+    </>
   );
 }
 
 export function PublicFooter() {
   return (
-    <footer className="border-t border-line">
-      <div className="mx-auto grid max-w-6xl gap-8 px-5 py-10 text-sm text-faint sm:grid-cols-3 sm:px-8">
-        <div>
+    <footer className="border-t border-line/60 bg-ink">
+      <div className="border-b border-line/40">
+        <div className="mx-auto flex max-w-5xl flex-col items-start justify-between gap-6 px-6 py-10 md:flex-row md:items-center">
+          <div>
+            <h3 className="mb-1 text-lg font-bold text-paper">Empieza hoy, es gratis para atletas</h3>
+            <p className="text-sm text-muted">Tu Passport en minutos. La visibilidad nunca se paga.</p>
+          </div>
+          <ButtonLink href="/signup?role=athlete" className="group px-6">
+            Crear mi Passport <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden />
+          </ButtonLink>
+        </div>
+      </div>
+      <div className="mx-auto grid max-w-7xl grid-cols-2 gap-10 px-6 py-14 md:grid-cols-5 md:gap-8">
+        <div className="col-span-2 md:col-span-2">
           <Logo />
-          <p className="mt-3 max-w-xs">La plataforma de confianza para el reclutamiento deportivo internacional.</p>
+          <p className="mt-5 max-w-xs text-sm leading-relaxed text-muted">
+            La plataforma de confianza para el reclutamiento deportivo internacional: datos oficiales, organizaciones verificadas y coste real.
+          </p>
         </div>
         <nav aria-label="Para quién">
-          <p className="mb-2 text-paper">Para</p>
-          <ul className="space-y-1.5">{ACTORS.map((a) => <li key={a.role}><Link href={`/para/${a.slug}`} className="hover:text-paper">{a.plural}</Link></li>)}</ul>
+          <h4 className="mb-5 text-xs font-bold uppercase tracking-[0.2em] text-paper">Para</h4>
+          <ul className="space-y-2.5 text-sm">
+            {ACTORS.map((a) => (
+              <li key={a.role}><Link href={`/para/${a.slug}`} className="text-muted transition-colors hover:text-brass">{a.plural}</Link></li>
+            ))}
+          </ul>
+        </nav>
+        <nav aria-label="Recursos">
+          <h4 className="mb-5 text-xs font-bold uppercase tracking-[0.2em] text-paper">Recursos</h4>
+          <ul className="space-y-2.5 text-sm">
+            <li><Link href="/guia" className="text-muted transition-colors hover:text-brass">Guía oficial del proceso</Link></li>
+            <li><Link href="/calculadora" className="text-muted transition-colors hover:text-brass">Calculadora de coste real</Link></li>
+            <li><Link href="/precios" className="text-muted transition-colors hover:text-brass">Planes y precios</Link></li>
+            <li><Link href="/inversores" className="text-muted transition-colors hover:text-brass">Inversores</Link></li>
+            <li><Link href="/signup" className="text-muted transition-colors hover:text-brass">Crear cuenta</Link></li>
+          </ul>
         </nav>
         <nav aria-label="Legal">
-          <p className="mb-2 text-paper">Legal y confianza</p>
-          <ul className="space-y-1.5">
-            <li><Link href="/legal/privacidad" className="hover:text-paper">Privacidad</Link></li>
-            <li><Link href="/legal/terminos" className="hover:text-paper">Términos</Link></li>
-            <li><Link href="/legal/cookies" className="hover:text-paper">Cookies</Link></li>
-            <li><Link href="/legal/proteccion-menores" className="hover:text-paper">Protección de menores</Link></li>
-            <li><Link href="/legal/normas" className="hover:text-paper">Normas de la comunidad</Link></li>
-            <li><Link href="/legal/aviso-legal" className="hover:text-paper">Aviso legal</Link></li>
+          <h4 className="mb-5 text-xs font-bold uppercase tracking-[0.2em] text-paper">Legal</h4>
+          <ul className="space-y-2.5 text-sm">
+            <li><Link href="/legal/privacidad" className="text-muted transition-colors hover:text-brass">Privacidad</Link></li>
+            <li><Link href="/legal/terminos" className="text-muted transition-colors hover:text-brass">Términos</Link></li>
+            <li><Link href="/legal/cookies" className="text-muted transition-colors hover:text-brass">Cookies</Link></li>
+            <li><Link href="/legal/proteccion-menores" className="text-muted transition-colors hover:text-brass">Protección de menores</Link></li>
+            <li><Link href="/legal/normas" className="text-muted transition-colors hover:text-brass">Normas de la comunidad</Link></li>
+            <li><Link href="/legal/aviso-legal" className="text-muted transition-colors hover:text-brass">Aviso legal</Link></li>
           </ul>
         </nav>
       </div>
-      <p className="border-t border-line py-5 text-center text-xs text-faint">© {new Date().getFullYear()} The Gala Alliance · No garantizamos admisión, becas ni resultados.</p>
+      <div className="border-t border-line/40">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 py-5 text-xs text-faint md:flex-row">
+          <p>© {new Date().getFullYear()} The Gala Alliance · No garantizamos admisión, becas ni resultados.</p>
+          <div className="flex flex-wrap items-center gap-5">
+            <span className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5 text-brass" aria-hidden />RGPD</span>
+            <span className="flex items-center gap-1.5"><Lock className="h-3.5 w-3.5 text-brass" aria-hidden />Menores protegidos por diseño</span>
+            <span className="flex items-center gap-1.5"><BadgeCheck className="h-3.5 w-3.5 text-brass" aria-hidden />Organizaciones verificadas</span>
+          </div>
+        </div>
+      </div>
     </footer>
   );
 }

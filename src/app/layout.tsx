@@ -17,7 +17,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="es" suppressHydrationWarning>
       <head>
         {/* Aplica el tema elegido antes de pintar (evita parpadeo). Preferencia de interfaz, sin datos personales. */}
-        <script dangerouslySetInnerHTML={{ __html: "try{var t=localStorage.getItem('tga_theme');if(t==='light'||t==='contrast')document.documentElement.dataset.theme=t}catch(e){}" }} />
+        <script dangerouslySetInnerHTML={{ __html: "document.documentElement.classList.add('js');try{var t=localStorage.getItem('tga_theme');if(t==='light'||t==='contrast')document.documentElement.dataset.theme=t}catch(e){}" }} />
       </head>
       <body className="min-h-dvh">
         {children}

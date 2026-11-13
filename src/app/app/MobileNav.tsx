@@ -1,37 +1,66 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { Home, LayoutGrid, Menu, MessageSquare, Trophy, X } from 'lucide-react';
 import type { NavSection } from '@/lib/domain/navigation';
+import { cx } from '@/components/ui';
 import { Sidebar } from './Sidebar';
 
+const TABS = [
+  { href: '/app', label: 'Inicio', Icon: Home },
+  { href: '/app/discover', label: 'Escaparate', Icon: LayoutGrid },
+  { href: '/app/opportunities', label: 'Becas', Icon: Trophy },
+  { href: '/app/inbox', label: 'Mensajes', Icon: MessageSquare },
+];
+
+/** Móvil: barra inferior tipo app (como LinkedIn) + menú completo en panel lateral. */
 export function MobileNav({ sections }: { sections: NavSection[] }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const [lastPath, setLastPath] = useState(pathname);
+  if (pathname !== lastPath) {
+    setLastPath(pathname);
+    setOpen(false);
+  }
   useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : '';
-    return () => {
-      document.body.style.overflow = '';
-    };
+    return () => { document.body.style.overflow = ''; };
   }, [open]);
 
   return (
     <div className="lg:hidden">
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        aria-expanded={open}
-        aria-controls="mobile-sidebar"
-        className="rounded-lg border border-line-strong px-3 py-1.5 text-sm text-paper"
-      >
-        Menú
-      </button>
+      <nav aria-label="Accesos rápidos" className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-ink/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl">
+        <ul className="grid grid-cols-5">
+          {TABS.map(({ href, label, Icon }) => {
+            const active = href === '/app' ? pathname === '/app' : pathname.startsWith(href);
+            return (
+              <li key={href}>
+                <Link href={href} className={cx('flex flex-col items-center gap-1 py-2.5 text-[10.5px]', active ? 'text-brass' : 'text-muted')} aria-current={active ? 'page' : undefined}>
+                  <Icon className="h-5 w-5" aria-hidden strokeWidth={1.8} />
+                  {label}
+                </Link>
+              </li>
+            );
+          })}
+          <li>
+            <button type="button" onClick={() => setOpen(true)} aria-expanded={open} aria-controls="mobile-sidebar" className="flex w-full flex-col items-center gap-1 py-2.5 text-[10.5px] text-muted">
+              <Menu className="h-5 w-5" aria-hidden strokeWidth={1.8} />
+              Todo
+            </button>
+          </li>
+        </ul>
+      </nav>
       {open && (
-        <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Menú">
-          <button className="absolute inset-0 bg-black/60" aria-label="Cerrar menú" onClick={() => setOpen(false)} />
-          <div id="mobile-sidebar" className="absolute inset-y-0 left-0 w-[84%] max-w-xs overflow-y-auto border-r border-line bg-ink p-4">
-            <button onClick={() => setOpen(false)} className="mb-4 text-sm text-muted">Cerrar ✕</button>
-            <Sidebar key={pathname} sections={sections} onNavigate={() => setOpen(false)} />
+        <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Todas las funciones">
+          <button className="absolute inset-0 bg-black/60 backdrop-blur-sm" aria-label="Cerrar menú" onClick={() => setOpen(false)} />
+          <div id="mobile-sidebar" className="absolute inset-y-0 left-0 w-[86%] max-w-sm overflow-y-auto border-r border-line bg-ink p-4">
+            <div className="mb-4 flex items-center justify-between">
+              <p className="font-display text-lg font-bold text-paper">Todas las funciones</p>
+              <button onClick={() => setOpen(false)} className="rounded-lg p-2 text-muted hover:bg-surface" aria-label="Cerrar"><X className="h-5 w-5" /></button>
+            </div>
+            <Sidebar sections={sections} onNavigate={() => setOpen(false)} />
           </div>
         </div>
       )}
