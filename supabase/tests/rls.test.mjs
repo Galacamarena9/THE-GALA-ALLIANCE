@@ -220,9 +220,11 @@ try {
     await as(u.admin, `update opportunities set status = 'published' where id = $1`, [oppId]);
     eq((await as(null, `select count(*)::int n from opportunities where id = $1`, [oppId])).rows[0].n, 1);
   });
-  await check('si el coach edita una oportunidad publicada, vuelve a revisión', async () => {
+  await check('si el coach edita una oportunidad publicada, se revisa de nuevo (sola si está limpia)', async () => {
     await as(u.coach, `update opportunities set title = 'Point guard 2027 (actualizada)' where id = $1`, [oppId]);
-    eq((await as(u.coach, `select status from opportunities where id = $1`, [oppId])).rows[0].status, 'pending_review');
+    eq((await as(u.coach, `select status from opportunities where id = $1`, [oppId])).rows[0].status, 'published', 'edición limpia:');
+    await as(u.coach, `update opportunities set description = 'Beca con plaza garantizada si haces un depósito previo.' where id = $1`, [oppId]);
+    eq((await as(u.coach, `select status from opportunities where id = $1`, [oppId])).rows[0].status, 'pending_review', 'con alarmas:');
     await as(u.admin, `update opportunities set status = 'published' where id = $1`, [oppId]);
   });
 
@@ -578,6 +580,111 @@ try {
   });
   await check('quien contactó no sabe si fue un rechazo o un bloqueo', async () => {
     eq((await as(u.coach, `select count(*)::int n from notifications where kind = 'contact.closed'`)).rows[0].n, 1);
+  });
+
+  results.push('\nCentro de documentos');
+  await check('el atleta y su familia gestionan documentos; nadie más los ve', async () => {
+    await as(u.minor, `insert into athlete_documents (athlete_id, kind, title, due_date) values ($1, 'transcript', 'Notas de 4.º ESO', '2027-03-01')`, [u.minor]);
+    await as(u.parent, `update athlete_documents set due_date = '2027-02-15' where athlete_id = $1`, [u.minor]).catch(() => {});
+    eq((await as(u.parent, `select count(*)::int n from athlete_documents where athlete_id = $1`, [u.minor])).rows[0].n, 1, 'familia:');
+    eq((await as(u.coach, `select count(*)::int n from athlete_documents where athlete_id = $1`, [u.minor])).rows[0].n, 0, 'coach verificado:');
+    eq((await as(u.admin, `select count(*)::int n from athlete_documents where athlete_id = $1`, [u.minor])).rows[0].n, 0, 'admin:');
+  });
+  await check('la ruta del archivo debe pertenecer al atleta', async () => {
+    await expectError(() => as(u.adult, `insert into athlete_documents (athlete_id, kind, title, storage_path, uploaded_at) values ($1, 'passport', 'Pasaporte', $2, now())`,
+      [u.adult, `${u.minor}/pasaporte.pdf`]), /path_belongs_to_athlete/);
+  });
+
+  results.push('\nPortal de academias y clubes');
+  let clubId; let rosterToken;
+  await check('solo un club verificado crea enlaces de roster', async () => {
+    clubId = (await as(u.coach2, `insert into organizations (name, type, created_by) values ('CB Valencia Academy', 'academy', $1) returning id`, [u.coach2])).rows[0].id;
+    await expectError(() => as(u.coach2, `insert into club_roster_invites (organization_id, created_by, season) values ($1, $2, '2026-27')`, [clubId, u.coach2]));
+    await as(u.admin, `update organizations set verification_status = 'verified' where id = $1`, [clubId]);
+    rosterToken = (await as(u.coach2, `insert into club_roster_invites (organization_id, created_by, season) values ($1, $2, '2026-27') returning token`, [clubId, u.coach2])).rows[0].token;
+  });
+  await check('el atleta se une con consentimiento y el club valida su estadística', async () => {
+    await as(u.adult, `select accept_roster_invitation($1, true)`, [rosterToken]);
+    const stat = (await as(u.adult, `insert into athlete_statistics (athlete_id, stat_definition_id, season, value)
+      values ($1, (select id from sport_stat_definitions where code = 'ppg'), '2026-27', 18.5) returning id`, [u.adult])).rows[0].id;
+    await as(u.coach2, `select club_verify_statistic($1, $2)`, [stat, clubId]);
+    eq((await as(u.adult, `select source::text s from athlete_statistics where id = $1`, [stat])).rows[0].s, 'club_verified');
+    await expectError(() => as(u.adult, `update athlete_statistics set value = 30 where id = $1 returning id`, [stat]).then((r) => { if (!r.rowCount) throw new Error('bloqueado'); }));
+  });
+  await check('un club no valida a quien no está en su roster', async () => {
+    const other = (await as(u.minor, `insert into athlete_statistics (athlete_id, stat_definition_id, season, value)
+      values ($1, (select id from sport_stat_definitions where code = 'rpg'), '2026-27', 7) returning id`, [u.minor])).rows[0].id;
+    await expectError(() => as(u.coach2, `select club_verify_statistic($1, $2)`, [other, clubId]), /not_in_roster/);
+  });
+  await check('el resumen respeta si el atleta comparte su progreso', async () => {
+    eq((await as(u.coach2, `select count(*)::int n from club_roster_summary($1)`, [clubId])).rows[0].n, 1);
+    await as(u.adult, `update club_roster set status = 'left' where athlete_id = $1`, [u.adult]);
+    eq((await as(u.coach2, `select count(*)::int n from club_roster_summary($1)`, [clubId])).rows[0].n, 0);
+    await expectError(() => as(u.brand, `select * from club_roster_summary($1)`, [clubId]), /org_member_required/);
+  });
+
+  results.push('\nEmbudo y conservación');
+  await check('los eventos solo admiten la lista cerrada y solo los lee el admin', async () => {
+    await as(u.adult, `select log_event('passport_saved', '{}')`);
+    await expectError(() => as(u.adult, `select log_event('lo_que_sea', '{}')`));
+    eq((await as(u.brand, `select count(*)::int n from product_events`)).rows[0].n, 0);
+    eq((await as(u.admin, `select count(*)::int n from admin_event_counts(30)`)).rows[0].n >= 1, true);
+  });
+  await check('el borrado automático lo ejecuta el admin o el sistema, nunca un usuario', async () => {
+    await expectError(() => as(u.brand, `select run_retention()`), /admin_only/);
+    await as(u.admin, `select run_retention()`);
+  });
+
+  results.push('\nOperación autónoma');
+  await check('una universidad con email .edu de su web se verifica sola; con gmail espera revisión', async () => {
+    const good = randomUUID(); const bad = randomUUID();
+    await db.query(`insert into auth.users (id, email, raw_user_meta_data, email_confirmed_at) values ($1, 'coach@stateu.edu', '{}', now()), ($2, 'coachstate@gmail.com', '{}', now())`, [good, bad]);
+    for (const id of [good, bad]) {
+      await as(id, `insert into user_roles (user_id, role) values ($1, 'university')`, [id]);
+      await as(id, `insert into private_profile_data (user_id, date_of_birth) values ($1, $2)`, [id, yearsAgo(35)]);
+    }
+    const g = (await as(good, `insert into organizations (name, type, created_by, website, verification_status) values ('State U', 'university', $1, 'https://www.stateu.edu', 'submitted') returning id`, [good])).rows[0].id;
+    const b = (await as(bad, `insert into organizations (name, type, created_by, website, verification_status) values ('Fake State', 'university', $1, 'https://www.stateu.edu', 'submitted') returning id`, [bad])).rows[0].id;
+    eq((await db.query(`select verification_status::text v from organizations where id = $1`, [g])).rows[0].v, 'verified', 'dominio .edu:');
+    eq((await db.query(`select verification_status::text v from organizations where id = $1`, [b])).rows[0].v, 'submitted', 'gmail:');
+  });
+  await check('una oportunidad limpia de una organización verificada se publica sola; con alarmas espera', async () => {
+    const clean = (await as(u.uni, `insert into opportunities (organization_id, created_by, type, title, description, sport_id, status)
+      values ($1, $2, 'athletic_scholarship', 'Beca baloncesto 2028', 'Beca parcial para base internacional con buen expediente.', 'basketball', 'pending_review') returning status`, [uniId, u.uni])).rows[0].status;
+    eq(clean, 'published', 'limpia:');
+    const risky = (await as(u.uni, `insert into opportunities (organization_id, created_by, type, title, description, sport_id, status)
+      values ($1, $2, 'athletic_scholarship', 'Beca garantizada', 'Plaza garantizada con depósito previo por transferencia.', 'basketball', 'pending_review') returning status`, [uniId, u.uni])).rows[0].status;
+    eq(risky, 'pending_review', 'con alarmas:');
+  });
+  await check('una denuncia de seguridad infantil oculta la novedad al momento', async () => {
+    const upd = (await as(u.admin, `select id from athlete_updates where athlete_id = $1 limit 1`, [u.adult])).rows[0].id;
+    await as(u.brand, `insert into content_reports (entity_type, entity_id, reason) values ('athlete_update', $1, 'child_safety')`, [upd]);
+    eq((await as(u.brand, `select count(*)::int n from athlete_updates where id = $1`, [upd])).rows[0].n, 0);
+  });
+  await check('un atleta borra su cuenta él mismo, con consentimientos y candidaturas incluidos', async () => {
+    const leaver = randomUUID();
+    await db.query(`insert into auth.users (id, email, raw_user_meta_data) values ($1, 'leaver@test.dev', $2)`, [leaver, { display_name: 'leaver', date_of_birth: yearsAgo(20) }]);
+    await as(leaver, `insert into user_roles (user_id, role) values ($1, 'athlete')`, [leaver]);
+    await as(leaver, `insert into athlete_profiles (user_id, sport_id, graduation_year) values ($1, 'basketball', 2027)`, [leaver]);
+    await as(leaver, `insert into consents (user_id, purpose, document_version, granted) values ($1, 'terms', '2026-11', true)`, [leaver]);
+    await expectError(() => as(leaver, `select delete_my_account('no')`), /confirmation_required/);
+    await as(leaver, `select delete_my_account('ELIMINAR')`);
+    eq((await db.query(`select count(*)::int n from auth.users where id = $1`, [leaver])).rows[0].n, 0);
+    await as(u.adult, `insert into consents (user_id, purpose, document_version, granted) values ($1, 'terms', '2026-11', true)`, [u.adult]);
+    await expectError(() => db.query(`update consents set granted = false where user_id = $1`, [u.adult]), /immutable_record/);
+  });
+  await check('los planes se conceden por jerarquía: Signature incluye Elite y Core', async () => {
+    await db.query(`insert into entitlements (user_id, plan_code, source, reference) values ($1, 'family_signature', 'stripe', 'cs_test_sig')`, [u.adult]);
+    const r = (await as(u.adult, `select has_plan($1, 'family_core') c, has_plan($1, 'family_elite') e, has_plan($1, 'family_signature') s`, [u.adult])).rows[0];
+    eq(`${r.c}${r.e}${r.s}`, 'truetruetrue');
+    await expectError(() => as(u.adult, `insert into entitlements (user_id, plan_code, source, reference) values ($1, 'family_elite', 'stripe', 'x')`, [u.adult]), /row-level security/);
+  });
+  await check('ofertas externas: solo atleta y familia con permiso, nunca organizaciones', async () => {
+    await as(u.adult, `insert into athlete_offers (athlete_id, university_name, annual_cost_usd, aid_amount_usd) values ($1, 'State University', 60000, 20000)`, [u.adult]);
+    eq((await as(u.adult, `select count(*)::int n from athlete_offers where athlete_id = $1`, [u.adult])).rows[0].n, 1);
+    eq((await as(u.uni, `select count(*)::int n from athlete_offers where athlete_id = $1`, [u.adult])).rows[0].n, 0);
+    await expectError(() => as(u.uni, `insert into athlete_offers (athlete_id, university_name) values ($1, 'Fake')`, [u.adult]), /row-level security/);
+    await expectError(() => as(u.adult, `insert into athlete_offers (athlete_id, university_name, annual_cost_usd, aid_amount_usd) values ($1, 'X Uni', 1000, 5000)`, [u.adult]), /offer_aid_not_above_cost/);
   });
 } finally {
   console.log(results.join('\n'));
