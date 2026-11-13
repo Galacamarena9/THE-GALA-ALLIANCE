@@ -6,7 +6,7 @@ import { loadCatalog, loadPassport } from '@/lib/data/athlete';
 import { DIVISION_LABEL, domainOf, usd } from '@/lib/domain/labels';
 import { institutionFit } from '@/lib/domain/institutionFit';
 import type { Division } from '@/lib/types';
-import { Badge, EmptyState, PageHeader, inputClass } from '@/components/ui';
+import { Badge, ButtonLink, EmptyState, PageHeader, inputClass } from '@/components/ui';
 
 export const metadata: Metadata = { title: 'Universidades' };
 
@@ -41,6 +41,7 @@ export default async function UniversitiesPage({ searchParams }: { searchParams:
         kicker="Universidades"
         title="Directorio con datos oficiales"
         description="Coste y web de College Scorecard (U.S. Department of Education). Enlaces deportivos, de admisiones y campus virtual revisados por nuestro equipo o por la propia universidad verificada."
+        action={<ButtonLink href="/app/universities/compare" variant="secondary">Comparar hasta 5</ButtonLink>}
       />
       <form method="get" className="mb-6 grid gap-3 rounded-[var(--radius-card)] border border-line bg-surface p-4 sm:grid-cols-5">
         <input name="q" defaultValue={sp.q} placeholder="Nombre de la universidad" aria-label="Buscar universidad" className={`${inputClass} sm:col-span-2`} />

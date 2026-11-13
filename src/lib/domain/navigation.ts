@@ -32,13 +32,19 @@ export const PERSONAL_SERVICES: Record<AppRole, NavItem[]> = {
   athlete: [
     { href: '/app/athlete', label: 'Mi camino', icon: 'path' },
     { href: '/app/athlete/passport', label: 'Mi Passport', icon: 'id' },
+    { href: '/app/plan', label: 'Mi plan', icon: 'spark' },
+    { href: '/app/documents', label: 'Documentos', icon: 'book' },
     { href: '/app/academia', label: 'Academia SAT/TOEFL', icon: 'grad' },
     { href: '/app/applications', label: 'Mis candidaturas', icon: 'inbox' },
+    { href: '/app/offers', label: 'Comparar ofertas', icon: 'calc' },
     { href: '/app/campaigns', label: 'Ofertas de marcas', icon: 'megaphone' },
     { href: '/app/agents', label: 'Agentes', icon: 'handshake' },
   ],
   parent: [
     { href: '/app/family', label: 'Panel familiar', icon: 'family' },
+    { href: '/app/plan', label: 'Plan familiar', icon: 'spark' },
+    { href: '/app/documents', label: 'Documentos', icon: 'book' },
+    { href: '/app/offers', label: 'Comparar ofertas', icon: 'calc' },
     { href: '/app/academia', label: 'Academia SAT/TOEFL', icon: 'grad' },
   ],
   university: [
@@ -51,6 +57,7 @@ export const PERSONAL_SERVICES: Record<AppRole, NavItem[]> = {
     { href: '/app/lists', label: 'Mis shortlists', icon: 'list' },
     { href: '/app/applications', label: 'Pipeline', icon: 'pipeline' },
     { href: '/app/organization', label: 'Mi universidad o club', icon: 'building' },
+    { href: '/app/club', label: 'Portal de academia o club', icon: 'family' },
   ],
   agent: [
     { href: '/app/portfolio', label: 'Mi cartera', icon: 'handshake' },

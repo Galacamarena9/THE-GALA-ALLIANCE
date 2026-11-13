@@ -52,8 +52,8 @@ const FAQ: [string, string][] = [
 
 const TRUST = [
   'Perfiles de menores privados por defecto, nunca visibles para marcas ni agentes.',
-  'Universidades, clubes, agencias y marcas verificadas antes de publicar o contactar.',
-  'Cada beca y cada oferta se revisa antes de publicarse.',
+  'Universidades, clubes, agencias y marcas verificadas con su dominio oficial antes de publicar o contactar.',
+  'Cada beca pasa controles automáticos antes de publicarse y lleva un sello de confianza de 5 niveles con sus señales de alarma.',
   'Tus datos, tus reglas: visibilidad por bloque, descarga de datos y borrado.',
 ];
 

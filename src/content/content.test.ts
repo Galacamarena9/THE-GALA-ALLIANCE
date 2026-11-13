@@ -39,3 +39,18 @@ test('planes: códigos válidos y únicos, y el atleta nunca paga por visibilida
   assert.ok(athlete.length >= 1 && athlete.every((p) => p.price === '0 €'));
   for (const p of PLANS) assert.ok(!/prioridad|destacad/i.test(p.includes.join(' ')), `${p.code} vende prioridad`);
 });
+
+test('los planes de pago automático tienen importe y solo Signature exige trabajo personal', () => {
+  for (const p of PLANS.filter((x) => x.cta === 'checkout')) assert.ok(p.checkoutCents && p.checkoutCents > 0 && p.delivery === 'automatic', p.code);
+  assert.deepEqual(PLANS.filter((p) => p.delivery === 'personal').map((p) => p.code), ['family_signature']);
+  assert.equal(PLANS.find((p) => p.code === 'family_core')?.checkoutCents, 24700);
+  assert.equal(PLANS.find((p) => p.code === 'family_elite')?.checkoutCents, 49700);
+});
+
+test('la checklist documental calcula fechas antes del 1 de agosto de la promoción', async () => {
+  const { DOC_CHECKLIST, DOC_KINDS, suggestedDueDate } = await import('./documents.ts');
+  for (const d of DOC_CHECKLIST) assert.ok((DOC_KINDS as readonly string[]).includes(d.kind), d.kind);
+  assert.equal(suggestedDueDate('i20', 2027), '2027-04-01');
+  assert.equal(suggestedDueDate('highlight_video', 2027), '2025-12-01');
+  assert.equal(suggestedDueDate('i20', null), null);
+});

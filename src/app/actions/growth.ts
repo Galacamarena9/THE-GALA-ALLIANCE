@@ -1,5 +1,6 @@
 'use server';
 
+import { logEvent } from '@/lib/events';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
@@ -41,6 +42,7 @@ export async function saveAcademyAttempt(input: { exam: 'sat' | 'toefl'; correct
     user_id: session.userId, exam: parsed.data.exam, correct: parsed.data.correct, total: parsed.data.total,
     duration_seconds: parsed.data.durationSeconds,
   });
+  if (!error) await logEvent('academy_attempt', { exam: parsed.data.exam });
   revalidatePath('/app/academia');
   return { ok: !error };
 }
@@ -66,6 +68,7 @@ export async function saveSearch(_prev: FormState, formData: FormData): Promise<
     return { error: 'No se ha podido guardar la búsqueda.' };
   }
   revalidatePath('/app/lists');
+  await logEvent('search_saved');
   return { ok: true, message: 'Búsqueda guardada. Te avisaremos de perfiles nuevos en Listas.' };
 }
 
@@ -133,7 +136,7 @@ export async function requestPlan(_prev: FormState, formData: FormData): Promise
   const session = await getSession();
   if (!session) return { error: 'Inicia sesión o crea tu cuenta gratis para solicitarlo.' };
   const plan = planByCode(String(formData.get('plan_code') ?? ''));
-  if (!plan || plan.cta !== 'request') return { error: 'Plan no válido.' };
+  if (!plan || plan.cta === 'signup') return { error: 'Plan no válido.' };
   const parsed = z.object({
     message: z.string().trim().max(1000).optional(),
     organization_id: z.string().uuid().optional().or(z.literal('')),
@@ -148,7 +151,8 @@ export async function requestPlan(_prev: FormState, formData: FormData): Promise
     if (error.message.includes('rate_limited')) return { error: 'Ya has enviado varias solicitudes hoy. Te contactaremos pronto.' };
     return { error: 'No se ha podido enviar la solicitud.' };
   }
-  return { ok: true, message: `Solicitud de ${plan.name} recibida. Te escribiremos en 48 h laborables; no se te cobrará nada sin tu confirmación.` };
+  await logEvent('plan_requested', { plan: plan.code, channel: 'request' });
+  return { ok: true, message: `Solicitud de ${plan.name} recibida. Te escribiremos para cerrar el alcance; no se te cobrará nada sin tu confirmación por escrito.` };
 }
 
 export async function updateServiceRequest(formData: FormData) {

@@ -118,3 +118,9 @@ h1, h2, h3, .font-display {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* Documentos imprimibles (Sports CV, memo de decisión): sin controles de la interfaz. */
+@media print {
+  .no-print { display: none !important; }
+  html, body { background: #fff !important; color: #111 !important; }
+}

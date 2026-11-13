@@ -24,8 +24,24 @@ Adaptado de las guías de Lovable (SELF_HOSTING y CUSTOM_DOMAIN_SETUP), que desc
 | `ANTHROPIC_API_KEY` (y opcional `ANTHROPIC_MODEL`) | Gala IA |
 | `COLLEGE_SCORECARD_API_KEY` | Importar universidades (gratis en api.data.gov) |
 | `CONSENT_IP_SALT` | Hash de IP en el registro de cookies (valor aleatorio largo) |
+| `STRIPE_SECRET_KEY` | Cobro automático de Core y Elite (Stripe Checkout). Sin ella, el botón de pago pasa a "Solicitar" |
+| `STRIPE_WEBHOOK_SECRET` | Firma del webhook `https://<tu-dominio>/api/stripe/webhook` (eventos `checkout.session.completed` y `charge.refunded`) |
+| `SUPABASE_SECRET_KEY` | **Solo** para el webhook de Stripe (concede el plan sin sesión de usuario). Nunca con prefijo `NEXT_PUBLIC_` |
 
-La clave `service_role` **no** se usa en la web y no debe estar en Netlify.
+La clave secreta de Supabase solo la usa `src/app/api/stripe/webhook/route.ts`, que verifica la firma de Stripe antes de escribir. Ninguna otra parte de la web la lee.
+
+### Stripe (cobro sin intervención)
+
+1. Stripe → Developers → API keys: copia la clave secreta (modo test primero) a `STRIPE_SECRET_KEY`.
+2. Stripe → Developers → Webhooks → Add endpoint: `https://<tu-dominio>/api/stripe/webhook`, eventos `checkout.session.completed` y `charge.refunded`. Copia el "Signing secret" a `STRIPE_WEBHOOK_SECRET`.
+3. Prueba con la tarjeta `4242 4242 4242 4242`: tras pagar, la cuenta (y sus atletas vinculados) debe ver el plan en **Mi plan**.
+4. Activa en Stripe los recibos por email y los datos fiscales de la empresa antes de pasar a modo real.
+
+### Supabase: automatizaciones
+
+- **Storage:** la migración 0700 crea el bucket privado `athlete-documents` (10 MB, PDF/JPG/PNG) y sus políticas.
+- **pg_cron:** activa la extensión en Database → Extensions para el borrado diario (`gala-retention-daily`, 03:17 UTC). Si no está disponible, ejecútalo desde el Panel de mando.
+- **Auth:** exige confirmación de email (Auth → Providers → Email → Confirm email): la verificación automática de organizaciones se basa en el email confirmado.
 
 ## 3. Dominio
 

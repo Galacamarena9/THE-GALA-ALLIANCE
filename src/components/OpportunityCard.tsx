@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui';
 import { DIVISION_LABEL, OPPORTUNITY_STATUS_LABEL, OPPORTUNITY_TYPE_LABEL, daysUntil, usd } from '@/lib/domain/labels';
 import { TIER_LABEL, type MatchResult } from '@/lib/domain/match';
 import type { Division, OpportunityStatus, OpportunityType } from '@/lib/types';
+import { assessOpportunity, TRUST_LABEL } from '@/lib/domain/trust';
 
 export interface OpportunityCardData {
   id: string;
@@ -14,12 +15,18 @@ export interface OpportunityCardData {
   annual_cost_usd: number | null;
   aid_amount_usd: number | null;
   status: OpportunityStatus;
-  organizations: { name: string; verification_status: string } | null;
+  description?: string | null;
+  financial_source?: string | null;
+  reviewed_by?: string | null;
+  updated_at?: string | null;
+  organizations: { name: string; verification_status: string; website?: string | null; type?: string | null } | null;
 }
 
 export function OpportunityCard({ o, match, showStatus }: { o: OpportunityCardData; match?: MatchResult; showStatus?: boolean }) {
   const net = o.annual_cost_usd != null && o.aid_amount_usd != null ? o.annual_cost_usd - o.aid_amount_usd : null;
   const daysLeft = o.deadline ? daysUntil(o.deadline) : null;
+  // El sello solo se muestra cuando la consulta trae los campos necesarios para calcularlo.
+  const assessed = o.updated_at !== undefined ? assessOpportunity(o) : null;
   return (
     <Link href={`/app/opportunities/${o.id}`} className="flex h-full flex-col rounded-[var(--radius-card)] border border-line bg-surface p-5 transition-colors hover:border-brass/60">
       <div className="flex items-start justify-between gap-3">
@@ -41,6 +48,8 @@ export function OpportunityCard({ o, match, showStatus }: { o: OpportunityCardDa
         <Badge>{OPPORTUNITY_TYPE_LABEL[o.type]}</Badge>
         {o.division && <Badge>{DIVISION_LABEL[o.division]}</Badge>}
         {match && <Badge tone={match.tier === 'strong' ? 'ok' : match.tier === 'not_eligible' ? 'danger' : 'brass'}>{TIER_LABEL[match.tier]}</Badge>}
+        {assessed && <Badge tone={assessed.level >= 4 ? 'ok' : 'brass'}>Confianza {assessed.level}/5 · {TRUST_LABEL[assessed.level]}</Badge>}
+        {assessed && assessed.flags.some((f) => f.severity === 'high') && <Badge tone="danger">Señal de alarma</Badge>}
         {showStatus && <Badge tone={o.status === 'published' ? 'ok' : o.status === 'rejected' ? 'danger' : 'warn'}>{OPPORTUNITY_STATUS_LABEL[o.status]}</Badge>}
       </div>
       <dl className="mt-auto grid grid-cols-3 gap-2 pt-4 text-xs">

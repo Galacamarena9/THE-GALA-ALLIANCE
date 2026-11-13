@@ -22,7 +22,7 @@ function ViewTabs({ current }: { current: 'mine' | 'all' }) {
 export const metadata: Metadata = { title: 'Oportunidades' };
 
 const SELECT =
-  'id, title, type, sport_id, position_ids, graduation_years, division, min_gpa_4, english_required, location, deadline, annual_cost_usd, aid_amount_usd, status, organization_id, organizations(name, verification_status)';
+  'id, title, type, sport_id, position_ids, graduation_years, division, min_gpa_4, english_required, location, deadline, annual_cost_usd, aid_amount_usd, status, organization_id, description, financial_source, reviewed_by, updated_at, organizations(name, verification_status, website, type)';
 
 export default async function OpportunitiesPage({ searchParams }: { searchParams: Promise<{ type?: string; division?: string; tier?: string; view?: string }> }) {
   const session = await requireSession();

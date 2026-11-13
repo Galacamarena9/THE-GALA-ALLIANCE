@@ -1,5 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { TrustSeal } from '@/components/TrustSeal';
+import { assessOpportunity } from '@/lib/domain/trust';
+import { logEvent } from '@/lib/events';
 import { notFound } from 'next/navigation';
 import { requireSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
@@ -33,6 +36,7 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
   const { data: membership } = await supabase.from('organization_members').select('member_role').eq('organization_id', opp.organization_id).eq('user_id', session.userId).maybeSingle();
   const isMember = Boolean(membership);
   const isAthlete = session.roles.includes('athlete');
+  if (isAthlete && !isMember) await logEvent('opportunity_viewed');
 
   const passport = isAthlete ? await loadPassport(session.userId) : null;
   const match = passport?.profile ? matchAthleteToOpportunity({ ...passport.profile, annual_budget_usd: passport.annualBudgetUsd }, passport.academics, opp) : null;
@@ -123,6 +127,8 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
               Una ayuda solo cuenta cuando está por escrito en la oferta. <Link href="/app/calculator" className="text-brass hover:underline">Calcular a 4 años →</Link>
             </p>
           </Card>
+
+          <TrustSeal {...assessOpportunity(opp)} />
         </div>
 
         <div className="space-y-5">

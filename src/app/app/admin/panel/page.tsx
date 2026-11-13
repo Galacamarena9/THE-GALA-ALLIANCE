@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { runRetentionNow } from '@/app/actions/autonomy';
 import { requireSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
 import { Badge, Card, CardTitle, PageHeader, inputClass } from '@/components/ui';
@@ -34,12 +35,17 @@ export default async function AdminPanelPage({ searchParams }: { searchParams: P
   const days = [7, 30, 90].includes(Number((await searchParams).days)) ? Number((await searchParams).days) : 30;
   const supabase = await createClient();
 
-  const [{ data: m }, { data: liquidity }, { data: requests }, { data: feedback }] = await Promise.all([
+  const [{ data: m }, { data: liquidity }, { data: requests }, { data: feedback }, { data: events }, { data: paid }, { data: lastRetention }] = await Promise.all([
     supabase.rpc('admin_metrics', { p_days: days }),
     supabase.rpc('admin_liquidity'),
     supabase.from('service_requests').select('id, plan_code, message, status, admin_note, created_at, profiles:user_id(display_name), organizations(name)').order('created_at', { ascending: false }).limit(50),
     supabase.from('user_feedback').select('id, page, rating, message, created_at').order('created_at', { ascending: false }).limit(20),
+    supabase.rpc('admin_event_counts', { p_days: days }),
+    supabase.from('entitlements').select('plan_code, source').is('revoked_at', null),
+    supabase.from('audit_logs').select('created_at, details').eq('action', 'retention.run').order('created_at', { ascending: false }).limit(1),
   ]);
+  const eventRows = (events ?? []) as { event: string; users: number; total: number }[];
+  const paidBy = (paid ?? []).reduce<Record<string, number>>((acc, e) => ({ ...acc, [e.plan_code]: (acc[e.plan_code] ?? 0) + 1 }), {});
   const metrics = m as Metrics | null;
   if (!metrics) {
     return <PageHeader kicker="Admin" title="Panel de mando" description="No se han podido cargar las métricas." />;
@@ -164,6 +170,31 @@ export default async function AdminPanelPage({ searchParams }: { searchParams: P
               })}
             </ul>
           ) : <p className="text-sm text-faint">Sin solicitudes todavía. Comparte /precios con academias y familias del piloto.</p>}
+        </Card>
+        <Card>
+          <CardTitle kicker={`Últimos ${days} días`}>Eventos del embudo</CardTitle>
+          {eventRows.length ? (
+            <table className="w-full text-sm">
+              <thead><tr className="text-left text-xs text-faint"><th className="py-1.5 font-normal">Evento</th><th className="text-right font-normal">Personas</th><th className="text-right font-normal">Veces</th></tr></thead>
+              <tbody className="divide-y divide-line">
+                {eventRows.map((e) => <tr key={e.event}><td className="py-1.5 text-paper">{e.event}</td><td className="text-right tabular-nums text-muted">{e.users}</td><td className="text-right tabular-nums text-muted">{e.total}</td></tr>)}
+              </tbody>
+            </table>
+          ) : <p className="text-sm text-faint">Aún no hay eventos. Se registran solos al usar la plataforma (lista cerrada, sin datos personales en las propiedades).</p>}
+        </Card>
+        <Card>
+          <CardTitle kicker="Funciona sola">Automatizaciones</CardTitle>
+          <ul className="space-y-2 text-sm text-muted">
+            <li>• <span className="text-paper">Verificación de organizaciones</span>: automática si el correo confirmado es del dominio de su web (.edu para universidades).</li>
+            <li>• <span className="text-paper">Publicación de oportunidades</span>: automática si la organización está verificada y no hay señales de alarma; si las hay, queda en revisión.</li>
+            <li>• <span className="text-paper">Denuncias</span>: seguridad infantil o 3 denunciantes ocultan el contenido al momento.</li>
+            <li>• <span className="text-paper">Pagos</span>: Stripe concede el plan solo (Core {paidBy.family_core ?? 0} · Elite {paidBy.family_elite ?? 0} · Signature {paidBy.family_signature ?? 0} activos).</li>
+            <li>• <span className="text-paper">Bajas</span>: cada persona borra su cuenta desde Privacidad.</li>
+            <li>• <span className="text-paper">Retención</span>: borrado diario automático (pg_cron, 03:17).{lastRetention?.[0] ? ` Última ejecución: ${lastRetention[0].created_at.slice(0, 10)}.` : ' Aún no se ha ejecutado.'}</li>
+          </ul>
+          <form action={runRetentionNow} className="mt-4">
+            <button className="rounded-lg border border-line px-3 py-1.5 text-xs text-paper hover:border-brass/60">Ejecutar retención ahora</button>
+          </form>
         </Card>
         <Card>
           <CardTitle kicker="Piloto">Feedback de usuarios</CardTitle>

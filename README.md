@@ -19,10 +19,16 @@ Además:
 - **Academia SAT/TOEFL** (SAT digital y TOEFL 2026, práctica con explicación, calendario oficial).
 - **Búsquedas guardadas con alertas** respetando la RLS, **novedades del atleta**, **notificaciones internas** y **bloqueo efectivo**.
 - Tema oscuro, claro y de alto contraste.
-- Negocio: **/precios** (gratis para atletas; Core 247 € y Elite 497 € para familias; planes para organizaciones), con pipeline comercial concierge.
-- **Panel de mando** del admin (North Star, embudo, colas, liquidez por posición y feedback del piloto).
+- Negocio: **/precios** — gratis para atletas; **Core 247 €** y **Elite 497 €** automáticos con Stripe Checkout; **Signature 1:1 con Gala** (único plan con trabajo personal, a medida).
+- **Mi plan** (Core/Elite): informe del Passport por impacto, Sports CV en inglés imprimible, shortlist automática, calendario de SAT y documentos.
+- **Centro de documentos familiar** (almacenamiento privado, fechas por promoción, visado en Elite).
+- **Comparador de universidades** (hasta 5) y **comparador de ofertas** con **memo de decisión** imprimible y **detector de señales de alarma**.
+- **Sello de confianza en 5 niveles** en cada oportunidad.
+- **Portal de academias y clubes**: roster por enlace con consentimiento, validación de estadísticas y colocaciones.
+- **Funciona sola**: verificación automática por dominio, publicación automática sin alarmas, protección automática ante denuncias, baja autoservicio, borrado programado y eventos del embudo ([catálogo](docs/ANALYTICS_EVENTS.md)).
+- **Panel de mando** del admin (North Star, embudo, eventos, colas, liquidez, automatizaciones y feedback).
 
-Documentación: [modelo de negocio](docs/BUSINESS_MODEL.md) · [qué se portó de Lovable y por qué](docs/LOVABLE_PORT.md) · [despliegue](docs/DEPLOYMENT.md).
+Documentación: [modelo de negocio](docs/BUSINESS_MODEL.md) · [qué se portó de Lovable y por qué](docs/LOVABLE_PORT.md) · [despliegue](docs/DEPLOYMENT.md) · [eventos](docs/ANALYTICS_EVENTS.md) · [legal: EIPD, RAT, brechas y conservación](docs/legal/README.md).
 
 ## Seguridad y legal (resumen)
 
@@ -72,7 +78,7 @@ src/content/           guía con fuentes oficiales y plantillas legales
 
 ## Pendiente antes de lanzar (decisiones de negocio y legales)
 
-- Revisión jurídica de privacidad, términos, menores, NIL, agentes y transferencias internacionales; EIPD.
+- Revisión jurídica de privacidad, términos, menores, NIL, agentes y transferencias internacionales; firma de los borradores de `docs/legal`.
 - Proyecto de Supabase de producción, dominio y claves (Anthropic, College Scorecard).
-- Pagos (Stripe) y planes: no activados; los precios del blueprint son hipótesis a validar.
+- Pagos: integrados; se activan al configurar `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` y `SUPABASE_SECRET_KEY` (ver despliegue).
 - Piloto cerrado: 1-3 deportes, academias/clubes socios y universidades verificadas.

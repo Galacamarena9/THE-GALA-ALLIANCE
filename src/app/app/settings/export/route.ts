@@ -13,7 +13,7 @@ export async function GET() {
 
   const own = (table: string, column = 'user_id') => supabase.from(table).select('*').eq(column, uid);
   const [profile, privateData, roles, athlete, academics, finances, stats, languages, achievements, links, applications, saved, consents, requests,
-    updates, academyProgress, academyAttempts, searches, notifications, serviceRequests, feedback] =
+    updates, academyProgress, academyAttempts, searches, notifications, serviceRequests, feedback, documents, offers, entitlements, rosters, events] =
     await Promise.all([
       own('profiles', 'id'),
       own('private_profile_data'),
@@ -36,6 +36,11 @@ export async function GET() {
       own('notifications'),
       own('service_requests'),
       own('user_feedback'),
+      supabase.from('athlete_documents').select('id, kind, title, due_date, mime_type, size_bytes, uploaded_at, created_at').eq('athlete_id', uid),
+      own('athlete_offers', 'athlete_id'),
+      own('entitlements'),
+      own('club_roster', 'athlete_id'),
+      own('product_events'),
     ]);
 
   const body = {
@@ -61,6 +66,11 @@ export async function GET() {
     notifications: notifications.data,
     service_requests: serviceRequests.data,
     feedback: feedback.data,
+    documents: { note: 'Metadatos de tus documentos. Los archivos se descargan uno a uno desde Documentos.', items: documents.data },
+    external_offers: offers.data,
+    plans: entitlements.data,
+    club_rosters: rosters.data,
+    product_events: events.data,
   };
 
   return new NextResponse(JSON.stringify(body, null, 2), {

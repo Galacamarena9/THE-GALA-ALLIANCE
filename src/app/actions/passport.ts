@@ -1,5 +1,6 @@
 'use server';
 
+import { logEvent } from '@/lib/events';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
@@ -80,6 +81,7 @@ export async function saveProfile(_prev: FormState, formData: FormData): Promise
   if (finError) return { error: 'Perfil guardado, pero no el presupuesto. Inténtalo de nuevo.' };
 
   revalidatePath('/app/athlete', 'layout');
+  await logEvent('passport_saved');
   return { ok: true, message: 'Passport guardado' };
 }
 

@@ -6,6 +6,7 @@ import { Badge, Card, CardTitle, PageHeader } from '@/components/ui';
 import { InviteLink } from '@/components/InviteLink';
 import { revokeFamilyLink, updateFamilyPermissions } from '@/app/actions/family';
 import { DataRequestForm } from './DataRequestForm';
+import { DeleteAccountForm } from '@/components/autonomy';
 import { CookiePrefsButton } from './CookiePrefsButton';
 
 export const metadata: Metadata = { title: 'Privacidad y datos' };
@@ -99,6 +100,11 @@ export default async function SettingsPage() {
               ))}
             </ul>
           ) : null}
+        </Card>
+
+        <Card>
+          <CardTitle kicker="Cuenta">Eliminar mi cuenta</CardTitle>
+          <DeleteAccountForm />
         </Card>
 
         <Card>

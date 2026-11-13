@@ -1,5 +1,6 @@
 'use server';
 
+import { logEvent } from '@/lib/events';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
@@ -140,5 +141,6 @@ export async function completeOnboarding(_prev: FormState, formData: FormData): 
 
   const pendingInvite = typeof raw.invite === 'string' && /^[a-f0-9]{64}$/.test(raw.invite) ? raw.invite : null;
   const teamInvite = typeof raw.team === 'string' && /^[a-f0-9]{64}$/.test(raw.team) ? raw.team : null;
+  await logEvent('onboarding_completed', { role: data.role });
   redirect(pendingInvite ? `/invite/${pendingInvite}` : teamInvite ? `/join/${teamInvite}` : roleHome(data.role));
 }

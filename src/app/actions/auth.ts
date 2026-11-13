@@ -1,5 +1,6 @@
 'use server';
 
+import { logEvent } from '@/lib/events';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
@@ -59,6 +60,7 @@ export async function signUp(_prev: FormState, formData: FormData): Promise<Form
   }
 
   const { data } = await supabase.auth.getUser();
+  if (data.user) await logEvent('signup_completed');
   if (data.user) redirect(`/onboarding${role ? `?role=${role}` : ''}`);
   return { ok: true, message: `Te hemos enviado un email a ${email}. Ábrelo para confirmar tu cuenta y continuar.` };
 }

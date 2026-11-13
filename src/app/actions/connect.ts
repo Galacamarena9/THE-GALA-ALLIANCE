@@ -1,5 +1,6 @@
 'use server';
 
+import { logEvent } from '@/lib/events';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
@@ -27,6 +28,7 @@ export async function requestContact(_prev: FormState, formData: FormData): Prom
     if (error.code === '23505') return { error: 'Ya tienes una solicitud abierta con este atleta.' };
     return { error: friendly(error.message, 'No se ha podido enviar la solicitud.') };
   }
+  await logEvent('contact_requested');
   revalidatePath('/app/inbox');
   return { ok: true, message: 'Solicitud enviada. El atleta (y su familia si es menor) decidirá si acepta.' };
 }
@@ -38,7 +40,8 @@ export async function respondContact(formData: FormData) {
     .safeParse(Object.fromEntries(formData));
   if (!parsed.success) return;
   const supabase = await createClient();
-  await supabase.from('contact_requests').update({ status: parsed.data.status }).eq('id', parsed.data.id);
+  const { error } = await supabase.from('contact_requests').update({ status: parsed.data.status }).eq('id', parsed.data.id);
+  if (!error && parsed.data.status === 'accepted') await logEvent('contact_accepted');
   revalidatePath('/app/inbox');
 }
 

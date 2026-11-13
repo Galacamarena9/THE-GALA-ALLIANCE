@@ -50,7 +50,12 @@ export default async function UniversityPage({ params }: { params: Promise<{ id:
         kicker={[inst.division ? DIVISION_LABEL[inst.division as Division] : null, inst.conference].filter(Boolean).join(' · ') || 'Universidad'}
         title={inst.name}
         description={[inst.city, inst.state].filter(Boolean).join(', ')}
-        action={inst.website_url ? <a href={inst.website_url} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-line-strong px-4 py-2.5 text-sm text-paper hover:border-brass">Web oficial ↗</a> : undefined}
+        action={
+          <div className="flex flex-wrap gap-2">
+            <Link href={`/app/universities/compare?ids=${inst.id}`} className="rounded-lg border border-line-strong px-4 py-2.5 text-sm text-paper hover:border-brass">Añadir al comparador</Link>
+            {inst.website_url && <a href={inst.website_url} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-line-strong px-4 py-2.5 text-sm text-paper hover:border-brass">Web oficial ↗</a>}
+          </div>
+        }
       />
 
       <div className="grid gap-5 lg:grid-cols-[1.3fr_1fr]">

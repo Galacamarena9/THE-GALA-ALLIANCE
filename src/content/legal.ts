@@ -57,11 +57,15 @@ export const LEGAL: LegalDoc[] = [
         heading: 'Encargados del tratamiento',
         body: [
           'Supabase (base de datos, autenticación y almacenamiento) · Netlify (alojamiento web) · Anthropic (asistente Gala IA; no usamos tus conversaciones para entrenar modelos).',
-          'Cuando se activen: Resend (emails transaccionales) y Stripe (pagos). Se informará antes de activarlos.',
+          'Stripe (pagos de Core y Elite: Stripe trata los datos de la tarjeta; nosotros nunca los vemos). Cuando se active: Resend (emails transaccionales).',
           'Contratos de encargo (DPA) y garantías para transferencias internacionales: [completar con cada proveedor antes del lanzamiento].',
         ],
       },
-      { heading: 'Conservación', body: ['Mientras tu cuenta esté activa y, tras su cierre, el plazo mínimo necesario para atender responsabilidades legales. Registros de consentimiento y auditoría: [plazo a validar].'] },
+      { heading: 'Conservación', body: [
+        'Mientras tu cuenta esté activa. Puedes borrarla tú mismo desde Privacidad y datos en cualquier momento.',
+        'Borrado automático diario: eventos de uso a los 13 meses; notificaciones leídas a los 6 meses y cualquier notificación a los 12; novedades del atleta 30 días después de caducar; registros de uso de Gala IA a los 90 días; invitaciones caducadas a los 90 días; comentarios de mejora a los 24 meses.',
+        'Documentos subidos: hasta que los borres o borres tu cuenta. Registros de consentimiento y auditoría: se conservan desvinculados de tu identidad durante el plazo de prescripción de responsabilidades [plazo a validar por el asesor].',
+      ] },
       { heading: 'Tus derechos', body: ['Acceso, rectificación, supresión, oposición, limitación y portabilidad desde Privacidad y datos (descarga en JSON y solicitudes con seguimiento). Respondemos en un mes. Puedes reclamar ante la Agencia Española de Protección de Datos (aepd.es).'] },
       { heading: 'Registros educativos (EE. UU.)', body: ['Cuando una institución educativa estadounidense nos encargue tratar registros educativos de sus estudiantes, lo haremos únicamente bajo contrato y conforme a FERPA, como proveedor de servicios bajo el control directo de la institución. [Revisión jurídica en EE. UU. pendiente].'] },
     ],

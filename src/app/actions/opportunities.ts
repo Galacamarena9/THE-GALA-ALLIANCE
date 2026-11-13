@@ -1,5 +1,6 @@
 'use server';
 
+import { logEvent } from '@/lib/events';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
@@ -104,6 +105,7 @@ export async function applyToOpportunity(_prev: FormState, formData: FormData): 
   revalidatePath(`/app/opportunities/${parsed.data.opportunity_id}`);
   revalidatePath('/app/applications');
   revalidatePath('/app/athlete');
+  await logEvent('application_submitted');
   return { ok: true, message: 'Candidatura enviada. La universidad podrá ver tu Passport.' };
 }
 
