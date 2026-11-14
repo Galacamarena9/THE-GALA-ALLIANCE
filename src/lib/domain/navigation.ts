@@ -80,7 +80,7 @@ export const PERSONAL_SERVICES: Record<AppRole, NavItem[]> = {
     { href: '/app/club', label: 'Portal de academia o club', icon: 'users', desc: 'Roster, validación de estadísticas y colocaciones.' },
   ],
   agent: [
-    { href: '/app/portfolio', label: 'Mi cartera', icon: 'handshake', desc: 'Atletas que representas (con su aceptación).' },
+    { href: '/app/portfolio', label: 'Portfolio', icon: 'handshake', desc: 'Tu cartera: representados, propuestas, notas internas y seguimientos.' },
     { href: '/app/lists', label: 'Prospectos', icon: 'list', desc: 'Atletas guardados y búsquedas con alertas.' },
     { href: '/app/organization', label: 'Agencia', icon: 'building', desc: 'Datos de la agencia, verificación y equipo.' },
   ],

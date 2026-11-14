@@ -343,6 +343,66 @@ try {
     eq((await as(u.brand, `select count(*)::int n from agent_representations`)).rows[0].n, 0);
   });
 
+  results.push('\nAgent Workspace: notas privadas de agencia');
+  const agent2 = randomUUID();
+  await db.query(`insert into auth.users (id, email, raw_user_meta_data) values ($1, 'agent2@test.dev', $2)`, [agent2, { display_name: 'agent2' }]);
+  await as(agent2, `insert into user_roles (user_id, role) values ($1, 'agent')`, [agent2]);
+  await as(agent2, `insert into private_profile_data (user_id, date_of_birth) values ($1, $2)`, [agent2, yearsAgo(35)]);
+  const agency2 = (await as(agent2, `insert into organizations (name, type, created_by) values ('Rival Agency', 'agency', $1) returning id`, [agent2])).rows[0].id;
+  let noteId; let followId;
+  await check('el agente anota y programa un seguimiento sobre un atleta de su cartera', async () => {
+    noteId = (await as(u.agent, `insert into agency_athlete_notes (agency_id, athlete_id, author_id, body) values ($1, $2, $3, 'Muy buena reunión') returning id`,
+      [agencyId, u.adult, u.agent])).rows[0].id;
+    followId = (await as(u.agent, `insert into agency_athlete_notes (agency_id, athlete_id, author_id, kind, body, due_date) values ($1, $2, $3, 'follow_up', 'Llamar al coach', current_date + 3) returning id`,
+      [agencyId, u.adult, u.agent])).rows[0].id;
+    eq((await as(u.agent, `select count(*)::int n from agency_athlete_notes where athlete_id = $1`, [u.adult])).rows[0].n, 2);
+  });
+  await check('el atleta nunca ve las notas internas de la agencia', async () => {
+    eq((await as(u.adult, `select count(*)::int n from agency_athlete_notes`)).rows[0].n, 0);
+  });
+  await check('otra agencia no ve ni puede escribir notas de la primera', async () => {
+    eq((await as(agent2, `select count(*)::int n from agency_athlete_notes`)).rows[0].n, 0);
+    await expectError(() => as(agent2, `insert into agency_athlete_notes (agency_id, athlete_id, author_id, body) values ($1, $2, $3, 'x')`,
+      [agencyId, u.adult, agent2]), /row-level security|agency_required/);
+  });
+  await check('una agencia no puede anotar atletas con los que no tiene relación', async () => {
+    await expectError(() => as(agent2, `insert into agency_athlete_notes (agency_id, athlete_id, author_id, body) values ($1, $2, $3, 'x')`,
+      [agency2, u.adult, agent2]), /row-level security/);
+  });
+  await check('nadie fuera de la agencia puede sondear su cartera', async () => {
+    eq((await as(agent2, `select agency_has_relationship($1, $2) r`, [agencyId, u.adult])).rows[0].r, false);
+    eq((await as(u.agent, `select agency_has_relationship($1, $2) r`, [agencyId, u.adult])).rows[0].r, true);
+  });
+  await check('nadie se hace pasar por otro autor', async () => {
+    await expectError(() => as(u.agent, `insert into agency_athlete_notes (agency_id, athlete_id, author_id, body) values ($1, $2, $3, 'x')`,
+      [agencyId, u.adult, agent2]), /row-level security/);
+  });
+  await check('solo el autor edita y la nota no cambia de agencia ni de atleta', async () => {
+    eq((await as(agent2, `update agency_athlete_notes set body = 'hackeado' where id = $1`, [noteId])).rowCount, 0);
+    await expectError(() => as(u.agent, `update agency_athlete_notes set agency_id = $2 where id = $1`, [noteId, agency2]), /note_immutable|row-level security/);
+    await as(u.agent, `update agency_athlete_notes set body = 'Reunión: interés de 2 universidades' where id = $1`, [noteId]);
+  });
+  await check('completar un seguimiento registra la fecha', async () => {
+    await as(u.agent, `update agency_athlete_notes set done = true where id = $1`, [followId]);
+    const r = (await as(u.agent, `select done, done_at is not null as stamped from agency_athlete_notes where id = $1`, [followId])).rows[0];
+    eq(`${r.done}${r.stamped}`, 'truetrue');
+  });
+  await check('una nota simple no admite fecha de seguimiento', async () => {
+    await expectError(() => as(u.agent, `insert into agency_athlete_notes (agency_id, athlete_id, author_id, kind, body, due_date) values ($1, $2, $3, 'note', 'x', current_date)`,
+      [agencyId, u.adult, u.agent]), /note_due_only_follow_up/);
+  });
+  await check('solo el autor borra una nota', async () => {
+    eq((await as(agent2, `delete from agency_athlete_notes where id = $1`, [noteId])).rowCount, 0);
+    eq((await as(u.agent, `delete from agency_athlete_notes where id = $1`, [noteId])).rowCount, 1);
+  });
+  await check('nadie puede borrar una representación (el historial se conserva)', async () => {
+    eq((await as(u.agent, `delete from agent_representations where id = $1`, [repId])).rowCount, 0);
+    eq((await as(u.adult, `delete from agent_representations where id = $1`, [repId])).rowCount, 0);
+  });
+  await check('cada cambio de una representación queda auditado', async () => {
+    eq((await as(u.admin, `select count(*)::int n from audit_logs where entity = 'agent_representations' and entity_id = $1`, [repId])).rows[0].n, 2);
+  });
+
   results.push('\nOfertas de marcas');
   let brandOrg2; let campId;
   await check('la marca crea una oferta en borrador y no puede publicarla', async () => {

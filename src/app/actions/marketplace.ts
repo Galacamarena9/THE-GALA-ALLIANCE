@@ -101,11 +101,15 @@ export async function requestRepresentation(_prev: FormState, formData: FormData
 }
 
 export async function respondRepresentation(formData: FormData) {
-  await requireSession(['athlete', 'agent']);
+  const session = await requireSession(['athlete', 'agent']);
   const parsed = z.object({ id: z.string().uuid(), status: z.enum(['active', 'declined', 'ended']) }).safeParse(Object.fromEntries(formData));
   if (!parsed.success) return;
   const supabase = await createClient();
-  await supabase.from('agent_representations').update({ status: parsed.data.status }).eq('id', parsed.data.id);
+  // Defensa en profundidad (además del trigger y la RLS): aceptar o rechazar solo lo hace el propio
+  // atleta sobre una propuesta pendiente; terminar solo aplica a una representación activa.
+  let q = supabase.from('agent_representations').update({ status: parsed.data.status }).eq('id', parsed.data.id);
+  q = parsed.data.status === 'ended' ? q.eq('status', 'active') : q.eq('athlete_id', session.userId).eq('status', 'requested');
+  await q;
   revalidatePath('/app/agents');
   revalidatePath('/app/portfolio');
 }

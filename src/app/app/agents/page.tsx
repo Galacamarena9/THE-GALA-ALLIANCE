@@ -3,6 +3,8 @@ import { requireSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
 import { Badge, Card, CardTitle, EmptyState, Notice, PageHeader } from '@/components/ui';
 import { respondRepresentation } from '@/app/actions/marketplace';
+import { StatusPill } from '@/components/portfolio';
+import { isRepStatus } from '@/lib/domain/portfolio';
 
 export const metadata: Metadata = { title: 'Agentes' };
 
@@ -27,7 +29,7 @@ export default async function AthleteAgentsPage() {
             return (
               <li key={r.id}>
                 <Card>
-                  <CardTitle kicker={org?.verification_status === 'verified' ? 'Agencia verificada ✓' : 'Agencia sin verificar'} action={<Badge tone={r.status === 'active' ? 'ok' : r.status === 'requested' ? 'warn' : 'neutral'}>{r.status}</Badge>}>
+                  <CardTitle kicker={org?.verification_status === 'verified' ? 'Agencia verificada ✓' : 'Agencia sin verificar'} action={isRepStatus(r.status) ? <StatusPill status={r.status} /> : <Badge>{r.status}</Badge>}>
                     {org?.name}
                   </CardTitle>
                   {r.message && <p className="text-sm text-muted">“{r.message}”</p>}

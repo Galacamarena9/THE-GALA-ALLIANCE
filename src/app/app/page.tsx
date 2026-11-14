@@ -12,6 +12,7 @@ import { NavIcon } from '@/components/NavIcon';
 import { Badge, ButtonLink, Card, Meter } from '@/components/ui';
 import { AskGala } from '@/components/AskGala';
 import { Reveal } from '@/components/Reveal';
+import { AgentHome } from './AgentHome';
 
 export const metadata: Metadata = { title: 'Inicio' };
 
@@ -70,6 +71,8 @@ async function stepsFor(session: SessionContext): Promise<{ steps: Step[]; score
 export default async function HomePage() {
   const session = await requireSession();
   const primary = session.primaryRole ?? session.roles[0];
+  // El agente tiene un inicio propio (Agent Workspace) centrado en su cartera.
+  if (primary === 'agent') return <AgentHome session={session} />;
   const supabase = await createClient();
   const [{ steps, score }, plan, { data: activity }] = await Promise.all([
     stepsFor(session),
