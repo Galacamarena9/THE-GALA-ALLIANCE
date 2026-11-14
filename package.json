@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test:unit": "node --test src/lib/domain/domain.test.ts src/lib/domain/trust.test.ts src/lib/domain/portfolio.test.ts src/content/content.test.ts",
+    "test:unit": "node --test src/lib/domain/domain.test.ts src/lib/domain/trust.test.ts src/lib/domain/portfolio.test.ts src/lib/domain/recruiting.test.ts src/content/content.test.ts",
     "test:rls": "node supabase/tests/rls.test.mjs"
   },
   "dependencies": {
