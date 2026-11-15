@@ -4,7 +4,7 @@ import { ArrowRight, CalendarClock, Hourglass, Search, Sparkles, UserCheck } fro
 import type { SessionContext } from '@/lib/session';
 import { loadPortfolio, type PortfolioData } from '@/lib/data/portfolio';
 import { loadCatalog } from '@/lib/data/athlete';
-import { Button, ButtonLink, Notice, inputClass } from '@/components/ui';
+import { ButtonLink, Notice, inputClass } from '@/components/ui';
 import { ActivityFeed, AthleteAvatar, KpiTile, NextStepsList, Panel, PanelLink, StatusPill } from '@/components/portfolio';
 import { buildTimeline, initials, nextSteps, relativeTime, sortPortfolio } from '@/lib/domain/portfolio';
 
@@ -12,6 +12,12 @@ import { buildTimeline, initials, nextSteps, relativeTime, sortPortfolio } from 
  * Inicio del agente: todo sale de su cartera real (sin métricas inventadas).
  * Estructura inspirada en los mejores CRMs: resumen → cartera → qué ha pasado → qué toca hacer.
  */
+const SHORTCUTS = [
+  { href: '/app/lists', title: 'Mis listas', text: 'Atletas que sigues y tus notas', img: '/media/club-training-sm.webp' },
+  { href: '/app/opportunities', title: 'Oportunidades', text: 'Becas y ofertas publicadas', img: '/media/university-campus-sm.webp' },
+  { href: '/app/organization', title: 'Mi agencia', text: 'Equipo, verificación y perfil', img: '/media/agent-workspace-sm.webp' },
+];
+
 export async function AgentHome({ session }: { session: SessionContext }) {
   const [data, catalog] = await Promise.all([loadPortfolio(session.userId), loadCatalog()]);
   return <AgentHomeView displayName={session.displayName} data={data} sports={catalog.sports} />;
@@ -32,9 +38,15 @@ export function AgentHomeView({ displayName, data, sports }: { displayName: stri
   return (
     <div className="space-y-6">
       {/* Hero: bloque Noche de marca, con la acción principal en lima. */}
-      <section className="relative overflow-hidden rounded-[var(--radius-card)] bg-night text-white">
+      <section className="rise-in relative overflow-hidden rounded-[var(--radius-card)] bg-night text-white">
+        {/* eslint-disable-next-line @next/next/no-img-element -- fondo decorativo local */}
+        <img src="/media/arena-bg.webp" alt="" aria-hidden className="absolute inset-0 h-full w-full object-cover opacity-80" />
+        <div className="absolute inset-0 bg-gradient-to-r from-night via-night/85 to-night/30" aria-hidden />
         <div className="relative flex flex-col gap-6 p-6 sm:p-8 lg:flex-row lg:items-end lg:justify-between lg:p-10">
           <div className="max-w-xl">
+            <p className="mb-3 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-lavender backdrop-blur">
+              <span className="live-dot" aria-hidden /> {stats.overdueFollowUps ? `${stats.overdueFollowUps} seguimiento${stats.overdueFollowUps > 1 ? 's' : ''} por ponerse al día` : 'Todo al día'}
+            </p>
             <h1 className="font-display text-4xl font-bold uppercase leading-none text-white sm:text-[52px]">
               {greeting}, {first}
             </h1>
@@ -69,7 +81,7 @@ export function AgentHomeView({ displayName, data, sports }: { displayName: stri
       )}
 
       {/* KPIs reales y clicables */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="rise-in rise-in-1 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiTile label="Atletas representados" value={stats.active} icon={UserCheck} href="/app/portfolio?status=active" />
         <KpiTile label="Propuestas pendientes" value={stats.pending} icon={Hourglass} href="/app/portfolio?status=requested" hint={stats.pending ? 'Esperando al atleta' : undefined} />
         <KpiTile label="Nuevas en 30 días" value={stats.newLast30Days} icon={Sparkles} hint="Propuestas enviadas" />
@@ -82,7 +94,7 @@ export function AgentHomeView({ displayName, data, sports }: { displayName: stri
         />
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="rise-in rise-in-2 grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
         <div className="min-w-0 space-y-5">
           <Panel title="Tu portfolio" action={<PanelLink href="/app/portfolio">Ver todo →</PanelLink>}>
             {!featured.length ? (
@@ -91,16 +103,16 @@ export function AgentHomeView({ displayName, data, sports }: { displayName: stri
                 <ButtonLink href="/app/discover" variant="secondary" className="mt-4">Buscar talento</ButtonLink>
               </div>
             ) : (
-              <ul className="grid gap-3 p-1 sm:grid-cols-3">
+              <ul className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto p-1 pb-2 sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:pb-1" aria-label="Atletas representados">
                 {featured.map((e) => (
-                  <li key={e.repId}>
+                  <li key={e.repId} className="w-[68%] shrink-0 snap-start sm:w-auto">
                     <Link href={`/app/portfolio/${e.athleteId}`} className="group block overflow-hidden rounded-2xl border border-line bg-surface transition-all duration-300 hover:-translate-y-0.5 hover:border-brass/40 hover:shadow-[var(--shadow-elevated)]">
-                      <div className={`relative aspect-[4/3] overflow-hidden ${SPORT_TONE_CLASS[sportTone(e.sportName ?? e.sportId)]}`}>
+                      <div className={`court-lines relative aspect-[4/3] overflow-hidden ${SPORT_TONE_CLASS[sportTone(e.sportName ?? e.sportId)]}`}>
                         {e.avatarUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element -- avatares de dominios variables
                           <img src={e.avatarUrl} alt="" loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]" />
                         ) : (
-                          <span className="absolute inset-0 flex items-center justify-center font-display text-6xl font-bold text-white">{initials(e.name)}</span>
+                          <span className="absolute inset-0 flex items-center justify-center font-display text-6xl font-bold text-white drop-shadow-sm transition-transform duration-500 group-hover:scale-110">{initials(e.name)}</span>
                         )}
                       </div>
                       <div className="space-y-1 p-3.5">
@@ -134,29 +146,52 @@ export function AgentHomeView({ displayName, data, sports }: { displayName: stri
             )}
           </Panel>
 
-          {/* Descubrir talento: atajo al escaparate con los filtros reales del directorio */}
-          <section className="rounded-[var(--radius-card)] border border-line bg-surface p-5">
-            <h2 className="font-display text-[15px] font-bold text-paper">Descubrir talento</h2>
-            <p className="mt-0.5 text-sm text-muted">Encuentra la próxima generación de atletas.</p>
-            <form action="/app/discover" method="get" className="mt-4 grid gap-2 sm:grid-cols-[190px_140px_minmax(0,1fr)_auto]">
-              <label><span className="sr-only">Deporte</span>
-                <select name="sport" className={inputClass} defaultValue="">
-                  <option value="">Cualquier deporte</option>
-                  {sports.map((s) => <option key={s.id} value={s.id}>{s.name_es}</option>)}
-                </select>
-              </label>
-              <label><span className="sr-only">Promoción</span>
-                <select name="grad" className={inputClass} defaultValue="">
-                  <option value="">Promoción</option>
-                  {Array.from({ length: 6 }, (_, i) => year + i).map((y) => <option key={y} value={y}>{y}</option>)}
-                </select>
-              </label>
-              <label><span className="sr-only">Nombre</span>
-                <input name="q" placeholder="Buscar por nombre…" className={inputClass} maxLength={60} />
-              </label>
-              <Button type="submit"><Search className="h-4 w-4" aria-hidden /> Buscar</Button>
-            </form>
+          {/* Descubrir talento: tarjeta con foto (ilustrativa) y búsqueda real sobre el directorio */}
+          <section className="relative overflow-hidden rounded-[var(--radius-card)] bg-night text-white">
+            {/* eslint-disable-next-line @next/next/no-img-element -- imagen local optimizada */}
+            <img src="/media/hero-athletes-sm.webp" alt="" aria-hidden loading="lazy" className="absolute inset-0 h-full w-full object-cover object-top" />
+            <div className="tile-shade absolute inset-0" aria-hidden />
+            <div className="relative p-5 pt-24 sm:p-6 sm:pt-32">
+              <h2 className="font-display text-3xl font-bold uppercase leading-none">Descubrir talento</h2>
+              <p className="mt-1 text-sm text-lavender">Encuentra la próxima generación de atletas.</p>
+              <form action="/app/discover" method="get" className="mt-4 grid gap-2 sm:grid-cols-[180px_130px_minmax(0,1fr)_auto]">
+                <label><span className="sr-only">Deporte</span>
+                  <select name="sport" className={inputClass} defaultValue="">
+                    <option value="">Cualquier deporte</option>
+                    {sports.map((s) => <option key={s.id} value={s.id}>{s.name_es}</option>)}
+                  </select>
+                </label>
+                <label><span className="sr-only">Promoción</span>
+                  <select name="grad" className={inputClass} defaultValue="">
+                    <option value="">Promoción</option>
+                    {Array.from({ length: 6 }, (_, i) => year + i).map((y) => <option key={y} value={y}>{y}</option>)}
+                  </select>
+                </label>
+                <label><span className="sr-only">Nombre</span>
+                  <input name="q" placeholder="Buscar por nombre…" className={inputClass} maxLength={60} />
+                </label>
+                <button type="submit" className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-lime px-5 text-sm font-bold text-night hover:-translate-y-0.5 transition-transform focus-visible:outline-lime"><Search className="h-4 w-4" aria-hidden /> Buscar</button>
+              </form>
+              <p className="mt-3 text-[11px] text-lavender/80">Imagen ilustrativa.</p>
+            </div>
           </section>
+
+          {/* Atajos con foto */}
+          <ul className="grid gap-3 sm:grid-cols-3">
+            {SHORTCUTS.map((c, i) => (
+              <li key={c.href} className={`rise-in rise-in-${i + 1}`}>
+                <Link href={c.href} className="hover-lift group relative block h-36 overflow-hidden rounded-[var(--radius-card)] bg-night text-white">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- imagen local optimizada */}
+                  <img src={c.img} alt="" aria-hidden loading="lazy" className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                  <div className="tile-shade absolute inset-0" aria-hidden />
+                  <span className="absolute inset-x-0 bottom-0 p-4">
+                    <span className="block font-display text-xl font-bold uppercase leading-none">{c.title}</span>
+                    <span className="mt-1 block text-xs text-lavender">{c.text}</span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
         </div>
 
         <div className="space-y-5">
