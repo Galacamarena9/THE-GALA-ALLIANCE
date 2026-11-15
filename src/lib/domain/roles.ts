@@ -42,7 +42,7 @@ export const ACTORS: {
     intent: 'Gestiono el recruiting de una universidad o college',
     label: 'Universidad',
     plural: 'Universidades',
-    promise: 'Publica becas, recibe candidatos compatibles y gestiona tu pipeline internacional.',
+    promise: 'Publica becas, recibe candidatos compatibles y gestiona tus candidatos internacionales.',
     home: '/app/opportunities?view=mine',
     adultsOnly: true,
     services: ['Perfil verificado en el directorio', 'Publicación de becas y plazas', 'Talento compatible por beca', 'Pipeline de recruiting con notas privadas', 'Equipo de coaches'],
