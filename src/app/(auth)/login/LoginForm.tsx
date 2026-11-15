@@ -18,6 +18,7 @@ export function LoginForm({ next }: { next?: string }) {
       <Field label="Contraseña" htmlFor="password">
         <input id="password" name="password" type="password" autoComplete="current-password" required className={inputClass} />
       </Field>
+      <p className="-mt-2 text-right text-sm"><Link href="/forgot-password" className="text-brass hover:underline">¿Olvidaste tu contraseña?</Link></p>
       <SubmitButton className="w-full" pendingText="Entrando…">Entrar</SubmitButton>
       <p className="text-center text-sm text-muted">
         ¿Aún no tienes cuenta? <Link href="/signup" className="text-brass hover:underline">Crear cuenta</Link>

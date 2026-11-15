@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { checkAge } from '@/lib/domain/age';
 import { siteUrl } from '@/lib/env';
+import { checkNewPassword } from '@/lib/domain/password';
 
 export type FormState = { error?: string; fieldErrors?: Record<string, string>; ok?: boolean; message?: string } | undefined;
 
@@ -28,6 +29,8 @@ export async function signUp(_prev: FormState, formData: FormData): Promise<Form
     return { fieldErrors };
   }
   const { displayName, email, password, dateOfBirth, role } = parsed.data;
+  const pw = checkNewPassword(password, password);
+  if (!pw.ok) return { error: pw.error, fieldErrors: { password: pw.error } };
 
   // COPPA: se comprueba ANTES de crear nada. La base de datos lo vuelve a exigir.
   const age = checkAge(dateOfBirth);
@@ -89,4 +92,33 @@ export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
   redirect('/');
+}
+
+/**
+ * "¿Olvidaste tu contraseña?". Responde siempre lo mismo, exista o no la cuenta,
+ * para no revelar qué emails están registrados.
+ */
+export async function requestPasswordReset(_prev: FormState, formData: FormData): Promise<FormState> {
+  const parsed = z.object({ email: z.string().trim().toLowerCase().email('Email no válido') }).safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message };
+  const supabase = await createClient();
+  await supabase.auth.resetPasswordForEmail(parsed.data.email, {
+    redirectTo: `${siteUrl()}/auth/callback?next=${encodeURIComponent('/reset-password')}`,
+  });
+  return { ok: true, message: 'Si hay una cuenta con ese email, te hemos enviado un enlace para crear una contraseña nueva. Caduca en 1 hora.' };
+}
+
+/** Guarda la contraseña nueva (requiere la sesión que crea el enlace del email) y cierra las demás sesiones. */
+export async function updatePassword(_prev: FormState, formData: FormData): Promise<FormState> {
+  const password = String(formData.get('password') ?? '');
+  const confirm = String(formData.get('confirm') ?? '');
+  const check = checkNewPassword(password, confirm);
+  if (!check.ok) return { error: check.error };
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) return { error: 'El enlace ha caducado. Pide uno nuevo.' };
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) return { error: 'No se pudo guardar. Prueba otra contraseña o pide un enlace nuevo.' };
+  await supabase.auth.signOut({ scope: 'others' });
+  redirect('/app?password=updated');
 }

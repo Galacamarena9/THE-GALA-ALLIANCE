@@ -253,3 +253,7 @@ html:not(.js) .reveal { opacity: 1; transform: none; }
 @keyframes live-ping { 0% { transform: scale(1); opacity: 0.7; } 80%, 100% { transform: scale(2.4); opacity: 0; } }
 .live-dot { position: relative; display: inline-block; width: 8px; height: 8px; border-radius: 9999px; background: var(--color-lime); }
 .live-dot::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: inherit; animation: live-ping 1.8s cubic-bezier(0,0,.2,1) infinite; }
+
+/* Esqueletos de carga con brillo que recorre. */
+.skeleton { position: relative; overflow: hidden; background: var(--color-surface-2); }
+.skeleton::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-surface) 70%, transparent), transparent); animation: shimmer 1.6s infinite; }
