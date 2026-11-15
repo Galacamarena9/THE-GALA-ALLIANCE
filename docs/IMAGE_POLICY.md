@@ -6,8 +6,10 @@ y que nunca se exponga a menores reales.
 
 ## Personas
 
-1. **Solo personas generadas por IA que no existen.** Prohibido usar fotos de personas reales (atletas, coaches,
-   famosos, conocidos) sin un contrato de cesión de derechos de imagen firmado.
+1. **Imágenes decorativas: solo personas generadas por IA que no existen.** Prohibido usar fotos de personas reales
+   (atletas, coaches, famosos, conocidos) sin una cesión de derechos de imagen firmada.
+   **Excepción: la fundadora (Gala)**, en su propia sección y con su nombre, siempre que la foto sea suya o tenga permiso
+   escrito de quien la hizo, no salgan logos de universidades, ligas ni marcas, y no aparezca nadie más reconocible.
 2. **Nada de parecidos intencionados.** No se pide a la IA que imite a ningún deportista ni persona conocida, y
    se descarta cualquier resultado que se parezca claramente a alguien real.
 3. **Adultos de aspecto claro (18-25 años).** Aunque la plataforma sirve a menores, en las imágenes de marketing
