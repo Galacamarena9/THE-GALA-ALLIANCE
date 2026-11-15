@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowRight, CheckCircle2, Circle, Sparkles } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Circle } from 'lucide-react';
 import { FeedbackForm } from '@/components/growth';
 import { requireSession, type SessionContext } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
@@ -13,6 +13,7 @@ import { Badge, ButtonLink, Card, Meter } from '@/components/ui';
 import { AskGala } from '@/components/AskGala';
 import { Reveal } from '@/components/Reveal';
 import { AgentHome } from './AgentHome';
+import { ROLE_SHORTCUTS, RoleHero, ShortcutTiles } from '@/components/RoleHero';
 
 export const metadata: Metadata = { title: 'Inicio' };
 
@@ -74,12 +75,15 @@ export default async function HomePage() {
   // El agente tiene un inicio propio (Agent Workspace) centrado en su cartera.
   if (primary === 'agent') return <AgentHome session={session} />;
   const supabase = await createClient();
-  const [{ steps, score }, plan, { data: activity }] = await Promise.all([
+  const [{ steps, score }, plan, { data: activity }, { count: unreadCount }] = await Promise.all([
     stepsFor(session),
     session.roles.some((r) => r === 'athlete' || r === 'parent') ? familyPlan([session.userId]) : Promise.resolve(null),
     supabase.from('notifications').select('id, title, body, link, created_at, read_at').eq('user_id', session.userId).order('created_at', { ascending: false }).limit(5),
+    supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', session.userId).is('read_at', null),
   ]);
   const done = steps.filter((s) => s.done).length;
+  const nextStep = steps.find((s) => !s.done);
+  const unread = unreadCount ?? 0;
   const sections = sidebarFor(session.roles).filter((s) => s.title !== 'Inicio');
   const initials = session.displayName.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join('');
   const PLAN_NAME: Record<string, string> = { free: 'Passport gratis', family_core: 'Core', family_elite: 'Elite', family_signature: 'Signature' };
@@ -126,15 +130,19 @@ export default async function HomePage() {
       </div>
 
       <div className="min-w-0 space-y-6">
-        <Reveal>
-          <header>
-            <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1 text-[13px] font-semibold text-brass">
-              <Sparkles className="h-3 w-3" aria-hidden /> Tu resumen
-            </p>
-            <h1 className="text-3xl font-bold tracking-tight text-paper sm:text-4xl">Hola, {session.displayName.split(' ')[0]}</h1>
-            <p className="mt-2 text-muted">Todo el proceso de becas en EE. UU. en un solo sitio. Empieza por tus primeros pasos.</p>
-          </header>
-        </Reveal>
+        <RoleHero
+          role={primary ?? 'athlete'}
+          firstName={session.displayName.split(' ')[0]}
+          status={done === steps.length ? 'Todo al día' : `${steps.length - done} paso${steps.length - done > 1 ? 's' : ''} por completar`}
+          next={nextStep ? { label: nextStep.label, href: nextStep.href } : undefined}
+          stats={[
+            ...(score != null ? [{ label: 'Passport listo', value: score, suffix: '%' }] : []),
+            { label: 'Primeros pasos', value: done, note: `de ${steps.length}` },
+            { label: 'Avisos sin leer', value: unread },
+          ]}
+        />
+
+        {primary && ROLE_SHORTCUTS[primary] && <ShortcutTiles items={ROLE_SHORTCUTS[primary]!} />}
 
         <Reveal delay={60}>
           <Card className="relative overflow-hidden">
