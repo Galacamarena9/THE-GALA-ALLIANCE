@@ -1,3 +1,4 @@
+import { requireAdminMfa } from '@/lib/mfa';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -31,6 +32,7 @@ const STATUS: Record<string, string> = { new: 'Nueva', contacted: 'Contactada', 
 
 export default async function AdminPanelPage({ searchParams }: { searchParams: Promise<{ days?: string }> }) {
   const session = await requireSession(['admin']);
+  await requireAdminMfa();
   if (!session.roles.includes('admin')) redirect('/app');
   const days = [7, 30, 90].includes(Number((await searchParams).days)) ? Number((await searchParams).days) : 30;
   const supabase = await createClient();

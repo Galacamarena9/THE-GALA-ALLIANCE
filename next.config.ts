@@ -2,6 +2,8 @@ import type { NextConfig } from 'next';
 
 const isDev = process.env.NODE_ENV !== 'production';
 const supabase = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://*.supabase.co';
+/** Captcha (Cloudflare Turnstile): solo se permite su dominio si hay clave configurada. */
+const turnstile = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? ' https://challenges.cloudflare.com' : '';
 
 /**
  * Cabeceras de seguridad para toda la app.
@@ -10,13 +12,13 @@ const supabase = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://*.supabase.co'
  */
 const csp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}${turnstile}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
-  `connect-src 'self' ${supabase} ${supabase.replace('https://', 'wss://')}`,
+  `connect-src 'self' ${supabase} ${supabase.replace('https://', 'wss://')}${turnstile}`,
   "frame-ancestors 'none'",
-  "frame-src 'none'",
+  turnstile ? `frame-src${turnstile}` : "frame-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
   "object-src 'none'",

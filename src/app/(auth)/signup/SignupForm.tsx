@@ -1,6 +1,7 @@
 'use client';
 
 import { useActionState } from 'react';
+import { Captcha } from '@/components/Captcha';
 import Link from 'next/link';
 import { signUp, type FormState } from '@/app/actions/auth';
 import { Field, inputClass, Notice } from '@/components/ui';
@@ -48,6 +49,7 @@ export function SignupForm({ role }: { role?: string }) {
         </span>
       </label>
       {fe.acceptTerms && <p className="-mt-3 text-xs text-danger">{fe.acceptTerms}</p>}
+      <Captcha />
       <SubmitButton className="w-full" pendingText="Creando cuenta…">Crear cuenta</SubmitButton>
       <p className="text-center text-sm text-muted">
         ¿Ya tienes cuenta? <Link href="/login" className="text-brass hover:underline">Entrar</Link>

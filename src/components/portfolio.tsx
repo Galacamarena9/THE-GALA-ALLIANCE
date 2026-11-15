@@ -4,6 +4,7 @@ import {
   CalendarCheck2, CalendarClock, FileSignature, StickyNote, UserCheck, UserMinus, UserX, Undo2, type LucideIcon,
 } from 'lucide-react';
 import { cx } from '@/components/ui';
+import { CountUp } from '@/components/CountUp';
 import {
   REP_META, dueText, initials, relativeTime,
   type EventKind, type NextStep, type RepStatus, type TimelineEvent,
@@ -48,13 +49,13 @@ export function KpiTile({
   label, value, icon: Icon, hint, hintTone = 'muted', href,
 }: { label: string; value: number; icon: LucideIcon; hint?: string; hintTone?: 'muted' | 'danger' | 'ok'; href?: string }) {
   const inner = (
-    <div className="group flex h-full flex-col items-start gap-3 rounded-[var(--radius-card)] border border-line bg-surface p-4 transition-all duration-200 hover:border-brass/40 sm:flex-row sm:gap-4 sm:p-5">
+    <div className="hover-lift group flex h-full flex-col items-start gap-3 rounded-[var(--radius-card)] border border-line bg-surface p-4 transition-all duration-200 hover:border-brass/40 sm:flex-row sm:gap-4 sm:p-5">
       <span className="flex h-10 w-10 shrink-0 sm:h-11 sm:w-11 items-center justify-center rounded-xl bg-brass/10 text-brass ring-1 ring-brass/20 transition-transform group-hover:scale-105">
         <Icon className="h-5 w-5" aria-hidden strokeWidth={1.8} />
       </span>
       <span className="min-w-0">
         <span className="block text-xs text-muted">{label}</span>
-        <span className="mt-0.5 block font-display text-[28px] font-bold leading-none tabular-nums text-paper">{value}</span>
+        <CountUp value={value} className="mt-0.5 block font-display text-[34px] font-bold leading-none tabular-nums text-paper" />
         {hint && <span className={cx('mt-1.5 block text-[11px]', hintTone === 'danger' ? 'text-danger' : hintTone === 'ok' ? 'text-ok' : 'text-faint')}>{hint}</span>}
       </span>
     </div>
@@ -66,7 +67,7 @@ export function Panel({ title, action, children, className }: { title: string; a
   return (
     <section className={cx('rounded-[var(--radius-card)] border border-line bg-surface', className)}>
       <header className="flex items-center justify-between gap-3 border-b border-line px-4 py-3.5 sm:px-5">
-        <h2 className="font-display text-[15px] font-bold text-paper">{title}</h2>
+        <h2 className="font-display text-xl font-bold uppercase leading-none text-paper">{title}</h2>
         {action}
       </header>
       <div className="p-2 sm:p-3">{children}</div>

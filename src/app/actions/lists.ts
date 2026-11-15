@@ -46,3 +46,17 @@ export async function updateSavedNote(formData: FormData) {
     .eq('list_name', parsed.data.list_name);
   revalidatePath('/app/lists');
 }
+
+/** Copia un atleta guardado a otra lista (nueva o existente). La RLS vuelve a comprobar que puedes verlo. */
+export async function copyToList(formData: FormData) {
+  const session = await requireSession(['university', 'coach', 'agent', 'brand']);
+  const parsed = z
+    .object({ athlete_id: z.string().uuid(), target: z.string().trim().min(1).max(80) })
+    .safeParse({ athlete_id: formData.get('athlete_id'), target: formData.get('target') });
+  if (!parsed.success) return;
+  const supabase = await createClient();
+  await supabase
+    .from('saved_athletes')
+    .upsert({ owner_id: session.userId, athlete_id: parsed.data.athlete_id, list_name: parsed.data.target }, { onConflict: 'owner_id,athlete_id,list_name', ignoreDuplicates: true });
+  revalidatePath('/app/lists');
+}

@@ -832,6 +832,56 @@ try {
     eq((await as(u.coach, `select count(*)::int n from recruiting_link_views`)).rows[0].n, 0);
     await expectError(() => as(u.coach, `insert into recruiting_link_views (link_id) values ($1)`, [adultLinkId]), /row-level security|permission denied/);
   });
+
+  results.push('\nFase 1: bloquear a una persona');
+  // Punto de partida limpio: la conversación coach-atleta de pruebas anteriores quedó bloqueada a nivel de organización.
+  await db.query(`set session_replication_role = replica`);
+  await db.query(`update contact_requests set status = 'accepted' where id = $1`, [reqId]);
+  await db.query(`set session_replication_role = origin`);
+  await check('antes de bloquear, el coach ve al atleta y puede escribirle', async () => {
+    eq((await as(u.coach, `select public.can_view_athlete($1) v`, [u.adult])).rows[0].v, true);
+    await as(u.coach, `insert into contact_messages (request_id, sender_id, body) values ($1, $2, 'Antes del bloqueo')`, [reqId, u.coach]);
+  });
+  await check('nadie puede bloquear en nombre de otro ni bloquearse a sí mismo', async () => {
+    await expectError(() => as(u.agent, `insert into user_blocks (blocker_id, blocked_id) values ($1, $2)`, [u.adult, u.coach]), /row-level security/);
+    await expectError(() => as(u.adult, `insert into user_blocks (blocker_id, blocked_id) values ($1, $1)`, [u.adult]), /check constraint|violates/);
+  });
+  await check('el atleta bloquea al coach: deja de ver su perfil', async () => {
+    await as(u.adult, `insert into user_blocks (blocker_id, blocked_id, reason) values ($1, $2, 'Insistente')`, [u.adult, u.coach]);
+    eq((await as(u.coach, `select public.can_view_athlete($1) v`, [u.adult])).rows[0].v, false);
+  });
+  await check('con el bloqueo nadie de los dos puede escribir en la conversación', async () => {
+    await expectError(() => as(u.coach, `insert into contact_messages (request_id, sender_id, body) values ($1, $2, 'hola')`, [reqId, u.coach]), /row-level security/);
+    await expectError(() => as(u.adult, `insert into contact_messages (request_id, sender_id, body) values ($1, $2, 'hola')`, [reqId, u.adult]), /row-level security/);
+  });
+  await check('el bloqueado no sabe quién le ha bloqueado (no ve la fila)', async () => {
+    eq((await as(u.coach, `select count(*)::int n from user_blocks`)).rows[0].n, 0);
+    eq((await as(u.adult, `select count(*)::int n from user_blocks`)).rows[0].n, 1);
+  });
+  await check('la madre o el padre de un menor bloquea en su nombre', async () => {
+    await as(teenParent, `insert into user_blocks (blocker_id, blocked_id) values ($1, $2)`, [teenParent, u.agent]);
+    eq((await as(u.agent, `select public.is_blocked_by_user($1) v`, [teen])).rows[0].v, true);
+    eq((await as(u.agent, `select public.can_view_athlete($1) v`, [teen])).rows[0].v, false);
+  });
+  await check('al desbloquear todo vuelve a funcionar', async () => {
+    await as(u.adult, `delete from user_blocks where blocker_id = $1 and blocked_id = $2`, [u.adult, u.coach]);
+    eq((await as(u.coach, `select public.can_view_athlete($1) v`, [u.adult])).rows[0].v, true);
+    await as(u.coach, `insert into contact_messages (request_id, sender_id, body) values ($1, $2, 'Después del desbloqueo')`, [reqId, u.coach]);
+  });
+  await check('los bloqueos no se pueden editar (solo crear y borrar)', async () => {
+    await as(u.adult, `insert into user_blocks (blocker_id, blocked_id) values ($1, $2)`, [u.adult, u.brand]);
+    const r = await as(u.adult, `update user_blocks set blocked_id = $2 where blocker_id = $1 returning 1`, [u.adult, u.coach]).catch((e) => e);
+    if (!(r instanceof Error) && r.rows.length) throw new Error('se pudo editar un bloqueo');
+  });
+
+  results.push('\nFase 1: derechos de imagen');
+  await check('el atleta registra que tiene derecho a publicar su vídeo', async () => {
+    await as(u.adult, `insert into consents (user_id, purpose, document_version, granted) values ($1, 'media_rights', 'media-2026-11', true)`, [u.adult]);
+    eq((await as(u.adult, `select count(*)::int n from consents where purpose = 'media_rights'`)).rows[0].n, 1);
+  });
+  await check('nadie registra ese consentimiento en nombre de otro', async () => {
+    await expectError(() => as(u.coach, `insert into consents (user_id, purpose, document_version, granted) values ($1, 'media_rights', 'x', true)`, [u.adult]), /row-level security/);
+  });
 } finally {
   console.log(results.join('\n'));
   console.log(`\n${passed} pruebas OK · ${failed} fallidas`);

@@ -8,6 +8,8 @@ import { revokeFamilyLink, updateFamilyPermissions } from '@/app/actions/family'
 import { DataRequestForm } from './DataRequestForm';
 import { DeleteAccountForm } from '@/components/autonomy';
 import { CookiePrefsButton } from './CookiePrefsButton';
+import { unblockUser } from '@/app/actions/blocks';
+import { TwoFactorCard } from '@/components/TwoFactorCard';
 
 export const metadata: Metadata = { title: 'Privacidad y datos' };
 
@@ -15,8 +17,9 @@ const REQUEST_LABEL: Record<string, string> = {
   access: 'Acceso', rectification: 'Rectificación', erasure: 'Supresión', restriction: 'Limitación', objection: 'Oposición', portability: 'Portabilidad',
 };
 
-export default async function SettingsPage() {
+export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ mfa?: string }> }) {
   const session = await requireSession();
+  const { mfa } = await searchParams;
   const supabase = await createClient();
   const isAthlete = session.roles.includes('athlete');
 
@@ -31,12 +34,40 @@ export default async function SettingsPage() {
     supabase.from('data_subject_requests').select('id, request_type, status, created_at').eq('user_id', session.userId).order('created_at', { ascending: false }),
     supabase.from('consents').select('purpose, document_version, granted, created_at').eq('user_id', session.userId).order('created_at', { ascending: false }),
   ]);
+  const { data: blocks } = await supabase.from('user_blocks').select('blocked_id, reason, created_at').eq('blocker_id', session.userId).order('created_at', { ascending: false });
+  const blockedIds = (blocks ?? []).map((b) => b.blocked_id);
+  const { data: blockedProfiles } = blockedIds.length ? await supabase.from('profiles').select('id, display_name').in('id', blockedIds) : { data: [] };
+  const blockedName = new Map((blockedProfiles ?? []).map((p) => [p.id, p.display_name]));
 
   return (
     <>
       <PageHeader kicker="Privacidad" title="Tus datos, tus decisiones" description="Controla quién te ve, descarga tus datos y ejerce tus derechos en cualquier momento." />
 
       <div className="space-y-5">
+        <Card>
+          <CardTitle kicker="Seguridad">Verificación en dos pasos</CardTitle>
+          <TwoFactorCard required={mfa === 'required' || session.roles.includes('admin')} />
+        </Card>
+        <Card>
+          <CardTitle kicker="Seguridad">Personas bloqueadas</CardTitle>
+          {blocks?.length ? (
+            <ul className="divide-y divide-line">
+              {blocks.map((b) => (
+                <li key={b.blocked_id} className="flex flex-wrap items-center gap-3 py-3 text-sm">
+                  <span className="font-medium text-paper">{blockedName.get(b.blocked_id) ?? 'Usuario'}</span>
+                  {b.reason && <span className="text-muted">· {b.reason}</span>}
+                  <span className="text-xs text-faint">desde {new Date(b.created_at).toLocaleDateString('es-ES')}</span>
+                  <form action={unblockUser} className="ml-auto">
+                    <input type="hidden" name="blocked_id" value={b.blocked_id} />
+                    <button className="rounded-lg border border-line-strong px-3 py-1.5 text-xs font-medium text-paper hover:border-brass/50">Desbloquear</button>
+                  </form>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted">No has bloqueado a nadie. Puedes bloquear a una persona desde cualquier conversación: no podréis escribiros y, si eres atleta, dejará de ver tu perfil.</p>
+          )}
+        </Card>
         {isAthlete && (
           <Card id="familia">
             <CardTitle kicker="Familia">Personas vinculadas</CardTitle>

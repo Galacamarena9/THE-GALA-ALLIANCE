@@ -11,6 +11,7 @@ import { MobileNav } from './MobileNav';
 import { CommandPalette } from './CommandPalette';
 import { UserMenu } from './UserMenu';
 import { createClient } from '@/lib/supabase/server';
+import { enforceMfaChallenge } from '@/lib/mfa';
 
 /** Perfil "público" de cada tipo de usuario (lo que ven los demás). */
 function profileHref(roles: string[]) {
@@ -22,6 +23,7 @@ function profileHref(roles: string[]) {
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await requireSession();
+  await enforceMfaChallenge('/app');
   const sections = sidebarFor(session.roles);
   const supabase = await createClient();
   const { count: unread } = await supabase
