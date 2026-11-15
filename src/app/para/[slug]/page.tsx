@@ -33,7 +33,7 @@ export default async function ForActorPage({ params }: { params: Promise<{ slug:
     <>
       <PublicHeader />
       <main className="mx-auto max-w-6xl px-5 py-16 sm:px-8">
-        <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-brass">Para {a.plural.toLowerCase()}</p>
+        <p className="text-[13px] font-semibold text-brass">Para {a.plural.toLowerCase()}</p>
         <h1 className="mt-3 max-w-4xl text-[40px] leading-tight text-paper sm:text-6xl">{a.promise}</h1>
         <div className="mt-12 grid gap-px overflow-hidden rounded-[var(--radius-card)] border border-line bg-line sm:grid-cols-2">
           <div className="bg-ink p-7"><p className="text-xs uppercase tracking-wide text-faint">Hoy</p><p className="mt-2 text-lg text-muted">{pain.problem}</p></div>

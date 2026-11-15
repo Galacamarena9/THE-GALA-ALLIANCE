@@ -40,7 +40,7 @@ export function OpportunityCard({ o, match, showStatus }: { o: OpportunityCardDa
         {match && (
           <div className="shrink-0 text-right">
             <p className="font-display text-2xl tabular-nums text-paper">{match.score}</p>
-            <p className="text-[10px] uppercase tracking-wide text-faint">compat.</p>
+            <p className="text-xs font-medium text-faint">compat.</p>
           </div>
         )}
       </div>

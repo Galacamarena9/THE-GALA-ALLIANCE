@@ -46,7 +46,7 @@ export function CommandPalette({ sections }: { sections: NavSection[] }) {
       >
         <Search className="h-4 w-4" aria-hidden />
         <span className="flex-1">Buscar una función: becas, documentos, mensajes…</span>
-        <kbd className="rounded-md border border-line-strong px-1.5 py-0.5 text-[10px] text-faint">Ctrl K</kbd>
+        <kbd className="rounded-md border border-line-strong px-1.5 py-0.5 text-xs text-faint">Ctrl K</kbd>
       </button>
       <button type="button" onClick={() => setOpen(true)} className="rounded-lg p-2 text-muted hover:bg-surface md:hidden" aria-label="Buscar una función">
         <Search className="h-5 w-5" />
@@ -81,7 +81,7 @@ export function CommandPalette({ sections }: { sections: NavSection[] }) {
                   <button type="button" onMouseEnter={() => setSel(i)} onClick={() => go(r.href)} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left ${i === sel ? 'bg-brass/10' : ''}`}>
                     <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-2 text-brass"><NavIcon name={r.icon} className="h-4 w-4" /></span>
                     <span className="min-w-0 flex-1">
-                      <span className="block text-sm text-paper">{r.label} <span className="text-[11px] text-faint">· {r.section}</span></span>
+                      <span className="block text-sm text-paper">{r.label} <span className="text-xs text-faint">· {r.section}</span></span>
                       {r.desc && <span className="block truncate text-xs text-muted">{r.desc}</span>}
                     </span>
                     {i === sel && <CornerDownLeft className="h-4 w-4 text-faint" aria-hidden />}

@@ -122,7 +122,7 @@ export default async function AcademyPage({ searchParams }: { searchParams: Prom
               <Card key={t.id}>
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-[11px] uppercase tracking-wider text-faint">{t.section}</p>
+                    <p className="text-xs uppercase tracking-wider text-faint">{t.section}</p>
                     <h3 className="text-lg text-paper">{t.title}</h3>
                     <p className="text-sm text-muted">{t.summary}</p>
                   </div>
@@ -184,7 +184,7 @@ export default async function AcademyPage({ searchParams }: { searchParams: Prom
             <a href={reg.url} target="_blank" rel="noopener noreferrer" className="rounded-full border border-brass/50 px-3 py-1.5 text-brass hover:bg-brass/10">Inscribirme ({domainOf(reg.url)}) ↗</a>
             <a href={reg.feesUrl} target="_blank" rel="noopener noreferrer" className="rounded-full border border-line px-3 py-1.5 text-muted hover:text-paper">Tarifas oficiales ↗</a>
           </div>
-          <p className="mt-3 text-[11px] text-faint">Revisado: {ACADEMY_REVIEWED}. Las fechas y tarifas las fijan College Board y ETS; comprueba siempre en su web antes de pagar.</p>
+          <p className="mt-3 text-xs text-faint">Revisado: {ACADEMY_REVIEWED}. Las fechas y tarifas las fijan College Board y ETS; comprueba siempre en su web antes de pagar.</p>
         </Card>
       </section>
     </>

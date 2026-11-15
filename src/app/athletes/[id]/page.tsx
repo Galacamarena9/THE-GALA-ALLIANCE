@@ -59,7 +59,7 @@ export default async function AthleteProfilePage({ params }: { params: Promise<{
         <section className="paper-grain rounded-[var(--radius-card)] border border-line bg-surface p-6 sm:p-8">
           <div className="flex flex-wrap items-start justify-between gap-6">
             <div>
-              <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-brass">Opportunity Passport</p>
+              <p className="text-[13px] font-semibold text-brass">Opportunity Passport</p>
               <h1 className="mt-2 text-4xl text-paper">{person?.display_name ?? 'Atleta'}</h1>
               <p className="mt-2 text-muted">{[sport, pos, pos2 && `/ ${pos2}`, p.graduation_year && `Clase ${p.graduation_year}`, person?.country, p.city].filter(Boolean).join(' · ')}</p>
               {p.headline && <p className="mt-4 max-w-2xl text-lg text-paper">{p.headline}</p>}
@@ -81,7 +81,7 @@ export default async function AthleteProfilePage({ params }: { params: Promise<{
               ['Nivel / liga', p.competitive_level ?? '—'],
               ['Lado dominante', p.dominant_side === 'left' ? 'Zurdo/a' : p.dominant_side === 'right' ? 'Diestro/a' : p.dominant_side === 'both' ? 'Ambos' : '—'],
             ].map(([k, v]) => (
-              <div key={k} className="rounded-xl bg-ink/50 p-3"><dt className="text-[10px] uppercase tracking-wide text-faint">{k}</dt><dd className="truncate text-paper">{v}</dd></div>
+              <div key={k} className="rounded-xl bg-ink/50 p-3"><dt className="text-xs font-medium text-faint">{k}</dt><dd className="truncate text-paper">{v}</dd></div>
             ))}
           </dl>
         </section>

@@ -172,7 +172,7 @@ export function AgentHomeView({ displayName, data, sports }: { displayName: stri
                 </label>
                 <button type="submit" className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-lime px-5 text-sm font-bold text-night hover:-translate-y-0.5 transition-transform focus-visible:outline-lime"><Search className="h-4 w-4" aria-hidden /> Buscar</button>
               </form>
-              <p className="mt-3 text-[11px] text-lavender/80">Imagen ilustrativa.</p>
+              <p className="mt-3 text-xs text-lavender/80">Imagen ilustrativa.</p>
             </div>
           </section>
 
@@ -198,7 +198,7 @@ export function AgentHomeView({ displayName, data, sports }: { displayName: stri
           <Panel title="Actividad reciente">
             <ActivityFeed events={activity} empty="Aquí verás propuestas, respuestas y notas de tu agencia." />
           </Panel>
-          <Panel title="Próximas acciones" action={<PanelLink href="/app/portfolio">Portfolio →</PanelLink>}>
+          <Panel title="Próximas acciones" action={<PanelLink href="/app/portfolio">Ver cartera</PanelLink>}>
             <NextStepsList steps={steps} empty="Sin seguimientos pendientes. Prográmalos desde la ficha de cada atleta." />
           </Panel>
         </div>

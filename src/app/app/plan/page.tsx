@@ -93,7 +93,7 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
         </Card>
 
         <Card className="lg:col-span-2">
-          <CardTitle kicker="3 · Shortlist automática">Universidades que encajan contigo</CardTitle>
+          <CardTitle kicker="3 · Lista automática">Universidades que encajan contigo</CardTitle>
           {!core ? (
             <Locked plan="family_core">Hasta 15 universidades reales del directorio oficial que ofrecen tu deporte, ordenadas por encaje y coste.</Locked>
           ) : !passport.profile?.sport_id ? (

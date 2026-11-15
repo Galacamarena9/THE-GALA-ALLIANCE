@@ -35,7 +35,7 @@ export default async function ApplicationsPage() {
 
     return (
       <>
-        <PageHeader kicker="Recruiting" title="Pipeline" description="Las notas internas son privadas de tu organización: el atleta solo ve una línea temporal amable. Cada cambio de estado queda registrado." />
+        <PageHeader kicker="Recruiting" title="Candidatos" description="Las notas internas son privadas de tu organización: el atleta solo ve una línea temporal amable. Cada cambio de estado queda registrado." />
         {apps?.length ? (
           <div className="flex gap-4 overflow-x-auto pb-4">
             {columns.map(({ s, items }) => (

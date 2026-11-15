@@ -59,11 +59,11 @@ function Section({ section, active, onNavigate }: { section: NavSection; active?
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="group mb-1.5 flex w-full items-center justify-between rounded-lg px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-faint transition-colors hover:text-muted"
+        className="group mb-1.5 flex w-full items-center justify-between rounded-lg px-3 py-1 text-[13px] font-semibold text-faint transition-colors hover:text-muted"
       >
         <span>{section.title}</span>
         <span className="flex items-center gap-1.5">
-          {!open && <span className="rounded-full bg-surface-2 px-1.5 py-0.5 text-[9px] tracking-normal text-muted">{section.items.length}</span>}
+          {!open && <span className="rounded-full bg-surface-2 px-1.5 py-0.5 text-xs tracking-normal text-muted">{section.items.length}</span>}
           <ChevronDown className={cx('h-3.5 w-3.5 transition-transform duration-200', open ? '' : '-rotate-90')} aria-hidden />
         </span>
       </button>

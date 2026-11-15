@@ -139,7 +139,7 @@ export function NoteComposer({ agencyId, athleteId }: { agencyId: string; athlet
         )}
         {state?.error && <Notice tone="danger">{state.error}</Notice>}
         <div className="flex items-center justify-between gap-3">
-          <span className="text-[11px] tabular-nums text-faint">{len}/5000 · Ctrl+Enter para guardar</span>
+          <span className="text-xs tabular-nums text-faint">{len}/5000 · Ctrl+Enter para guardar</span>
           <SubmitButton pendingText="Guardando…" className="px-3 py-2">{kind === 'note' ? 'Guardar nota' : 'Programar'}</SubmitButton>
         </div>
         {state?.ok && state.message && <p className="stamp-in text-xs font-medium text-ok" role="status">✓ {state.message}</p>}

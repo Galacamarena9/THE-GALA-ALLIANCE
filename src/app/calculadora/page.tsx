@@ -12,7 +12,7 @@ export default function PublicCalculator() {
     <>
       <PublicHeader />
       <main className="mx-auto max-w-6xl px-5 py-14 sm:px-8">
-        <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-brass">Calculadora · gratis, sin registro</p>
+        <p className="text-[13px] font-semibold text-brass">Calculadora · gratis, sin registro</p>
         <h1 className="mb-8 mt-3 text-5xl text-paper">¿Cuánto vais a pagar de verdad?</h1>
         <NetCostCalculator />
       </main>

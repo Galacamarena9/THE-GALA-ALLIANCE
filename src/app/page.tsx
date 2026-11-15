@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import {
-  ArrowRight, BadgeCheck, Bot, Building2, Calculator, ChevronDown, CircleCheck, Columns3, FileText,
-  GraduationCap, Handshake, IdCard, Megaphone, LayoutGrid, MessageSquare, Scale, School, ShieldCheck, Sparkles, Star, Trophy, Users,
+  ArrowRight, BadgeCheck, Building2, ChevronDown, CircleCheck, GraduationCap, Handshake, Megaphone, ShieldCheck, Sparkles, Star, Trophy, Users,
 } from 'lucide-react';
 import { ButtonLink } from '@/components/ui';
 import { PublicFooter, PublicHeader } from '@/components/PublicShell';
@@ -18,21 +17,6 @@ const DESTINATIONS = [
   { tag: 'Atletas', title: 'Talento', text: 'Perfiles verificables con vídeo, estadísticas y notas.', img: '/media/hero-athletes.webp', href: '/para/atletas' },
   { tag: 'Estados Unidos', title: 'Universidades', text: 'Tu deporte, tu próxima universidad y su coste real.', img: '/media/university-campus.webp', href: '/para/universidades' },
   { tag: 'Internacional', title: 'Clubes', text: 'Clubes y coaches: talento comparable, más allá de las fronteras.', img: '/media/club-training.webp', href: '/para/coaches' },
-];
-
-const TOOLS = [
-  { Icon: IdCard, title: 'Opportunity Passport', text: 'Vídeo, estadísticas, notas e idiomas en un perfil comparable.' },
-  { Icon: LayoutGrid, title: 'Escaparate de atletas', text: 'Filtros por deporte, posición, año, división y nota.' },
-  { Icon: Trophy, title: 'Becas con sello', text: 'Confianza en 5 niveles y señales de alarma en cada oferta.' },
-  { Icon: School, title: 'Universidades oficiales', text: 'Datos del U.S. Department of Education con su fuente.' },
-  { Icon: Columns3, title: 'Comparador', text: 'Hasta 5 universidades u ofertas lado a lado.' },
-  { Icon: Calculator, title: 'Coste real', text: 'Cuánto cuesta de verdad, a 4 años, con viajes y seguro.' },
-  { Icon: FileText, title: 'Centro de documentos', text: 'Checklist con fechas según tu promoción, privado.' },
-  { Icon: GraduationCap, title: 'Academia SAT/TOEFL', text: 'Práctica tipo examen con fechas oficiales.' },
-  { Icon: Bot, title: 'Gala IA', text: 'Resuelve dudas del proceso a cualquier hora.' },
-  { Icon: MessageSquare, title: 'Mensajes seguros', text: 'Con menores, la familia aprueba y ve el hilo.' },
-  { Icon: Users, title: 'Portal de clubes', text: 'Roster, estadísticas confirmadas y colocaciones.' },
-  { Icon: Scale, title: 'Memo de decisión', text: 'La opción más sólida, riesgos y preguntas pendientes.' },
 ];
 
 const ROLE_ICON: Record<string, typeof Users> = { athlete: GraduationCap, parent: Users, university: Building2, coach: Trophy, agent: Handshake, brand: Megaphone };
@@ -113,6 +97,23 @@ export default function Home() {
           <HeroAudience />
         </section>
 
+        {/* Franja de confianza + deportes en movimiento */}
+        <section aria-label="Confianza" className="border-y border-line/50 bg-surface/40">
+          <div className="mx-auto grid max-w-6xl grid-cols-2 gap-6 px-6 py-10 lg:grid-cols-4">
+            {STATS.map(({ Icon, value, label }, i) => (
+              <Reveal key={label} delay={i * 80} className="flex items-center gap-3">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brass/10"><Icon className="h-5 w-5 text-brass" aria-hidden /></span>
+                <span><span className="block font-display text-xl font-bold text-paper">{value}</span><span className="block text-xs text-muted">{label}</span></span>
+              </Reveal>
+            ))}
+          </div>
+          <div className="relative overflow-hidden border-t border-line/40 py-4 [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]" aria-hidden>
+            <div className="marquee flex w-max gap-10 text-sm font-semibold uppercase tracking-[0.2em] text-faint">
+              {[...SPORTS, ...SPORTS].map((s, i) => <span key={i} className="flex items-center gap-10">{s}<span className="text-brass/50">✦</span></span>)}
+            </div>
+          </div>
+        </section>
+
         {/* DESTINOS: tarjetas con imagen (las fotos son ilustrativas) */}
         <section aria-labelledby="destinos-title" className="px-6 py-20">
           <div className="mx-auto max-w-7xl">
@@ -130,7 +131,7 @@ export default function Home() {
                     {/* eslint-disable-next-line @next/next/no-img-element -- imagen local optimizada (WebP) */}
                     <img src={d.img} srcSet={`${d.img.replace('.webp', '-sm.webp')} 720w, ${d.img} 1280w`} sizes="(min-width: 768px) 33vw, 100vw" alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.05]" />
                     <div className="tile-shade absolute inset-0" aria-hidden />
-                    <span className="absolute left-4 top-4 rounded-md bg-night/80 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-lime backdrop-blur">{d.tag}</span>
+                    <span className="absolute left-4 top-4 rounded-md bg-night/80 px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-lime backdrop-blur">{d.tag}</span>
                     <div className="absolute inset-x-0 bottom-0 p-5">
                       <h3 className="font-display text-3xl font-bold uppercase leading-none">{d.title}</h3>
                       <p className="mt-2 text-sm text-lavender">{d.text}</p>
@@ -179,28 +180,11 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Franja de confianza + deportes en movimiento */}
-        <section aria-label="Confianza" className="border-y border-line/50 bg-surface/40">
-          <div className="mx-auto grid max-w-6xl grid-cols-2 gap-6 px-6 py-10 lg:grid-cols-4">
-            {STATS.map(({ Icon, value, label }, i) => (
-              <Reveal key={label} delay={i * 80} className="flex items-center gap-3">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brass/10"><Icon className="h-5 w-5 text-brass" aria-hidden /></span>
-                <span><span className="block font-display text-xl font-bold text-paper">{value}</span><span className="block text-xs text-muted">{label}</span></span>
-              </Reveal>
-            ))}
-          </div>
-          <div className="relative overflow-hidden border-t border-line/40 py-4 [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]" aria-hidden>
-            <div className="marquee flex w-max gap-10 text-sm font-semibold uppercase tracking-[0.2em] text-faint">
-              {[...SPORTS, ...SPORTS].map((s, i) => <span key={i} className="flex items-center gap-10">{s}<span className="text-brass/50">✦</span></span>)}
-            </div>
-          </div>
-        </section>
-
         {/* TEST de opciones: el gancho de captación */}
         <section id="test" className="scroll-mt-20 px-6 py-24">
           <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[0.9fr_1.1fr]">
             <Reveal>
-              <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-trust/30 bg-trust/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-ok"><Sparkles className="h-3.5 w-3.5" aria-hidden /> Gratis · 60 segundos</p>
+              <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-trust/30 bg-trust/10 px-3 py-1 text-[13px] font-semibold text-ok"><Sparkles className="h-3.5 w-3.5" aria-hidden /> Gratis · 60 segundos</p>
               <h2 className="text-3xl font-bold tracking-tight text-paper md:text-5xl">¿Tienes opciones de beca? <span className="text-brass">Descúbrelo ahora.</span></h2>
               <p className="mt-4 max-w-md leading-relaxed text-muted">Cuatro preguntas y te decimos dónde encajarías, qué te haría subir de nivel y tu siguiente paso. Sin registrarte.</p>
               <ul className="mt-6 space-y-2 text-sm text-muted">
@@ -215,7 +199,7 @@ export default function Home() {
         <section className="border-y border-line/50 bg-surface/40 px-6 py-24">
           <div className="mx-auto max-w-6xl">
             <Reveal className="mx-auto mb-16 max-w-3xl text-center">
-              <p className="mb-5 inline-flex rounded-full border border-line bg-surface px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-muted">Por qué Gala Alliance</p>
+              <p className="mb-5 inline-flex rounded-full border border-line bg-surface px-3 py-1 text-[13px] font-semibold text-muted">Por qué Gala Alliance</p>
               <h2 className="mb-4 text-3xl font-bold tracking-tight text-paper md:text-5xl">El reclutamiento internacional <span className="text-brass">ya no tiene que ser un acto de fe.</span></h2>
               <p className="text-sm leading-relaxed text-muted md:text-base">Tres fallos del sistema actual, y cómo los corrige la plataforma.</p>
             </Reveal>
@@ -238,7 +222,7 @@ export default function Home() {
         <section id="producto" className="scroll-mt-20 px-6 py-24">
           <div className="mx-auto max-w-6xl">
             <Reveal className="mb-14 max-w-3xl">
-              <p className="mb-5 inline-flex rounded-full border border-line bg-surface px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-muted">El producto</p>
+              <p className="mb-5 inline-flex rounded-full border border-line bg-surface px-3 py-1 text-[13px] font-semibold text-muted">El producto</p>
               <h2 className="text-3xl font-bold tracking-tight text-paper md:text-5xl">Míralo por dentro <span className="text-brass">antes de registrarte.</span></h2>
             </Reveal>
             <Reveal><ProductTour /></Reveal>
@@ -249,7 +233,7 @@ export default function Home() {
         <section id="como-funciona" className="scroll-mt-20 border-y border-line/50 bg-surface/40 px-6 py-24">
           <div className="mx-auto max-w-5xl">
             <Reveal className="mx-auto mb-14 max-w-3xl text-center">
-              <p className="mb-5 inline-flex rounded-full border border-line bg-surface px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-muted">Cómo funciona</p>
+              <p className="mb-5 inline-flex rounded-full border border-line bg-surface px-3 py-1 text-[13px] font-semibold text-muted">Cómo funciona</p>
               <h2 className="mb-4 text-3xl font-bold tracking-tight text-paper md:text-5xl">Qué hacer <span className="text-brass">en cada curso.</span></h2>
               <p className="text-sm leading-relaxed text-muted md:text-base">Pulsa tu etapa. La plataforma te lo recuerda con fechas según tu promoción.</p>
             </Reveal>
@@ -273,7 +257,7 @@ export default function Home() {
                   <thead>
                     <tr className="bg-surface">
                       <th scope="col" className="p-4 text-left text-xs font-normal text-faint"><span className="sr-only">Aspecto</span></th>
-                      <th scope="col" className="border-x border-brass/30 bg-brass/10 p-4 text-left"><span className="flex items-center gap-2 font-bold text-paper"><span className="flex h-6 w-6 items-center justify-center rounded-md bg-brass text-[11px] font-black text-ink">G</span>The Gala Alliance</span></th>
+                      <th scope="col" className="border-x border-brass/30 bg-brass/10 p-4 text-left"><span className="flex items-center gap-2 font-bold text-paper"><span className="flex h-6 w-6 items-center justify-center rounded-md bg-brass text-xs font-black text-ink">G</span>The Gala Alliance</span></th>
                       <th scope="col" className="p-4 text-left font-semibold text-muted">Agencia tradicional</th>
                       <th scope="col" className="p-4 text-left font-semibold text-muted">Por tu cuenta</th>
                     </tr>
@@ -290,29 +274,8 @@ export default function Home() {
                   </tbody>
                 </table>
               </div>
-              <p className="mt-3 text-center text-[11px] text-faint">Comparativa general: cada agencia trabaja de forma distinta.</p>
+              <p className="mt-3 text-center text-xs text-faint">Comparativa general: cada agencia trabaja de forma distinta.</p>
             </Reveal>
-          </div>
-        </section>
-
-        {/* HERRAMIENTAS */}
-        <section className="border-y border-line/50 bg-surface/40 px-6 py-24">
-          <div className="mx-auto max-w-6xl">
-            <Reveal className="mb-14 text-center">
-              <h2 className="mb-3 text-3xl font-bold text-paper md:text-4xl">Todo lo que necesitas, en una sola plataforma.</h2>
-              <p className="mx-auto max-w-md text-sm text-muted">No son promesas: es lo que ya puedes usar al crear tu cuenta.</p>
-            </Reveal>
-            <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-              {TOOLS.map(({ Icon, title, text }, i) => (
-                <Reveal key={title} as="li" variant="scale" delay={(i % 4) * 60}>
-                  <div className="group h-full rounded-xl border border-line bg-surface p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-brass/40">
-                    <span className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-surface-2 transition-colors group-hover:bg-brass/15"><Icon className="h-4 w-4 text-paper/70 group-hover:text-brass" aria-hidden /></span>
-                    <h3 className="mb-0.5 text-sm font-semibold text-paper">{title}</h3>
-                    <p className="text-xs leading-relaxed text-muted">{text}</p>
-                  </div>
-                </Reveal>
-              ))}
-            </ul>
           </div>
         </section>
 
@@ -360,7 +323,7 @@ export default function Home() {
               {family.map((p, i) => (
                 <Reveal key={p.code} as="li" delay={i * 80}>
                   <div className={`relative flex h-full flex-col rounded-2xl border p-6 transition-all duration-300 hover:-translate-y-1 ${p.highlight ? 'animate-pulse-glow border-brass/40 bg-brass/[0.06]' : 'border-line bg-surface hover:border-brass/30'}`}>
-                    {p.highlight && <span className="absolute -top-3 left-6 rounded-full bg-brass px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-ink">Más elegido</span>}
+                    {p.highlight && <span className="absolute -top-3 left-6 rounded-full bg-brass px-3 py-0.5 text-xs font-semibold text-ink">Más elegido</span>}
                     <p className="text-sm font-semibold text-paper">{p.name}</p>
                     <p className="mt-2 font-display text-3xl font-bold text-paper">{p.price}</p>
                     <p className="text-xs text-faint">{p.priceNote}</p>
@@ -382,7 +345,7 @@ export default function Home() {
         <section className="px-6 py-20">
           <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-[1fr_1.2fr]">
             <Reveal>
-              <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-trust/30 bg-trust/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-ok"><ShieldCheck className="h-3.5 w-3.5" aria-hidden /> Confianza y seguridad</p>
+              <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-trust/30 bg-trust/10 px-3 py-1 text-[13px] font-semibold text-ok"><ShieldCheck className="h-3.5 w-3.5" aria-hidden /> Confianza y seguridad</p>
               <h2 className="text-3xl font-bold text-paper md:text-4xl">Hecha para menores, familias y datos reales.</h2>
               <p className="mt-4 text-sm leading-relaxed text-muted">Protección de datos, verificación y transparencia no son extras: están en la base de la plataforma.</p>
             </Reveal>

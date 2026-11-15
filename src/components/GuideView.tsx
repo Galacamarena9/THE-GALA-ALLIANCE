@@ -24,7 +24,7 @@ export function GuideArticle({ chapter, base }: { chapter: GuideChapter; base: s
   const next = GUIDE[idx + 1];
   return (
     <article className="max-w-3xl">
-      <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-brass">Centro de información · {chapter.audience}</p>
+      <p className="text-[13px] font-semibold text-brass">Centro de información · {chapter.audience}</p>
       <h1 className="mt-2 text-4xl text-paper">{chapter.title}</h1>
       <p className="mt-3 text-lg text-muted">{chapter.summary}</p>
       <div className="mt-10 space-y-9">

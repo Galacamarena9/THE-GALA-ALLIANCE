@@ -48,7 +48,7 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
           return (
             <li key={m.id} className={cx('flex', mine ? 'justify-end' : 'justify-start')}>
               <div className={cx('max-w-[80%] rounded-2xl px-4 py-2.5 text-sm', mine ? 'bg-brass/15 text-paper' : 'border border-line bg-surface text-paper')}>
-                <p className="mb-0.5 text-[11px] text-faint">{mine ? 'Tú' : nameOf.get(m.sender_id) ?? 'Participante'} · {new Date(m.created_at).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}</p>
+                <p className="mb-0.5 text-xs text-faint">{mine ? 'Tú' : nameOf.get(m.sender_id) ?? 'Participante'} · {new Date(m.created_at).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}</p>
                 <p className="whitespace-pre-line">{m.body}</p>
               </div>
             </li>

@@ -40,11 +40,11 @@ function Preview({ k }: { k: Key }) {
         <div className="flex items-center gap-4">
           <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-brass to-brass-deep font-display text-xl font-bold text-ink">LM</span>
           <div><p className="font-display text-lg font-bold text-paper">Lucía M.</p><p className="text-xs text-muted">Baloncesto · Base · Promoción 2027</p></div>
-          <span className="ml-auto rounded-full border border-trust/40 bg-trust/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-ok">Verificado</span>
+          <span className="ml-auto rounded-full border border-trust/40 bg-trust/15 px-2.5 py-1 text-xs font-semibold text-ok">Verificado</span>
         </div>
         <div className="mt-5 grid grid-cols-3 gap-2 text-center">
           {[['14,2', 'Puntos'], ['8,7', 'Nota media'], ['C1', 'Inglés']].map(([v, l]) => (
-            <div key={l} className="rounded-xl border border-line bg-ink/60 p-3"><p className="font-display text-lg font-bold text-paper">{v}</p><p className="text-[10px] text-faint">{l}</p></div>
+            <div key={l} className="rounded-xl border border-line bg-ink/60 p-3"><p className="font-display text-lg font-bold text-paper">{v}</p><p className="text-xs text-faint">{l}</p></div>
           ))}
         </div>
         <div className="mt-4 space-y-2">
@@ -61,7 +61,7 @@ function Preview({ k }: { k: Key }) {
   if (k === 'family') {
     return (
       <div className="rounded-3xl border border-line bg-surface p-6 shadow-[var(--shadow-premium)] backdrop-blur-xl">
-        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-brass">Coste real a 4 años</p>
+        <p className="text-[13px] font-semibold text-brass">Coste real a 4 años</p>
         <p className="mt-2 font-display text-4xl font-bold text-paper">42.800 $</p>
         <p className="text-xs text-faint">State University · beca del 70 %</p>
         <div className="mt-5 space-y-2.5 text-xs">
@@ -80,26 +80,26 @@ function Preview({ k }: { k: Key }) {
     return (
       <div className="rounded-3xl border border-line bg-surface p-6 shadow-[var(--shadow-premium)] backdrop-blur-xl">
         <div className="flex items-center gap-2 rounded-xl border border-line bg-ink/60 px-3 py-2.5 text-xs text-muted"><Search className="h-4 w-4" aria-hidden />Base · 2027 · inglés B2+ · nota 7+</div>
-        <div className="mt-3 flex flex-wrap gap-1.5">{['Baloncesto', 'NCAA D-I', 'Con vídeo', 'Verificado'].map((t) => <span key={t} className="rounded-full border border-brass/30 bg-brass/10 px-2.5 py-1 text-[10px] font-medium text-brass">{t}</span>)}</div>
+        <div className="mt-3 flex flex-wrap gap-1.5">{['Baloncesto', 'NCAA D-I', 'Con vídeo', 'Verificado'].map((t) => <span key={t} className="rounded-full border border-brass/30 bg-brass/10 px-2.5 py-1 text-xs font-medium text-brass">{t}</span>)}</div>
         <ul className="mt-4 space-y-2">
           {[['Lucía M.', 'Base · 1,78 m · 8,7', 92], ['Paula R.', 'Base · 1,74 m · 8,1', 87], ['Marta G.', 'Escolta · 1,80 m · 7,9', 81]].map(([n, d, s]) => (
             <li key={n as string} className="flex items-center gap-3 rounded-xl border border-line bg-ink/40 px-3 py-2.5">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-2 text-[11px] font-bold text-paper">{(n as string).split(' ').map((w) => w[0]).join('')}</span>
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-2 text-xs font-bold text-paper">{(n as string).split(' ').map((w) => w[0]).join('')}</span>
               <span className="min-w-0 flex-1 text-xs"><span className="block font-medium text-paper">{n}</span><span className="text-faint">{d}</span></span>
               <span className="text-xs font-bold text-ok">{s}%</span>
             </li>
           ))}
         </ul>
-        <p className="mt-4 flex items-center gap-1.5 text-[11px] text-faint"><BadgeCheck className="h-3.5 w-3.5 text-brass" aria-hidden />Cada dato indica si es declarado, documentado o verificado</p>
+        <p className="mt-4 flex items-center gap-1.5 text-xs text-faint"><BadgeCheck className="h-3.5 w-3.5 text-brass" aria-hidden />Cada dato indica si es declarado, documentado o verificado</p>
       </div>
     );
   }
   return (
     <div className="rounded-3xl border border-line bg-surface p-6 shadow-[var(--shadow-premium)] backdrop-blur-xl">
-      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-brass">Roster 2026-27</p>
+      <p className="text-[13px] font-semibold text-brass">Roster 2026-27</p>
       <div className="mt-3 grid grid-cols-3 gap-2 text-center">
         {[['24', 'Atletas'], ['11', 'Con candidaturas'], ['3', 'Colocados']].map(([v, l]) => (
-          <div key={l} className="rounded-xl border border-line bg-ink/60 p-3"><p className="font-display text-xl font-bold text-paper">{v}</p><p className="text-[10px] text-faint">{l}</p></div>
+          <div key={l} className="rounded-xl border border-line bg-ink/60 p-3"><p className="font-display text-xl font-bold text-paper">{v}</p><p className="text-xs text-faint">{l}</p></div>
         ))}
       </div>
       <ul className="mt-4 space-y-2 text-xs">
@@ -107,7 +107,7 @@ function Preview({ k }: { k: Key }) {
           <li key={t} className="flex items-center justify-between rounded-xl border border-line bg-ink/40 px-3 py-2.5"><span className="text-paper">{t}</span><span className={a === 'Confirmado' ? 'text-ok' : 'text-brass'}>{a}</span></li>
         ))}
       </ul>
-      <p className="mt-4 text-[11px] text-faint">Cada atleta decide si comparte su progreso con el club.</p>
+      <p className="mt-4 text-xs text-faint">Cada atleta decide si comparte su progreso con el club.</p>
     </div>
   );
 }
@@ -157,7 +157,7 @@ export function HeroAudience() {
       </div>
       <div className="relative hidden lg:block">
         <div key={k} className="animate-fade-in-up"><div className="animate-float"><Preview k={k} /></div></div>
-        <p className="mt-4 text-center text-[11px] text-lavender">Ejemplo ilustrativo</p>
+        <p className="mt-4 text-center text-xs text-lavender">Ejemplo ilustrativo</p>
       </div>
     </div>
   );

@@ -78,7 +78,7 @@ export default async function SportsCvPage({ searchParams }: { searchParams: Pro
         <section className="mt-6">
           <h2 className="text-xs font-semibold uppercase tracking-widest text-neutral-500">Statistics</h2>
           <table className="mt-2 w-full border-collapse">
-            <thead><tr className="border-b border-neutral-300 text-left text-[11px] text-neutral-500"><th className="py-1 font-normal">Season</th><th className="font-normal">Metric</th><th className="text-right font-normal">Value</th><th className="text-right font-normal">Source</th></tr></thead>
+            <thead><tr className="border-b border-neutral-300 text-left text-xs text-neutral-500"><th className="py-1 font-normal">Season</th><th className="font-normal">Metric</th><th className="text-right font-normal">Value</th><th className="text-right font-normal">Source</th></tr></thead>
             <tbody>
               {p.stats.slice(0, 16).map((s) => (
                 <tr key={s.id} className="border-b border-neutral-100">
@@ -104,7 +104,7 @@ export default async function SportsCvPage({ searchParams }: { searchParams: Pro
         <h2 className="text-xs font-semibold uppercase tracking-widest text-neutral-500">Video & contact</h2>
         {p.profile?.highlight_video_url && <p className="mt-1">Highlights: {p.profile.highlight_video_url}</p>}
         <p className="mt-1">Full profile and contact through The Gala Alliance (verified coaches only): {siteUrl()}/athletes/{athlete.id}</p>
-        <p className="mt-2 text-[11px] text-neutral-500">Statistics marked &quot;self-reported&quot; have not been independently verified.</p>
+        <p className="mt-2 text-xs text-neutral-500">Statistics marked &quot;self-reported&quot; have not been independently verified.</p>
       </section>
     </main>
   );

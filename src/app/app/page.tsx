@@ -106,7 +106,7 @@ export default async function HomePage() {
 
         <Reveal delay={80}>
           <Card>
-            <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.18em] text-faint">Actividad reciente</p>
+            <p className="mb-3 text-[13px] font-semibold text-faint">Actividad reciente</p>
             {activity?.length ? (
               <ul className="space-y-3">
                 {activity.map((n) => (
@@ -128,7 +128,7 @@ export default async function HomePage() {
       <div className="min-w-0 space-y-6">
         <Reveal>
           <header>
-            <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-brass">
+            <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1 text-[13px] font-semibold text-brass">
               <Sparkles className="h-3 w-3" aria-hidden /> Tu resumen
             </p>
             <h1 className="text-3xl font-bold tracking-tight text-paper sm:text-4xl">Hola, {session.displayName.split(' ')[0]}</h1>
@@ -141,7 +141,7 @@ export default async function HomePage() {
             <div className="glow-gold pointer-events-none absolute -right-20 -top-20 h-60 w-60" aria-hidden />
             <div className="relative mb-4 flex items-center justify-between gap-4">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-brass">Primeros pasos</p>
+                <p className="text-[13px] font-semibold text-brass">Primeros pasos</p>
                 <h2 className="text-lg font-bold text-paper">{done === steps.length ? '¡Todo listo! Ya estás en marcha.' : `Te faltan ${steps.length - done} pasos para sacarle todo el partido`}</h2>
               </div>
               <span className="font-display text-3xl font-bold tabular-nums text-paper">{done}<span className="text-base text-faint">/{steps.length}</span></span>
@@ -170,7 +170,7 @@ export default async function HomePage() {
         {sections.map((section, si) => (
           <Reveal key={section.title} delay={120 + si * 40}>
             <section aria-labelledby={`sec-${si}`}>
-              <h2 id={`sec-${si}`} className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-faint">{section.title}</h2>
+              <h2 id={`sec-${si}`} className="mb-3 text-[13px] font-semibold text-faint">{section.title}</h2>
               <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {section.items.map((s) => (
                   <li key={s.href}>

@@ -38,8 +38,8 @@ export function AthleteCard({ a, positionName, sportName, footer }: { a: Directo
       </div>
       {a.headline && <p className="mt-3 line-clamp-2 text-sm text-muted">{a.headline}</p>}
       <dl className="mt-4 grid grid-cols-3 gap-2 text-center">
-        <div className="rounded-lg bg-ink/50 px-2 py-2"><dt className="text-[10px] uppercase tracking-wide text-faint">Altura</dt><dd className="tabular-nums text-sm text-paper">{a.height_cm ? `${a.height_cm} cm` : '—'}</dd></div>
-        <div className="col-span-2 rounded-lg bg-ink/50 px-2 py-2"><dt className="text-[10px] uppercase tracking-wide text-faint">Equipo / nivel</dt><dd className="truncate text-sm text-paper">{a.current_team ?? a.competitive_level ?? '—'}</dd></div>
+        <div className="rounded-lg bg-ink/50 px-2 py-2"><dt className="text-xs font-medium text-faint">Altura</dt><dd className="tabular-nums text-sm text-paper">{a.height_cm ? `${a.height_cm} cm` : '—'}</dd></div>
+        <div className="col-span-2 rounded-lg bg-ink/50 px-2 py-2"><dt className="text-xs font-medium text-faint">Equipo / nivel</dt><dd className="truncate text-sm text-paper">{a.current_team ?? a.competitive_level ?? '—'}</dd></div>
       </dl>
       <div className="mt-3 flex flex-wrap gap-1.5">
         {a.has_video && <Badge tone="brass">▶ Vídeo</Badge>}

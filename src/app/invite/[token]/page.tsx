@@ -27,7 +27,7 @@ export default async function InvitePage({ params, searchParams }: { params: Pro
       <header className="px-5 py-6 sm:px-8"><Logo /></header>
       <main className="mx-auto max-w-lg px-5 pt-8">
         <Card>
-          <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-brass">Invitación familiar</p>
+          <p className="text-[13px] font-semibold text-brass">Invitación familiar</p>
           {!validFormat ? (
             <Notice tone="danger">Este enlace no es válido.</Notice>
           ) : !session ? (

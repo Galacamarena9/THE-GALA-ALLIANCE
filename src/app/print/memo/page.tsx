@@ -40,11 +40,11 @@ export default async function MemoPrintPage({ searchParams }: { searchParams: Pr
       <section className="mt-5">
         <h2 className="text-xs font-semibold uppercase tracking-widest text-neutral-500">Comparación</h2>
         <table className="mt-2 w-full border-collapse">
-          <thead><tr className="border-b border-neutral-300 text-left text-[11px] text-neutral-500"><th className="py-1 font-normal">Oferta</th><th className="text-right font-normal">Coste/año</th><th className="text-right font-normal">Ayuda/año</th><th className="text-right font-normal">Neto/año</th><th className="text-right font-normal">Confianza</th></tr></thead>
+          <thead><tr className="border-b border-neutral-300 text-left text-xs text-neutral-500"><th className="py-1 font-normal">Oferta</th><th className="text-right font-normal">Coste/año</th><th className="text-right font-normal">Ayuda/año</th><th className="text-right font-normal">Neto/año</th><th className="text-right font-normal">Confianza</th></tr></thead>
           <tbody>
             {offers.map((o) => (
               <tr key={o.key} className="border-b border-neutral-100 align-top">
-                <td className="py-1.5">{o.title}<br /><span className="text-[11px] text-neutral-500">{o.source === 'platform' ? o.orgName : 'Recibida fuera de la plataforma'}</span></td>
+                <td className="py-1.5">{o.title}<br /><span className="text-xs text-neutral-500">{o.source === 'platform' ? o.orgName : 'Recibida fuera de la plataforma'}</span></td>
                 <td className="text-right tabular-nums">{usd(o.costUsd)}</td>
                 <td className="text-right tabular-nums">{usd(o.aidUsd)}</td>
                 <td className="text-right tabular-nums font-medium">{o.netUsd == null ? 'Incompleto' : usd(o.netUsd)}</td>
@@ -69,7 +69,7 @@ export default async function MemoPrintPage({ searchParams }: { searchParams: Pr
           <ol className="ml-4 mt-1 list-decimal">{memo.questions.map((q) => <li key={q}>{q}</li>)}</ol>
         </section>
       )}
-      <footer className="mt-8 border-t border-neutral-300 pt-3 text-[11px] text-neutral-500">
+      <footer className="mt-8 border-t border-neutral-300 pt-3 text-xs text-neutral-500">
         Generado automáticamente con los datos introducidos y los publicados por las organizaciones. Es una ayuda para decidir, no asesoramiento financiero ni jurídico.
         Ninguna ayuda es firme hasta que figura en la oferta escrita y firmada.
       </footer>

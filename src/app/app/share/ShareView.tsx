@@ -91,7 +91,7 @@ export function ShareView({ athletes, links, isParent }: { athletes: ShareAthlet
                               <span className="inline-flex items-center gap-1 text-sm tabular-nums text-paper" title="Veces que se ha abierto">
                                 <Eye className="h-4 w-4 text-faint" aria-hidden /> {l.views} <span className="sr-only">aperturas</span>
                               </span>
-                              <span className={cx('rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset', STATE[st].cls)}>{STATE[st].label}</span>
+                              <span className={cx('rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset', STATE[st].cls)}>{STATE[st].label}</span>
                             </div>
                           </div>
                           {st === 'active' && (

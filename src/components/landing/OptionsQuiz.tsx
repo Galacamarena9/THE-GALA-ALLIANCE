@@ -48,7 +48,7 @@ export function OptionsQuiz() {
 
       {!done ? (
         <div key={step} className="animate-fade-in-up relative">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-brass">Pregunta {step + 1} de {QUESTIONS.length}</p>
+          <p className="text-[13px] font-semibold text-brass">Pregunta {step + 1} de {QUESTIONS.length}</p>
           <h3 className="mt-2 text-xl font-bold text-paper sm:text-2xl">{q.q}</h3>
           <div className="mt-5 grid gap-2.5 sm:grid-cols-2">
             {q.options.map(([label, v]) => (
@@ -68,7 +68,7 @@ export function OptionsQuiz() {
         </div>
       ) : r && (
         <div className="animate-fade-in-up relative" aria-live="polite">
-          <p className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-ok"><Sparkles className="h-3.5 w-3.5" aria-hidden />Tu resultado</p>
+          <p className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-ok"><Sparkles className="h-3.5 w-3.5" aria-hidden />Tu resultado</p>
           <h3 className="mt-2 text-2xl font-bold text-paper sm:text-3xl">{r.headline}</h3>
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             <div className="rounded-2xl border border-line bg-ink/40 p-4">
@@ -86,7 +86,7 @@ export function OptionsQuiz() {
             </Link>
             <button type="button" onClick={() => { setStep(0); setA({}); }} className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-paper"><RotateCcw className="h-4 w-4" aria-hidden />Repetir</button>
           </div>
-          <p className="mt-4 text-[11px] text-faint">Resultado orientativo, no una evaluación profesional ni una promesa de beca. La NCAA División III no da becas deportivas, pero sí ayudas académicas.</p>
+          <p className="mt-4 text-xs text-faint">Resultado orientativo, no una evaluación profesional ni una promesa de beca. La NCAA División III no da becas deportivas, pero sí ayudas académicas.</p>
         </div>
       )}
     </div>

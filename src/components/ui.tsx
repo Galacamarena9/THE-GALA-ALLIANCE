@@ -33,8 +33,8 @@ export function CardTitle({ children, kicker, action }: { children: ReactNode; k
   return (
     <div className="mb-4 flex items-start justify-between gap-4">
       <div>
-        {kicker && <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-brass">{kicker}</p>}
-        <h2 className="text-lg font-bold leading-snug text-paper sm:text-xl">{children}</h2>
+        {kicker && <p className="mb-1 text-[13px] font-semibold text-brass">{kicker}</p>}
+        <h2 className="font-display text-[22px] font-bold uppercase leading-none text-paper">{children}</h2>
       </div>
       {action}
     </div>
@@ -46,8 +46,8 @@ const toneClass: Record<Tone, string> = {
   neutral: 'border-line-strong text-muted',
   brass: 'border-brass/40 bg-brass/10 text-brass',
   ok: 'border-ok/30 bg-ok/10 text-ok',
-  warn: 'border-warn/40 text-warn',
-  danger: 'border-danger/40 text-danger',
+  warn: 'border-warn/40 bg-warn/10 text-warn',
+  danger: 'border-danger/40 bg-danger/10 text-danger',
 };
 export function Badge({ tone = 'neutral', children, className }: { tone?: Tone; children: ReactNode; className?: string }) {
   return (
@@ -61,9 +61,9 @@ export function PageHeader({ kicker, title, description, action }: { kicker?: st
   return (
     <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div className="max-w-2xl">
-        {kicker && <p className="mb-3 inline-flex items-center rounded-full border border-line bg-surface px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-brass">{kicker}</p>}
-        <h1 className="text-3xl font-bold tracking-tight text-paper sm:text-4xl">{title}</h1>
-        {description && <p className="mt-3 text-[15px] leading-relaxed text-muted">{description}</p>}
+        {kicker && <p className="mb-2 text-sm font-semibold text-brass">{kicker}</p>}
+        <h1 className="font-display text-4xl font-bold uppercase leading-[0.95] text-paper sm:text-5xl">{title}</h1>
+        {description && <p className="mt-3 text-base leading-relaxed text-muted">{description}</p>}
       </div>
       {action}
     </header>
@@ -89,7 +89,7 @@ export const inputClass =
 export function EmptyState({ title, children, action }: { title: string; children?: ReactNode; action?: ReactNode }) {
   return (
     <div className="flex flex-col items-center rounded-[var(--radius-card)] border border-dashed border-line-strong px-6 py-12 text-center">
-      <p className="font-display text-lg font-bold text-paper">{title}</p>
+      <p className="font-display text-[22px] font-bold uppercase leading-none text-paper">{title}</p>
       {children && <div className="mt-2 max-w-md text-sm text-muted">{children}</div>}
       {action && <div className="mt-5">{action}</div>}
     </div>
@@ -98,7 +98,7 @@ export function EmptyState({ title, children, action }: { title: string; childre
 
 export function Notice({ tone = 'brass', children }: { tone?: Tone; children: ReactNode }) {
   return (
-    <div className={cx('rounded-lg border px-4 py-3 text-sm leading-relaxed', toneClass[tone], 'bg-surface')}>{children}</div>
+    <div role={tone === 'danger' ? 'alert' : 'status'} className={cx('rounded-xl border px-4 py-3 text-sm leading-relaxed', toneClass[tone], tone === 'neutral' && 'bg-surface')}>{children}</div>
   );
 }
 
