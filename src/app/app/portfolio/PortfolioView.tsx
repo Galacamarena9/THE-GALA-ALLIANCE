@@ -116,7 +116,7 @@ export function PortfolioView({ agencies, entries, stats, filters }: { agencies:
                         <tr key={e.repId} className="group relative border-b border-line/70 transition-colors last:border-0 hover:bg-surface-2/60">
                           <td className="px-5 py-3">
                             <Link href={`/app/portfolio/${e.athleteId}`} className="flex items-center gap-3 after:absolute after:inset-0 focus-visible:outline-none">
-                              <AthleteAvatar name={e.name} src={e.avatarUrl} />
+                              <AthleteAvatar name={e.name} src={e.avatarUrl} sport={e.sportName ?? e.sportId} />
                               <span className="min-w-0">
                                 <span className="block truncate font-semibold text-paper group-hover:text-brass">{e.name}</span>
                                 <span className="block truncate text-xs text-faint">
@@ -148,7 +148,7 @@ export function PortfolioView({ agencies, entries, stats, filters }: { agencies:
                   {visible.map((e) => (
                     <li key={e.repId}>
                       <Link href={`/app/portfolio/${e.athleteId}`} className="flex items-center gap-3 rounded-2xl border border-line bg-ink/40 p-3 transition-colors hover:border-brass/40">
-                        <AthleteAvatar name={e.name} src={e.avatarUrl} size="lg" />
+                        <AthleteAvatar name={e.name} src={e.avatarUrl} sport={e.sportName ?? e.sportId} size="lg" />
                         <span className="min-w-0 flex-1">
                           <span className="block truncate font-semibold text-paper">{e.name}</span>
                           <span className="block truncate text-xs text-muted">{[e.sportName, e.positionName, e.graduationYear].filter(Boolean).join(' · ') || 'Sin datos deportivos'}</span>

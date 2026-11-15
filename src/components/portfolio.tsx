@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { SPORT_TONE_CLASS, sportTone } from '@/lib/domain/sport-tone';
 import {
   CalendarCheck2, CalendarClock, FileSignature, StickyNote, UserCheck, UserMinus, UserX, Undo2, type LucideIcon,
 } from 'lucide-react';
@@ -29,9 +30,10 @@ export function StatusPill({ status, className }: { status: RepStatus; className
 
 const AVATAR_SIZE = { sm: 'h-8 w-8 text-[11px]', md: 'h-10 w-10 text-xs', lg: 'h-14 w-14 text-base', xl: 'h-20 w-20 text-2xl' } as const;
 
-export function AthleteAvatar({ name, src, size = 'md', className }: { name: string; src: string | null; size?: keyof typeof AVATAR_SIZE; className?: string }) {
+/** Avatar del atleta. Sin foto, muestra sus iniciales sobre el color de su deporte (el deporte siempre va también en texto al lado). */
+export function AthleteAvatar({ name, src, sport, size = 'md', className }: { name: string; src: string | null; sport?: string | null; size?: keyof typeof AVATAR_SIZE; className?: string }) {
   return (
-    <span className={cx('relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-brass/30 to-brass-deep/20 font-display font-bold text-brass ring-1 ring-line-strong', AVATAR_SIZE[size], className)}>
+    <span className={cx('relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full font-semibold', SPORT_TONE_CLASS[sportTone(sport)], AVATAR_SIZE[size], className)}>
       {src ? (
         // eslint-disable-next-line @next/next/no-img-element -- avatares de dominios variables
         <img src={src} alt="" loading="lazy" className="h-full w-full object-cover" />

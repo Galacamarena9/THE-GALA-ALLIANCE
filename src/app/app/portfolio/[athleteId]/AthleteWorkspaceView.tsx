@@ -60,7 +60,7 @@ export function AthleteWorkspaceView({ ws, tab, userId }: { ws: AthleteWorkspace
           <div className="bg-grid absolute inset-0 opacity-60" aria-hidden />
         </div>
         <div className="flex flex-col gap-4 px-5 pb-5 sm:flex-row sm:items-start sm:gap-5 sm:px-6">
-          <AthleteAvatar name={e.name} src={e.avatarUrl} size="xl" className="-mt-10 h-24 w-24 border-4 border-surface shadow-[var(--shadow-elevated)] sm:-mt-12" />
+          <AthleteAvatar name={e.name} src={e.avatarUrl} sport={e.sportName ?? e.sportId} size="xl" className="-mt-10 h-24 w-24 border-4 border-surface shadow-[var(--shadow-elevated)] sm:-mt-12" />
           <div className="min-w-0 flex-1 sm:pt-4">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="truncate font-display text-2xl font-bold text-paper sm:text-3xl">{e.name}</h1>

@@ -31,7 +31,7 @@ function Item({ item, active, onNavigate }: { item: NavItem; active: boolean; on
         aria-current={active ? 'page' : undefined}
         className={cx(
           'group relative flex items-center gap-3 rounded-xl px-3 py-2 text-[13.5px] transition-all duration-200',
-          active ? 'bg-brass/10 font-medium text-paper' : 'text-muted hover:translate-x-0.5 hover:bg-surface hover:text-paper',
+          active ? 'bg-brass/10 font-semibold text-brass' : 'text-muted hover:translate-x-0.5 hover:bg-ink hover:text-paper',
         )}
       >
         {active && <span className="absolute inset-y-1.5 left-0 w-[3px] rounded-full bg-brass" aria-hidden />}

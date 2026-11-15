@@ -32,7 +32,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-dvh">
-      <header className="sticky top-0 z-40 border-b border-line bg-ink/85 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-line bg-surface/90 backdrop-blur-xl">
         <div className="flex h-16 items-center gap-3 px-4 sm:px-6">
           <div className="w-auto shrink-0 lg:w-[232px]"><Logo href="/app" /></div>
           <div className="flex flex-1 justify-end md:justify-start">
@@ -52,9 +52,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       </header>
 
       <div className="flex">
-        <aside className="sticky top-16 hidden h-[calc(100dvh-4rem)] w-[260px] shrink-0 overflow-y-auto border-r border-line bg-ink px-3 py-6 lg:block">
+        <aside className="sticky top-16 hidden h-[calc(100dvh-4rem)] w-[260px] shrink-0 overflow-y-auto border-r border-line bg-surface px-3 py-6 lg:block">
           <Suspense><Sidebar sections={sections} /></Suspense>
-          <div className="mx-3 mt-8 rounded-2xl border border-brass/25 bg-gradient-to-br from-brass/15 to-transparent p-4">
+          <div className="mx-3 mt-8 rounded-2xl border border-line bg-ink p-4">
             <p className="text-sm font-bold text-paper">¿No sabes por dónde empezar?</p>
             <p className="mt-1 text-xs leading-relaxed text-muted">Pulsa <kbd className="rounded border border-line-strong px-1 text-[10px]">Ctrl K</kbd> y escribe lo que quieres hacer, o pregunta a Gala IA.</p>
           </div>

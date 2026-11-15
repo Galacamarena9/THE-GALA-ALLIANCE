@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { SPORT_TONE_CLASS, sportTone } from '@/lib/domain/sport-tone';
 import { ArrowRight, CalendarClock, Hourglass, Search, Sparkles, UserCheck } from 'lucide-react';
 import type { SessionContext } from '@/lib/session';
 import { loadPortfolio, type PortfolioData } from '@/lib/data/portfolio';
@@ -30,34 +31,33 @@ export function AgentHomeView({ displayName, data, sports }: { displayName: stri
 
   return (
     <div className="space-y-6">
-      {/* Hero */}
-      <section className="relative overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface">
-        <div className="bg-grid absolute inset-0 opacity-50" aria-hidden />
-        <div className="glow-gold pointer-events-none absolute -right-24 -top-24 h-80 w-80" aria-hidden />
+      {/* Hero: bloque Noche de marca, con la acción principal en lima. */}
+      <section className="relative overflow-hidden rounded-[var(--radius-card)] bg-night text-white">
         <div className="relative flex flex-col gap-6 p-6 sm:p-8 lg:flex-row lg:items-end lg:justify-between lg:p-10">
           <div className="max-w-xl">
-            <p className="inline-flex items-center gap-2 rounded-full border border-line bg-ink/40 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-brass">
-              <Sparkles className="h-3 w-3" aria-hidden /> Agent Workspace
-            </p>
-            <h1 className="mt-4 font-display text-3xl font-bold leading-tight tracking-tight text-paper sm:text-[40px]">
-              {greeting}, <span className="text-brass">{first}</span>
+            <h1 className="font-display text-4xl font-bold uppercase leading-none text-white sm:text-[52px]">
+              {greeting}, {first}
             </h1>
-            <p className="mt-2 text-[15px] text-muted">
+            <p className="mt-3 text-[15px] text-lavender">
               {stats.active ? `Representas a ${stats.active} atleta${stats.active > 1 ? 's' : ''}` : 'Aún no representas a ningún atleta'}
-              {stats.pending ? ` · ${stats.pending} propuesta${stats.pending > 1 ? 's' : ''} esperando respuesta` : ''}
-              {stats.overdueFollowUps ? ` · ${stats.overdueFollowUps} seguimiento${stats.overdueFollowUps > 1 ? 's' : ''} vencido${stats.overdueFollowUps > 1 ? 's' : ''}` : ''}.
+              {stats.pending ? `. ${stats.pending} propuesta${stats.pending > 1 ? 's' : ''} esperando respuesta` : ''}
+              {stats.overdueFollowUps ? `. ${stats.overdueFollowUps} seguimiento${stats.overdueFollowUps > 1 ? 's' : ''} vencido${stats.overdueFollowUps > 1 ? 's' : ''}` : ''}.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
-              <ButtonLink href="/app/discover"><Search className="h-4 w-4" aria-hidden /> Explorar talento</ButtonLink>
-              <ButtonLink href="/app/portfolio" variant="secondary">Ver portfolio <ArrowRight className="h-4 w-4" aria-hidden /></ButtonLink>
+              <Link href="/app/discover" className="inline-flex items-center gap-2 rounded-xl bg-lime px-5 py-2.5 text-sm font-bold text-night transition-transform hover:-translate-y-0.5 focus-visible:outline-lime">
+                <Search className="h-4 w-4" aria-hidden /> Explorar talento
+              </Link>
+              <Link href="/app/portfolio" className="inline-flex items-center gap-2 rounded-xl border border-white/30 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-white/10 focus-visible:outline-lime">
+                Ver portfolio <ArrowRight className="h-4 w-4" aria-hidden />
+              </Link>
             </div>
           </div>
           {agencies[0] && (
-            <Link href="/app/organization" className="flex items-center gap-3 self-start rounded-2xl border border-line bg-ink/50 px-4 py-3 transition-colors hover:border-brass/40 lg:self-auto">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brass/15 font-display text-sm font-bold text-brass">{initials(agencies[0].name)}</span>
+            <Link href="/app/organization" className="flex items-center gap-3 self-start rounded-2xl border border-white/15 bg-white/5 px-4 py-3 transition-colors hover:bg-white/10 focus-visible:outline-lime lg:self-auto">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-lime font-display text-base font-bold text-night">{initials(agencies[0].name)}</span>
               <span>
-                <span className="block text-sm font-semibold text-paper">{agencies[0].name}</span>
-                <span className="block text-xs text-faint">{agencies[0].verification_status === 'verified' ? 'Agencia verificada ✓' : 'Pendiente de verificación'}</span>
+                <span className="block text-sm font-semibold text-white">{agencies[0].name}</span>
+                <span className="block text-xs text-lavender">{agencies[0].verification_status === 'verified' ? 'Agencia verificada ✓' : 'Pendiente de verificación'}</span>
               </span>
             </Link>
           )}
@@ -94,15 +94,14 @@ export function AgentHomeView({ displayName, data, sports }: { displayName: stri
               <ul className="grid gap-3 p-1 sm:grid-cols-3">
                 {featured.map((e) => (
                   <li key={e.repId}>
-                    <Link href={`/app/portfolio/${e.athleteId}`} className="group block overflow-hidden rounded-2xl border border-line bg-ink/40 transition-all duration-300 hover:-translate-y-0.5 hover:border-brass/40 hover:shadow-[var(--shadow-elevated)]">
-                      <div className="relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-brass/25 via-surface-2 to-ink">
+                    <Link href={`/app/portfolio/${e.athleteId}`} className="group block overflow-hidden rounded-2xl border border-line bg-surface transition-all duration-300 hover:-translate-y-0.5 hover:border-brass/40 hover:shadow-[var(--shadow-elevated)]">
+                      <div className={`relative aspect-[4/3] overflow-hidden ${SPORT_TONE_CLASS[sportTone(e.sportName ?? e.sportId)]}`}>
                         {e.avatarUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element -- avatares de dominios variables
                           <img src={e.avatarUrl} alt="" loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]" />
                         ) : (
-                          <span className="absolute inset-0 flex items-center justify-center font-display text-5xl font-bold text-brass/80">{initials(e.name)}</span>
+                          <span className="absolute inset-0 flex items-center justify-center font-display text-6xl font-bold text-white">{initials(e.name)}</span>
                         )}
-                        <span className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-ink/90 to-transparent" aria-hidden />
                       </div>
                       <div className="space-y-1 p-3.5">
                         <p className="truncate font-semibold text-paper group-hover:text-brass">{e.name}</p>
@@ -122,7 +121,7 @@ export function AgentHomeView({ displayName, data, sports }: { displayName: stri
                 {pending.map((e) => (
                   <li key={e.repId}>
                     <Link href={`/app/portfolio/${e.athleteId}`} className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-surface-2/60">
-                      <AthleteAvatar name={e.name} src={e.avatarUrl} size="sm" />
+                      <AthleteAvatar name={e.name} src={e.avatarUrl} sport={e.sportName ?? e.sportId} size="sm" />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-medium text-paper">{e.name}</span>
                         <span className="block truncate text-xs text-faint">Enviada {relativeTime(e.createdAt)}</span>

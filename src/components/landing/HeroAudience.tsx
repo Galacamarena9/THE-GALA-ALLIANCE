@@ -36,7 +36,7 @@ const AUDIENCES: Record<Key, { tab: string; Icon: typeof Users; title: [string, 
 function Preview({ k }: { k: Key }) {
   if (k === 'athlete') {
     return (
-      <div className="rounded-3xl border border-white/10 bg-surface/80 p-6 shadow-[var(--shadow-premium)] backdrop-blur-xl">
+      <div className="rounded-3xl border border-line bg-surface p-6 shadow-[var(--shadow-premium)] backdrop-blur-xl">
         <div className="flex items-center gap-4">
           <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-brass to-brass-deep font-display text-xl font-bold text-ink">LM</span>
           <div><p className="font-display text-lg font-bold text-paper">Lucía M.</p><p className="text-xs text-muted">Baloncesto · Base · Promoción 2027</p></div>
@@ -60,7 +60,7 @@ function Preview({ k }: { k: Key }) {
   }
   if (k === 'family') {
     return (
-      <div className="rounded-3xl border border-white/10 bg-surface/80 p-6 shadow-[var(--shadow-premium)] backdrop-blur-xl">
+      <div className="rounded-3xl border border-line bg-surface p-6 shadow-[var(--shadow-premium)] backdrop-blur-xl">
         <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-brass">Coste real a 4 años</p>
         <p className="mt-2 font-display text-4xl font-bold text-paper">42.800 $</p>
         <p className="text-xs text-faint">State University · beca del 70 %</p>
@@ -78,7 +78,7 @@ function Preview({ k }: { k: Key }) {
   }
   if (k === 'university') {
     return (
-      <div className="rounded-3xl border border-white/10 bg-surface/80 p-6 shadow-[var(--shadow-premium)] backdrop-blur-xl">
+      <div className="rounded-3xl border border-line bg-surface p-6 shadow-[var(--shadow-premium)] backdrop-blur-xl">
         <div className="flex items-center gap-2 rounded-xl border border-line bg-ink/60 px-3 py-2.5 text-xs text-muted"><Search className="h-4 w-4" aria-hidden />Base · 2027 · inglés B2+ · nota 7+</div>
         <div className="mt-3 flex flex-wrap gap-1.5">{['Baloncesto', 'NCAA D-I', 'Con vídeo', 'Verificado'].map((t) => <span key={t} className="rounded-full border border-brass/30 bg-brass/10 px-2.5 py-1 text-[10px] font-medium text-brass">{t}</span>)}</div>
         <ul className="mt-4 space-y-2">
@@ -95,7 +95,7 @@ function Preview({ k }: { k: Key }) {
     );
   }
   return (
-    <div className="rounded-3xl border border-white/10 bg-surface/80 p-6 shadow-[var(--shadow-premium)] backdrop-blur-xl">
+    <div className="rounded-3xl border border-line bg-surface p-6 shadow-[var(--shadow-premium)] backdrop-blur-xl">
       <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-brass">Roster 2026-27</p>
       <div className="mt-3 grid grid-cols-3 gap-2 text-center">
         {[['24', 'Atletas'], ['11', 'Con candidaturas'], ['3', 'Colocados']].map(([v, l]) => (
@@ -119,7 +119,7 @@ export function HeroAudience() {
   return (
     <div className="relative mx-auto grid w-full max-w-7xl items-center gap-12 px-6 py-16 lg:grid-cols-[1.2fr_1fr] lg:py-20">
       <div className="max-w-3xl">
-        <div role="tablist" aria-label="¿Quién eres?" className="animate-fade-in-up mb-7 inline-flex flex-wrap gap-1 rounded-2xl border border-white/10 bg-white/5 p-1 backdrop-blur-md">
+        <div role="tablist" aria-label="¿Quién eres?" className="animate-fade-in-up mb-7 inline-flex flex-wrap gap-1 rounded-2xl border border-line bg-surface p-1 backdrop-blur-md">
           {(Object.keys(AUDIENCES) as Key[]).map((key) => {
             const { tab, Icon } = AUDIENCES[key];
             const on = key === k;
@@ -130,7 +130,7 @@ export function HeroAudience() {
                 aria-selected={on}
                 aria-controls="hero-panel"
                 onClick={() => setK(key)}
-                className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all duration-300 ${on ? 'bg-brass text-ink shadow-[var(--shadow-gold)]' : 'text-white/70 hover:bg-white/10 hover:text-white'}`}
+                className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all duration-300 ${on ? 'bg-brass text-ink shadow-[var(--shadow-gold)]' : 'text-muted hover:bg-ink hover:text-paper'}`}
               >
                 <Icon className="h-3.5 w-3.5" aria-hidden /> {tab}
               </button>
@@ -138,18 +138,18 @@ export function HeroAudience() {
           })}
         </div>
         <div id="hero-panel" role="tabpanel" key={k} className="space-y-6">
-          <h1 className="animate-fade-in-up text-4xl font-bold leading-[1.05] tracking-tight text-white md:text-6xl lg:text-[4rem]">
+          <h1 className="animate-fade-in-up text-4xl font-bold leading-[1.05] tracking-tight text-paper md:text-6xl lg:text-[4rem]">
             {a.title[0]} <span className="text-gold-gradient">{a.title[1]}</span>
           </h1>
-          <p className="animate-fade-in-up max-w-2xl text-base leading-relaxed text-white/65 [animation-delay:80ms] md:text-lg">{a.text}</p>
+          <p className="animate-fade-in-up max-w-2xl text-base leading-relaxed text-muted [animation-delay:80ms] md:text-lg">{a.text}</p>
           <div className="animate-fade-in-up flex flex-col items-start gap-3 [animation-delay:160ms] sm:flex-row">
             <Link href={a.cta[1]} className="btn-shine group inline-flex h-12 items-center gap-2 rounded-xl bg-brass px-8 text-sm font-bold text-ink shadow-[var(--shadow-gold)] transition-all hover:scale-[1.02] hover:bg-brass-soft active:scale-[0.97]">
               {a.cta[0]} <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden />
             </Link>
-            <Link href={a.alt[1]} className="inline-flex h-12 items-center rounded-xl border border-white/20 px-8 text-sm text-white/85 transition-all hover:scale-[1.02] hover:bg-white/5">{a.alt[0]}</Link>
+            <Link href={a.alt[1]} className="inline-flex h-12 items-center rounded-xl border border-line-strong bg-surface px-8 text-sm font-semibold text-paper transition-all hover:scale-[1.02] hover:border-brass/40">{a.alt[0]}</Link>
           </div>
         </div>
-        <ul className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-white/55">
+        <ul className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-muted">
           <li className="flex items-center gap-1.5"><Star className="h-3.5 w-3.5" aria-hidden />Gratis para atletas</li>
           <li className="flex items-center gap-1.5"><BadgeCheck className="h-3.5 w-3.5" aria-hidden />Precios publicados, sin llamadas comerciales</li>
           <li className="flex items-center gap-1.5"><Lock className="h-3.5 w-3.5" aria-hidden />Menores protegidos por diseño</li>
@@ -157,7 +157,7 @@ export function HeroAudience() {
       </div>
       <div className="relative hidden lg:block">
         <div key={k} className="animate-fade-in-up"><div className="animate-float"><Preview k={k} /></div></div>
-        <p className="mt-4 text-center text-[11px] text-white/40">Ejemplo ilustrativo</p>
+        <p className="mt-4 text-center text-[11px] text-faint">Ejemplo ilustrativo</p>
       </div>
     </div>
   );
