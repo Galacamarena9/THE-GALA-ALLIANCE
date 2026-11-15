@@ -119,7 +119,7 @@ export function HeroAudience() {
   return (
     <div className="relative mx-auto grid w-full max-w-7xl items-center gap-12 px-6 py-16 lg:grid-cols-[1.2fr_1fr] lg:py-20">
       <div className="max-w-3xl">
-        <div role="tablist" aria-label="¿Quién eres?" className="animate-fade-in-up mb-7 inline-flex flex-wrap gap-1 rounded-2xl border border-line bg-surface p-1 backdrop-blur-md">
+        <div role="tablist" aria-label="¿Quién eres?" className="animate-fade-in-up mb-7 inline-flex flex-wrap gap-1 rounded-2xl border border-white/15 bg-white/10 p-1 backdrop-blur-md">
           {(Object.keys(AUDIENCES) as Key[]).map((key) => {
             const { tab, Icon } = AUDIENCES[key];
             const on = key === k;
@@ -130,7 +130,7 @@ export function HeroAudience() {
                 aria-selected={on}
                 aria-controls="hero-panel"
                 onClick={() => setK(key)}
-                className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all duration-300 ${on ? 'bg-brass text-ink shadow-[var(--shadow-gold)]' : 'text-muted hover:bg-ink hover:text-paper'}`}
+                className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all duration-300 ${on ? 'bg-lime text-night' : 'text-white/80 hover:bg-white/10 hover:text-white'}`}
               >
                 <Icon className="h-3.5 w-3.5" aria-hidden /> {tab}
               </button>
@@ -138,18 +138,18 @@ export function HeroAudience() {
           })}
         </div>
         <div id="hero-panel" role="tabpanel" key={k} className="space-y-6">
-          <h1 className="animate-fade-in-up text-4xl font-bold leading-[1.05] tracking-tight text-paper md:text-6xl lg:text-[4rem]">
-            {a.title[0]} <span className="text-gold-gradient">{a.title[1]}</span>
+          <h1 className="animate-fade-in-up text-4xl font-bold leading-[1.05] font-display uppercase text-white md:text-6xl lg:text-[4rem]">
+            {a.title[0]} <span className="text-lime">{a.title[1]}</span>
           </h1>
-          <p className="animate-fade-in-up max-w-2xl text-base leading-relaxed text-muted [animation-delay:80ms] md:text-lg">{a.text}</p>
+          <p className="animate-fade-in-up max-w-2xl text-base leading-relaxed text-lavender [animation-delay:80ms] md:text-lg">{a.text}</p>
           <div className="animate-fade-in-up flex flex-col items-start gap-3 [animation-delay:160ms] sm:flex-row">
-            <Link href={a.cta[1]} className="btn-shine group inline-flex h-12 items-center gap-2 rounded-xl bg-brass px-8 text-sm font-bold text-ink shadow-[var(--shadow-gold)] transition-all hover:scale-[1.02] hover:bg-brass-soft active:scale-[0.97]">
+            <Link href={a.cta[1]} className="btn-shine group inline-flex h-12 items-center gap-2 rounded-xl bg-lime px-8 text-sm font-bold text-night transition-all hover:scale-[1.02] focus-visible:outline-lime active:scale-[0.97]">
               {a.cta[0]} <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden />
             </Link>
-            <Link href={a.alt[1]} className="inline-flex h-12 items-center rounded-xl border border-line-strong bg-surface px-8 text-sm font-semibold text-paper transition-all hover:scale-[1.02] hover:border-brass/40">{a.alt[0]}</Link>
+            <Link href={a.alt[1]} className="inline-flex h-12 items-center rounded-xl border border-white/30 px-8 text-sm font-semibold text-white transition-all hover:scale-[1.02] hover:bg-white/10">{a.alt[0]}</Link>
           </div>
         </div>
-        <ul className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-muted">
+        <ul className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-lavender">
           <li className="flex items-center gap-1.5"><Star className="h-3.5 w-3.5" aria-hidden />Gratis para atletas</li>
           <li className="flex items-center gap-1.5"><BadgeCheck className="h-3.5 w-3.5" aria-hidden />Precios publicados, sin llamadas comerciales</li>
           <li className="flex items-center gap-1.5"><Lock className="h-3.5 w-3.5" aria-hidden />Menores protegidos por diseño</li>
@@ -157,7 +157,7 @@ export function HeroAudience() {
       </div>
       <div className="relative hidden lg:block">
         <div key={k} className="animate-fade-in-up"><div className="animate-float"><Preview k={k} /></div></div>
-        <p className="mt-4 text-center text-[11px] text-faint">Ejemplo ilustrativo</p>
+        <p className="mt-4 text-center text-[11px] text-lavender">Ejemplo ilustrativo</p>
       </div>
     </div>
   );

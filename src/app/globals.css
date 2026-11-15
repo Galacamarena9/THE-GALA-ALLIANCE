@@ -237,3 +237,6 @@ html:not(.js) .reveal { opacity: 1; transform: none; }
 .rise-in { animation: rise-in 0.45s cubic-bezier(.22,1,.36,1) both; }
 .rise-in-1 { animation-delay: 60ms; } .rise-in-2 { animation-delay: 120ms; } .rise-in-3 { animation-delay: 180ms; } .rise-in-4 { animation-delay: 240ms; }
 @media (hover: none) { .hover-lift:hover { transform: none; } }
+
+/* Con "reducir movimiento" el vídeo de portada no se reproduce: se ve su fotograma fijo. */
+@media (prefers-reduced-motion: reduce) { .hero-video { display: none; } section:has(> div > .hero-video) { background: var(--color-night) url('/media/hero-bg-poster.jpg') center / cover no-repeat; } }

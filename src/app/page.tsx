@@ -1,5 +1,3 @@
-import { existsSync } from 'node:fs';
-import path from 'node:path';
 import Link from 'next/link';
 import {
   ArrowRight, BadgeCheck, Bot, Building2, Calculator, ChevronDown, CircleCheck, Columns3, FileText,
@@ -16,8 +14,11 @@ import { ACTORS } from '@/lib/domain/roles';
 import { PLANS, VISIBILITY_PROMISE } from '@/content/plans';
 
 /** La foto del hero solo se usa si está en /public (se añade aparte); si no, fondo de rejilla y halos. */
-const HERO_IMAGE = '/images/hero-athletes.webp';
-const hasHeroImage = existsSync(path.join(process.cwd(), 'public', HERO_IMAGE));
+const DESTINATIONS = [
+  { tag: 'Atletas', title: 'Talento', text: 'Perfiles verificables con vídeo, estadísticas y notas.', img: '/media/hero-athletes.webp', href: '/para/atletas' },
+  { tag: 'Estados Unidos', title: 'Universidades', text: 'Tu deporte, tu próxima universidad y su coste real.', img: '/media/university-campus.webp', href: '/para/universidades' },
+  { tag: 'Internacional', title: 'Clubes', text: 'Clubes y coaches: talento comparable, más allá de las fronteras.', img: '/media/club-training.webp', href: '/para/coaches' },
+];
 
 const TOOLS = [
   { Icon: IdCard, title: 'Opportunity Passport', text: 'Vídeo, estadísticas, notas e idiomas en un perfil comparable.' },
@@ -102,26 +103,44 @@ export default function Home() {
       <PublicHeader />
 
       <main id="main-content">
-        {/* HERO con selector de perfil */}
-        <section aria-label="Presentación" className="relative -mt-16 flex min-h-[min(94vh,900px)] items-center overflow-hidden pt-16">
+        {/* HERO: vídeo a sangre con velo Noche y selector de perfil */}
+        <section aria-label="Presentación" className="relative flex min-h-[min(88vh,820px)] items-center overflow-hidden bg-night text-white">
           <div className="absolute inset-0" aria-hidden>
-            {hasHeroImage ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={HERO_IMAGE} alt="" width={1920} height={1080} className="h-full w-full object-cover" fetchPriority="high" />
-            ) : (
-              <>
-                <div className="bg-grid absolute inset-0" />
-                <div className="glow-gold absolute -right-40 top-10 h-[620px] w-[620px]" />
-                <div className="glow-trust absolute -bottom-40 left-1/3 h-[520px] w-[520px]" />
-              </>
-            )}
-            <div className="absolute inset-0 bg-gradient-to-r from-ink via-ink/90 to-ink/40" />
-            <div className="absolute inset-0 bg-gradient-to-t from-ink via-transparent to-ink/30" />
-            {[12, 28, 46, 63, 78, 90].map((l, i) => (
-              <span key={l} className="particle hidden md:block" style={{ left: `${l}%`, top: `${18 + ((i * 23) % 60)}%`, animationDelay: `${i * 0.7}s` }} />
-            ))}
+            {/* Vídeo decorativo sin sonido (0,45 MB). Con "reducir movimiento" se muestra solo la imagen fija. */}
+            <video className="hero-video h-full w-full object-cover" src="/media/hero-bg.mp4" poster="/media/hero-bg-poster.jpg" autoPlay muted loop playsInline preload="metadata" />
+            <div className="hero-shade absolute inset-0" />
           </div>
           <HeroAudience />
+        </section>
+
+        {/* DESTINOS: tarjetas con imagen (las fotos son ilustrativas) */}
+        <section aria-labelledby="destinos-title" className="px-6 py-20">
+          <div className="mx-auto max-w-7xl">
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold text-brass">El marketplace</p>
+                <h2 id="destinos-title" className="mt-1 font-display text-4xl font-bold uppercase text-paper md:text-5xl">¿Cuál es tu próximo destino?</h2>
+              </div>
+              <Link href="/signup" className="text-sm font-semibold text-brass hover:underline">Crear cuenta gratis</Link>
+            </div>
+            <ul className="mt-8 grid gap-4 md:grid-cols-3">
+              {DESTINATIONS.map((d, i) => (
+                <li key={d.title} className={`rise-in rise-in-${i + 1}`}>
+                  <Link href={d.href} className="hover-lift group relative block h-80 overflow-hidden rounded-[var(--radius-card)] bg-night text-white">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- imagen local optimizada (WebP) */}
+                    <img src={d.img} srcSet={`${d.img.replace('.webp', '-sm.webp')} 720w, ${d.img} 1280w`} sizes="(min-width: 768px) 33vw, 100vw" alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.05]" />
+                    <div className="tile-shade absolute inset-0" aria-hidden />
+                    <span className="absolute left-4 top-4 rounded-md bg-night/80 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-lime backdrop-blur">{d.tag}</span>
+                    <div className="absolute inset-x-0 bottom-0 p-5">
+                      <h3 className="font-display text-3xl font-bold uppercase leading-none">{d.title}</h3>
+                      <p className="mt-2 text-sm text-lavender">{d.text}</p>
+                    </div>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 text-xs text-faint">Imágenes ilustrativas: no son atletas ni centros reales de la plataforma.</p>
+          </div>
         </section>
 
         {/* Franja de confianza + deportes en movimiento */}
