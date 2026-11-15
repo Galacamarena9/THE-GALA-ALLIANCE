@@ -1,6 +1,7 @@
 'use client';
 
 import { useActionState, useState } from 'react';
+import { Captcha } from '@/components/Captcha';
 import { Check, Copy } from 'lucide-react';
 import type { FormState } from '@/app/actions/auth';
 import { createRecruitingLink, requestCoachAccess } from '@/app/actions/recruiting';
@@ -26,6 +27,7 @@ export function CoachAccessForm() {
       </label>
       {state?.error && <div className="sm:col-span-2"><Notice tone="danger">{state.error}</Notice></div>}
       <div className="sm:col-span-2">
+        <Captcha />
         <SubmitButton pendingText="Sending…">Email me a sign-in link</SubmitButton>
       </div>
     </form>

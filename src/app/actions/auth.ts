@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/server';
 import { checkAge } from '@/lib/domain/age';
 import { siteUrl } from '@/lib/env';
 import { checkNewPassword } from '@/lib/domain/password';
+import { captchaToken } from '@/lib/captcha';
 
 export type FormState = { error?: string; fieldErrors?: Record<string, string>; ok?: boolean; message?: string } | undefined;
 
@@ -52,6 +53,7 @@ export async function signUp(_prev: FormState, formData: FormData): Promise<Form
     email,
     password,
     options: {
+      captchaToken: captchaToken(formData),
       emailRedirectTo: `${siteUrl()}/auth/callback?next=/onboarding${role ? `?role=${role}` : ''}`,
       data: { display_name: displayName, date_of_birth: dateOfBirth, signup_role: role ?? null },
     },
@@ -83,8 +85,10 @@ export async function signIn(_prev: FormState, formData: FormData): Promise<Form
   const parsed = loginSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: parsed.error.issues[0]?.message };
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({ email: parsed.data.email, password: parsed.data.password });
+  const { error } = await supabase.auth.signInWithPassword({ email: parsed.data.email, password: parsed.data.password, options: { captchaToken: captchaToken(formData) } });
   if (error) return { error: 'Email o contraseña incorrectos, o cuenta sin confirmar.' };
+  const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (aal?.currentLevel === 'aal1' && aal?.nextLevel === 'aal2') redirect(`/mfa?next=${encodeURIComponent(safeNext(parsed.data.next))}`);
   redirect(safeNext(parsed.data.next));
 }
 
@@ -103,6 +107,7 @@ export async function requestPasswordReset(_prev: FormState, formData: FormData)
   if (!parsed.success) return { error: parsed.error.issues[0]?.message };
   const supabase = await createClient();
   await supabase.auth.resetPasswordForEmail(parsed.data.email, {
+    captchaToken: captchaToken(formData),
     redirectTo: `${siteUrl()}/auth/callback?next=${encodeURIComponent('/reset-password')}`,
   });
   return { ok: true, message: 'Si hay una cuenta con ese email, te hemos enviado un enlace para crear una contraseña nueva. Caduca en 1 hora.' };

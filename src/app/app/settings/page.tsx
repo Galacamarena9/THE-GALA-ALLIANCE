@@ -9,6 +9,7 @@ import { DataRequestForm } from './DataRequestForm';
 import { DeleteAccountForm } from '@/components/autonomy';
 import { CookiePrefsButton } from './CookiePrefsButton';
 import { unblockUser } from '@/app/actions/blocks';
+import { TwoFactorCard } from '@/components/TwoFactorCard';
 
 export const metadata: Metadata = { title: 'Privacidad y datos' };
 
@@ -16,8 +17,9 @@ const REQUEST_LABEL: Record<string, string> = {
   access: 'Acceso', rectification: 'Rectificación', erasure: 'Supresión', restriction: 'Limitación', objection: 'Oposición', portability: 'Portabilidad',
 };
 
-export default async function SettingsPage() {
+export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ mfa?: string }> }) {
   const session = await requireSession();
+  const { mfa } = await searchParams;
   const supabase = await createClient();
   const isAthlete = session.roles.includes('athlete');
 
@@ -42,6 +44,10 @@ export default async function SettingsPage() {
       <PageHeader kicker="Privacidad" title="Tus datos, tus decisiones" description="Controla quién te ve, descarga tus datos y ejerce tus derechos en cualquier momento." />
 
       <div className="space-y-5">
+        <Card>
+          <CardTitle kicker="Seguridad">Verificación en dos pasos</CardTitle>
+          <TwoFactorCard required={mfa === 'required' || session.roles.includes('admin')} />
+        </Card>
         <Card>
           <CardTitle kicker="Seguridad">Personas bloqueadas</CardTitle>
           {blocks?.length ? (

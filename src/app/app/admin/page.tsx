@@ -1,3 +1,4 @@
+import { requireAdminMfa } from '@/lib/mfa';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -15,6 +16,7 @@ const REASON: Record<string, string> = { child_safety: 'Seguridad infantil', har
 
 export default async function AdminPage() {
   const session = await requireSession(['admin']);
+  await requireAdminMfa();
   if (!session.roles.includes('admin')) redirect('/app');
   const supabase = await createClient();
 

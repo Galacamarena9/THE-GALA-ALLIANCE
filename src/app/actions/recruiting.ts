@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { captchaToken } from '@/lib/captcha';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { requireSession } from '@/lib/session';
@@ -76,6 +77,7 @@ export async function requestCoachAccess(_prev: FormState, formData: FormData): 
   const { error } = await supabase.auth.signInWithOtp({
     email: parsed.data.email,
     options: {
+      captchaToken: captchaToken(formData),
       emailRedirectTo: `${siteUrl()}/auth/callback?next=${next}`,
       data: { display_name: parsed.data.name, date_of_birth: parsed.data.dob, signup_role: 'coach' },
     },

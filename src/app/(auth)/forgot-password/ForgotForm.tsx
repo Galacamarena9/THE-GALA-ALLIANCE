@@ -1,6 +1,7 @@
 'use client';
 
 import { useActionState } from 'react';
+import { Captcha } from '@/components/Captcha';
 import Link from 'next/link';
 import { requestPasswordReset, type FormState } from '@/app/actions/auth';
 import { Field, inputClass, Notice } from '@/components/ui';
@@ -23,6 +24,7 @@ export function ForgotForm() {
       <Field label="Email" htmlFor="email">
         <input id="email" name="email" type="email" autoComplete="email" required className={inputClass} />
       </Field>
+      <Captcha />
       <SubmitButton className="w-full" pendingText="Enviando…">Enviarme el enlace</SubmitButton>
       <p className="text-center text-sm text-muted"><Link href="/login" className="text-brass hover:underline">Volver a entrar</Link></p>
     </form>
