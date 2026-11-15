@@ -51,6 +51,7 @@ export const PERSONAL_SERVICES: Record<AppRole, NavItem[]> = {
   athlete: [
     { href: '/app/athlete', label: 'Mi camino', icon: 'path', desc: 'Tu siguiente paso y los plazos según tu año.' },
     { href: '/app/athlete/passport', label: 'Mi Passport', icon: 'id', desc: 'Tu perfil deportivo y académico: lo que ven las universidades.' },
+    { href: '/app/share', label: 'Compartir mi perfil', icon: 'megaphone', desc: 'Enlace privado para enviar tu ficha a coaches de EE. UU. y ver quién la abre.' },
     { href: '/app/applications', label: 'Mis candidaturas', icon: 'inbox', desc: 'Estado de cada beca a la que te has apuntado.' },
     { href: '/app/plan', label: 'Mi plan', icon: 'tag', desc: 'Informe del perfil, Sports CV, shortlist y calendario.' },
     { href: '/app/documents', label: 'Documentos', icon: 'doc', desc: 'Checklist y archivos privados del proceso.' },
@@ -61,6 +62,7 @@ export const PERSONAL_SERVICES: Record<AppRole, NavItem[]> = {
   ],
   parent: [
     { href: '/app/family', label: 'Panel familiar', icon: 'family', desc: 'El proceso de tu hijo o hija y lo que necesita tu aprobación.' },
+    { href: '/app/share', label: 'Compartir su perfil', icon: 'megaphone', desc: 'Crea enlaces privados de reclutamiento para tu hijo o hija y ve quién los abre.' },
     { href: '/app/plan', label: 'Plan familiar', icon: 'tag', desc: 'Informe, shortlist y calendario generados al momento.' },
     { href: '/app/documents', label: 'Documentos', icon: 'doc', desc: 'Checklist y archivos privados del proceso.' },
     { href: '/app/offers', label: 'Comparar ofertas', icon: 'scale', desc: 'Coste neto, riesgos y memo de decisión.' },
@@ -80,7 +82,7 @@ export const PERSONAL_SERVICES: Record<AppRole, NavItem[]> = {
     { href: '/app/club', label: 'Portal de academia o club', icon: 'users', desc: 'Roster, validación de estadísticas y colocaciones.' },
   ],
   agent: [
-    { href: '/app/portfolio', label: 'Mi cartera', icon: 'handshake', desc: 'Atletas que representas (con su aceptación).' },
+    { href: '/app/portfolio', label: 'Portfolio', icon: 'handshake', desc: 'Tu cartera: representados, propuestas, notas internas y seguimientos.' },
     { href: '/app/lists', label: 'Prospectos', icon: 'list', desc: 'Atletas guardados y búsquedas con alertas.' },
     { href: '/app/organization', label: 'Agencia', icon: 'building', desc: 'Datos de la agencia, verificación y equipo.' },
   ],

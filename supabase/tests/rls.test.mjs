@@ -343,6 +343,66 @@ try {
     eq((await as(u.brand, `select count(*)::int n from agent_representations`)).rows[0].n, 0);
   });
 
+  results.push('\nAgent Workspace: notas privadas de agencia');
+  const agent2 = randomUUID();
+  await db.query(`insert into auth.users (id, email, raw_user_meta_data) values ($1, 'agent2@test.dev', $2)`, [agent2, { display_name: 'agent2' }]);
+  await as(agent2, `insert into user_roles (user_id, role) values ($1, 'agent')`, [agent2]);
+  await as(agent2, `insert into private_profile_data (user_id, date_of_birth) values ($1, $2)`, [agent2, yearsAgo(35)]);
+  const agency2 = (await as(agent2, `insert into organizations (name, type, created_by) values ('Rival Agency', 'agency', $1) returning id`, [agent2])).rows[0].id;
+  let noteId; let followId;
+  await check('el agente anota y programa un seguimiento sobre un atleta de su cartera', async () => {
+    noteId = (await as(u.agent, `insert into agency_athlete_notes (agency_id, athlete_id, author_id, body) values ($1, $2, $3, 'Muy buena reunión') returning id`,
+      [agencyId, u.adult, u.agent])).rows[0].id;
+    followId = (await as(u.agent, `insert into agency_athlete_notes (agency_id, athlete_id, author_id, kind, body, due_date) values ($1, $2, $3, 'follow_up', 'Llamar al coach', current_date + 3) returning id`,
+      [agencyId, u.adult, u.agent])).rows[0].id;
+    eq((await as(u.agent, `select count(*)::int n from agency_athlete_notes where athlete_id = $1`, [u.adult])).rows[0].n, 2);
+  });
+  await check('el atleta nunca ve las notas internas de la agencia', async () => {
+    eq((await as(u.adult, `select count(*)::int n from agency_athlete_notes`)).rows[0].n, 0);
+  });
+  await check('otra agencia no ve ni puede escribir notas de la primera', async () => {
+    eq((await as(agent2, `select count(*)::int n from agency_athlete_notes`)).rows[0].n, 0);
+    await expectError(() => as(agent2, `insert into agency_athlete_notes (agency_id, athlete_id, author_id, body) values ($1, $2, $3, 'x')`,
+      [agencyId, u.adult, agent2]), /row-level security|agency_required/);
+  });
+  await check('una agencia no puede anotar atletas con los que no tiene relación', async () => {
+    await expectError(() => as(agent2, `insert into agency_athlete_notes (agency_id, athlete_id, author_id, body) values ($1, $2, $3, 'x')`,
+      [agency2, u.adult, agent2]), /row-level security/);
+  });
+  await check('nadie fuera de la agencia puede sondear su cartera', async () => {
+    eq((await as(agent2, `select agency_has_relationship($1, $2) r`, [agencyId, u.adult])).rows[0].r, false);
+    eq((await as(u.agent, `select agency_has_relationship($1, $2) r`, [agencyId, u.adult])).rows[0].r, true);
+  });
+  await check('nadie se hace pasar por otro autor', async () => {
+    await expectError(() => as(u.agent, `insert into agency_athlete_notes (agency_id, athlete_id, author_id, body) values ($1, $2, $3, 'x')`,
+      [agencyId, u.adult, agent2]), /row-level security/);
+  });
+  await check('solo el autor edita y la nota no cambia de agencia ni de atleta', async () => {
+    eq((await as(agent2, `update agency_athlete_notes set body = 'hackeado' where id = $1`, [noteId])).rowCount, 0);
+    await expectError(() => as(u.agent, `update agency_athlete_notes set agency_id = $2 where id = $1`, [noteId, agency2]), /note_immutable|row-level security/);
+    await as(u.agent, `update agency_athlete_notes set body = 'Reunión: interés de 2 universidades' where id = $1`, [noteId]);
+  });
+  await check('completar un seguimiento registra la fecha', async () => {
+    await as(u.agent, `update agency_athlete_notes set done = true where id = $1`, [followId]);
+    const r = (await as(u.agent, `select done, done_at is not null as stamped from agency_athlete_notes where id = $1`, [followId])).rows[0];
+    eq(`${r.done}${r.stamped}`, 'truetrue');
+  });
+  await check('una nota simple no admite fecha de seguimiento', async () => {
+    await expectError(() => as(u.agent, `insert into agency_athlete_notes (agency_id, athlete_id, author_id, kind, body, due_date) values ($1, $2, $3, 'note', 'x', current_date)`,
+      [agencyId, u.adult, u.agent]), /note_due_only_follow_up/);
+  });
+  await check('solo el autor borra una nota', async () => {
+    eq((await as(agent2, `delete from agency_athlete_notes where id = $1`, [noteId])).rowCount, 0);
+    eq((await as(u.agent, `delete from agency_athlete_notes where id = $1`, [noteId])).rowCount, 1);
+  });
+  await check('nadie puede borrar una representación (el historial se conserva)', async () => {
+    eq((await as(u.agent, `delete from agent_representations where id = $1`, [repId])).rowCount, 0);
+    eq((await as(u.adult, `delete from agent_representations where id = $1`, [repId])).rowCount, 0);
+  });
+  await check('cada cambio de una representación queda auditado', async () => {
+    eq((await as(u.admin, `select count(*)::int n from audit_logs where entity = 'agent_representations' and entity_id = $1`, [repId])).rows[0].n, 2);
+  });
+
   results.push('\nOfertas de marcas');
   let brandOrg2; let campId;
   await check('la marca crea una oferta en borrador y no puede publicarla', async () => {
@@ -685,6 +745,92 @@ try {
     eq((await as(u.uni, `select count(*)::int n from athlete_offers where athlete_id = $1`, [u.adult])).rows[0].n, 0);
     await expectError(() => as(u.uni, `insert into athlete_offers (athlete_id, university_name) values ($1, 'Fake')`, [u.adult]), /row-level security/);
     await expectError(() => as(u.adult, `insert into athlete_offers (athlete_id, university_name, annual_cost_usd, aid_amount_usd) values ($1, 'X Uni', 1000, 5000)`, [u.adult]), /offer_aid_not_above_cost/);
+  });
+
+  // ---------------------------------------------------------------------------
+  results.push('\nOleada 1: enlace privado de reclutamiento');
+  const teen = randomUUID(); const teenParent = randomUUID();
+  await db.query(`insert into auth.users (id, email, raw_user_meta_data) values ($1, 'teen2@test.dev', $2), ($3, 'teenparent@test.dev', $4)`,
+    [teen, { display_name: 'Lucía Ferrer Pons' }, teenParent, { display_name: 'Marta Pons' }]);
+  await as(teen, `insert into user_roles (user_id, role) values ($1, 'athlete')`, [teen]);
+  await as(teen, `insert into private_profile_data (user_id, date_of_birth) values ($1, $2)`, [teen, yearsAgo(16)]);
+  await as(teenParent, `insert into user_roles (user_id, role) values ($1, 'parent')`, [teenParent]);
+  await as(teenParent, `insert into private_profile_data (user_id, date_of_birth) values ($1, $2)`, [teenParent, yearsAgo(45)]);
+  await as(teen, `insert into athlete_profiles (user_id, sport_id, graduation_year, current_team, city, highlight_video_url, profile_visibility)
+    values ($1, 'basketball', 2028, 'Valencia Basket U16', 'Valencia', 'https://video.example/teen', 'members')`, [teen]);
+  await db.query(`insert into parent_athlete_links (parent_id, athlete_id, invited_by, status, approved_at, relationship, guardian_consent_given)
+    values ($1, $2, $1, 'approved', now(), 'parent', true)`, [teenParent, teen]);
+  await db.query(`update athlete_profiles set city = 'Madrid', current_team = 'CB Estudiantes', highlight_video_url = 'https://video.example/adult' where user_id = $1`, [u.adult]);
+
+  let adultToken; let adultLinkId; let teenToken;
+  await check('un atleta adulto crea su enlace y el token lo genera la base de datos', async () => {
+    const r = (await as(u.adult, `insert into recruiting_links (athlete_id, label, token) values ($1, 'Coach Smith', 'elegido-por-mi') returning id, token, expires_at > now() + interval '29 days' as d30`, [u.adult])).rows[0];
+    adultLinkId = r.id; adultToken = r.token;
+    if (!/^[a-f0-9]{64}$/.test(adultToken)) throw new Error(`token no aleatorio: ${adultToken}`);
+    eq(r.d30, true, 'caduca a los 30 días por defecto:');
+  });
+  await check('la caducidad nunca supera 90 días', async () => {
+    const r = (await as(u.adult, `insert into recruiting_links (athlete_id, label, expires_at) values ($1, 'Largo', now() + interval '400 days') returning expires_at <= now() + interval '90 days 1 minute' as capped`, [u.adult])).rows[0];
+    eq(r.capped, true);
+  });
+  await check('un menor no puede crear su propio enlace', async () => {
+    await expectError(() => as(teen, `insert into recruiting_links (athlete_id, label) values ($1, 'x')`, [teen]), /guardian_required|row-level security/);
+  });
+  await check('su madre o padre (vínculo aprobado) sí puede crearlo', async () => {
+    teenToken = (await as(teenParent, `insert into recruiting_links (athlete_id, label) values ($1, 'Coach Brown') returning token`, [teen])).rows[0].token;
+  });
+  await check('nadie más puede crear enlaces de un atleta', async () => {
+    await expectError(() => as(u.coach, `insert into recruiting_links (athlete_id, label) values ($1, 'x')`, [u.adult]), /row-level security/);
+    await expectError(() => as(u.agent, `insert into recruiting_links (athlete_id, label) values ($1, 'x')`, [u.adult]), /row-level security/);
+  });
+  await check('los enlaces (y sus tokens) solo los ven el atleta y su familia', async () => {
+    eq((await as(u.coach, `select count(*)::int n from recruiting_links`)).rows[0].n, 0);
+    eq((await as(null, `select count(*)::int n from recruiting_links`).catch(() => ({ rows: [{ n: 0 }] }))).rows[0].n, 0);
+    eq((await as(teenParent, `select count(*)::int n from recruiting_links where athlete_id = $1`, [teen])).rows[0].n, 1);
+    eq((await as(teen, `select count(*)::int n from recruiting_links where athlete_id = $1`, [teen])).rows[0].n, 1);
+  });
+  await check('sin iniciar sesión, un enlace válido muestra la ficha y registra la visita', async () => {
+    const r = (await as(null, `select * from get_recruiting_card($1)`, [adultToken])).rows;
+    eq(r.length, 1);
+    eq(r[0].display_name, 'adult');
+    eq(r[0].current_team, 'CB Estudiantes');
+    eq(r[0].video_url, 'https://video.example/adult');
+    eq((await as(u.adult, `select count(*)::int n from recruiting_link_views where link_id = $1`, [adultLinkId])).rows[0].n, 1);
+  });
+  await check('la ficha de un menor oculta apellidos, equipo y ciudad', async () => {
+    const r = (await as(null, `select * from get_recruiting_card($1)`, [teenToken])).rows[0];
+    eq(r.display_name, 'Lucía F.');
+    eq(r.current_team, null);
+    eq(r.city, null);
+    eq(r.is_minor, true);
+  });
+  await check('la ficha nunca incluye el presupuesto familiar', async () => {
+    const cols = (await as(null, `select * from get_recruiting_card($1)`, [adultToken])).fields.map((f) => f.name);
+    if (cols.some((c) => /budget|financ/.test(c))) throw new Error(`columna sensible: ${cols}`);
+  });
+  await check('un token inventado no devuelve nada', async () => {
+    eq((await as(null, `select * from get_recruiting_card($1)`, ['f'.repeat(64)])).rows.length, 0);
+  });
+  await check('un enlace caducado no devuelve nada', async () => {
+    const tk = (await as(u.adult, `insert into recruiting_links (athlete_id, label) values ($1, 'old') returning token`, [u.adult])).rows[0].token;
+    // Simula el paso del tiempo (el trigger impide cambiar la caducidad a cualquiera).
+    await db.query(`set session_replication_role = replica`);
+    await db.query(`update recruiting_links set expires_at = now() - interval '1 day' where token = $1`, [tk]);
+    await db.query(`set session_replication_role = origin`);
+    eq((await as(null, `select * from get_recruiting_card($1)`, [tk])).rows.length, 0);
+  });
+  await check('al revocarlo deja de funcionar y no se puede reactivar', async () => {
+    await as(u.adult, `update recruiting_links set revoked_at = now() where id = $1`, [adultLinkId]);
+    eq((await as(null, `select * from get_recruiting_card($1)`, [adultToken])).rows.length, 0);
+    await expectError(() => as(u.adult, `update recruiting_links set revoked_at = null where id = $1`, [adultLinkId]), /link_immutable/);
+  });
+  await check('un enlace no cambia de atleta ni de token', async () => {
+    const id = (await as(u.adult, `insert into recruiting_links (athlete_id, label) values ($1, 'z') returning id`, [u.adult])).rows[0].id;
+    await expectError(() => as(u.adult, `update recruiting_links set token = 'x' where id = $1`, [id]), /link_immutable/);
+  });
+  await check('las visitas solo las ve el atleta o su familia', async () => {
+    eq((await as(u.coach, `select count(*)::int n from recruiting_link_views`)).rows[0].n, 0);
+    await expectError(() => as(u.coach, `insert into recruiting_link_views (link_id) values ($1)`, [adultLinkId]), /row-level security|permission denied/);
   });
 } finally {
   console.log(results.join('\n'));

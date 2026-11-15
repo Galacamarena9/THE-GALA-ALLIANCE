@@ -233,8 +233,9 @@ export function PracticeEngine({ exam, questions, seed }: { exam: 'sat' | 'toefl
   );
 }
 
-type ThemeMode = 'dark' | 'light' | 'contrast';
-const THEME_KEY = 'tga_theme';
+type ThemeMode = 'light' | 'dark' | 'contrast';
+/* Clave v2: con la identidad clara de noviembre de 2026 todos parten del tema claro, aunque antes eligieran otro. */
+const THEME_KEY = 'tga_theme_v2';
 
 function subscribeTheme(cb: () => void) {
   const obs = new MutationObserver(cb);
@@ -243,18 +244,18 @@ function subscribeTheme(cb: () => void) {
 }
 const readTheme = (): ThemeMode => {
   const t = document.documentElement.dataset.theme;
-  return t === 'light' || t === 'contrast' ? t : 'dark';
+  return t === 'dark' || t === 'contrast' ? t : 'light';
 };
 
-/** Tema claro/oscuro/alto contraste (recuperado de Lovable). Preferencia de interfaz pedida por el usuario: sin consentimiento de cookies. */
+/** Tema claro (por defecto) / oscuro / alto contraste. Preferencia de interfaz pedida por el usuario: sin consentimiento de cookies. */
 export function ThemeToggle() {
-  const mode = useSyncExternalStore(subscribeTheme, readTheme, () => 'dark' as ThemeMode);
+  const mode = useSyncExternalStore(subscribeTheme, readTheme, () => 'light' as ThemeMode);
   const apply = (m: ThemeMode) => {
-    if (m === 'dark') delete document.documentElement.dataset.theme;
+    if (m === 'light') delete document.documentElement.dataset.theme;
     else document.documentElement.dataset.theme = m;
     try { localStorage.setItem(THEME_KEY, m); } catch { /* sin persistencia */ }
   };
-  const labels: Record<ThemeMode, string> = { dark: 'Oscuro', light: 'Claro', contrast: 'Alto contraste' };
+  const labels: Record<ThemeMode, string> = { light: 'Claro', dark: 'Oscuro', contrast: 'Alto contraste' };
   return (
     <label className="inline-flex items-center gap-2 text-xs text-muted">
       <span className="sr-only">Tema</span>
