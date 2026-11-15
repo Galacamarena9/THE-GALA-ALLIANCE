@@ -81,6 +81,8 @@ const TRUST = [
   'Universidades, clubes, agencias y marcas verificadas con su dominio oficial antes de publicar o contactar.',
   'Cada beca pasa controles automáticos antes de publicarse y lleva un sello de confianza de 5 niveles con sus señales de alarma.',
   'Tus datos, tus reglas: visibilidad por bloque, descarga de datos y borrado.',
+  'Normas NCAA integradas: una universidad D-I o D-II no puede escribirte antes de la fecha que marca tu curso.',
+  'Colaboraciones con marcas con aviso NIL Go: desde 600 $, los atletas D-I saben qué declarar y cuándo.',
 ];
 
 export default function Home() {

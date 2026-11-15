@@ -43,7 +43,7 @@ export function CampaignForm({ brands, sports }: { brands: { id: string; name: s
               <Field label="Compensación" htmlFor="compensation_kind">
                 <select id="compensation_kind" name="compensation_kind" className={inputClass}>{Object.entries(COMPENSATION_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
               </Field>
-              <Field label="Importe (USD)" htmlFor="compensation_usd" error={fe.compensation_usd}><input id="compensation_usd" name="compensation_usd" type="number" min={0} className={inputClass} /></Field>
+              <Field label="Importe (USD)" htmlFor="compensation_usd" error={fe.compensation_usd} hint="Desde 600 $, los atletas NCAA D-I lo declaran en NIL Go."><input id="compensation_usd" name="compensation_usd" type="number" min={0} className={inputClass} /></Field>
               <Field label="Plazo de candidatura" htmlFor="application_deadline"><input id="application_deadline" name="application_deadline" type="date" className={inputClass} /></Field>
             </div>
             <div className="grid gap-5 sm:grid-cols-2">

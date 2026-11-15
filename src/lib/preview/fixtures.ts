@@ -10,7 +10,7 @@ const ago = (days: number) => new Date(now - days * 86_400_000).toISOString();
 const inDays = (days: number) => new Date(now + days * 86_400_000).toISOString().slice(0, 10);
 
 export const previewAgencies: MyOrg[] = [
-  { id: 'org-1', name: 'Norte Sports Management', type: 'agency', verification_status: 'verified', member_role: 'admin' },
+  { id: 'org-1', name: 'Norte Sports Management', type: 'agency', verification_status: 'verified', division: null, member_role: 'admin' },
 ];
 
 const base = { agencyId: 'org-1', agencyName: 'Norte Sports Management', agentId: 'agent-1', message: null, endedAt: null, avatarUrl: null, hasVideo: true, lastNoteAt: null } as const;

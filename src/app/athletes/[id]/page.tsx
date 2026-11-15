@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import type { Division } from '@/lib/types';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Logo } from '@/components/Logo';
@@ -10,6 +11,7 @@ import { loadCatalog, loadPassport } from '@/lib/data/athlete';
 import { myOrganizations } from '@/lib/data/orgs';
 import { DIVISION_LABEL, LINK_KIND_LABEL, domainOf } from '@/lib/domain/labels';
 import { toGpa4 } from '@/lib/domain/match';
+import { formatEsDate, ncaaWindow } from '@/lib/domain/ncaa';
 import { SPORT_TONE_CLASS, sportTone } from '@/lib/domain/sport-tone';
 import { initials } from '@/lib/domain/portfolio';
 import { saveAthlete } from '@/app/actions/lists';
@@ -41,7 +43,11 @@ export default async function AthleteProfilePage({ params }: { params: Promise<{
   const isOwner = session?.userId === id;
 
   const orgs = session ? await myOrganizations(session.userId) : [];
-  const verifiedOrgs = orgs.filter((o) => o.verification_status === 'verified').map((o) => ({ id: o.id, name: o.name }));
+  // Cumplimiento NCAA: una universidad D-I/D-II no puede iniciar contacto antes de la ventana (la base de datos también lo impide).
+  const ncaaFor = (o: { type: string; division?: Division | null }) => (['university', 'college'].includes(o.type) ? ncaaWindow(p.graduation_year, o.division ?? null, p.sport_id) : { open: true, opensOn: null });
+  const verifiedAll = orgs.filter((o) => o.verification_status === 'verified');
+  const verifiedOrgs = verifiedAll.filter((o) => ncaaFor(o).open).map((o) => ({ id: o.id, name: o.name }));
+  const ncaaBlocked = verifiedAll.map((o) => ({ name: o.name, w: ncaaFor(o) })).filter((x) => !x.w.open);
   const agencies = orgs.filter((o) => o.type === 'agency' && o.verification_status === 'verified').map((o) => ({ id: o.id, name: o.name }));
   const canSave = session?.roles.some((r) => ['university', 'coach', 'agent', 'brand'].includes(r));
   // Para recruiters: ¿es menor? Lo deducimos sin ver su fecha: si no podemos leer sus finanzas/edad, tratamos con precaución.
@@ -96,10 +102,16 @@ export default async function AthleteProfilePage({ params }: { params: Promise<{
           </div>
         </section>
 
+        {session && !isOwner && ncaaBlocked.length > 0 && (
+          <div className="mt-5 rounded-2xl border border-warn/40 bg-warn/10 px-4 py-3 text-sm text-warn" role="status">
+            <p className="font-semibold">Ventana NCAA cerrada para {ncaaBlocked.map((x) => x.name).join(', ')}</p>
+            <p className="mt-1">Por las normas de reclutamiento NCAA, vuestra universidad no puede iniciar contacto con este atleta hasta el {formatEsDate(ncaaBlocked[0].w.opensOn!)}. Mientras tanto puedes guardarlo en una lista.</p>
+          </div>
+        )}
         {session && !isOwner && (verifiedOrgs.length > 0 || canSave) && (
           <div className="mt-5 flex flex-wrap items-start gap-3">
             {canSave && (
-              <form action={saveAthlete}><input type="hidden" name="athlete_id" value={id} /><button className="rounded-lg border border-line-strong px-4 py-2.5 text-sm text-paper hover:border-brass">Guardar en shortlist</button></form>
+              <form action={saveAthlete}><input type="hidden" name="athlete_id" value={id} /><button className="rounded-lg border border-line-strong px-4 py-2.5 text-sm text-paper hover:border-brass">Guardar en una lista</button></form>
             )}
             {verifiedOrgs.length > 0 && <ContactRequestForm organizations={verifiedOrgs} athleteId={id} isMinor={isMinor} />}
             {agencies.length > 0 && !isMinor && <RepresentationForm agencies={agencies} athleteId={id} />}

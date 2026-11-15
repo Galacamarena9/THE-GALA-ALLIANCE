@@ -25,7 +25,8 @@ const MOAT = [
   { Icon: Database, title: 'Datos oficiales', text: 'Universidades con datos del U.S. Department of Education y fuente visible: difícil de replicar con datos inventados.' },
   { Icon: Workflow, title: 'Opera sola', text: 'Verificación, publicación, moderación urgente, cobro, entrega y borrado automáticos: el coste marginal por usuario tiende a cero.' },
   { Icon: Users, title: 'Efecto red de seis lados', text: 'Cada atleta atrae universidades; cada universidad atrae atletas; academias y clubes traen rosters enteros.' },
-  { Icon: Bot, title: 'IA aplicada', text: 'Gala IA, informe del perfil, shortlist automática y memo de decisión: valor premium sin coste humano.' },
+  { Icon: Scale, title: 'Cumplimiento NCAA y NIL integrado', text: 'La base de datos impide que una universidad D-I o D-II contacte antes de la ventana NCAA, y cada colaboración con marcas avisa de la declaración en NIL Go desde 600 $. Cumplir no depende de la buena fe de nadie.' },
+  { Icon: Bot, title: 'IA aplicada', text: 'Gala IA, informe del perfil, lista automática y memo de decisión: valor premium sin coste humano.' },
 ];
 
 const REVENUE = [
