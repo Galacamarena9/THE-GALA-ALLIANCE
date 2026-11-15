@@ -63,6 +63,16 @@ export async function saveProfile(_prev: FormState, formData: FormData): Promise
   if (parsed.data.secondary_position_id === parsed.data.primary_position_id) {
     return { fieldErrors: { secondary_position_id: 'Debe ser distinta de la principal' } };
   }
+  // Derechos de imagen: publicar un vídeo nuevo exige confirmar que se puede y que quien sale lo consiente.
+  if (parsed.data.highlight_video_url) {
+    const { data: current } = await supabase.from('athlete_profiles').select('highlight_video_url').eq('user_id', session.userId).maybeSingle();
+    if (current?.highlight_video_url !== parsed.data.highlight_video_url) {
+      if (formData.get('media_rights') !== 'on') {
+        return { fieldErrors: { media_rights: 'Confirma que puedes publicar este vídeo' }, error: 'Revisa los campos marcados.' };
+      }
+      await supabase.from('consents').insert({ user_id: session.userId, purpose: 'media_rights', document_version: 'media-2026-11', granted: true });
+    }
+  }
   // Menores: nunca perfil público indexable (la RLS también lo bloquea para anónimos).
   if (session.isMinor && parsed.data.profile_visibility === 'public') parsed.data.profile_visibility = 'members';
 

@@ -5,6 +5,7 @@ import { requireSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
 import { Card, PageHeader, cx } from '@/components/ui';
 import { MessageForm, ReportButton } from '@/components/forms';
+import { BlockButton } from '@/components/BlockButton';
 
 export const metadata: Metadata = { title: 'Conversación' };
 
@@ -15,7 +16,7 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
   const supabase = await createClient();
   const { data: req } = await supabase
     .from('contact_requests')
-    .select('id, status, message, athlete_id, is_minor_at_request, organizations(name)')
+    .select('id, status, message, athlete_id, requested_by, is_minor_at_request, organizations(name)')
     .eq('id', id)
     .maybeSingle();
   if (!req) notFound();
@@ -24,6 +25,15 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
   const { data: senders } = senderIds.length ? await supabase.from('profiles').select('id, display_name').in('id', senderIds) : { data: [] };
   const nameOf = new Map((senders ?? []).map((s) => [s.id, s.display_name]));
   const org = req.organizations as unknown as { name: string } | null;
+
+  // La otra persona de la conversación: para el atleta o su familia, quien la abrió; para la organización, el atleta.
+  const onAthleteSide = session.userId === req.athlete_id || session.roles.includes('parent');
+  const otherId: string = onAthleteSide ? req.requested_by : req.athlete_id;
+  const [{ data: otherProfile }, { data: blocked }] = await Promise.all([
+    supabase.from('profiles').select('display_name').eq('id', otherId).maybeSingle(),
+    supabase.rpc('has_block_with', { p_other: otherId }),
+  ]);
+  const otherName = otherProfile?.display_name ?? (onAthleteSide ? 'esta persona' : 'este atleta');
 
   return (
     <>
@@ -45,10 +55,15 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
           );
         })}
       </ul>
-      {req.status === 'accepted' ? <MessageForm requestId={id} isMinor={req.is_minor_at_request} /> : <p className="text-sm text-muted">La conversación no está abierta.</p>}
-      <div className="mt-6 flex justify-between">
+      {blocked ? (
+        <p className="rounded-xl border border-line bg-surface-2 px-4 py-3 text-sm text-muted">Hay un bloqueo entre vosotros: no se pueden enviar mensajes. Si lo pusiste tú, puedes quitarlo en Ajustes.</p>
+      ) : req.status === 'accepted' ? <MessageForm requestId={id} isMinor={req.is_minor_at_request} /> : <p className="text-sm text-muted">La conversación no está abierta.</p>}
+      <div className="mt-6 flex flex-wrap items-start justify-between gap-4">
         <Link href="/app/inbox" className="text-sm text-muted hover:text-paper">← Mensajes</Link>
-        <ReportButton entityType="contact_request" entityId={id} label="Denunciar esta conversación" />
+        <div className="flex flex-wrap items-start gap-4">
+          {!blocked && otherId !== session.userId && <BlockButton userId={otherId} name={otherName} />}
+          <ReportButton entityType="contact_request" entityId={id} label="Denunciar esta conversación" />
+        </div>
       </div>
     </>
   );

@@ -122,6 +122,13 @@ export function PassportEditor({
                 <Field label="Vídeo de highlights" htmlFor="highlight_video_url" hint="Enlace https de YouTube, Vimeo o Hudl. Lo primero que mira un coach." error={fe.highlight_video_url}>
                   <input id="highlight_video_url" name="highlight_video_url" inputMode="url" placeholder="https://" defaultValue={profile.highlight_video_url ?? ''} className={inputClass} />
                 </Field>
+                <label className="flex items-start gap-2.5 rounded-xl border border-line bg-surface-2 p-3 text-xs leading-relaxed text-muted">
+                  <input type="checkbox" name="media_rights" className="mt-0.5 h-4 w-4 accent-[var(--color-brass)]" />
+                  <span>
+                    Confirmo que puedo publicar este vídeo y que las personas que aparecen lo consienten. No incluiré caras de menores que no sean yo sin permiso de sus familias.
+                    {fe.media_rights && <span className="mt-1 block font-semibold text-danger">{fe.media_rights}</span>}
+                  </span>
+                </label>
               </div>
 
               <div id="objetivos" className="rounded-xl border border-line bg-ink/40 p-4">
