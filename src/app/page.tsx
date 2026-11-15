@@ -143,6 +143,42 @@ export default function Home() {
           </div>
         </section>
 
+        {/* FUNDADORA: la historia real detrás de la plataforma (fotos de Gala, sin logos ni terceros reconocibles) */}
+        <section aria-labelledby="fundadora-title" className="relative overflow-hidden bg-night text-white">
+          {/* eslint-disable-next-line @next/next/no-img-element -- fondo decorativo local */}
+          <img src="/media/arena-bg.webp" alt="" aria-hidden loading="lazy" className="absolute inset-0 h-full w-full object-cover opacity-70" />
+          <div className="absolute inset-0 bg-gradient-to-r from-night via-night/85 to-night/40" aria-hidden />
+          <div className="relative mx-auto grid max-w-7xl items-center gap-10 px-6 py-20 lg:grid-cols-[1.1fr_1fr] lg:py-28">
+            <div className="rise-in">
+              <p className="text-sm font-semibold text-lime">Quién está detrás</p>
+              <h2 id="fundadora-title" className="mt-2 font-display text-4xl font-bold uppercase leading-none md:text-6xl">
+                Creada por una exjugadora NCAA D-I
+              </h2>
+              <p className="mt-5 max-w-xl text-lg leading-relaxed text-lavender">
+                Soy Gala. Jugué al baloncesto en la NCAA División I con beca completa en Estados Unidos. Sé lo que se siente al salir a una pista así, y lo difícil que es llegar cuando no tienes contactos.
+              </p>
+              <p className="mt-4 max-w-xl text-lg leading-relaxed text-lavender">
+                Por eso existe The Gala Alliance: para que llegar dependa de tu nivel y de tu esfuerzo, no de a quién conoces.
+              </p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <Link href="/signup" className="inline-flex h-12 items-center rounded-xl bg-lime px-7 text-sm font-bold text-night transition-transform hover:-translate-y-0.5 focus-visible:outline-lime">Crear mi perfil gratis</Link>
+                <Link href="/precios" className="inline-flex h-12 items-center rounded-xl border border-white/30 px-7 text-sm font-semibold text-white transition-colors hover:bg-white/10 focus-visible:outline-lime">Trabajar con Gala</Link>
+              </div>
+            </div>
+            <div className="relative mx-auto w-full max-w-xl">
+              <figure className="hover-lift overflow-hidden rounded-[var(--radius-card)] shadow-[var(--shadow-premium)] ring-1 ring-white/10">
+                {/* eslint-disable-next-line @next/next/no-img-element -- foto local optimizada */}
+                <img src="/media/founder-portrait.webp" srcSet="/media/founder-portrait-sm.webp 720w, /media/founder-portrait.webp 1300w" sizes="(min-width: 1024px) 560px, 100vw" alt="Gala, fundadora de The Gala Alliance, concentrada en la pista antes de un tiro libre" loading="lazy" className="aspect-[6/5] w-full object-cover object-top" />
+              </figure>
+              <figure className="absolute -bottom-10 -left-6 hidden w-56 overflow-hidden rounded-xl shadow-[var(--shadow-premium)] ring-4 ring-night sm:block">
+                {/* eslint-disable-next-line @next/next/no-img-element -- foto local optimizada */}
+                <img src="/media/founder-entrance-sm.webp" alt="Gala saltando a la pista en la presentación de un partido" loading="lazy" className="aspect-[3/2] w-full object-cover" />
+              </figure>
+              <span className="absolute -right-2 -top-3 rounded-full bg-lime px-3 py-1.5 font-display text-sm font-bold uppercase text-night shadow-lg">NCAA D-I</span>
+            </div>
+          </div>
+        </section>
+
         {/* Franja de confianza + deportes en movimiento */}
         <section aria-label="Confianza" className="border-y border-line/50 bg-surface/40">
           <div className="mx-auto grid max-w-6xl grid-cols-2 gap-6 px-6 py-10 lg:grid-cols-4">
