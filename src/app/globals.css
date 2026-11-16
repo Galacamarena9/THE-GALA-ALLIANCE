@@ -257,3 +257,8 @@ html:not(.js) .reveal { opacity: 1; transform: none; }
 /* Esqueletos de carga con brillo que recorre. */
 .skeleton { position: relative; overflow: hidden; background: var(--color-surface-2); }
 .skeleton::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-surface) 70%, transparent), transparent); animation: shimmer 1.6s infinite; }
+
+/* Anillo de progreso: se rellena al cargar. */
+@keyframes ring-fill { from { stroke-dashoffset: 100; } to { stroke-dashoffset: var(--ring-offset); } }
+.ring-fill { animation: ring-fill 1.4s cubic-bezier(.2,.8,.2,1) both; }
+@media (prefers-reduced-motion: reduce) { .ring-fill { animation: none; } }

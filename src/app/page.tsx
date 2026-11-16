@@ -424,8 +424,8 @@ export default function Home() {
           <video className="hero-video absolute inset-0 h-full w-full object-cover opacity-50" src="/media/hero-bg.mp4" poster="/media/hero-bg-poster.jpg" autoPlay muted loop playsInline aria-hidden />
           <div className="absolute inset-0 bg-gradient-to-t from-night via-night/70 to-night/40" aria-hidden />
           <Reveal className="relative mx-auto max-w-3xl text-center">
-            <h2 className="font-display text-6xl font-bold uppercase leading-[0.9] md:text-8xl">Tu beca empieza aquí</h2>
-            <p className="mx-auto mt-5 max-w-md text-base text-lavender">Unos minutos para crear tu Passport. Cero coste para atletas.</p>
+            <h2 className="font-display text-6xl font-bold uppercase leading-[0.9] md:text-8xl">Conoce tus opciones reales</h2>
+            <p className="mx-auto mt-5 max-w-md text-base text-lavender">Crea tu Passport gratis. Si hoy no hay ofertas reales que encajen contigo, te lo diremos claro y te diremos qué mejorar.</p>
             <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link href="/signup?role=athlete" className="group inline-flex h-12 items-center gap-2 rounded-xl bg-lime px-10 text-sm font-bold text-night transition-transform hover:-translate-y-0.5">Crear mi Passport gratis <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden /></Link>
               <Link href="#test" className="inline-flex h-12 items-center rounded-xl px-8 text-sm font-semibold text-white ring-1 ring-white/30 transition-colors hover:bg-white/10">Hacer el test primero</Link>

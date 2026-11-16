@@ -20,7 +20,7 @@ const HERO_IMG: Partial<Record<AppRole, string>> = {
 };
 
 const LEAD: Partial<Record<AppRole, string>> = {
-  athlete: 'Tu camino hacia una beca en EE. UU., paso a paso.',
+  athlete: 'Tus opciones reales en EE. UU., paso a paso y sin promesas.',
   parent: 'Acompaña el proceso de tu hijo o hija con datos claros y control de su privacidad.',
   university: 'Encuentra talento internacional verificado y gestiona vuestras candidaturas.',
   coach: 'Talento comparable de cualquier país, en un solo escaparate.',

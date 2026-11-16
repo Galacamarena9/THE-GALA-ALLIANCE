@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowRight, CheckCircle2, Circle } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 import { FeedbackForm } from '@/components/growth';
 import { requireSession, type SessionContext } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
@@ -15,6 +15,7 @@ import { Reveal } from '@/components/Reveal';
 import { AgentHome } from './AgentHome';
 import { ROLE_SHORTCUTS, RoleHero, ShortcutTiles } from '@/components/RoleHero';
 import { PlanUnlocks } from '@/components/PlanUnlocks';
+import { ProgressRing } from '@/components/ProgressRing';
 import { isoDaysAgo } from '@/lib/domain/funnel';
 
 export const metadata: Metadata = { title: 'Inicio' };
@@ -175,24 +176,34 @@ export default async function HomePage() {
         <Reveal delay={60}>
           <Card className="relative overflow-hidden">
             <div className="glow-gold pointer-events-none absolute -right-20 -top-20 h-60 w-60" aria-hidden />
-            <div className="relative mb-4 flex items-center justify-between gap-4">
-              <div>
-                <p className="text-[13px] font-semibold text-brass">Primeros pasos</p>
-                <h2 className="text-lg font-bold text-paper">{done === steps.length ? '¡Todo listo! Ya estás en marcha.' : `Te faltan ${steps.length - done} pasos para sacarle todo el partido`}</h2>
+            <div className="relative grid gap-6 lg:grid-cols-[auto_1fr] lg:items-center">
+              <div className="flex items-center gap-5">
+                <ProgressRing value={score ?? (steps.length ? (done / steps.length) * 100 : 0)} label={score != null ? 'Passport listo' : 'Primeros pasos completados'} />
+                <div>
+                  <p className="text-[13px] font-semibold text-brass">{score != null ? 'Tu Passport' : 'Primeros pasos'}</p>
+                  <h2 className="font-display text-[28px] font-bold uppercase leading-[0.95] text-paper">{done === steps.length ? 'Todo listo' : 'En marcha'}</h2>
+                  <p className="mt-1 max-w-xs text-sm text-muted">{nextStep ? <>Siguiente: <Link href={nextStep.href} className="font-semibold text-brass underline underline-offset-2">{nextStep.label}</Link></> : 'Ya puedes sacarle todo el partido.'}</p>
+                </div>
               </div>
-              <span className="font-display text-3xl font-bold tabular-nums text-paper">{done}<span className="text-base text-faint">/{steps.length}</span></span>
+              {/* Tu camino: los pasos como línea de tiempo horizontal. */}
+              <ol className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Tu camino">
+                {steps.map((s, i) => {
+                  const current = !s.done && s === nextStep;
+                  return (
+                    <li key={s.label} className="relative">
+                      {i < steps.length - 1 && <span className={`absolute left-9 right-0 top-4 hidden h-0.5 xl:block ${s.done ? 'bg-brass' : 'bg-line'}`} aria-hidden />}
+                      <Link href={s.href} className="group relative block rounded-xl p-1">
+                        <span className={`relative grid h-8 w-8 place-items-center rounded-full border text-xs font-bold transition-all ${s.done ? 'border-brass bg-brass text-white' : current ? 'border-brass bg-surface text-brass ring-4 ring-brass/10' : 'border-line bg-surface text-faint'}`}>
+                          {s.done ? <CheckCircle2 className="h-4 w-4" aria-hidden /> : i + 1}
+                        </span>
+                        <span className={`mt-2 block text-sm font-semibold leading-snug ${s.done ? 'text-muted line-through decoration-faint/60' : 'text-paper group-hover:text-brass'}`}>{s.label}</span>
+                        <span className={`text-xs ${current ? 'font-semibold text-brass' : 'text-faint'}`}>{s.done ? 'Completado' : current ? 'Estás aquí' : 'Pendiente'}</span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ol>
             </div>
-            <ol className="relative grid gap-2 sm:grid-cols-2">
-              {steps.map((s) => (
-                <li key={s.label}>
-                  <Link href={s.href} className={`group flex items-center gap-3 rounded-xl border px-3 py-3 text-sm transition-all ${s.done ? 'border-ok/25 bg-ok/5 text-muted' : 'border-line bg-ink/40 text-paper hover:border-brass/50 hover:bg-brass/5'}`}>
-                    {s.done ? <CheckCircle2 className="h-5 w-5 shrink-0 text-ok" aria-hidden /> : <Circle className="h-5 w-5 shrink-0 text-faint group-hover:text-brass" aria-hidden />}
-                    <span className={`flex-1 ${s.done ? 'line-through decoration-faint/60' : ''}`}>{s.label}</span>
-                    {!s.done && <ArrowRight className="h-4 w-4 text-faint transition-transform group-hover:translate-x-1 group-hover:text-brass" aria-hidden />}
-                  </Link>
-                </li>
-              ))}
-            </ol>
           </Card>
         </Reveal>
 
