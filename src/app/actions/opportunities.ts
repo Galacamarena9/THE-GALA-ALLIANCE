@@ -136,3 +136,18 @@ export async function addApplicationNote(formData: FormData) {
   await supabase.from('application_notes').insert({ ...parsed.data, author_id: session.userId });
   revalidatePath('/app/applications');
 }
+
+/** Seguimiento interno de un candidato: responsable, próxima acción y fecha. El atleta no lo ve. */
+export async function saveApplicationTracking(formData: FormData) {
+  await requireSession(['university', 'coach']);
+  const parsed = z.object({
+    application_id: z.string().uuid(),
+    owner_id: z.string().uuid().optional().or(z.literal('')).transform((v) => v || null),
+    next_action: z.string().trim().max(300).optional().transform((v) => v || null),
+    next_action_due: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().or(z.literal('')).transform((v) => v || null),
+  }).safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return;
+  const supabase = await createClient();
+  await supabase.from('application_tracking').upsert(parsed.data, { onConflict: 'application_id' });
+  revalidatePath('/app/applications');
+}

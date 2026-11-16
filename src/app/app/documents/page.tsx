@@ -7,7 +7,11 @@ import { daysUntil } from '@/lib/domain/labels';
 import { DOC_CHECKLIST, DOC_KIND_LABEL, VISA_KINDS, type DocKind } from '@/content/documents';
 import { Badge, ButtonLink, Card, CardTitle, EmptyState, Meter, Notice, PageHeader } from '@/components/ui';
 import { CustomDocumentForm, DocumentUpload } from '@/components/autonomy';
-import { removeDocumentFile, seedDocumentChecklist, setDocumentDueDate } from '@/app/actions/autonomy';
+import { removeDocumentFile, seedDocumentChecklist, setDocumentDueDate, setDocumentExpiry } from '@/app/actions/autonomy';
+import { documentStatus, DOC_STATUS_LABEL } from '@/lib/domain/documents';
+
+/** Documentos que caducan: pasaporte, exámenes de inglés y SAT/ACT, visados. */
+const EXPIRING_KINDS = new Set<string>(['passport', 'english_test', 'sat_act', 'i20', 'ds160']);
 
 export const metadata: Metadata = { title: 'Documentos' };
 
@@ -16,6 +20,7 @@ interface DocRow {
   kind: DocKind;
   title: string;
   due_date: string | null;
+  expires_on: string | null;
   storage_path: string | null;
   mime_type: string | null;
   size_bytes: number | null;
@@ -39,7 +44,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
   const athlete = athletes.find((a) => a.id === sp.a) ?? athletes[0];
   const supabase = await createClient();
   const [{ data }, plan] = await Promise.all([
-    supabase.from('athlete_documents').select('id, kind, title, due_date, storage_path, mime_type, size_bytes, uploaded_at')
+    supabase.from('athlete_documents').select('id, kind, title, due_date, expires_on, storage_path, mime_type, size_bytes, uploaded_at')
       .eq('athlete_id', athlete.id).order('due_date', { ascending: true, nullsFirst: false }),
     familyPlan([session.userId, athlete.id]),
   ]);
@@ -92,6 +97,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
                   const left = d.due_date ? daysUntil(d.due_date) : null;
                   const tone = d.storage_path ? 'ok' : left != null && left < 0 ? 'danger' : left != null && left <= 30 ? 'warn' : 'neutral';
                   const help = DOC_CHECKLIST.find((c) => c.kind === d.kind);
+                  const st = documentStatus(d);
                   return (
                     <li key={d.id} className="grid gap-3 py-4 sm:grid-cols-[1fr_auto] sm:items-center">
                       <div className="min-w-0">
@@ -101,6 +107,9 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
                           <Badge tone={tone}>
                             {d.storage_path ? 'Subido' : left == null ? 'Sin fecha' : left < 0 ? `Vencido hace ${-left} días` : `Faltan ${left} días`}
                           </Badge>
+                          {d.storage_path && (st === 'expired' || st === 'expiring') && (
+                            <Badge tone={DOC_STATUS_LABEL[st].tone === 'danger' ? 'danger' : 'warn'}>{DOC_STATUS_LABEL[st].label}{d.expires_on ? ` · ${d.expires_on.split('-').reverse().join('/')}` : ''}</Badge>
+                          )}
                           {d.storage_path && <a href={`/api/documents/${d.id}`} className="text-xs text-brass hover:underline">Descargar</a>}
                         </div>
                       </div>
@@ -112,6 +121,15 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
                             <input type="date" name="due_date" defaultValue={d.due_date ?? ''} aria-label={`Fecha objetivo de ${d.title}`} className="rounded-lg border border-line bg-ink px-2 py-1 text-xs text-paper" />
                             <button className="text-xs text-muted hover:text-paper">Guardar</button>
                           </form>
+                          {d.storage_path && EXPIRING_KINDS.has(d.kind) && (
+                            <form action={setDocumentExpiry} className="flex items-center gap-1">
+                              <input type="hidden" name="id" value={d.id} />
+                              <input type="hidden" name="athlete_id" value={athlete.id} />
+                              <label className="text-xs text-faint" htmlFor={`exp-${d.id}`}>Caduca</label>
+                              <input id={`exp-${d.id}`} type="date" name="expires_on" defaultValue={d.expires_on ?? ''} className="rounded-lg border border-line bg-ink px-2 py-1 text-xs text-paper" />
+                              <button className="text-xs text-muted hover:text-paper">Guardar</button>
+                            </form>
+                          )}
                           <DocumentUpload docId={d.id} athleteId={athlete.id} hasFile={Boolean(d.storage_path)} />
                           {d.storage_path && (
                             <form action={removeDocumentFile}>

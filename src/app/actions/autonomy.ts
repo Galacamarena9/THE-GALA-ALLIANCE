@@ -46,6 +46,15 @@ export async function setDocumentDueDate(formData: FormData) {
   revalidatePath('/app/documents');
 }
 
+export async function setDocumentExpiry(formData: FormData) {
+  const parsed = z.object({ id: z.string().uuid(), athlete_id: z.string().uuid(), expires_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).or(z.literal('')) })
+    .safeParse({ id: formData.get('id'), athlete_id: formData.get('athlete_id'), expires_on: formData.get('expires_on') });
+  if (!parsed.success || !(await canManage(parsed.data.athlete_id))) return;
+  const supabase = await createClient();
+  await supabase.from('athlete_documents').update({ expires_on: parsed.data.expires_on || null }).eq('id', parsed.data.id);
+  revalidatePath('/app/documents');
+}
+
 /** Registra un archivo ya subido a Storage por el navegador (la RLS de Storage validó el permiso). */
 export async function recordDocumentUpload(input: { id: string; athleteId: string; path: string; mime: string; size: number }) {
   const parsed = z.object({

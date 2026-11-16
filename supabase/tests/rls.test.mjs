@@ -1093,6 +1093,23 @@ try {
     await as(u.adult, `update agent_representations set status = 'ended' where id = $1`, [repId]);
     await expectError(() => as(u.agent, `insert into recruiting_cases (agency_id, athlete_id, institution_name, sport_id, cycle) values ($1, $2, 'Otra University', 'basketball', '2027-28')`, [agencyId, u.adult]), /representation_required/);
   });
+
+  results.push('\nCRM de coaches: responsable y próxima acción por candidato');
+  await check('el coach asigna responsable, próxima acción y fecha a un candidato', async () => {
+    await as(u.coach, `insert into application_tracking (application_id, owner_id, next_action, next_action_due) values ($1, $2, 'Pedir vídeo completo', current_date + 2)`, [appId, u.coach]);
+    const r = (await as(u.coach, `select owner_id, organization_id from application_tracking where application_id = $1`, [appId])).rows[0];
+    eq(r.owner_id, u.coach); eq(r.organization_id, uniId);
+  });
+  await check('el atleta nunca ve el seguimiento interno', async () => {
+    eq((await as(u.adult, `select count(*)::int n from application_tracking`)).rows[0].n, 0);
+  });
+  await check('otra organización no ve ni escribe el seguimiento', async () => {
+    eq((await as(u.brand, `select count(*)::int n from application_tracking`)).rows[0].n, 0);
+    eq((await as(u.brand, `update application_tracking set next_action = 'x' where application_id = $1`, [appId])).rowCount, 0);
+  });
+  await check('el responsable tiene que ser de la organización', async () => {
+    await expectError(() => as(u.coach, `update application_tracking set owner_id = $2 where application_id = $1`, [appId, u.brand]), /owner_not_member/);
+  });
 } finally {
   console.log(results.join('\n'));
   console.log(`\n${passed} pruebas OK · ${failed} fallidas`);
