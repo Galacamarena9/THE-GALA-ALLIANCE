@@ -915,6 +915,102 @@ try {
   await check('las políticas públicas siguen funcionando sin sesión (perfiles públicos)', async () => {
     await as(null, `select count(*) from athlete_profiles`);
   });
+
+  results.push('\nNetworking: avisos automáticos');
+  await check('mensaje nuevo: avisa a la otra parte, no a quien escribe', async () => {
+    await as(u.coach, `insert into contact_messages (request_id, sender_id, body) values ($1, $2, 'Te paso el calendario de visitas.')`, [reqId, u.coach]);
+    eq((await db.query(`select count(*)::int n from notifications where user_id = $1 and kind = 'message.new'`, [u.adult])).rows[0].n >= 1, true);
+    eq((await db.query(`select count(*)::int n from notifications where user_id = $1 and kind = 'message.new'`, [u.coach])).rows[0].n, 0);
+  });
+  await check('mensajes seguidos: un solo aviso sin leer por conversación', async () => {
+    await as(u.coach, `insert into contact_messages (request_id, sender_id, body) values ($1, $2, 'Y otra cosa más.')`, [reqId, u.coach]);
+    eq((await db.query(`select count(*)::int n from notifications where user_id = $1 and kind = 'message.new' and read_at is null`, [u.adult])).rows[0].n, 1);
+  });
+  await check('perfil abierto: avisa al atleta una vez al día por enlace', async () => {
+    await as(null, `select * from get_recruiting_card($1)`, [adultToken]);
+    await as(null, `select * from get_recruiting_card($1)`, [adultToken]);
+    eq((await db.query(`select count(*)::int n from notifications where user_id = $1 and kind = 'profile.view'`, [u.adult])).rows[0].n, 1);
+  });
+  await check('beca publicada: avisa a atletas de ese deporte, no a organizaciones', async () => {
+    eq((await db.query(`select count(*)::int n from notifications where user_id = $1 and kind = 'opportunity.match'`, [u.adult])).rows[0].n >= 1, true);
+    eq((await db.query(`select count(*)::int n from notifications where user_id = $1 and kind = 'opportunity.match'`, [u.coach])).rows[0].n, 0);
+  });
+
+  results.push('\nNetworking: recomendaciones del club');
+  await db.query(`set session_replication_role = replica`);
+  await db.query(`update club_roster set status = 'active', ended_at = null where athlete_id = $1 and organization_id = $2`, [u.adult, clubId]);
+  await db.query(`set session_replication_role = default`);
+  let recId;
+  await check('el club verificado recomienda a un atleta de su roster; queda pendiente', async () => {
+    const r = (await as(u.coach2, `insert into club_recommendations (athlete_id, organization_id, body)
+      values ($1, $2, 'Base trabajador y líder del vestuario. Ha mejorado cada temporada y entrena con el primer equipo.') returning id, status, author_id`, [u.adult, clubId])).rows[0];
+    recId = r.id; eq(r.status, 'pending'); eq(r.author_id, u.coach2);
+  });
+  await check('no recomienda quien no es del club ni a quien no está en su roster', async () => {
+    await expectError(() => as(u.brand, `insert into club_recommendations (athlete_id, organization_id, body) values ($1, $2, 'Recomendación de alguien que no pertenece al club en absoluto.')`, [u.adult, clubId]), /club_admin_required|row-level security/);
+    await expectError(() => as(u.coach2, `insert into club_recommendations (athlete_id, organization_id, body) values ($1, $2, 'Recomendación para alguien que no está en el roster del club.')`, [u.minor, clubId]), /not_in_roster/);
+  });
+  await check('pendiente: la ve el atleta, no un coach externo; el club no puede publicarla', async () => {
+    eq((await as(u.adult, `select count(*)::int n from club_recommendations where id = $1`, [recId])).rows[0].n, 1);
+    eq((await as(u.coach, `select count(*)::int n from club_recommendations where id = $1`, [recId])).rows[0].n, 0);
+    await expectError(() => as(u.coach2, `update club_recommendations set status = 'published' where id = $1`, [recId]), /recommendation_transition_not_allowed|row-level security/);
+  });
+  await check('el atleta la publica y la ven los coaches verificados', async () => {
+    await as(u.adult, `update club_recommendations set status = 'published' where id = $1`, [recId]);
+    eq((await as(u.coach, `select count(*)::int n from club_recommendations where id = $1`, [recId])).rows[0].n, 1);
+    eq((await db.query(`select count(*)::int n from notifications where user_id = $1 and kind = 'recommendation.new'`, [u.adult])).rows[0].n, 1);
+  });
+
+  results.push('\nNetworking: preguntas abiertas en cada beca');
+  const pubOpp = (await db.query(`select id from opportunities where title = 'Beca baloncesto 2028' and status = 'published' limit 1`)).rows[0].id;
+  let qId;
+  await check('un atleta pregunta en una beca publicada', async () => {
+    qId = (await as(u.adult, `insert into opportunity_questions (opportunity_id, body) values ($1, '¿Qué nivel de inglés pedís para la admisión?') returning id`, [pubOpp])).rows[0].id;
+    eq((await db.query(`select asker_id from opportunity_questions where id = $1`, [qId])).rows[0].asker_id, u.adult);
+  });
+  await check('en público no se comparten emails, teléfonos ni redes', async () => {
+    await expectError(() => as(u.adult, `insert into opportunity_questions (opportunity_id, body) values ($1, 'Escribidme a atleta@test.dev por favor')`, [pubOpp]), /contact_data_not_allowed/);
+  });
+  await check('sin responder: la ven quien pregunta y la organización, no otros atletas', async () => {
+    eq((await as(u.privateAth, `select count(*)::int n from opportunity_questions where id = $1`, [qId])).rows[0].n, 0);
+    eq((await as(u.uni, `select count(*)::int n from opportunity_questions where id = $1`, [qId])).rows[0].n, 1);
+  });
+  await check('el atleta no puede responder; la organización sí y queda visible para todos', async () => {
+    await as(u.adult, `update opportunity_questions set answer = 'Me respondo yo' where id = $1`, [qId]);
+    eq((await db.query(`select answer from opportunity_questions where id = $1`, [qId])).rows[0].answer, null);
+    await as(u.uni, `update opportunity_questions set answer = 'Pedimos TOEFL 80 o Duolingo 105.' where id = $1`, [qId]);
+    eq((await as(u.privateAth, `select count(*)::int n from opportunity_questions where id = $1`, [qId])).rows[0].n, 1);
+    eq((await as(null, `select count(*)::int n from opportunity_questions where id = $1`, [qId])).rows[0].n, 1);
+    eq((await db.query(`select count(*)::int n from notifications where user_id = $1 and kind = 'question.answered'`, [u.adult])).rows[0].n, 1);
+  });
+  await check('quién preguntó no se expone (ni en público ni a otros usuarios)', async () => {
+    await expectError(() => as(null, `select asker_id from opportunity_questions where id = $1`, [qId]), /permission denied/);
+    await expectError(() => as(u.uni, `select asker_id from opportunity_questions where id = $1`, [qId]), /permission denied/);
+  });
+
+  results.push('\nNetworking: Showcase Day');
+  let evId;
+  await check('solo administración crea jornadas', async () => {
+    await expectError(() => as(u.coach, `insert into showcase_events (title, starts_at, ends_at) values ('Jornada falsa', now(), now() + interval '1 day')`), /row-level security/);
+    evId = (await as(u.admin, `insert into showcase_events (title, sport_id, starts_at, ends_at) values ('Showcase baloncesto', 'basketball', now() + interval '7 days', now() + interval '8 days') returning id`)).rows[0].id;
+  });
+  await check('el atleta se inscribe y puede retirarse', async () => {
+    await as(u.adult, `insert into showcase_entries (event_id, athlete_id) values ($1, $2)`, [evId, u.adult]);
+    eq((await as(u.adult, `select count(*)::int n from showcase_entries where event_id = $1`, [evId])).rows[0].n, 1);
+    await expectError(() => as(u.coach, `insert into showcase_entries (event_id, athlete_id) values ($1, $2)`, [evId, u.adult]), /row-level security|duplicate/);
+  });
+  await check('antes de empezar, las organizaciones no ven a los inscritos', async () => {
+    eq((await as(u.coach, `select count(*)::int n from showcase_entries where event_id = $1`, [evId])).rows[0].n, 0);
+  });
+  await check('en directo: los ven reclutadores verificados, no marcas', async () => {
+    await db.query(`update showcase_events set starts_at = now() - interval '1 hour', ends_at = now() + interval '1 day' where id = $1`, [evId]);
+    eq((await as(u.coach, `select count(*)::int n from showcase_entries where event_id = $1`, [evId])).rows[0].n, 1);
+    eq((await as(u.brand, `select count(*)::int n from showcase_entries where event_id = $1`, [evId])).rows[0].n, 0);
+  });
+  await check('el atleta se retira', async () => {
+    await as(u.adult, `delete from showcase_entries where event_id = $1 and athlete_id = $2`, [evId, u.adult]);
+    eq((await db.query(`select count(*)::int n from showcase_entries where event_id = $1`, [evId])).rows[0].n, 0);
+  });
 } finally {
   console.log(results.join('\n'));
   console.log(`\n${passed} pruebas OK · ${failed} fallidas`);

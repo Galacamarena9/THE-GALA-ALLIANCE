@@ -8,6 +8,7 @@ import type { ApplicationStatus } from '@/lib/types';
 import { Badge, ButtonLink, Card, CardTitle, EmptyState, Notice, PageHeader } from '@/components/ui';
 import { RosterInviteForm } from '@/components/autonomy';
 import { revokeRosterInvite, verifyStatisticAsClub } from '@/app/actions/autonomy';
+import { RecommendationForm } from '@/components/RecommendationForm';
 
 export const metadata: Metadata = { title: 'Portal de academia o club' };
 
@@ -67,6 +68,10 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
     ? await supabase.from('athlete_statistics').select('id, athlete_id, season, value, source, sport_stat_definitions(label_es, unit)')
         .in('athlete_id', ids).neq('source', 'club_verified').order('season', { ascending: false }).limit(40)
     : { data: [] };
+  const { data: recs } = await supabase.from('club_recommendations').select('athlete_id, body, status').eq('organization_id', org.id);
+  const recBy = new Map((recs ?? []).map((r) => [r.athlete_id as string, r as { body: string; status: string }]));
+  const REC_STATUS: Record<string, string> = { pending: 'Pendiente del atleta', published: 'Publicada', hidden: 'Oculta por el atleta' };
+  const uniqueAthletes = [...new Map(rows.map((r) => [r.athlete_id, r])).values()];
   const sharing = rows.filter((r) => r.shares_progress);
   const placed = sharing.filter((r) => r.placed).length;
   const withApps = sharing.filter((r) => (r.applications ?? 0) > 0).length;
@@ -170,6 +175,27 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
           </Card>
         </div>
       </div>
+
+      {verified && isAdmin && uniqueAthletes.length > 0 && (
+        <Card className="mt-5">
+          <CardTitle kicker="Networking">Recomendaciones del club</CardTitle>
+          <p className="mb-4 max-w-2xl text-sm text-muted">Tu respaldo es lo que más valoran los coaches universitarios. Escribe lo que el club puede afirmar de cada atleta: aparecerá en su perfil como &quot;recomendado por {org.name}&quot; solo si el atleta lo aprueba.</p>
+          <ul className="grid gap-4 lg:grid-cols-2">
+            {uniqueAthletes.map((r) => {
+              const rec = recBy.get(r.athlete_id);
+              return (
+                <li key={r.athlete_id} className="rounded-2xl border border-line p-4">
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <span className="font-semibold text-paper">{r.display_name}</span>
+                    {rec && <Badge tone={rec.status === 'published' ? 'ok' : 'neutral'}>{REC_STATUS[rec.status]}</Badge>}
+                  </div>
+                  {rec && rec.status !== 'pending' ? <p className="text-sm text-muted">“{rec.body}”</p> : <RecommendationForm athleteId={r.athlete_id} organizationId={org.id} current={rec?.body} />}
+                </li>
+              );
+            })}
+          </ul>
+        </Card>
+      )}
     </>
   );
 }
