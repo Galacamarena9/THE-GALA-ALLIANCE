@@ -7,7 +7,8 @@ import { notFound } from 'next/navigation';
 import { requireSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
 import { loadCatalog, loadPassport } from '@/lib/data/athlete';
-import { matchAthleteToOpportunity, TIER_LABEL } from '@/lib/domain/match';
+import { CONFIDENCE_LABEL, matchAthleteToOpportunity, TIER_LABEL } from '@/lib/domain/match';
+import { MatchBreakdown } from '@/components/MatchBreakdown';
 import { DIVISION_LABEL, OPPORTUNITY_STATUS_LABEL, OPPORTUNITY_TYPE_LABEL, domainOf, usd } from '@/lib/domain/labels';
 import type { Opportunity } from '@/lib/types';
 import { Badge, Card, CardTitle, EmptyState, Notice, PageHeader } from '@/components/ui';
@@ -138,13 +139,7 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
         <div className="space-y-5">
           {match && (
             <Card className="paper-grain">
-              <CardTitle kicker="Tu encaje" action={<span className="font-display text-4xl tabular-nums text-paper">{match.score}</span>}>
-                {TIER_LABEL[match.tier]}
-              </CardTitle>
-              {match.met.length > 0 && <ul className="space-y-1 text-sm text-ok">{match.met.map((m) => <li key={m}>✓ {m}</li>)}</ul>}
-              {match.unmet.length > 0 && <ul className="mt-2 space-y-1 text-sm text-danger">{match.unmet.map((m) => <li key={m}>✗ {m}</li>)}</ul>}
-              {match.missing.length > 0 && <ul className="mt-2 space-y-1 text-sm text-warn">{match.missing.map((m) => <li key={m}>? {m}</li>)}</ul>}
-              <p className="mt-4 text-xs text-faint">Compatibilidad, no probabilidad de admisión ni de beca. Motor {match.version}.</p>
+              <MatchBreakdown match={match} />
             </Card>
           )}
 
@@ -183,7 +178,8 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
                   <span className="flex items-center gap-3">
                     {m.missing.length > 0 && <span className="hidden text-xs text-warn sm:inline">{m.missing.length} dato(s) por confirmar</span>}
                     <Badge tone={m.tier === 'strong' ? 'ok' : 'brass'}>{TIER_LABEL[m.tier]}</Badge>
-                    <span className="w-10 text-right font-display text-xl tabular-nums text-paper">{m.score}</span>
+                    {m.confidence === 'low' && <Badge tone="warn">{CONFIDENCE_LABEL.low}</Badge>}
+                    <span className={`w-10 text-right font-display text-xl tabular-nums ${m.confidence === 'low' ? 'text-faint' : 'text-paper'}`}>{m.score}</span>
                   </span>
                 </li>
               ))}

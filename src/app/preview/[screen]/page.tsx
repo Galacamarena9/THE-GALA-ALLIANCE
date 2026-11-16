@@ -9,6 +9,8 @@ import { ROLE_SHORTCUTS, RoleHero, ShortcutTiles } from '@/components/RoleHero';
 import { PlanUnlocks } from '@/components/PlanUnlocks';
 import { AthleteCard } from '@/components/AthleteCard';
 import { ProgressRing } from '@/components/ProgressRing';
+import { MatchBreakdown } from '@/components/MatchBreakdown';
+import { matchAthleteToOpportunity } from '@/lib/domain/match';
 
 /**
  * Probador interno de pantallas con datos ficticios. Solo existe si ENABLE_PREVIEW=1
@@ -16,7 +18,12 @@ import { ProgressRing } from '@/components/ProgressRing';
  */
 export const metadata: Metadata = { title: 'Probador interno', robots: { index: false, follow: false } };
 
-const SCREENS = ['agent-home', 'portfolio', 'athlete-home', 'coach-home', 'pipeline', 'pipeline-table'] as const;
+const SCREENS = ['agent-home', 'portfolio', 'athlete-home', 'coach-home', 'pipeline', 'pipeline-table', 'match'] as const;
+
+// Gala Match con el motor real y datos ficticios: un Passport completo y otro con muchos datos ausentes.
+const demoOpp = { sport_id: 'basketball', position_ids: [1], graduation_years: [2027], division: 'ncaa_d2' as const, min_gpa_4: 2.5, english_required: 'TOEFL 80', annual_cost_usd: 40000, aid_amount_usd: 30000 };
+const demoFull = matchAthleteToOpportunity({ sport_id: 'basketball', primary_position_id: 1, secondary_position_id: null, graduation_year: 2027, target_divisions: ['ncaa_d1'], annual_budget_usd: 8000 }, { gpa: 8, gpa_scale: 10, english_test: 'toefl', english_score: '92' }, demoOpp);
+const demoThin = matchAthleteToOpportunity({ sport_id: 'basketball', primary_position_id: null, secondary_position_id: null, graduation_year: 2027, target_divisions: [], annual_budget_usd: null }, null, demoOpp);
 
 export default async function PreviewPage({ params }: { params: Promise<{ screen: string }> }) {
   if (process.env.ENABLE_PREVIEW !== '1') notFound();
@@ -49,6 +56,11 @@ export default async function PreviewPage({ params }: { params: Promise<{ screen
                 ))}
               </div>
             )}
+          </div>
+        )}
+        {screen === 'match' && (
+          <div className="grid gap-5 md:grid-cols-2">
+            {[demoFull, demoThin].map((m, i) => <section key={i} className="rounded-[var(--radius-card)] border border-line bg-surface p-6"><MatchBreakdown match={m} editHref="#" /></section>)}
           </div>
         )}
         {screen === 'portfolio' && <PortfolioView agencies={d.agencies} entries={d.entries} stats={d.stats} filters={DEFAULT_FILTERS} />}

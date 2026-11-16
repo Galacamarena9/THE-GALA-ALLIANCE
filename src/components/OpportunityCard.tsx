@@ -49,6 +49,7 @@ export function OpportunityCard({ o, match, showStatus, href }: { o: Opportunity
         <Badge>{OPPORTUNITY_TYPE_LABEL[o.type]}</Badge>
         {o.division && <Badge>{DIVISION_LABEL[o.division]}</Badge>}
         {match && <Badge tone={match.tier === 'strong' ? 'ok' : match.tier === 'not_eligible' ? 'danger' : 'brass'}>{TIER_LABEL[match.tier]}</Badge>}
+        {match?.confidence === 'low' && <Badge tone="warn">Faltan datos</Badge>}
         {assessed && <Badge tone={assessed.level >= 4 ? 'ok' : 'brass'}>Confianza {assessed.level}/5 · {TRUST_LABEL[assessed.level]}</Badge>}
         {assessed && assessed.flags.some((f) => f.severity === 'high') && <Badge tone="danger">Señal de alarma</Badge>}
         {showStatus && <Badge tone={o.status === 'published' ? 'ok' : o.status === 'rejected' ? 'danger' : 'warn'}>{OPPORTUNITY_STATUS_LABEL[o.status]}</Badge>}

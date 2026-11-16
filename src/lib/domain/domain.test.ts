@@ -57,6 +57,33 @@ test('matching: sin cifras de coste no se inventa el encaje económico', () => {
   assert.ok(m.missing.some((x) => x.includes('coste')));
 });
 
+test('matching por áreas: todo cumple → áreas al 100 % y confianza alta', () => {
+  const m = matchAthleteToOpportunity(athlete, { gpa: 8, gpa_scale: 10, english_test: 'toefl', english_score: '90' }, opp);
+  assert.equal(m.confidence, 'high');
+  assert.equal(m.coverage, 100);
+  assert.deepEqual(m.areas.map((a) => [a.area, a.score]), [['athletic', 100], ['academic', 100], ['financial', 100], ['timing', 100]]);
+});
+
+test('matching por áreas: un área sin datos devuelve null, no 0', () => {
+  const m = matchAthleteToOpportunity(athlete, null, opp);
+  const academic = m.areas.find((a) => a.area === 'academic')!;
+  assert.equal(academic.score, null);
+  assert.equal(academic.evaluated, 0);
+});
+
+test('matching: con muchos datos ausentes la confianza es baja', () => {
+  const empty = { sport_id: 'basketball', primary_position_id: null, secondary_position_id: null, graduation_year: null, target_divisions: [], annual_budget_usd: null };
+  const m = matchAthleteToOpportunity(empty, null, opp);
+  assert.equal(m.confidence, 'low');
+  assert.ok(m.coverage < 60);
+});
+
+test('matching por áreas: un incumplimiento baja solo su área', () => {
+  const m = matchAthleteToOpportunity({ ...athlete, graduation_year: 2029 }, { gpa: 8, gpa_scale: 10, english_test: null, english_score: null }, opp);
+  assert.equal(m.areas.find((a) => a.area === 'timing')!.score, 0);
+  assert.equal(m.areas.find((a) => a.area === 'athletic')!.score, 100);
+});
+
 test('readiness: perfil vacío propone la acción de más peso (vídeo)', () => {
   const r = computeReadiness({ profile: null, academics: null, statsCount: 0, languagesCount: 0, achievementsCount: 0, hasFamilyLink: false, isMinor: true });
   assert.equal(r.score, 0);

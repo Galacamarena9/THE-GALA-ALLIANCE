@@ -5,9 +5,34 @@ import type { AthleteAcademics, AthleteProfile, Opportunity } from '@/lib/types'
  * Devuelve COMPATIBILIDAD, nunca probabilidad de admisión ni de beca.
  * Separa requisitos obligatorios de preferencias y declara los datos que faltan.
  */
-export const MATCH_ENGINE_VERSION = 'rules-1.0';
+export const MATCH_ENGINE_VERSION = 'rules-1.1';
 
 export type MatchTier = 'strong' | 'potential' | 'reach' | 'not_eligible';
+
+/** Áreas del encaje. Ningún criterio usa atributos sensibles (sexo, origen, salud…). */
+export type MatchArea = 'athletic' | 'academic' | 'financial' | 'timing';
+export const MATCH_AREA_LABEL: Record<MatchArea, string> = {
+  athletic: 'Deportivo',
+  academic: 'Académico',
+  financial: 'Económico',
+  timing: 'Plazos y elegibilidad',
+};
+
+export interface AreaScore {
+  area: MatchArea;
+  /** 0-100 sobre los criterios con dato; null si el área no tiene ningún dato para evaluarse. */
+  score: number | null;
+  /** Criterios del área que se pudieron evaluar / total del área. */
+  evaluated: number;
+  total: number;
+}
+
+/**
+ * Confianza del cálculo según el peso de los criterios con dato:
+ * alta ≥ 85 %, media ≥ 60 %, baja por debajo. Una puntuación con confianza baja no debe presentarse como firme.
+ */
+export type MatchConfidence = 'high' | 'medium' | 'low';
+export const CONFIDENCE_LABEL: Record<MatchConfidence, string> = { high: 'Confianza alta', medium: 'Confianza media', low: 'Confianza baja' };
 
 export interface MatchResult {
   score: number;
@@ -15,10 +40,15 @@ export interface MatchResult {
   met: string[];
   unmet: string[];
   missing: string[];
+  areas: AreaScore[];
+  confidence: MatchConfidence;
+  /** Porcentaje del peso total que se pudo evaluar con datos reales. */
+  coverage: number;
   version: string;
 }
 
 interface Criterion {
+  area: MatchArea;
   label: string;
   weight: number;
   mandatory: boolean;
@@ -46,6 +76,7 @@ export function matchAthleteToOpportunity(
 
   const criteria: Criterion[] = [
     {
+      area: 'athletic',
       label: 'Deporte',
       weight: 30,
       mandatory: true,
@@ -53,6 +84,7 @@ export function matchAthleteToOpportunity(
       missingLabel: 'Deporte sin indicar en tu Passport',
     },
     {
+      area: 'athletic',
       label: 'Posición buscada',
       weight: 20,
       mandatory: true,
@@ -65,6 +97,7 @@ export function matchAthleteToOpportunity(
       missingLabel: 'Posición sin indicar',
     },
     {
+      area: 'timing',
       label: 'Año de graduación aceptado',
       weight: 15,
       mandatory: true,
@@ -76,6 +109,7 @@ export function matchAthleteToOpportunity(
       missingLabel: 'Año de graduación sin indicar',
     },
     {
+      area: 'academic',
       label: 'Nota mínima',
       weight: 15,
       mandatory: true,
@@ -87,6 +121,7 @@ export function matchAthleteToOpportunity(
       missingLabel: 'Nota media sin indicar',
     },
     {
+      area: 'athletic',
       label: 'División en tus objetivos',
       weight: 10,
       mandatory: false,
@@ -98,6 +133,7 @@ export function matchAthleteToOpportunity(
       missingLabel: 'Divisiones objetivo sin indicar',
     },
     {
+      area: 'financial',
       label: 'Coste neto dentro de tu presupuesto',
       weight: 10,
       mandatory: false,
@@ -113,6 +149,7 @@ export function matchAthleteToOpportunity(
 
   if (opp.english_required) {
     criteria.push({
+      area: 'academic',
       label: `Inglés requerido (${opp.english_required})`,
       weight: 5,
       mandatory: false,
@@ -128,10 +165,21 @@ export function matchAthleteToOpportunity(
   let total = 0;
   let mandatoryFailed = false;
   let mandatoryMissing = false;
+  let withData = 0;
+  const byArea = new Map<MatchArea, { earned: number; weight: number; evaluated: number; total: number }>();
 
   for (const c of criteria) {
     total += c.weight;
     const r = c.evaluate();
+    const a = byArea.get(c.area) ?? { earned: 0, weight: 0, evaluated: 0, total: 0 };
+    a.total += 1;
+    if (r !== null) {
+      withData += c.weight;
+      a.weight += c.weight;
+      a.evaluated += 1;
+      if (r) a.earned += c.weight;
+    }
+    byArea.set(c.area, a);
     if (r === true) {
       earned += c.weight;
       met.push(c.label);
@@ -155,7 +203,16 @@ export function matchAthleteToOpportunity(
           ? 'potential'
           : 'reach';
 
-  return { score, tier, met, unmet, missing, version: MATCH_ENGINE_VERSION };
+  const coverage = Math.round((withData / total) * 100);
+  const confidence: MatchConfidence = coverage >= 85 ? 'high' : coverage >= 60 ? 'medium' : 'low';
+  const areas: AreaScore[] = (Object.keys(MATCH_AREA_LABEL) as MatchArea[])
+    .filter((k) => byArea.has(k))
+    .map((k) => {
+      const a = byArea.get(k)!;
+      return { area: k, score: a.weight ? Math.round((a.earned / a.weight) * 100) : null, evaluated: a.evaluated, total: a.total };
+    });
+
+  return { score, tier, met, unmet, missing, areas, confidence, coverage, version: MATCH_ENGINE_VERSION };
 }
 
 export const TIER_LABEL: Record<MatchTier, string> = {

@@ -15,15 +15,37 @@ import { formatEsDate, ncaaWindow } from '@/lib/domain/ncaa';
 import { SPORT_TONE_CLASS, sportTone } from '@/lib/domain/sport-tone';
 import { initials } from '@/lib/domain/portfolio';
 import { saveAthlete } from '@/app/actions/lists';
+import { BRAND } from '@/content/brand';
 
 const SOURCE = { self_reported: ['Declarado', 'neutral'], documented: ['Documentado', 'brass'], club_verified: ['Verificado por el club', 'ok'] } as const;
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
+  if (!/^[0-9a-f-]{36}$/.test(id)) return { title: 'Atleta', robots: { index: false, follow: false } };
   const supabase = await createClient();
   const { data } = await supabase.from('profiles').select('display_name').eq('id', id).maybeSingle();
   // Por defecto no indexable: solo se indexa si el atleta es adulto y su perfil es público (lo decide la RLS para anónimos).
-  return { title: data?.display_name ?? 'Atleta', robots: { index: false, follow: false } };
+  const base: Metadata = { title: data?.display_name ?? 'Atleta', robots: { index: false, follow: false } };
+  if (!data?.display_name) return base;
+
+  // Vista previa al compartir. Los rastreadores (WhatsApp, LinkedIn, X) entran como anónimos: la RLS solo les deja leer
+  // perfiles públicos de mayores de edad, así que un menor nunca genera vista previa. Solo deporte, posición y promoción.
+  const { data: ap } = await supabase.from('athlete_profiles').select('sport_id, primary_position_id, graduation_year, headline').eq('user_id', id).maybeSingle();
+  if (!ap) return base;
+  const catalog = await loadCatalog();
+  const parts = [
+    catalog.sports.find((s) => s.id === ap.sport_id)?.name_es,
+    catalog.positions.find((x) => x.id === ap.primary_position_id)?.name_es,
+    ap.graduation_year ? `Promoción ${ap.graduation_year}` : null,
+  ].filter(Boolean);
+  const title = `${data.display_name} · ${BRAND.passport}`;
+  const description = [parts.join(' · '), ap.headline].filter(Boolean).join('. ') || `${BRAND.passport} en ${BRAND.name}.`;
+  return {
+    ...base,
+    description,
+    openGraph: { type: 'profile', title, description, siteName: BRAND.name, images: [{ url: '/media/hero-bg-poster.jpg', alt: BRAND.network }] },
+    twitter: { card: 'summary_large_image', title, description },
+  };
 }
 
 export default async function AthleteProfilePage({ params }: { params: Promise<{ id: string }> }) {
