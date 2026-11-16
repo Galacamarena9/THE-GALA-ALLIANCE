@@ -5,6 +5,7 @@ import { PortfolioView } from '@/app/app/portfolio/PortfolioView';
 import { DEFAULT_FILTERS } from '@/lib/domain/portfolio';
 import { previewPortfolio, previewSports } from '@/lib/preview/fixtures';
 import { ROLE_SHORTCUTS, RoleHero, ShortcutTiles } from '@/components/RoleHero';
+import { PlanUnlocks } from '@/components/PlanUnlocks';
 
 /**
  * Probador interno de pantallas con datos ficticios. Solo existe si ENABLE_PREVIEW=1
@@ -33,6 +34,7 @@ export default async function PreviewPage({ params }: { params: Promise<{ screen
               stats={screen === 'athlete-home' ? [{ label: 'Passport listo', value: 82, suffix: '%' }, { label: 'Primeros pasos', value: 3, note: 'de 5' }, { label: 'Avisos sin leer', value: 2 }] : [{ label: 'Primeros pasos', value: 2, note: 'de 4' }, { label: 'Avisos sin leer', value: 1 }]}
             />
             <ShortcutTiles items={ROLE_SHORTCUTS[screen === 'athlete-home' ? 'athlete' : 'coach']!} />
+            {screen === 'athlete-home' && <PlanUnlocks plan="family_core" />}
           </div>
         )}
         {screen === 'portfolio' && <PortfolioView agencies={d.agencies} entries={d.entries} stats={d.stats} filters={DEFAULT_FILTERS} />}

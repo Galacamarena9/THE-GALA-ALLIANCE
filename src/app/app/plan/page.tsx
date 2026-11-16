@@ -18,8 +18,16 @@ const PLAN_NAME: Record<FamilyPlan, string> = { free: 'Passport (gratis)', famil
 function Locked({ plan, children }: { plan: 'family_core' | 'family_elite'; children: React.ReactNode }) {
   const p = planByCode(plan);
   return (
-    <div className="rounded-xl border border-dashed border-line p-4 text-sm text-muted">
-      {children} <Link href="/precios" className="text-brass hover:underline">Incluido en {p?.name} ({p?.price}) →</Link>
+    <div className="relative min-h-[150px] overflow-hidden rounded-2xl border border-line bg-surface-2">
+      {/* Vista previa difuminada de lo que hay detrás del candado. */}
+      <div className="pointer-events-none select-none space-y-2 p-4 blur-[3px]" aria-hidden>
+        <div className="h-3 w-3/4 rounded-full bg-line-strong" /><div className="h-3 w-1/2 rounded-full bg-line-strong" /><div className="h-3 w-2/3 rounded-full bg-line-strong" />
+      </div>
+      <div className="absolute inset-0 flex flex-col items-start justify-center gap-2 bg-gradient-to-r from-surface via-surface/90 to-surface/40 p-4 text-sm text-muted">
+        <span className="inline-flex items-center gap-1 rounded-full bg-night px-2.5 py-1 text-xs font-semibold text-lime">🔒 {p?.name}</span>
+        <p className="max-w-md">{children}</p>
+        <Link href="/precios" className="rounded-lg bg-brass px-3 py-1.5 text-xs font-semibold text-white hover:bg-brass-soft">Desbloquear por {p?.price}</Link>
+      </div>
     </div>
   );
 }

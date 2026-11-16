@@ -14,6 +14,7 @@ import { AskGala } from '@/components/AskGala';
 import { Reveal } from '@/components/Reveal';
 import { AgentHome } from './AgentHome';
 import { ROLE_SHORTCUTS, RoleHero, ShortcutTiles } from '@/components/RoleHero';
+import { PlanUnlocks } from '@/components/PlanUnlocks';
 
 export const metadata: Metadata = { title: 'Inicio' };
 
@@ -143,6 +144,8 @@ export default async function HomePage() {
         />
 
         {primary && ROLE_SHORTCUTS[primary] && <ShortcutTiles items={ROLE_SHORTCUTS[primary]!} />}
+
+        {plan && <PlanUnlocks plan={plan} />}
 
         <Reveal delay={60}>
           <Card className="relative overflow-hidden">
