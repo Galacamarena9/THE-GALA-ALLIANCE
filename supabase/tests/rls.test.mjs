@@ -915,6 +915,26 @@ try {
   await check('las políticas públicas siguen funcionando sin sesión (perfiles públicos)', async () => {
     await as(null, `select count(*) from athlete_profiles`);
   });
+
+  results.push('\nNetworking: avisos automáticos');
+  await check('mensaje nuevo: avisa a la otra parte, no a quien escribe', async () => {
+    await as(u.coach, `insert into contact_messages (request_id, sender_id, body) values ($1, $2, 'Te paso el calendario de visitas.')`, [reqId, u.coach]);
+    eq((await db.query(`select count(*)::int n from notifications where user_id = $1 and kind = 'message.new'`, [u.adult])).rows[0].n >= 1, true);
+    eq((await db.query(`select count(*)::int n from notifications where user_id = $1 and kind = 'message.new'`, [u.coach])).rows[0].n, 0);
+  });
+  await check('mensajes seguidos: un solo aviso sin leer por conversación', async () => {
+    await as(u.coach, `insert into contact_messages (request_id, sender_id, body) values ($1, $2, 'Y otra cosa más.')`, [reqId, u.coach]);
+    eq((await db.query(`select count(*)::int n from notifications where user_id = $1 and kind = 'message.new' and read_at is null`, [u.adult])).rows[0].n, 1);
+  });
+  await check('perfil abierto: avisa al atleta una vez al día por enlace', async () => {
+    await as(null, `select * from get_recruiting_card($1)`, [adultToken]);
+    await as(null, `select * from get_recruiting_card($1)`, [adultToken]);
+    eq((await db.query(`select count(*)::int n from notifications where user_id = $1 and kind = 'profile.view'`, [u.adult])).rows[0].n, 1);
+  });
+  await check('beca publicada: avisa a atletas de ese deporte, no a organizaciones', async () => {
+    eq((await db.query(`select count(*)::int n from notifications where user_id = $1 and kind = 'opportunity.match'`, [u.adult])).rows[0].n >= 1, true);
+    eq((await db.query(`select count(*)::int n from notifications where user_id = $1 and kind = 'opportunity.match'`, [u.coach])).rows[0].n, 0);
+  });
 } finally {
   console.log(results.join('\n'));
   console.log(`\n${passed} pruebas OK · ${failed} fallidas`);
