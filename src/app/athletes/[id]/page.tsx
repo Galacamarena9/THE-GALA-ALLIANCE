@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import type { Division } from '@/lib/types';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Logo } from '@/components/Logo';
@@ -10,6 +11,9 @@ import { loadCatalog, loadPassport } from '@/lib/data/athlete';
 import { myOrganizations } from '@/lib/data/orgs';
 import { DIVISION_LABEL, LINK_KIND_LABEL, domainOf } from '@/lib/domain/labels';
 import { toGpa4 } from '@/lib/domain/match';
+import { formatEsDate, ncaaWindow } from '@/lib/domain/ncaa';
+import { SPORT_TONE_CLASS, sportTone } from '@/lib/domain/sport-tone';
+import { initials } from '@/lib/domain/portfolio';
 import { saveAthlete } from '@/app/actions/lists';
 
 const SOURCE = { self_reported: ['Declarado', 'neutral'], documented: ['Documentado', 'brass'], club_verified: ['Verificado por el club', 'ok'] } as const;
@@ -39,7 +43,11 @@ export default async function AthleteProfilePage({ params }: { params: Promise<{
   const isOwner = session?.userId === id;
 
   const orgs = session ? await myOrganizations(session.userId) : [];
-  const verifiedOrgs = orgs.filter((o) => o.verification_status === 'verified').map((o) => ({ id: o.id, name: o.name }));
+  // Cumplimiento NCAA: una universidad D-I/D-II no puede iniciar contacto antes de la ventana (la base de datos también lo impide).
+  const ncaaFor = (o: { type: string; division?: Division | null }) => (['university', 'college'].includes(o.type) ? ncaaWindow(p.graduation_year, o.division ?? null, p.sport_id) : { open: true, opensOn: null });
+  const verifiedAll = orgs.filter((o) => o.verification_status === 'verified');
+  const verifiedOrgs = verifiedAll.filter((o) => ncaaFor(o).open).map((o) => ({ id: o.id, name: o.name }));
+  const ncaaBlocked = verifiedAll.map((o) => ({ name: o.name, w: ncaaFor(o) })).filter((x) => !x.w.open);
   const agencies = orgs.filter((o) => o.type === 'agency' && o.verification_status === 'verified').map((o) => ({ id: o.id, name: o.name }));
   const canSave = session?.roles.some((r) => ['university', 'coach', 'agent', 'brand'].includes(r));
   // Para recruiters: ¿es menor? Lo deducimos sin ver su fecha: si no podemos leer sus finanzas/edad, tratamos con precaución.
@@ -56,11 +64,18 @@ export default async function AthleteProfilePage({ params }: { params: Promise<{
         </div>
       </header>
       <main className="mx-auto max-w-5xl px-5 py-10">
-        <section className="paper-grain rounded-[var(--radius-card)] border border-line bg-surface p-6 sm:p-8">
+        <section className="overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface">
+          {/* Portada: color del deporte sobre la pista de marca; sin fotos del atleta salvo las que suba él. */}
+          <div className={`court-lines relative h-36 sm:h-44 ${SPORT_TONE_CLASS[sportTone(sport ?? '')]}`} aria-hidden>
+            <div className="absolute inset-0 bg-gradient-to-t from-night/70 to-transparent" />
+            <p className="absolute bottom-4 right-5 font-display text-4xl font-bold uppercase leading-none text-white/25 sm:text-6xl">{sport ?? 'Deporte'}</p>
+          </div>
+          <div className="p-6 pt-0 sm:p-8 sm:pt-0">
+          <span className="-mt-11 mb-4 flex h-[88px] w-[88px] items-center justify-center rounded-3xl border-4 border-surface bg-night font-display text-3xl font-bold text-lime shadow-lg">{initials(person?.display_name ?? 'Atleta')}</span>
           <div className="flex flex-wrap items-start justify-between gap-6">
             <div>
-              <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-brass">Opportunity Passport</p>
-              <h1 className="mt-2 text-4xl text-paper">{person?.display_name ?? 'Atleta'}</h1>
+              <p className="text-[13px] font-semibold text-brass">Opportunity Passport</p>
+              <h1 className="mt-1 font-display text-5xl font-bold uppercase leading-[0.95] text-paper">{person?.display_name ?? 'Atleta'}</h1>
               <p className="mt-2 text-muted">{[sport, pos, pos2 && `/ ${pos2}`, p.graduation_year && `Clase ${p.graduation_year}`, person?.country, p.city].filter(Boolean).join(' · ')}</p>
               {p.headline && <p className="mt-4 max-w-2xl text-lg text-paper">{p.headline}</p>}
               <div className="mt-4 flex flex-wrap gap-1.5">
@@ -69,8 +84,8 @@ export default async function AthleteProfilePage({ params }: { params: Promise<{
               </div>
             </div>
             <div className="flex flex-col items-end gap-2">
-              {p.highlight_video_url && <a href={p.highlight_video_url} target="_blank" rel="noopener noreferrer" className="rounded-lg bg-brass px-4 py-2.5 text-sm font-medium text-ink">▶ Ver highlights ({domainOf(p.highlight_video_url)})</a>}
-              <Link href={`/athletes/${id}/cv`} className="text-sm text-brass hover:underline">Sports CV (imprimir / PDF)</Link>
+              {p.highlight_video_url && <a href={p.highlight_video_url} target="_blank" rel="noopener noreferrer" className="rounded-xl bg-brass px-4 py-2.5 text-sm font-semibold text-white shadow-[var(--shadow-gold)] hover:bg-brass-soft">▶ Ver highlights ({domainOf(p.highlight_video_url)})</a>}
+              <Link href={`/athletes/${id}/cv`} className="text-sm text-brass hover:underline">CV deportivo (imprimir o PDF)</Link>
               {isOwner && <Link href="/app/athlete/passport" className="text-sm text-muted hover:text-paper">Editar mi Passport</Link>}
             </div>
           </div>
@@ -81,15 +96,22 @@ export default async function AthleteProfilePage({ params }: { params: Promise<{
               ['Nivel / liga', p.competitive_level ?? '—'],
               ['Lado dominante', p.dominant_side === 'left' ? 'Zurdo/a' : p.dominant_side === 'right' ? 'Diestro/a' : p.dominant_side === 'both' ? 'Ambos' : '—'],
             ].map(([k, v]) => (
-              <div key={k} className="rounded-xl bg-ink/50 p-3"><dt className="text-[10px] uppercase tracking-wide text-faint">{k}</dt><dd className="truncate text-paper">{v}</dd></div>
+              <div key={k} className="rounded-2xl border border-line bg-surface-2 p-4"><dt className="text-xs font-medium text-faint">{k}</dt><dd className="mt-1 truncate font-semibold text-paper">{v}</dd></div>
             ))}
           </dl>
+          </div>
         </section>
 
+        {session && !isOwner && ncaaBlocked.length > 0 && (
+          <div className="mt-5 rounded-2xl border border-warn/40 bg-warn/10 px-4 py-3 text-sm text-warn" role="status">
+            <p className="font-semibold">Ventana NCAA cerrada para {ncaaBlocked.map((x) => x.name).join(', ')}</p>
+            <p className="mt-1">Por las normas de reclutamiento NCAA, vuestra universidad no puede iniciar contacto con este atleta hasta el {formatEsDate(ncaaBlocked[0].w.opensOn!)}. Mientras tanto puedes guardarlo en una lista.</p>
+          </div>
+        )}
         {session && !isOwner && (verifiedOrgs.length > 0 || canSave) && (
           <div className="mt-5 flex flex-wrap items-start gap-3">
             {canSave && (
-              <form action={saveAthlete}><input type="hidden" name="athlete_id" value={id} /><button className="rounded-lg border border-line-strong px-4 py-2.5 text-sm text-paper hover:border-brass">Guardar en shortlist</button></form>
+              <form action={saveAthlete}><input type="hidden" name="athlete_id" value={id} /><button className="rounded-lg border border-line-strong px-4 py-2.5 text-sm text-paper hover:border-brass">Guardar en una lista</button></form>
             )}
             {verifiedOrgs.length > 0 && <ContactRequestForm organizations={verifiedOrgs} athleteId={id} isMinor={isMinor} />}
             {agencies.length > 0 && !isMinor && <RepresentationForm agencies={agencies} athleteId={id} />}

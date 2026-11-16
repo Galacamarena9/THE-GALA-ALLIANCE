@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import {
-  ArrowRight, BadgeCheck, Bot, Building2, Calculator, ChevronDown, CircleCheck, Columns3, FileText,
-  GraduationCap, Handshake, IdCard, Megaphone, LayoutGrid, MessageSquare, Scale, School, ShieldCheck, Sparkles, Star, Trophy, Users,
+  ArrowRight, BadgeCheck, Building2, ChevronDown, CircleCheck, GraduationCap, Handshake, Megaphone, ShieldCheck, Sparkles, Star, Trophy, Users,
 } from 'lucide-react';
 import { ButtonLink } from '@/components/ui';
 import { PublicFooter, PublicHeader } from '@/components/PublicShell';
@@ -18,21 +17,6 @@ const DESTINATIONS = [
   { tag: 'Atletas', title: 'Talento', text: 'Perfiles verificables con vídeo, estadísticas y notas.', img: '/media/hero-athletes.webp', href: '/para/atletas' },
   { tag: 'Estados Unidos', title: 'Universidades', text: 'Tu deporte, tu próxima universidad y su coste real.', img: '/media/university-campus.webp', href: '/para/universidades' },
   { tag: 'Internacional', title: 'Clubes', text: 'Clubes y coaches: talento comparable, más allá de las fronteras.', img: '/media/club-training.webp', href: '/para/coaches' },
-];
-
-const TOOLS = [
-  { Icon: IdCard, title: 'Opportunity Passport', text: 'Vídeo, estadísticas, notas e idiomas en un perfil comparable.' },
-  { Icon: LayoutGrid, title: 'Escaparate de atletas', text: 'Filtros por deporte, posición, año, división y nota.' },
-  { Icon: Trophy, title: 'Becas con sello', text: 'Confianza en 5 niveles y señales de alarma en cada oferta.' },
-  { Icon: School, title: 'Universidades oficiales', text: 'Datos del U.S. Department of Education con su fuente.' },
-  { Icon: Columns3, title: 'Comparador', text: 'Hasta 5 universidades u ofertas lado a lado.' },
-  { Icon: Calculator, title: 'Coste real', text: 'Cuánto cuesta de verdad, a 4 años, con viajes y seguro.' },
-  { Icon: FileText, title: 'Centro de documentos', text: 'Checklist con fechas según tu promoción, privado.' },
-  { Icon: GraduationCap, title: 'Academia SAT/TOEFL', text: 'Práctica tipo examen con fechas oficiales.' },
-  { Icon: Bot, title: 'Gala IA', text: 'Resuelve dudas del proceso a cualquier hora.' },
-  { Icon: MessageSquare, title: 'Mensajes seguros', text: 'Con menores, la familia aprueba y ve el hilo.' },
-  { Icon: Users, title: 'Portal de clubes', text: 'Roster, estadísticas confirmadas y colocaciones.' },
-  { Icon: Scale, title: 'Memo de decisión', text: 'La opción más sólida, riesgos y preguntas pendientes.' },
 ];
 
 const ROLE_ICON: Record<string, typeof Users> = { athlete: GraduationCap, parent: Users, university: Building2, coach: Trophy, agent: Handshake, brand: Megaphone };
@@ -59,6 +43,9 @@ const STATS = [
 ];
 
 /** Los tres fallos del sistema actual (tesis del TFG) y cómo los corrige la plataforma. */
+const FAILURE_IMG = ['/media/hero-athletes-sm.webp', '/media/university-campus-sm.webp', '/media/club-training-sm.webp'];
+const ROLE_IMG: Record<string, string> = { athlete: '/media/hero-athletes.webp', parent: '/media/university-campus-sm.webp', university: '/media/arena-bg.webp', coach: '/media/club-training-sm.webp', agent: '/media/agent-workspace-sm.webp', brand: '/media/hero-bg-poster.jpg' };
+
 const FAILURES = [
   {
     n: '01',
@@ -94,6 +81,8 @@ const TRUST = [
   'Universidades, clubes, agencias y marcas verificadas con su dominio oficial antes de publicar o contactar.',
   'Cada beca pasa controles automáticos antes de publicarse y lleva un sello de confianza de 5 niveles con sus señales de alarma.',
   'Tus datos, tus reglas: visibilidad por bloque, descarga de datos y borrado.',
+  'Normas NCAA integradas: una universidad D-I o D-II no puede escribirte antes de la fecha que marca tu curso.',
+  'Colaboraciones con marcas con aviso NIL Go: desde 600 $, los atletas D-I saben qué declarar y cuándo.',
 ];
 
 export default function Home() {
@@ -113,6 +102,23 @@ export default function Home() {
           <HeroAudience />
         </section>
 
+        {/* Franja de confianza + deportes en movimiento */}
+        <section aria-label="Confianza" className="border-y border-line/50 bg-surface/40">
+          <div className="mx-auto grid max-w-6xl grid-cols-2 gap-6 px-6 py-10 lg:grid-cols-4">
+            {STATS.map(({ Icon, value, label }, i) => (
+              <Reveal key={label} delay={i * 80} className="flex items-center gap-3">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brass/10"><Icon className="h-5 w-5 text-brass" aria-hidden /></span>
+                <span><span className="block font-display text-xl font-bold text-paper">{value}</span><span className="block text-xs text-muted">{label}</span></span>
+              </Reveal>
+            ))}
+          </div>
+          <div className="relative overflow-hidden border-t border-line/40 py-4 [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]" aria-hidden>
+            <div className="marquee flex w-max gap-10 text-sm font-semibold uppercase tracking-[0.2em] text-faint">
+              {[...SPORTS, ...SPORTS].map((s, i) => <span key={i} className="flex items-center gap-10">{s}<span className="text-brass/50">✦</span></span>)}
+            </div>
+          </div>
+        </section>
+
         {/* DESTINOS: tarjetas con imagen (las fotos son ilustrativas) */}
         <section aria-labelledby="destinos-title" className="px-6 py-20">
           <div className="mx-auto max-w-7xl">
@@ -130,7 +136,7 @@ export default function Home() {
                     {/* eslint-disable-next-line @next/next/no-img-element -- imagen local optimizada (WebP) */}
                     <img src={d.img} srcSet={`${d.img.replace('.webp', '-sm.webp')} 720w, ${d.img} 1280w`} sizes="(min-width: 768px) 33vw, 100vw" alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.05]" />
                     <div className="tile-shade absolute inset-0" aria-hidden />
-                    <span className="absolute left-4 top-4 rounded-md bg-night/80 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-lime backdrop-blur">{d.tag}</span>
+                    <span className="absolute left-4 top-4 rounded-md bg-night/80 px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-lime backdrop-blur">{d.tag}</span>
                     <div className="absolute inset-x-0 bottom-0 p-5">
                       <h3 className="font-display text-3xl font-bold uppercase leading-none">{d.title}</h3>
                       <p className="mt-2 text-sm text-lavender">{d.text}</p>
@@ -179,28 +185,11 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Franja de confianza + deportes en movimiento */}
-        <section aria-label="Confianza" className="border-y border-line/50 bg-surface/40">
-          <div className="mx-auto grid max-w-6xl grid-cols-2 gap-6 px-6 py-10 lg:grid-cols-4">
-            {STATS.map(({ Icon, value, label }, i) => (
-              <Reveal key={label} delay={i * 80} className="flex items-center gap-3">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brass/10"><Icon className="h-5 w-5 text-brass" aria-hidden /></span>
-                <span><span className="block font-display text-xl font-bold text-paper">{value}</span><span className="block text-xs text-muted">{label}</span></span>
-              </Reveal>
-            ))}
-          </div>
-          <div className="relative overflow-hidden border-t border-line/40 py-4 [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]" aria-hidden>
-            <div className="marquee flex w-max gap-10 text-sm font-semibold uppercase tracking-[0.2em] text-faint">
-              {[...SPORTS, ...SPORTS].map((s, i) => <span key={i} className="flex items-center gap-10">{s}<span className="text-brass/50">✦</span></span>)}
-            </div>
-          </div>
-        </section>
-
         {/* TEST de opciones: el gancho de captación */}
         <section id="test" className="scroll-mt-20 px-6 py-24">
           <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[0.9fr_1.1fr]">
             <Reveal>
-              <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-trust/30 bg-trust/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-ok"><Sparkles className="h-3.5 w-3.5" aria-hidden /> Gratis · 60 segundos</p>
+              <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-trust/30 bg-trust/10 px-3 py-1 text-[13px] font-semibold text-ok"><Sparkles className="h-3.5 w-3.5" aria-hidden /> Gratis · 60 segundos</p>
               <h2 className="text-3xl font-bold tracking-tight text-paper md:text-5xl">¿Tienes opciones de beca? <span className="text-brass">Descúbrelo ahora.</span></h2>
               <p className="mt-4 max-w-md leading-relaxed text-muted">Cuatro preguntas y te decimos dónde encajarías, qué te haría subir de nivel y tu siguiente paso. Sin registrarte.</p>
               <ul className="mt-6 space-y-2 text-sm text-muted">
@@ -211,26 +200,44 @@ export default function Home() {
           </div>
         </section>
 
-        {/* POR QUÉ */}
-        <section className="border-y border-line/50 bg-surface/40 px-6 py-24">
-          <div className="mx-auto max-w-6xl">
-            <Reveal className="mx-auto mb-16 max-w-3xl text-center">
-              <p className="mb-5 inline-flex rounded-full border border-line bg-surface px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-muted">Por qué Gala Alliance</p>
-              <h2 className="mb-4 text-3xl font-bold tracking-tight text-paper md:text-5xl">El reclutamiento internacional <span className="text-brass">ya no tiene que ser un acto de fe.</span></h2>
-              <p className="text-sm leading-relaxed text-muted md:text-base">Tres fallos del sistema actual, y cómo los corrige la plataforma.</p>
+        {/* POR QUÉ: bloque Noche con foto de estadio; cada fallo es una tarjeta con foto y su arreglo en lima. */}
+        <section className="relative overflow-hidden bg-night px-6 py-24 text-white">
+          {/* eslint-disable-next-line @next/next/no-img-element -- fondo decorativo local */}
+          <img src="/media/arena-bg.webp" alt="" aria-hidden className="absolute inset-0 h-full w-full object-cover opacity-25" />
+          <div className="absolute inset-0 bg-gradient-to-b from-night via-night/80 to-night" aria-hidden />
+          <div className="relative mx-auto max-w-6xl">
+            <Reveal className="mb-14 grid gap-6 lg:grid-cols-[1.3fr_1fr] lg:items-end">
+              <div>
+                <p className="mb-4 text-sm font-semibold text-lime">Por qué Gala Alliance</p>
+                <h2 className="font-display text-5xl font-bold uppercase leading-[0.92] text-white md:text-7xl">El reclutamiento ya no es un acto de fe</h2>
+              </div>
+              <p className="text-base leading-relaxed text-lavender lg:pb-2">Tres fallos del sistema actual que dejan fuera a atletas con nivel. Y lo que cambia la plataforma en cada uno.</p>
             </Reveal>
             <div className="grid gap-5 md:grid-cols-3">
               {FAILURES.map((f, i) => (
-                <Reveal key={f.n} delay={i * 100} className="h-full">
-                  <article className="flex h-full flex-col rounded-2xl border border-line bg-surface p-7 transition-all duration-300 hover:-translate-y-1 hover:border-brass/40 hover:shadow-[var(--shadow-elevated)]">
-                    <span className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-brass/10 font-display text-lg font-bold text-brass">{f.n}</span>
-                    <h3 className="mb-3 text-lg font-bold leading-snug text-paper">{f.title}</h3>
-                    <p className="mb-5 text-sm leading-relaxed text-muted">{f.today}</p>
-                    <p className="mt-auto border-t border-line pt-4 text-sm leading-relaxed text-paper/85"><span className="font-semibold text-ok">Con Gala:</span> {f.fix}</p>
+                <Reveal key={f.n} delay={i * 120} className="h-full">
+                  <article className="group flex h-full flex-col overflow-hidden rounded-[var(--radius-card)] bg-white/[0.06] ring-1 ring-white/10 backdrop-blur transition-all duration-500 hover:-translate-y-2 hover:bg-white/[0.1] hover:ring-lime/40">
+                    <div className="relative h-44 overflow-hidden">
+                      {/* eslint-disable-next-line @next/next/no-img-element -- foto ilustrativa local */}
+                      <img src={FAILURE_IMG[i]} alt="" aria-hidden className="h-full w-full object-cover grayscale transition-all duration-700 group-hover:scale-110 group-hover:grayscale-0" />
+                      <span className="absolute inset-0 bg-gradient-to-t from-night via-night/40 to-transparent" aria-hidden />
+                      <span className="absolute bottom-2 left-5 font-display text-7xl font-bold leading-none text-white/90 [-webkit-text-stroke:1px_rgb(200_240_60)] [color:transparent] transition-colors duration-500 group-hover:[color:rgb(200_240_60)]">{f.n}</span>
+                    </div>
+                    <div className="flex flex-1 flex-col p-6">
+                      <h3 className="font-display text-2xl font-bold uppercase leading-tight text-white">{f.title}</h3>
+                      <p className="mt-3 text-sm leading-relaxed text-lavender">{f.today}</p>
+                      <div className="mt-auto pt-6">
+                        <div className="rounded-2xl bg-lime px-4 py-4 text-sm leading-relaxed text-night transition-transform duration-500 group-hover:-translate-y-1">
+                          <p className="mb-1 text-xs font-bold">Con Gala</p>
+                          {f.fix}
+                        </div>
+                      </div>
+                    </div>
                   </article>
                 </Reveal>
               ))}
             </div>
+            <p className="mt-6 text-xs text-lavender/70">Imágenes ilustrativas.</p>
           </div>
         </section>
 
@@ -238,25 +245,32 @@ export default function Home() {
         <section id="producto" className="scroll-mt-20 px-6 py-24">
           <div className="mx-auto max-w-6xl">
             <Reveal className="mb-14 max-w-3xl">
-              <p className="mb-5 inline-flex rounded-full border border-line bg-surface px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-muted">El producto</p>
-              <h2 className="text-3xl font-bold tracking-tight text-paper md:text-5xl">Míralo por dentro <span className="text-brass">antes de registrarte.</span></h2>
+              <p className="mb-3 text-sm font-semibold text-brass">El producto</p>
+              <h2 className="font-display text-5xl font-bold uppercase leading-[0.92] text-paper md:text-6xl">Míralo por dentro antes de registrarte</h2>
             </Reveal>
             <Reveal><ProductTour /></Reveal>
           </div>
         </section>
 
-        {/* CÓMO FUNCIONA: calendario por curso */}
-        <section id="como-funciona" className="scroll-mt-20 border-y border-line/50 bg-surface/40 px-6 py-24">
-          <div className="mx-auto max-w-5xl">
-            <Reveal className="mx-auto mb-14 max-w-3xl text-center">
-              <p className="mb-5 inline-flex rounded-full border border-line bg-surface px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-muted">Cómo funciona</p>
-              <h2 className="mb-4 text-3xl font-bold tracking-tight text-paper md:text-5xl">Qué hacer <span className="text-brass">en cada curso.</span></h2>
-              <p className="text-sm leading-relaxed text-muted md:text-base">Pulsa tu etapa. La plataforma te lo recuerda con fechas según tu promoción.</p>
-            </Reveal>
-            <Reveal><Timeline /></Reveal>
-            <Reveal className="mt-12 text-center">
-              <ButtonLink href="/signup" className="group h-12 px-10 font-semibold">Empezar gratis ahora <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden /></ButtonLink>
-            </Reveal>
+        {/* CÓMO FUNCIONA: calendario por curso, sobre una franja de pista. */}
+        <section id="como-funciona" className="scroll-mt-20 px-6 py-24">
+          <div className="mx-auto max-w-6xl">
+            <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-stretch">
+              <Reveal variant="left" className="relative min-h-[320px] overflow-hidden rounded-[var(--radius-card)] bg-night">
+                {/* eslint-disable-next-line @next/next/no-img-element -- foto ilustrativa local */}
+                <img src="/media/club-training.webp" alt="" aria-hidden className="absolute inset-0 h-full w-full object-cover opacity-80" />
+                <div className="tile-shade absolute inset-0" aria-hidden />
+                <div className="absolute inset-x-0 bottom-0 p-7">
+                  <p className="mb-3 text-sm font-semibold text-lime">Cómo funciona</p>
+                  <h2 className="font-display text-5xl font-bold uppercase leading-[0.92] text-white md:text-6xl">Qué hacer en cada curso</h2>
+                  <p className="mt-3 max-w-sm text-sm text-lavender">Pulsa tu etapa. La plataforma te lo recuerda con fechas según tu promoción.</p>
+                </div>
+              </Reveal>
+              <Reveal delay={120} className="flex flex-col justify-center rounded-[var(--radius-card)] border border-line bg-surface p-5 sm:p-7">
+                <Timeline />
+                <ButtonLink href="/signup" className="group mt-8 h-12 self-start px-8 font-semibold">Empezar gratis ahora <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden /></ButtonLink>
+              </Reveal>
+            </div>
           </div>
         </section>
 
@@ -264,25 +278,25 @@ export default function Home() {
         <section className="px-6 py-24">
           <div className="mx-auto max-w-5xl">
             <Reveal className="mb-12 text-center">
-              <h2 className="mb-3 text-3xl font-bold text-paper md:text-4xl">Gala frente a las alternativas</h2>
+              <h2 className="mb-3 font-display text-5xl font-bold uppercase leading-none text-paper md:text-6xl">Gala frente a las alternativas</h2>
               <p className="mx-auto max-w-xl text-sm text-muted">Lo que cambia respecto a una agencia tradicional o a hacerlo por tu cuenta.</p>
             </Reveal>
             <Reveal>
-              <div className="overflow-x-auto rounded-2xl border border-line">
+              <div className="overflow-x-auto rounded-[var(--radius-card)] border border-line bg-surface shadow-[var(--shadow-elevated)]">
                 <table className="w-full min-w-[640px] text-sm">
                   <thead>
                     <tr className="bg-surface">
                       <th scope="col" className="p-4 text-left text-xs font-normal text-faint"><span className="sr-only">Aspecto</span></th>
-                      <th scope="col" className="border-x border-brass/30 bg-brass/10 p-4 text-left"><span className="flex items-center gap-2 font-bold text-paper"><span className="flex h-6 w-6 items-center justify-center rounded-md bg-brass text-[11px] font-black text-ink">G</span>The Gala Alliance</span></th>
+                      <th scope="col" className="bg-night p-4 text-left"><span className="flex items-center gap-2 font-bold text-white"><span className="flex h-6 w-6 items-center justify-center rounded-md bg-lime text-xs font-black text-night">G</span>The Gala Alliance</span></th>
                       <th scope="col" className="p-4 text-left font-semibold text-muted">Agencia tradicional</th>
                       <th scope="col" className="p-4 text-left font-semibold text-muted">Por tu cuenta</th>
                     </tr>
                   </thead>
                   <tbody>
                     {COMPARE.map((c) => (
-                      <tr key={c.row} className="border-t border-line">
+                      <tr key={c.row} className="border-t border-line transition-colors hover:bg-surface-2">
                         <th scope="row" className="p-4 text-left font-normal text-paper">{c.row}</th>
-                        <td className="border-x border-brass/30 bg-brass/[0.06] p-4"><span className="flex items-start gap-2 font-medium text-paper"><CircleCheck className="mt-0.5 h-4 w-4 shrink-0 text-ok" aria-hidden />{c.gala}</span></td>
+                        <td className="bg-night p-4"><span className="flex items-start gap-2 font-semibold text-white"><CircleCheck className="mt-0.5 h-4 w-4 shrink-0 text-lime" aria-hidden />{c.gala}</span></td>
                         <td className="p-4 text-muted">{c.agency}</td>
                         <td className="p-4 text-muted">{c.alone}</td>
                       </tr>
@@ -290,62 +304,44 @@ export default function Home() {
                   </tbody>
                 </table>
               </div>
-              <p className="mt-3 text-center text-[11px] text-faint">Comparativa general: cada agencia trabaja de forma distinta.</p>
+              <p className="mt-3 text-center text-xs text-faint">Comparativa general: cada agencia trabaja de forma distinta.</p>
             </Reveal>
           </div>
         </section>
 
-        {/* HERRAMIENTAS */}
-        <section className="border-y border-line/50 bg-surface/40 px-6 py-24">
+        {/* PARA QUIÉN: un mosaico de fotos, una por perfil. */}
+        <section id="para-quien" className="scroll-mt-20 bg-surface-2/60 px-6 py-24">
           <div className="mx-auto max-w-6xl">
-            <Reveal className="mb-14 text-center">
-              <h2 className="mb-3 text-3xl font-bold text-paper md:text-4xl">Todo lo que necesitas, en una sola plataforma.</h2>
-              <p className="mx-auto max-w-md text-sm text-muted">No son promesas: es lo que ya puedes usar al crear tu cuenta.</p>
-            </Reveal>
-            <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-              {TOOLS.map(({ Icon, title, text }, i) => (
-                <Reveal key={title} as="li" variant="scale" delay={(i % 4) * 60}>
-                  <div className="group h-full rounded-xl border border-line bg-surface p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-brass/40">
-                    <span className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-surface-2 transition-colors group-hover:bg-brass/15"><Icon className="h-4 w-4 text-paper/70 group-hover:text-brass" aria-hidden /></span>
-                    <h3 className="mb-0.5 text-sm font-semibold text-paper">{title}</h3>
-                    <p className="text-xs leading-relaxed text-muted">{text}</p>
-                  </div>
-                </Reveal>
-              ))}
-            </ul>
-          </div>
-        </section>
-
-        {/* PARA QUIÉN */}
-        <section id="para-quien" className="scroll-mt-20 px-6 py-24">
-          <div className="mx-auto max-w-6xl">
-            <Reveal className="mb-14 text-center">
-              <h2 className="mb-3 text-3xl font-bold text-paper md:text-4xl">Seis perfiles, una sola red.</h2>
-              <p className="mx-auto max-w-md text-sm text-muted">Cada uno con su espacio y sus herramientas.</p>
+            <Reveal className="mb-12 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+              <h2 className="font-display text-5xl font-bold uppercase leading-[0.92] text-paper md:text-6xl">Seis perfiles, una sola red</h2>
+              <p className="max-w-sm text-sm text-muted">Cada uno con su espacio y sus herramientas. Elige el tuyo.</p>
             </Reveal>
             <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {ACTORS.map((a, i) => {
                 const Icon = ROLE_ICON[a.role] ?? Users;
-                const featured = a.role === 'athlete';
                 return (
-                  <Reveal key={a.role} as="li" delay={(i % 3) * 80}>
-                    <Link href={`/para/${a.slug}`} className={`group block h-full rounded-2xl border p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-elevated)] ${featured ? 'border-brass/30 bg-brass/[0.07] hover:border-brass/50' : 'border-line bg-surface hover:border-brass/30'}`}>
-                      <div className="mb-3 flex items-center gap-3">
-                        <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${featured ? 'bg-brass/20' : 'bg-surface-2'}`}><Icon className={`h-5 w-5 ${featured ? 'text-brass' : 'text-paper/70'}`} aria-hidden /></span>
-                        <h3 className="text-base font-bold text-paper">{ROLE_TITLE[a.role] ?? a.plural}</h3>
-                      </div>
-                      <p className="mb-4 text-sm text-muted">{a.promise}</p>
-                      <ul className="space-y-1.5">
-                        {a.services.slice(0, 4).map((x) => (
-                          <li key={x} className="flex items-start gap-2 text-xs text-muted"><CircleCheck className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${featured ? 'text-brass' : 'text-faint'}`} aria-hidden />{x}</li>
-                        ))}
-                      </ul>
-                      <span className="mt-5 inline-flex items-center gap-1 text-xs font-semibold text-brass">Ver lo que incluye <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" aria-hidden /></span>
+                  <Reveal key={a.role} as="li" delay={(i % 3) * 90} className={a.role === 'athlete' ? 'sm:col-span-2 lg:col-span-1 lg:row-span-2' : a.role === 'brand' ? 'sm:col-span-2 lg:col-span-3' : ''}>
+                    <Link href={`/para/${a.slug}`} className={`group relative flex h-full flex-col justify-end overflow-hidden rounded-[var(--radius-card)] bg-night p-6 text-white ${a.role === 'athlete' ? 'min-h-[300px] lg:min-h-[100%]' : a.role === 'brand' ? 'min-h-[220px]' : 'min-h-[260px]'}`}>
+                      {/* eslint-disable-next-line @next/next/no-img-element -- foto ilustrativa local */}
+                      <img src={ROLE_IMG[a.role] ?? '/media/arena-bg-sm.webp'} alt="" aria-hidden className="absolute inset-0 h-full w-full object-cover opacity-80 transition-transform duration-700 group-hover:scale-110" />
+                      <span className="tile-shade absolute inset-0" aria-hidden />
+                      <span className="relative mb-auto flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15 backdrop-blur transition-colors duration-300 group-hover:bg-lime group-hover:text-night"><Icon className="h-5 w-5" aria-hidden /></span>
+                      <span className="relative mt-16">
+                        <span className="block font-display text-3xl font-bold uppercase leading-none">{ROLE_TITLE[a.role] ?? a.plural}</span>
+                        <span className="mt-2 block text-sm text-lavender">{a.promise}</span>
+                        <span className="mt-0 grid grid-rows-[0fr] transition-all duration-500 group-hover:mt-3 group-hover:grid-rows-[1fr] group-focus-visible:mt-3 group-focus-visible:grid-rows-[1fr]">
+                          <span className="overflow-hidden">
+                            {a.services.slice(0, 3).map((x) => <span key={x} className="flex items-start gap-2 py-0.5 text-xs text-white/90"><CircleCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-lime" aria-hidden />{x}</span>)}
+                          </span>
+                        </span>
+                        <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-lime">Ver lo que incluye <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden /></span>
+                      </span>
                     </Link>
                   </Reveal>
                 );
               })}
             </ul>
+            <p className="mt-3 text-xs text-faint">Imágenes ilustrativas.</p>
           </div>
         </section>
 
@@ -353,14 +349,14 @@ export default function Home() {
         <section className="border-y border-line/50 bg-surface/40 px-6 py-24">
           <div className="mx-auto max-w-6xl">
             <Reveal className="mb-12 text-center">
-              <h2 className="mb-3 text-3xl font-bold text-paper md:text-4xl">Precios claros. <span className="text-brass">Sin llamadas comerciales.</span></h2>
+              <h2 className="mb-3 font-display text-5xl font-bold uppercase leading-none text-paper md:text-6xl">Precios claros, sin llamadas comerciales</h2>
               <p className="mx-auto max-w-2xl text-sm text-muted">{VISIBILITY_PROMISE}</p>
             </Reveal>
             <ul className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               {family.map((p, i) => (
                 <Reveal key={p.code} as="li" delay={i * 80}>
                   <div className={`relative flex h-full flex-col rounded-2xl border p-6 transition-all duration-300 hover:-translate-y-1 ${p.highlight ? 'animate-pulse-glow border-brass/40 bg-brass/[0.06]' : 'border-line bg-surface hover:border-brass/30'}`}>
-                    {p.highlight && <span className="absolute -top-3 left-6 rounded-full bg-brass px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-ink">Más elegido</span>}
+                    {p.highlight && <span className="absolute -top-3 left-6 rounded-full bg-brass px-3 py-0.5 text-xs font-semibold text-ink">Más elegido</span>}
                     <p className="text-sm font-semibold text-paper">{p.name}</p>
                     <p className="mt-2 font-display text-3xl font-bold text-paper">{p.price}</p>
                     <p className="text-xs text-faint">{p.priceNote}</p>
@@ -378,54 +374,61 @@ export default function Home() {
           </div>
         </section>
 
-        {/* CONFIANZA */}
+        {/* CONFIANZA: bloque Noche con la promesa de seguridad en grande. */}
         <section className="px-6 py-20">
-          <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-[1fr_1.2fr]">
-            <Reveal>
-              <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-trust/30 bg-trust/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-ok"><ShieldCheck className="h-3.5 w-3.5" aria-hidden /> Confianza y seguridad</p>
-              <h2 className="text-3xl font-bold text-paper md:text-4xl">Hecha para menores, familias y datos reales.</h2>
-              <p className="mt-4 text-sm leading-relaxed text-muted">Protección de datos, verificación y transparencia no son extras: están en la base de la plataforma.</p>
-            </Reveal>
-            <ul className="grid gap-3 sm:grid-cols-2">
-              {TRUST.map((t, i) => (
-                <Reveal key={t} as="li" delay={i * 70}>
-                  <div className="flex h-full gap-3 rounded-xl border border-line bg-surface p-4 text-sm text-muted"><CircleCheck className="mt-0.5 h-4 w-4 shrink-0 text-ok" aria-hidden />{t}</div>
-                </Reveal>
-              ))}
-            </ul>
+          <div className="relative mx-auto max-w-6xl overflow-hidden rounded-[var(--radius-card)] bg-night px-6 py-14 text-white sm:px-12">
+            <div className="court-lines absolute inset-0 opacity-40" aria-hidden />
+            <div className="relative grid gap-10 lg:grid-cols-[1fr_1.25fr] lg:items-center">
+              <Reveal>
+                <span className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-lime text-night"><ShieldCheck className="h-7 w-7" aria-hidden /></span>
+                <h2 className="font-display text-5xl font-bold uppercase leading-[0.92] md:text-6xl">Hecha para menores, familias y datos reales</h2>
+                <p className="mt-4 max-w-md text-sm leading-relaxed text-lavender">Protección de datos, verificación y transparencia no son extras: están en la base de la plataforma.</p>
+              </Reveal>
+              <ul className="grid gap-3 sm:grid-cols-2">
+                {TRUST.map((t, i) => (
+                  <Reveal key={t} as="li" delay={i * 80}>
+                    <div className="flex h-full gap-3 rounded-2xl bg-white/[0.07] p-4 text-sm leading-relaxed text-white/90 ring-1 ring-white/10 transition-colors duration-300 hover:bg-white/[0.12] hover:ring-lime/40"><CircleCheck className="mt-0.5 h-4 w-4 shrink-0 text-lime" aria-hidden />{t}</div>
+                  </Reveal>
+                ))}
+              </ul>
+            </div>
           </div>
         </section>
 
-        {/* PREGUNTAS */}
-        <section className="border-t border-line/50 bg-surface/40 px-6 py-24">
-          <div className="mx-auto max-w-2xl">
-            <Reveal className="mb-10 text-center">
-              <h2 className="mb-3 text-3xl font-bold text-paper md:text-4xl">Resolvemos tus <span className="text-brass">dudas</span></h2>
-              <p className="text-muted">Lo que más nos preguntan atletas y familias.</p>
+        {/* PREGUNTAS: titular grande a la izquierda y respuestas a la derecha. */}
+        <section className="px-6 py-24">
+          <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[0.8fr_1.2fr]">
+            <Reveal className="lg:sticky lg:top-28 lg:self-start">
+              <p className="mb-3 text-sm font-semibold text-brass">Preguntas frecuentes</p>
+              <h2 className="font-display text-5xl font-bold uppercase leading-[0.92] text-paper md:text-6xl">Resolvemos tus dudas</h2>
+              <p className="mt-4 max-w-sm text-muted">Lo que más nos preguntan atletas y familias. ¿Falta la tuya? Pregúntale a Gala IA dentro de la app.</p>
             </Reveal>
-            <div className="space-y-2">
-              {FAQ.map(([q, a]) => (
-                <details key={q} className="group rounded-xl border border-line bg-surface px-5 transition-colors open:border-brass/30">
-                  <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-4 text-sm font-medium text-paper transition-colors hover:text-brass [&::-webkit-details-marker]:hidden">
-                    {q}
-                    <ChevronDown className="h-4 w-4 shrink-0 text-faint transition-transform duration-200 group-open:rotate-180" aria-hidden />
-                  </summary>
-                  <p className="pb-4 text-sm leading-relaxed text-muted">{a}</p>
-                </details>
+            <div className="space-y-3">
+              {FAQ.map(([q, a], i) => (
+                <Reveal key={q} delay={i * 60}>
+                  <details className="group rounded-2xl border border-line bg-surface px-5 transition-all duration-300 open:border-brass/40 open:shadow-[var(--shadow-elevated)] hover:border-brass/30">
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-5 text-base font-semibold text-paper [&::-webkit-details-marker]:hidden">
+                      {q}
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-2 transition-all duration-300 group-open:rotate-180 group-open:bg-brass group-open:text-white"><ChevronDown className="h-4 w-4" aria-hidden /></span>
+                    </summary>
+                    <p className="pb-5 text-sm leading-relaxed text-muted">{a}</p>
+                  </details>
+                </Reveal>
               ))}
             </div>
           </div>
         </section>
 
-        {/* CTA FINAL */}
-        <section className="relative overflow-hidden px-6 py-28">
-          <div className="glow-gold pointer-events-none absolute left-1/2 top-1/2 h-[520px] w-[820px] -translate-x-1/2 -translate-y-1/2" aria-hidden />
-          <Reveal className="relative mx-auto max-w-2xl text-center">
-            <h2 className="mb-4 text-3xl font-bold leading-tight text-paper md:text-5xl">Tu beca empieza<br /><span className="text-gold-gradient">aquí.</span></h2>
-            <p className="mx-auto mb-8 max-w-md text-sm text-muted">Unos minutos para crear tu Passport. Cero coste para atletas.</p>
-            <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <ButtonLink href="/signup?role=athlete" className="group h-12 px-10 font-bold">Crear mi Passport gratis <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden /></ButtonLink>
-              <ButtonLink href="#test" variant="secondary" className="h-12 px-8">Hacer el test primero</ButtonLink>
+        {/* CTA FINAL: vídeo a sangre, como la cabecera, para cerrar con energía. */}
+        <section className="relative overflow-hidden bg-night px-6 py-28 text-white">
+          <video className="hero-video absolute inset-0 h-full w-full object-cover opacity-50" src="/media/hero-bg.mp4" poster="/media/hero-bg-poster.jpg" autoPlay muted loop playsInline aria-hidden />
+          <div className="absolute inset-0 bg-gradient-to-t from-night via-night/70 to-night/40" aria-hidden />
+          <Reveal className="relative mx-auto max-w-3xl text-center">
+            <h2 className="font-display text-6xl font-bold uppercase leading-[0.9] md:text-8xl">Conoce tus opciones reales</h2>
+            <p className="mx-auto mt-5 max-w-md text-base text-lavender">Crea tu Passport gratis. Si hoy no hay ofertas reales que encajen contigo, te lo diremos claro y te diremos qué mejorar.</p>
+            <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <Link href="/signup?role=athlete" className="group inline-flex h-12 items-center gap-2 rounded-xl bg-lime px-10 text-sm font-bold text-night transition-transform hover:-translate-y-0.5">Crear mi Passport gratis <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden /></Link>
+              <Link href="#test" className="inline-flex h-12 items-center rounded-xl px-8 text-sm font-semibold text-white ring-1 ring-white/30 transition-colors hover:bg-white/10">Hacer el test primero</Link>
             </div>
           </Reveal>
         </section>

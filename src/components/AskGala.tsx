@@ -92,7 +92,7 @@ export function AskGala({ compact = false, initialQuestion = '' }: { compact?: b
         <input value={input} onChange={(e) => setInput(e.target.value)} maxLength={2000} placeholder="Escribe tu pregunta sobre becas, documentos, el proceso…" aria-label="Pregunta para Gala IA" className={inputClass} />
         <Button type="submit" disabled={busy || !input.trim()}>{busy ? '…' : 'Preguntar'}</Button>
       </form>
-      <p className="mt-2 text-[11px] text-faint">Gala IA puede equivocarse: comprueba lo importante en la fuente oficial. No sustituye asesoramiento legal ni migratorio. No guardamos tus conversaciones.</p>
+      <p className="mt-2 text-xs text-faint">Gala IA puede equivocarse: comprueba lo importante en la fuente oficial. No sustituye asesoramiento legal ni migratorio. No guardamos tus conversaciones.</p>
     </div>
   );
 }

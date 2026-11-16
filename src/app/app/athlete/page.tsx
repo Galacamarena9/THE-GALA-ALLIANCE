@@ -57,7 +57,7 @@ export default async function MyPathPage() {
           <p className="-mt-2 mb-5 text-sm text-muted">Mide lo preparado que está tu perfil para que un coach pueda evaluarte. No es una nota de talento ni una probabilidad de beca.</p>
           {readiness.nextAction ? (
             <div className="rounded-xl border border-brass/40 bg-ink/60 p-5">
-              <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-brass">Siguiente paso</p>
+              <p className="text-xs font-medium uppercase tracking-[0.16em] text-brass">Siguiente paso</p>
               <p className="mt-1.5 font-display text-xl text-paper">{readiness.nextAction.action}</p>
               <ButtonLink href={readiness.nextAction.href} className="mt-4">Hacerlo ahora</ButtonLink>
             </div>

@@ -25,7 +25,7 @@ function Screen({ k }: { k: (typeof TABS)[number]['key'] }) {
   );
   if (k === 'showcase') return (
     <div className={frame}>
-      <div className="mb-3 flex flex-wrap gap-1.5">{['Fútbol', 'Mediocentro', '2027', 'Nota 7+', 'Inglés B2+'].map((t) => <span key={t} className="rounded-full border border-brass/30 bg-brass/10 px-2.5 py-1 text-[10px] text-brass">{t}</span>)}</div>
+      <div className="mb-3 flex flex-wrap gap-1.5">{['Fútbol', 'Mediocentro', '2027', 'Nota 7+', 'Inglés B2+'].map((t) => <span key={t} className="rounded-full border border-brass/30 bg-brass/10 px-2.5 py-1 text-xs text-brass">{t}</span>)}</div>
       {[['Álex P.', 'Mediocentro · 7,9 · B2', 'Encaje alto'], ['Hugo S.', 'Mediocentro · 7,4 · C1', 'Encaje alto'], ['Iker M.', 'Pivote · 8,2 · B2', 'Encaje medio']].map(([n, d, f]) => (
         <div key={n} className="mb-2 flex items-center justify-between rounded-lg border border-line px-3 py-2 text-xs"><span><span className="block font-medium text-paper">{n}</span><span className="text-faint">{d}</span></span><span className={f === 'Encaje alto' ? 'text-ok' : 'text-brass'}>{f}</span></div>
       ))}
@@ -78,7 +78,7 @@ export function ProductTour() {
       <div className="relative">
         <div className="glow-gold pointer-events-none absolute inset-0 -z-10 scale-110" aria-hidden />
         <div className="rounded-3xl border border-line-strong bg-surface p-3 shadow-[var(--shadow-premium)]">
-          <div className="mb-3 flex items-center gap-1.5 px-2 pt-1" aria-hidden><span className="h-2.5 w-2.5 rounded-full bg-danger/60" /><span className="h-2.5 w-2.5 rounded-full bg-warn/60" /><span className="h-2.5 w-2.5 rounded-full bg-ok/60" /><span className="ml-3 rounded-md bg-ink/60 px-3 py-0.5 text-[10px] text-faint">thegalaalliance.app</span></div>
+          <div className="mb-3 flex items-center gap-1.5 px-2 pt-1" aria-hidden><span className="h-2.5 w-2.5 rounded-full bg-danger/60" /><span className="h-2.5 w-2.5 rounded-full bg-warn/60" /><span className="h-2.5 w-2.5 rounded-full bg-ok/60" /><span className="ml-3 rounded-md bg-ink/60 px-3 py-0.5 text-xs text-faint">thegalaalliance.app</span></div>
           <div key={k} className="animate-fade-in-up"><Screen k={k} /></div>
         </div>
       </div>

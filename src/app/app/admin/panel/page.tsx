@@ -6,6 +6,8 @@ import { runRetentionNow } from '@/app/actions/autonomy';
 import { requireSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
 import { Badge, Card, CardTitle, PageHeader, inputClass } from '@/components/ui';
+import { growthPct, isoDaysAgo, weeklyBuckets } from '@/lib/domain/funnel';
+import { CountUp } from '@/components/CountUp';
 import { updateServiceRequest } from '@/app/actions/growth';
 import { planByCode } from '@/content/plans';
 import { daysSince } from '@/lib/domain/labels';
@@ -37,7 +39,7 @@ export default async function AdminPanelPage({ searchParams }: { searchParams: P
   const days = [7, 30, 90].includes(Number((await searchParams).days)) ? Number((await searchParams).days) : 30;
   const supabase = await createClient();
 
-  const [{ data: m }, { data: liquidity }, { data: requests }, { data: feedback }, { data: events }, { data: paid }, { data: lastRetention }] = await Promise.all([
+  const [{ data: m }, { data: liquidity }, { data: requests }, { data: feedback }, { data: events }, { data: paid }, { data: lastRetention }, { data: m2 }, { data: signupRows }] = await Promise.all([
     supabase.rpc('admin_metrics', { p_days: days }),
     supabase.rpc('admin_liquidity'),
     supabase.from('service_requests').select('id, plan_code, message, status, admin_note, created_at, profiles:user_id(display_name), organizations(name)').order('created_at', { ascending: false }).limit(50),
@@ -45,6 +47,10 @@ export default async function AdminPanelPage({ searchParams }: { searchParams: P
     supabase.rpc('admin_event_counts', { p_days: days }),
     supabase.from('entitlements').select('plan_code, source').is('revoked_at', null),
     supabase.from('audit_logs').select('created_at, details').eq('action', 'retention.run').order('created_at', { ascending: false }).limit(1),
+    // Periodo doble para comparar con el anterior (doble - actual = anterior).
+    supabase.rpc('admin_metrics', { p_days: days * 2 }),
+    // Altas reales (perfiles), no el evento: con confirmación por email el evento llega sin sesión.
+    supabase.from('profiles').select('created_at').gte('created_at', isoDaysAgo(56)).limit(5000),
   ]);
   const eventRows = (events ?? []) as { event: string; users: number; total: number }[];
   const paidBy = (paid ?? []).reduce<Record<string, number>>((acc, e) => ({ ...acc, [e.plan_code]: (acc[e.plan_code] ?? 0) + 1 }), {});
@@ -53,6 +59,15 @@ export default async function AdminPanelPage({ searchParams }: { searchParams: P
     return <PageHeader kicker="Admin" title="Panel de mando" description="No se han podido cargar las métricas." />;
   }
   const f = metrics.funnel;
+  const both = m2 as Metrics | null;
+  const prevUsers = both ? both.new_users - metrics.new_users : 0;
+  const prevStar = both ? both.north_star - metrics.north_star : 0;
+  const growthBadge = (cur: number, prev: number) => {
+    const g = growthPct(cur, prev);
+    return g === null ? <span className="text-xs text-faint">sin periodo previo</span> : <Badge tone={g >= 0 ? 'ok' : 'danger'}>{g >= 0 ? '+' : ''}{g}% vs. {days} días antes</Badge>;
+  };
+  const weeks = weeklyBuckets((signupRows ?? []).map((r) => r.created_at as string), new Date(), 8);
+  const maxWeek = Math.max(1, ...weeks.map((w) => w.count));
   const top = Math.max(f.athletes, 1);
   const q = metrics.queues;
 
@@ -72,15 +87,33 @@ export default async function AdminPanelPage({ searchParams }: { searchParams: P
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-brass/50">
-          <p className="text-xs uppercase tracking-wider text-brass">North Star</p>
-          <p className="font-display text-4xl text-paper">{metrics.north_star}</p>
-          <p className="text-xs text-muted">Conexiones cualificadas en {days} días: contacto aceptado o candidatura que avanza a contacto, entrevista, prueba, shortlist u oferta.</p>
-        </Card>
-        <Card><p className="text-xs uppercase tracking-wider text-faint">Altas nuevas</p><p className="font-display text-4xl text-paper">{metrics.new_users}</p><p className="text-xs text-muted">en {days} días</p></Card>
-        <Card><p className="text-xs uppercase tracking-wider text-faint">Colocaciones</p><p className="font-display text-4xl text-paper">{f.placed}</p><p className="text-xs text-muted">candidaturas aceptadas (histórico)</p></Card>
-        <Card><p className="text-xs uppercase tracking-wider text-faint">Atletas menores</p><p className="font-display text-4xl text-paper">{metrics.minors_share ?? 0} %</p><p className="text-xs text-muted">exige circuito familiar y verificación</p></Card>
+        <div className="relative overflow-hidden rounded-[var(--radius-card)] bg-night p-5 text-white">
+          <div className="court-lines absolute inset-0 opacity-30" aria-hidden />
+          <div className="relative">
+            <p className="text-sm font-semibold text-lime">North Star</p>
+            <p className="mt-1 font-display text-5xl font-bold leading-none"><CountUp value={metrics.north_star} /></p>
+            <div className="mt-2">{growthBadge(metrics.north_star, prevStar)}</div>
+            <p className="mt-2 text-xs text-lavender">Conexiones cualificadas en {days} días: contacto aceptado o candidatura que avanza a contacto, entrevista, prueba, preselección u oferta.</p>
+          </div>
+        </div>
+        <Card><p className="text-sm text-muted">Altas nuevas</p><p className="font-display text-5xl font-bold leading-none text-paper"><CountUp value={metrics.new_users} /></p><div className="mt-2">{growthBadge(metrics.new_users, prevUsers)}</div></Card>
+        <Card><p className="text-sm text-muted">Colocaciones</p><p className="font-display text-5xl font-bold leading-none text-paper"><CountUp value={f.placed} /></p><p className="mt-2 text-xs text-muted">candidaturas aceptadas (histórico)</p></Card>
+        <Card><p className="text-sm text-muted">Atletas menores</p><p className="font-display text-5xl font-bold leading-none text-paper">{metrics.minors_share ?? 0} %</p><p className="mt-2 text-xs text-muted">exige circuito familiar y verificación</p></Card>
       </div>
+
+      <Card className="mt-5">
+        <CardTitle kicker="Crecimiento">Registros por semana</CardTitle>
+        <div className="flex h-44 items-end gap-2" role="img" aria-label={`Registros de las últimas 8 semanas: ${weeks.map((w) => w.count).join(', ')}`}>
+          {weeks.map((w, i) => (
+            <div key={w.start} className="flex flex-1 flex-col items-center gap-1">
+              <span className="text-xs font-semibold text-paper">{w.count}</span>
+              <div className={`w-full rounded-t-lg ${i === weeks.length - 1 ? 'bg-lime' : 'bg-brass/70'}`} style={{ height: `${Math.max(4, (w.count / maxWeek) * 130)}px` }} />
+              <span className="text-xs text-faint">{w.start.slice(8)}/{w.start.slice(5, 7)}</span>
+            </div>
+          ))}
+        </div>
+        <p className="mt-3 text-xs text-faint">Semanas de lunes a domingo; la verde es la semana en curso.</p>
+      </Card>
 
       <div className="mt-5 grid gap-5 lg:grid-cols-2">
         <Card>

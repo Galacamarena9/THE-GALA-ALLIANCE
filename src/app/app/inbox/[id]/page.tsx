@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server';
 import { Card, PageHeader, cx } from '@/components/ui';
 import { MessageForm, ReportButton } from '@/components/forms';
 import { BlockButton } from '@/components/BlockButton';
+import { LiveThread } from '@/components/LiveThread';
 
 export const metadata: Metadata = { title: 'Conversación' };
 
@@ -42,13 +43,15 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
         <p className="text-xs text-faint">Mensaje inicial</p>
         <p className="mt-1 text-sm text-muted">{req.message}</p>
       </Card>
+      <LiveThread requestId={id} />
+      <p className="mb-3 inline-flex items-center gap-2 text-xs text-faint"><span className="live-dot" aria-hidden /> Los mensajes nuevos aparecen solos</p>
       <ul className="mb-5 space-y-3" aria-live="polite">
         {(messages ?? []).map((m) => {
           const mine = m.sender_id === session.userId;
           return (
             <li key={m.id} className={cx('flex', mine ? 'justify-end' : 'justify-start')}>
               <div className={cx('max-w-[80%] rounded-2xl px-4 py-2.5 text-sm', mine ? 'bg-brass/15 text-paper' : 'border border-line bg-surface text-paper')}>
-                <p className="mb-0.5 text-[11px] text-faint">{mine ? 'Tú' : nameOf.get(m.sender_id) ?? 'Participante'} · {new Date(m.created_at).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}</p>
+                <p className="mb-0.5 text-xs text-faint">{mine ? 'Tú' : nameOf.get(m.sender_id) ?? 'Participante'} · {new Date(m.created_at).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}</p>
                 <p className="whitespace-pre-line">{m.body}</p>
               </div>
             </li>

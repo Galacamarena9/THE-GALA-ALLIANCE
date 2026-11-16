@@ -29,7 +29,7 @@ export function PortfolioView({ agencies, entries, stats, filters }: { agencies:
     <>
       <PageHeader
         kicker="Agent Workspace"
-        title="Portfolio"
+        title="Cartera"
         description="Tus atletas representados y las propuestas en curso. Solo representas a quien lo acepta expresamente."
         action={<ButtonLink href="/app/discover"><Search className="h-4 w-4" aria-hidden /> Buscar talento</ButtonLink>}
       />
@@ -73,7 +73,7 @@ export function PortfolioView({ agencies, entries, stats, filters }: { agencies:
                     )}
                   >
                     {t.label}
-                    <span className={cx('rounded-full px-1.5 text-[11px] tabular-nums', active ? 'bg-brass text-ink' : 'bg-surface-2 text-faint')}>{counts[t.id]}</span>
+                    <span className={cx('rounded-full px-1.5 text-xs tabular-nums', active ? 'bg-brass text-ink' : 'bg-surface-2 text-faint')}>{counts[t.id]}</span>
                     {active && <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-brass" aria-hidden />}
                   </Link>
                 );
@@ -101,7 +101,7 @@ export function PortfolioView({ agencies, entries, stats, filters }: { agencies:
                 <div className="hidden lg:block">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-y border-line text-left text-[11px] font-bold uppercase tracking-[0.12em] text-faint">
+                      <tr className="border-y border-line text-left text-xs font-bold uppercase tracking-[0.12em] text-faint">
                         <th scope="col" className="px-5 py-2.5">Atleta</th>
                         <th scope="col" className="px-3 py-2.5">Deporte · Posición</th>
                         <th scope="col" className="px-3 py-2.5">Promoción</th>
@@ -154,7 +154,7 @@ export function PortfolioView({ agencies, entries, stats, filters }: { agencies:
                           <span className="block truncate text-xs text-muted">{[e.sportName, e.positionName, e.graduationYear].filter(Boolean).join(' · ') || 'Sin datos deportivos'}</span>
                           <span className="mt-1.5 flex items-center gap-2">
                             <StatusPill status={e.status} />
-                            <span className="truncate text-[11px] text-faint">{relativeTime(lastActivityAt(e))}</span>
+                            <span className="truncate text-xs text-faint">{relativeTime(lastActivityAt(e))}</span>
                           </span>
                         </span>
                         <ChevronRight className="h-4 w-4 shrink-0 text-faint" aria-hidden />

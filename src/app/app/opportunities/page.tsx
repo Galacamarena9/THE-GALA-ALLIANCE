@@ -113,7 +113,7 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
         </ul>
       ) : (
         <EmptyState title="No hay oportunidades con estos filtros">
-          Estamos incorporando universidades verificadas. No mostramos ofertas sin revisar ni datos de ejemplo presentados como reales.
+          Ahora mismo no hay ofertas reales que encajen con estos filtros, y no vamos a inventarlas. Estamos incorporando universidades verificadas: mientras tanto, mejora tu Passport para estar listo cuando lleguen.
         </EmptyState>
       )}
     </>

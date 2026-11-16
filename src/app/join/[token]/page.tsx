@@ -39,7 +39,7 @@ export default async function JoinTeamPage({ params, searchParams }: { params: P
       <header className="px-5 py-6 sm:px-8"><Logo /></header>
       <main className="mx-auto max-w-lg px-5 pt-8">
         <Card>
-          <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-brass">Invitación de equipo</p>
+          <p className="text-[13px] font-semibold text-brass">Invitación de equipo</p>
           {!valid ? (
             <Notice tone="danger">Enlace no válido.</Notice>
           ) : !session ? (

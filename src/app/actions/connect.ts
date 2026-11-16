@@ -13,6 +13,7 @@ const ERRORS: Record<string, string> = {
   rate_limited: 'Has alcanzado el límite diario. Inténtalo mañana.',
   contact_data_not_allowed_with_minors: 'Con menores no se pueden compartir emails, teléfonos ni redes sociales. Todo queda dentro de la plataforma.',
   conversation_not_open: 'La conversación aún no está abierta.',
+  ncaa_contact_window_closed: 'Normas NCAA: vuestra universidad aún no puede iniciar contacto con este atleta por su curso. Guárdalo en una lista y escríbele cuando se abra la ventana.',
 };
 const friendly = (msg: string, fallback: string) => Object.entries(ERRORS).find(([k]) => msg.includes(k))?.[1] ?? fallback;
 

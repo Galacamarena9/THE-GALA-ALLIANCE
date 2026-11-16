@@ -25,7 +25,8 @@ const MOAT = [
   { Icon: Database, title: 'Datos oficiales', text: 'Universidades con datos del U.S. Department of Education y fuente visible: difícil de replicar con datos inventados.' },
   { Icon: Workflow, title: 'Opera sola', text: 'Verificación, publicación, moderación urgente, cobro, entrega y borrado automáticos: el coste marginal por usuario tiende a cero.' },
   { Icon: Users, title: 'Efecto red de seis lados', text: 'Cada atleta atrae universidades; cada universidad atrae atletas; academias y clubes traen rosters enteros.' },
-  { Icon: Bot, title: 'IA aplicada', text: 'Gala IA, informe del perfil, shortlist automática y memo de decisión: valor premium sin coste humano.' },
+  { Icon: Scale, title: 'Cumplimiento NCAA y NIL integrado', text: 'La base de datos impide que una universidad D-I o D-II contacte antes de la ventana NCAA, y cada colaboración con marcas avisa de la declaración en NIL Go desde 600 $. Cumplir no depende de la buena fe de nadie.' },
+  { Icon: Bot, title: 'IA aplicada', text: 'Gala IA, informe del perfil, lista automática y memo de decisión: valor premium sin coste humano.' },
 ];
 
 const REVENUE = [
@@ -72,7 +73,7 @@ export default function InvestorsPage() {
         <section className="border-y border-line/50 bg-surface/40 px-6 py-24">
           <div className="mx-auto max-w-6xl">
             <Reveal className="mx-auto mb-14 max-w-3xl text-center">
-              <p className="mb-5 inline-flex rounded-full border border-line bg-surface px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-muted">El problema</p>
+              <p className="mb-5 inline-flex rounded-full border border-line bg-surface px-3 py-1 text-[13px] font-semibold text-muted">El problema</p>
               <h2 className="text-3xl font-bold tracking-tight text-paper md:text-5xl">Un mercado con <span className="text-brass">fallos documentados.</span></h2>
               <p className="mt-4 text-sm leading-relaxed text-muted md:text-base">La tesis nace de un trabajo académico sobre los fallos de mercado del reclutamiento deportivo internacional y de la experiencia de la fundadora como jugadora NCAA.</p>
             </Reveal>
@@ -92,7 +93,7 @@ export default function InvestorsPage() {
         <section className="px-6 py-24">
           <div className="mx-auto max-w-6xl">
             <Reveal className="mx-auto mb-14 max-w-3xl text-center">
-              <p className="mb-5 inline-flex rounded-full border border-line bg-surface px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-muted">Por qué ganamos</p>
+              <p className="mb-5 inline-flex rounded-full border border-line bg-surface px-3 py-1 text-[13px] font-semibold text-muted">Por qué ganamos</p>
               <h2 className="text-3xl font-bold tracking-tight text-paper md:text-5xl">Ventajas difíciles de copiar.</h2>
             </Reveal>
             <ul className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -112,7 +113,7 @@ export default function InvestorsPage() {
         <section className="border-y border-line/50 bg-surface/40 px-6 py-24">
           <div className="mx-auto max-w-5xl">
             <Reveal className="mb-12 text-center">
-              <p className="mb-5 inline-flex rounded-full border border-line bg-surface px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-muted">Modelo de ingresos</p>
+              <p className="mb-5 inline-flex rounded-full border border-line bg-surface px-3 py-1 text-[13px] font-semibold text-muted">Modelo de ingresos</p>
               <h2 className="text-3xl font-bold tracking-tight text-paper md:text-5xl">Cuatro fuentes. <span className="text-brass">La visibilidad nunca se vende.</span></h2>
               <p className="mx-auto mt-4 max-w-2xl text-sm text-muted">Cobrar por aparecer destruiría la confianza del escaparate. Se cobra por resultados concretos y herramientas, nunca por prioridad.</p>
             </Reveal>
@@ -132,14 +133,14 @@ export default function InvestorsPage() {
         <section className="px-6 py-24">
           <div className="mx-auto max-w-6xl">
             <Reveal className="mb-12 text-center">
-              <p className="mb-5 inline-flex rounded-full border border-line bg-surface px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-muted">Hoja de ruta</p>
+              <p className="mb-5 inline-flex rounded-full border border-line bg-surface px-3 py-1 text-[13px] font-semibold text-muted">Hoja de ruta</p>
               <h2 className="text-3xl font-bold tracking-tight text-paper md:text-5xl">Del producto a la <span className="text-brass">red.</span></h2>
             </Reveal>
             <ol className="grid gap-5 md:grid-cols-3">
               {ROADMAP.map((r, i) => (
                 <Reveal key={r.phase} as="li" delay={i * 100}>
                   <div className={`h-full rounded-2xl border p-6 ${i === 0 ? 'border-brass/40 bg-brass/[0.06]' : 'border-line bg-surface'}`}>
-                    <p className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-brass">{i === 0 ? <Rocket className="h-3.5 w-3.5" aria-hidden /> : <Target className="h-3.5 w-3.5" aria-hidden />}{r.phase}</p>
+                    <p className="mb-2 flex items-center gap-2 text-[13px] font-semibold text-brass">{i === 0 ? <Rocket className="h-3.5 w-3.5" aria-hidden /> : <Target className="h-3.5 w-3.5" aria-hidden />}{r.phase}</p>
                     <h3 className="mb-4 text-lg font-bold text-paper">{r.title}</h3>
                     <ul className="space-y-2">{r.items.map((x) => <li key={x} className="flex items-start gap-2 text-sm text-muted"><CircleCheck className="mt-0.5 h-4 w-4 shrink-0 text-ok" aria-hidden />{x}</li>)}</ul>
                   </div>
@@ -153,7 +154,7 @@ export default function InvestorsPage() {
           <Reveal className="mx-auto grid max-w-5xl items-center gap-10 md:grid-cols-[auto_1fr]">
             <span className="mx-auto flex h-28 w-28 items-center justify-center rounded-3xl bg-gradient-to-br from-brass to-brass-deep font-display text-4xl font-bold text-ink shadow-[var(--shadow-gold)]">G</span>
             <div>
-              <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-brass">La fundadora</p>
+              <p className="mb-2 text-[13px] font-semibold text-brass">La fundadora</p>
               <h2 className="text-2xl font-bold text-paper md:text-3xl">Gala vivió el problema desde dentro.</h2>
               <p className="mt-3 text-sm leading-relaxed text-muted">
                 Exjugadora de baloncesto NCAA División I con beca completa en la University of Evansville, graduada en International Business (Universitat de València y Newcastle University) y auditora. Conoce el proceso como atleta y el negocio como analista.

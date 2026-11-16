@@ -37,7 +37,7 @@ export function MobileNav({ sections }: { sections: NavSection[] }) {
             const active = href === '/app' ? pathname === '/app' : pathname.startsWith(href);
             return (
               <li key={href}>
-                <Link href={href} className={cx('flex flex-col items-center gap-1 py-2.5 text-[10.5px]', active ? 'text-brass' : 'text-muted')} aria-current={active ? 'page' : undefined}>
+                <Link href={href} className={cx('flex flex-col items-center gap-1 py-2.5 text-xs', active ? 'text-brass' : 'text-muted')} aria-current={active ? 'page' : undefined}>
                   <Icon className="h-5 w-5" aria-hidden strokeWidth={1.8} />
                   {label}
                 </Link>
@@ -45,7 +45,7 @@ export function MobileNav({ sections }: { sections: NavSection[] }) {
             );
           })}
           <li>
-            <button type="button" onClick={() => setOpen(true)} aria-expanded={open} aria-controls="mobile-sidebar" className="flex w-full flex-col items-center gap-1 py-2.5 text-[10.5px] text-muted">
+            <button type="button" onClick={() => setOpen(true)} aria-expanded={open} aria-controls="mobile-sidebar" className="flex w-full flex-col items-center gap-1 py-2.5 text-xs text-muted">
               <Menu className="h-5 w-5" aria-hidden strokeWidth={1.8} />
               Todo
             </button>

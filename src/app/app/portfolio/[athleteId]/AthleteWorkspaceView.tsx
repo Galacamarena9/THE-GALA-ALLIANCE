@@ -97,7 +97,7 @@ export function AthleteWorkspaceView({ ws, tab, userId }: { ws: AthleteWorkspace
               className={cx('relative shrink-0 px-3 pb-3 pt-1 text-sm transition-colors', tab === t.id ? 'font-semibold text-paper' : 'text-muted hover:text-paper')}
             >
               {t.label}
-              {n != null && <span className="ml-1.5 text-[11px] tabular-nums text-faint">{n}</span>}
+              {n != null && <span className="ml-1.5 text-xs tabular-nums text-faint">{n}</span>}
               {tab === t.id && <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-brass" aria-hidden />}
             </Link>
           );

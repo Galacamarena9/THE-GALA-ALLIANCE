@@ -27,7 +27,7 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
         <Logo href="/onboarding" />
       </header>
       <main className="mx-auto max-w-3xl px-5 pb-20 pt-4 sm:px-8">
-        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-brass">Hola, {session.displayName}</p>
+        <p className="text-[13px] font-semibold text-brass">Hola, {session.displayName}</p>
         <h1 className="mt-2 text-4xl text-paper">{add === '1' ? 'Añadir otro perfil' : '¿Qué te trae por aquí?'}</h1>
         <p className="mt-3 text-muted">Elige cómo vas a usar la plataforma. Podrás añadir más perfiles después.</p>
         <OnboardingForm

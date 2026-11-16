@@ -882,6 +882,39 @@ try {
   await check('nadie registra ese consentimiento en nombre de otro', async () => {
     await expectError(() => as(u.coach, `insert into consents (user_id, purpose, document_version, granted) values ($1, 'media_rights', 'x', true)`, [u.adult]), /row-level security/);
   });
+
+  results.push('\nCumplimiento NCAA: ventana de contacto');
+  const farYear = new Date().getFullYear() + 4; // aún en 1.º-2.º de bachillerato: ventana D-I cerrada
+  await check('fecha de apertura: 15 de junio tras el 2.º curso (general), 1 de agosto en béisbol, sin límite en D-III', async () => {
+    eq((await db.query(`select public.ncaa_contact_opens_on(2030, 'ncaa_d1', 'basketball')::text d`)).rows[0].d, '2028-06-15');
+    eq((await db.query(`select public.ncaa_contact_opens_on(2030, 'ncaa_d1', 'baseball')::text d`)).rows[0].d, '2028-08-01');
+    eq((await db.query(`select public.ncaa_contact_opens_on(2030, 'ncaa_d3', 'basketball') d`)).rows[0].d, null);
+    eq((await db.query(`select public.ncaa_contact_opens_on(null, 'ncaa_d1', 'basketball') d`)).rows[0].d, null);
+  });
+  await check('una universidad D-I no puede iniciar contacto antes de la ventana NCAA', async () => {
+    await db.query(`update athlete_profiles set graduation_year = $2 where user_id = $1`, [teen, farYear]);
+    await db.query(`delete from contact_requests where athlete_id = $1`, [teen]);
+    await expectError(() => as(u.coach, `insert into contact_requests (organization_id, requested_by, athlete_id, message)
+      values ($1, $2, $3, 'Hola, nos interesa tu perfil para dentro de unos años.')`, [uniId, u.coach, teen]), /ncaa_contact_window_closed/);
+  });
+  await check('con la ventana abierta la misma universidad sí puede', async () => {
+    await db.query(`update athlete_profiles set graduation_year = 2027 where user_id = $1`, [teen]);
+    await as(u.coach, `insert into contact_requests (organization_id, requested_by, athlete_id, message)
+      values ($1, $2, $3, 'Hola, nos interesa tu perfil para la temporada que viene.')`, [uniId, u.coach, teen]);
+  });
+
+  results.push('\nEndurecimiento: funciones internas sin acceso anónimo');
+  for (const fn of ['has_role(\'admin\')', 'is_verified_recruiter()', `is_blocked_by_athlete('${teen}')`, `has_connection_with_athlete('${teen}')`]) {
+    await check(`sin sesión no se puede llamar a ${fn.split('(')[0]}`, async () => {
+      await expectError(() => as(null, `select public.${fn}`), /permission denied/);
+    });
+  }
+  await check('con sesión siguen funcionando (las usan las políticas)', async () => {
+    await as(u.coach, `select public.has_role('university'), public.is_verified_recruiter()`);
+  });
+  await check('las políticas públicas siguen funcionando sin sesión (perfiles públicos)', async () => {
+    await as(null, `select count(*) from athlete_profiles`);
+  });
 } finally {
   console.log(results.join('\n'));
   console.log(`\n${passed} pruebas OK · ${failed} fallidas`);

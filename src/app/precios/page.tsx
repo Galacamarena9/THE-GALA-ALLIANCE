@@ -33,7 +33,7 @@ export default async function PricingPage() {
     <div className="relative">
       <PublicHeader />
       <main className="mx-auto max-w-6xl px-5 py-14 sm:px-8">
-        <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-brass">Planes y servicios</p>
+        <p className="text-xs font-medium uppercase tracking-[0.22em] text-brass">Planes y servicios</p>
         <h1 className="mt-3 max-w-3xl text-4xl text-paper sm:text-5xl">Pagas por ayuda experta, nunca por que te vean</h1>
         <p className="mt-5 max-w-2xl text-lg text-muted">{VISIBILITY_PROMISE}</p>
 
@@ -46,7 +46,7 @@ export default async function PricingPage() {
               <div className={`mt-5 grid gap-4 ${g.cols}`}>
                 {plans.map((p) => (
                   <article key={p.code} className={`flex flex-col rounded-[var(--radius-card)] border bg-surface p-6 ${p.highlight ? 'border-brass/60' : 'border-line'}`}>
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-faint">{AUDIENCE_LABEL[p.audience]}</p>
+                    <p className="text-xs uppercase tracking-[0.18em] text-faint">{AUDIENCE_LABEL[p.audience]}</p>
                     <h3 className="mt-1 text-xl text-paper">{p.name}</h3>
                     <p className="mt-2">
                       <span className={`font-display text-brass ${/\d/.test(p.price) ? 'text-3xl' : 'text-xl'}`}>{p.price}</span>
@@ -92,7 +92,7 @@ export default async function PricingPage() {
             <li>• Core y Elite se pagan una sola vez con tarjeta (Stripe) y se activan solos en cuanto se confirma el pago. Mientras el pago online no esté activo, la solicitud no te compromete a nada.</li>
             <li>• Signature es a medida: primero hablamos de tu caso y el precio se cierra por escrito antes de cualquier pago.</li>
             <li>• Ningún plan garantiza admisión, beca ni contrato, ni da prioridad en el escaparate.</li>
-            <li>• Los servicios a consumidores incluyen el derecho de desistimiento cuando corresponda. Condiciones completas en los <Link href="/legal/terminos" className="text-brass hover:underline">términos</Link>.</li>
+            <li>• Los servicios a consumidores incluyen el derecho de desistimiento cuando corresponda. Condiciones completas en los <Link href="/legal/terminos" className="text-brass underline underline-offset-2">términos</Link>.</li>
           </ul>
         </section>
       </main>

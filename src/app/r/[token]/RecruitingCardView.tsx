@@ -94,7 +94,7 @@ export function RecruitingCardView({ card: c }: { card: RecruitingCard }) {
             <div key={s.label} className={`bg-surface px-4 py-4 ${i % 2 === 1 ? 'border-l border-line' : ''} ${i > 1 ? 'border-t border-line sm:border-t-0' : ''} ${i === 2 ? 'sm:border-l' : ''}`}>
               <dt className="text-xs text-faint">{s.label}</dt>
               <dd className="mt-1 font-display text-2xl font-bold tabular-nums text-paper">{s.value}</dd>
-              {s.note && <dd className="text-[11px] text-faint">{s.note}</dd>}
+              {s.note && <dd className="text-xs text-faint">{s.note}</dd>}
             </div>
           ))}
         </dl>

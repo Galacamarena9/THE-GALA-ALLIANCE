@@ -216,7 +216,7 @@ export function PracticeEngine({ exam, questions, seed }: { exam: 'sat' | 'toefl
                 state === 'right' ? 'border-ok/60 bg-ok/10' : state === 'wrong' ? 'border-danger/60 bg-danger/10' : 'border-line hover:border-brass/50'
               }`}
             >
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-line text-[11px]">{String.fromCharCode(65 + i)}</span>
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-line text-xs">{String.fromCharCode(65 + i)}</span>
               <span>{opt}</span>
             </button>
           );

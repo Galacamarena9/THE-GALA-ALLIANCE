@@ -46,7 +46,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </Link>
             <Link href="/app/notifications" className="relative rounded-xl p-2 text-muted transition-colors hover:bg-surface hover:text-paper" aria-label={unread ? `Notificaciones: ${unread} sin leer` : 'Notificaciones'}>
               <Bell className="h-5 w-5" aria-hidden strokeWidth={1.8} />
-              {!!unread && <span className="absolute right-0.5 top-0.5 min-w-4 rounded-full bg-brass px-1 text-center text-[10px] font-bold leading-4 text-ink">{unread > 9 ? '9+' : unread}</span>}
+              {!!unread && <span className="absolute right-0.5 top-0.5 min-w-4 rounded-full bg-brass px-1 text-center text-xs font-bold leading-4 text-ink">{unread > 9 ? '9+' : unread}</span>}
             </Link>
             <UserMenu name={session.displayName} roles={session.roles.map(roleLabel).join(' · ')} profileHref={profileHref(session.roles)} signOut={signOut} />
           </div>
@@ -58,7 +58,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <Suspense><Sidebar sections={sections} /></Suspense>
           <div className="mx-3 mt-8 rounded-2xl border border-line bg-ink p-4">
             <p className="text-sm font-bold text-paper">¿No sabes por dónde empezar?</p>
-            <p className="mt-1 text-xs leading-relaxed text-muted">Pulsa <kbd className="rounded border border-line-strong px-1 text-[10px]">Ctrl K</kbd> y escribe lo que quieres hacer, o pregunta a Gala IA.</p>
+            <p className="mt-1 text-xs leading-relaxed text-muted">Pulsa <kbd className="rounded border border-line-strong px-1 text-xs">Ctrl K</kbd> y escribe lo que quieres hacer, o pregunta a Gala IA.</p>
           </div>
         </aside>
         <main id="main-content" className="min-w-0 flex-1 px-5 pb-28 pt-8 sm:px-8 lg:px-10 lg:pb-12">

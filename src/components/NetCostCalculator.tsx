@@ -41,9 +41,9 @@ export function NetCostCalculator() {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center gap-2" role="tablist" aria-label="Opciones a comparar">
+      <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Opciones a comparar">
         {offers.map((o, i) => (
-          <button key={o.id} role="tab" aria-selected={i === active} onClick={() => setActive(i)} className={cx('rounded-full border px-4 py-1.5 text-sm', i === active ? 'border-brass text-brass' : 'border-line-strong text-muted hover:text-paper')}>
+          <button key={o.id} aria-pressed={i === active} onClick={() => setActive(i)} className={cx('rounded-full border px-4 py-1.5 text-sm', i === active ? 'border-brass text-brass' : 'border-line-strong text-muted hover:text-paper')}>
             {o.name}
           </button>
         ))}
@@ -79,7 +79,7 @@ export function NetCostCalculator() {
             <dl className="grid grid-cols-2 gap-3">
               <div className="rounded-xl bg-ink/50 p-4"><dt className="text-xs text-faint">Coste bruto / año</dt><dd className="font-display text-2xl tabular-nums text-paper">{usd(r.gross)}</dd></div>
               <div className="rounded-xl bg-ink/50 p-4"><dt className="text-xs text-faint">Ayuda confirmada</dt><dd className="font-display text-2xl tabular-nums text-ok">{usd(r.confirmed)}</dd></div>
-              <div className="col-span-2 rounded-xl border border-brass/40 bg-ink/50 p-4"><dt className="text-xs text-brass">Aportación familiar estimada / año</dt><dd className="font-display text-4xl tabular-nums text-paper">{usd(r.familyFirstYear)}</dd><p className="text-xs text-faint">≈ {usd(r.monthly)} al mes</p></div>
+              <div className="col-span-2 rounded-xl border border-brass/40 bg-ink/50 p-4"><dt className="text-xs text-brass">Aportación familiar estimada / año</dt><dd className="font-display text-4xl tabular-nums text-paper">{usd(r.familyFirstYear)}</dd><dd className="text-xs text-faint">≈ {usd(r.monthly)} al mes</dd></div>
             </dl>
             <table className="mt-5 w-full text-sm">
               <thead className="text-left text-xs text-faint"><tr><th className="font-normal">Escenario</th><th className="text-right font-normal">1.er año</th><th className="text-right font-normal">Total {offer.years} años</th></tr></thead>

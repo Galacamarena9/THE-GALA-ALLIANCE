@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { requireSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
 import { CAMPAIGN_KIND_LABEL, COMPENSATION_LABEL, usd } from '@/lib/domain/labels';
+import { NIL_GO_THRESHOLD_USD, nilGoApplies } from '@/lib/domain/ncaa';
 import { Badge, Card, CardTitle, EmptyState, Notice, PageHeader } from '@/components/ui';
 import { CampaignApplyForm, ReportButton } from '@/components/forms';
 import { moveCampaignApplication, setCampaignStatus } from '@/app/actions/marketplace';
@@ -42,6 +43,15 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
             <div className="sm:col-span-2"><dt className="text-faint">Derechos de uso</dt><dd className="text-paper">{c.usage_rights ?? 'No indicados: pregunta antes de aceptar'}</dd></div>
             <div><dt className="text-faint">Plazo</dt><dd className="text-paper">{c.application_deadline ?? 'Abierto'}</dd></div>
           </dl>
+          <div className="mt-6 rounded-2xl border border-line bg-surface-2 p-4 text-sm leading-relaxed text-muted">
+            <p className="font-semibold text-paper">Cumplimiento NIL en EE. UU.</p>
+            <p className="mt-1">
+              {nilGoApplies(c.compensation_usd)
+                ? `Este acuerdo supera los ${NIL_GO_THRESHOLD_USD} $: si el atleta compite en NCAA División I, debe declararlo en NIL Go (College Sports Commission) en los 5 días hábiles siguientes a firmarlo.`
+                : `Si el acuerdo llega a ${NIL_GO_THRESHOLD_USD} $ o más (sumando pagos del mismo pagador) y el atleta compite en NCAA División I, debe declararlo en NIL Go en 5 días hábiles.`}{' '}
+              Los atletas internacionales con visado de estudiante tienen límites para cobrar en EE. UU.: consultadlo con un abogado de inmigración antes de firmar.
+            </p>
+          </div>
         </Card>
         <div className="space-y-5">
           {isMember ? (

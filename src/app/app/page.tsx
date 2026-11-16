@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowRight, CheckCircle2, Circle, Sparkles } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 import { FeedbackForm } from '@/components/growth';
 import { requireSession, type SessionContext } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
@@ -13,6 +13,10 @@ import { Badge, ButtonLink, Card, Meter } from '@/components/ui';
 import { AskGala } from '@/components/AskGala';
 import { Reveal } from '@/components/Reveal';
 import { AgentHome } from './AgentHome';
+import { ROLE_SHORTCUTS, RoleHero, ShortcutTiles } from '@/components/RoleHero';
+import { PlanUnlocks } from '@/components/PlanUnlocks';
+import { ProgressRing } from '@/components/ProgressRing';
+import { isoDaysAgo } from '@/lib/domain/funnel';
 
 export const metadata: Metadata = { title: 'Inicio' };
 
@@ -68,18 +72,44 @@ async function stepsFor(session: SessionContext): Promise<{ steps: Step[]; score
   return { score: null, steps: [{ label: 'Revisa el panel de mando', href: '/app/admin/panel' }] };
 }
 
+/** Lo nuevo para cada actor: la cifra que más le importa al abrir la app, con su enlace. Datos reales filtrados por RLS. */
+async function roleSignal(session: SessionContext, supabase: Awaited<ReturnType<typeof createClient>>, role: string | undefined) {
+  const weekAgo = isoDaysAgo(7);
+  if (role === 'athlete') {
+    const { count } = await supabase.from('recruiting_link_views').select('id, recruiting_links!inner(athlete_id)', { count: 'exact', head: true }).eq('recruiting_links.athlete_id', session.userId).gte('viewed_at', weekAgo);
+    return { label: 'Aperturas de tu enlace (7 días)', value: count ?? 0, href: '/app/share', cta: (n: number) => `Mira quién ha abierto tu perfil (${n})` };
+  }
+  if (role === 'parent') {
+    const { count } = await supabase.from('contact_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending_guardian');
+    return { label: 'Contactos por aprobar', value: count ?? 0, href: '/app/family', cta: (n: number) => `Revisa ${n} solicitud${n > 1 ? 'es' : ''} de contacto` };
+  }
+  if (role === 'university' || role === 'coach') {
+    const { count } = await supabase.from('applications').select('id', { count: 'exact', head: true }).eq('status', 'applied');
+    return { label: 'Candidaturas nuevas', value: count ?? 0, href: '/app/applications', cta: (n: number) => `Revisa ${n} candidatura${n > 1 ? 's' : ''} nueva${n > 1 ? 's' : ''}` };
+  }
+  if (role === 'brand') {
+    const { count } = await supabase.from('campaign_applications').select('id', { count: 'exact', head: true }).eq('status', 'applied');
+    return { label: 'Candidaturas a tus campañas', value: count ?? 0, href: '/app/campaigns?view=mine', cta: (n: number) => `Revisa ${n} candidatura${n > 1 ? 's' : ''}` };
+  }
+  return null;
+}
+
 export default async function HomePage() {
   const session = await requireSession();
   const primary = session.primaryRole ?? session.roles[0];
   // El agente tiene un inicio propio (Agent Workspace) centrado en su cartera.
   if (primary === 'agent') return <AgentHome session={session} />;
   const supabase = await createClient();
-  const [{ steps, score }, plan, { data: activity }] = await Promise.all([
+  const [{ steps, score }, plan, { data: activity }, { count: unreadCount }, signal] = await Promise.all([
     stepsFor(session),
     session.roles.some((r) => r === 'athlete' || r === 'parent') ? familyPlan([session.userId]) : Promise.resolve(null),
     supabase.from('notifications').select('id, title, body, link, created_at, read_at').eq('user_id', session.userId).order('created_at', { ascending: false }).limit(5),
+    supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', session.userId).is('read_at', null),
+    roleSignal(session, supabase, primary),
   ]);
   const done = steps.filter((s) => s.done).length;
+  const nextStep = steps.find((s) => !s.done);
+  const unread = unreadCount ?? 0;
   const sections = sidebarFor(session.roles).filter((s) => s.title !== 'Inicio');
   const initials = session.displayName.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join('');
   const PLAN_NAME: Record<string, string> = { free: 'Passport gratis', family_core: 'Core', family_elite: 'Elite', family_signature: 'Signature' };
@@ -106,7 +136,7 @@ export default async function HomePage() {
 
         <Reveal delay={80}>
           <Card>
-            <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.18em] text-faint">Actividad reciente</p>
+            <p className="mb-3 text-[13px] font-semibold text-faint">Actividad reciente</p>
             {activity?.length ? (
               <ul className="space-y-3">
                 {activity.map((n) => (
@@ -126,37 +156,54 @@ export default async function HomePage() {
       </div>
 
       <div className="min-w-0 space-y-6">
-        <Reveal>
-          <header>
-            <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-brass">
-              <Sparkles className="h-3 w-3" aria-hidden /> Tu resumen
-            </p>
-            <h1 className="text-3xl font-bold tracking-tight text-paper sm:text-4xl">Hola, {session.displayName.split(' ')[0]}</h1>
-            <p className="mt-2 text-muted">Todo el proceso de becas en EE. UU. en un solo sitio. Empieza por tus primeros pasos.</p>
-          </header>
-        </Reveal>
+        <RoleHero
+          role={primary ?? 'athlete'}
+          firstName={session.displayName.split(' ')[0]}
+          status={done === steps.length ? 'Todo al día' : `${steps.length - done} paso${steps.length - done > 1 ? 's' : ''} por completar`}
+          next={signal && signal.value > 0 ? { label: signal.cta(signal.value), href: signal.href } : nextStep ? { label: nextStep.label, href: nextStep.href } : undefined}
+          stats={[
+            ...(score != null ? [{ label: 'Passport listo', value: score, suffix: '%' }] : []),
+            ...(signal ? [{ label: signal.label, value: signal.value, href: signal.href }] : []),
+            { label: 'Primeros pasos', value: done, note: `de ${steps.length}` },
+            { label: 'Avisos sin leer', value: unread },
+          ]}
+        />
+
+        {primary && ROLE_SHORTCUTS[primary] && <ShortcutTiles items={ROLE_SHORTCUTS[primary]!} />}
+
+        {plan && <PlanUnlocks plan={plan} />}
 
         <Reveal delay={60}>
           <Card className="relative overflow-hidden">
             <div className="glow-gold pointer-events-none absolute -right-20 -top-20 h-60 w-60" aria-hidden />
-            <div className="relative mb-4 flex items-center justify-between gap-4">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-brass">Primeros pasos</p>
-                <h2 className="text-lg font-bold text-paper">{done === steps.length ? '¡Todo listo! Ya estás en marcha.' : `Te faltan ${steps.length - done} pasos para sacarle todo el partido`}</h2>
+            <div className="relative grid gap-6 lg:grid-cols-[auto_1fr] lg:items-center">
+              <div className="flex items-center gap-5">
+                <ProgressRing value={score ?? (steps.length ? (done / steps.length) * 100 : 0)} label={score != null ? 'Passport listo' : 'Primeros pasos completados'} />
+                <div>
+                  <p className="text-[13px] font-semibold text-brass">{score != null ? 'Tu Passport' : 'Primeros pasos'}</p>
+                  <h2 className="font-display text-[28px] font-bold uppercase leading-[0.95] text-paper">{done === steps.length ? 'Todo listo' : 'En marcha'}</h2>
+                  <p className="mt-1 max-w-xs text-sm text-muted">{nextStep ? <>Siguiente: <Link href={nextStep.href} className="font-semibold text-brass underline underline-offset-2">{nextStep.label}</Link></> : 'Ya puedes sacarle todo el partido.'}</p>
+                </div>
               </div>
-              <span className="font-display text-3xl font-bold tabular-nums text-paper">{done}<span className="text-base text-faint">/{steps.length}</span></span>
+              {/* Tu camino: los pasos como línea de tiempo horizontal. */}
+              <ol className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Tu camino">
+                {steps.map((s, i) => {
+                  const current = !s.done && s === nextStep;
+                  return (
+                    <li key={s.label} className="relative">
+                      {i < steps.length - 1 && <span className={`absolute left-9 right-0 top-4 hidden h-0.5 xl:block ${s.done ? 'bg-brass' : 'bg-line'}`} aria-hidden />}
+                      <Link href={s.href} className="group relative block rounded-xl p-1">
+                        <span className={`relative grid h-8 w-8 place-items-center rounded-full border text-xs font-bold transition-all ${s.done ? 'border-brass bg-brass text-white' : current ? 'border-brass bg-surface text-brass ring-4 ring-brass/10' : 'border-line bg-surface text-faint'}`}>
+                          {s.done ? <CheckCircle2 className="h-4 w-4" aria-hidden /> : i + 1}
+                        </span>
+                        <span className={`mt-2 block text-sm font-semibold leading-snug ${s.done ? 'text-muted line-through decoration-faint/60' : 'text-paper group-hover:text-brass'}`}>{s.label}</span>
+                        <span className={`text-xs ${current ? 'font-semibold text-brass' : 'text-faint'}`}>{s.done ? 'Completado' : current ? 'Estás aquí' : 'Pendiente'}</span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ol>
             </div>
-            <ol className="relative grid gap-2 sm:grid-cols-2">
-              {steps.map((s) => (
-                <li key={s.label}>
-                  <Link href={s.href} className={`group flex items-center gap-3 rounded-xl border px-3 py-3 text-sm transition-all ${s.done ? 'border-ok/25 bg-ok/5 text-muted' : 'border-line bg-ink/40 text-paper hover:border-brass/50 hover:bg-brass/5'}`}>
-                    {s.done ? <CheckCircle2 className="h-5 w-5 shrink-0 text-ok" aria-hidden /> : <Circle className="h-5 w-5 shrink-0 text-faint group-hover:text-brass" aria-hidden />}
-                    <span className={`flex-1 ${s.done ? 'line-through decoration-faint/60' : ''}`}>{s.label}</span>
-                    {!s.done && <ArrowRight className="h-4 w-4 text-faint transition-transform group-hover:translate-x-1 group-hover:text-brass" aria-hidden />}
-                  </Link>
-                </li>
-              ))}
-            </ol>
           </Card>
         </Reveal>
 
@@ -170,7 +217,7 @@ export default async function HomePage() {
         {sections.map((section, si) => (
           <Reveal key={section.title} delay={120 + si * 40}>
             <section aria-labelledby={`sec-${si}`}>
-              <h2 id={`sec-${si}`} className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-faint">{section.title}</h2>
+              <h2 id={`sec-${si}`} className="mb-3 text-[13px] font-semibold text-faint">{section.title}</h2>
               <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {section.items.map((s) => (
                   <li key={s.href}>

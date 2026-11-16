@@ -1,12 +1,13 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
-import type { OrgType, VerificationStatus } from '@/lib/types';
+import type { Division, OrgType, VerificationStatus } from '@/lib/types';
 
 export interface MyOrg {
   id: string;
   name: string;
   type: OrgType;
   verification_status: VerificationStatus;
+  division: Division | null;
   member_role: 'admin' | 'recruiter' | 'coach';
 }
 
@@ -15,7 +16,7 @@ export async function myOrganizations(userId: string): Promise<MyOrg[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from('organization_members')
-    .select('member_role, organizations(id, name, type, verification_status)')
+    .select('member_role, organizations(id, name, type, verification_status, division)')
     .eq('user_id', userId);
   return (data ?? [])
     .map((m) => {

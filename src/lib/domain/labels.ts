@@ -70,7 +70,7 @@ export const PIPELINE_STATUS_LABEL: Record<ApplicationStatus, string> = {
   information_requested: 'Info solicitada',
   interview: 'Entrevista',
   tryout: 'Prueba',
-  shortlist: 'Shortlist',
+  shortlist: 'Preselección',
   offer: 'Oferta',
   accepted: 'Aceptada',
   declined: 'Descartada',

@@ -22,14 +22,14 @@ const PILL: Record<string, string> = {
 export function StatusPill({ status, className }: { status: RepStatus; className?: string }) {
   const m = REP_META[status];
   return (
-    <span title={m.hint} className={cx('inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset', PILL[m.tone], className)}>
+    <span title={m.hint} className={cx('inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset', PILL[m.tone], className)}>
       <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
       {m.label}
     </span>
   );
 }
 
-const AVATAR_SIZE = { sm: 'h-8 w-8 text-[11px]', md: 'h-10 w-10 text-xs', lg: 'h-14 w-14 text-base', xl: 'h-20 w-20 text-2xl' } as const;
+const AVATAR_SIZE = { sm: 'h-8 w-8 text-xs', md: 'h-10 w-10 text-xs', lg: 'h-14 w-14 text-base', xl: 'h-20 w-20 text-2xl' } as const;
 
 /** Avatar del atleta. Sin foto, muestra sus iniciales sobre el color de su deporte (el deporte siempre va también en texto al lado). */
 export function AthleteAvatar({ name, src, sport, size = 'md', className }: { name: string; src: string | null; sport?: string | null; size?: keyof typeof AVATAR_SIZE; className?: string }) {
@@ -56,7 +56,7 @@ export function KpiTile({
       <span className="min-w-0">
         <span className="block text-xs text-muted">{label}</span>
         <CountUp value={value} className="mt-0.5 block font-display text-[34px] font-bold leading-none tabular-nums text-paper" />
-        {hint && <span className={cx('mt-1.5 block text-[11px]', hintTone === 'danger' ? 'text-danger' : hintTone === 'ok' ? 'text-ok' : 'text-faint')}>{hint}</span>}
+        {hint && <span className={cx('mt-1.5 block text-xs', hintTone === 'danger' ? 'text-danger' : hintTone === 'ok' ? 'text-ok' : 'text-faint')}>{hint}</span>}
       </span>
     </div>
   );
