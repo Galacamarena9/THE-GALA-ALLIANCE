@@ -49,8 +49,8 @@ EE. UU.", home sobrecargada, ningún marketplace visible sin registro, liquidez 
 | 3 | Marketplace público `/oportunidades` con filtros por vertical | ✅ PR #11 |
 | 4 | Centro de confianza `/seguridad` | ✅ PR #11 |
 | 5 | Navegación pública v2 (Oportunidades, Para quién, Cómo funciona, Recursos, Precios, Seguridad) | ✅ PR #11 |
-| 6 | Passport público con OG propio y QR | Siguiente |
-| 7 | Gala Match con subpuntuaciones y confianza | Siguiente |
+| 6 | Passport público con vista previa al compartir (solo adultos públicos); QR pendiente | ✅ PR #12 (OG) |
+| 7 | Gala Match con áreas y nivel de confianza (motor rules-1.1) | ✅ PR #12 |
 | 8 | Flujo completo club: publicar prueba → candidatos → pipeline | Fase 1-2 |
 | 9 | Kit de piloto: invitación de organizaciones socias y seguimiento de liquidez | Fase 1 |
 | 10 | Medición anónima del embudo (sin cookies, agregada) | Fase 1 |
@@ -120,9 +120,9 @@ partes generan interacciones cualificadas cada semana.
 
 | ID | Épica | Título | Perfil | Prioridad | Esfuerzo | Archivos | Criterio de aceptación | KPI | Fase |
 |---|---|---|---|---|---|---|---|---|---|
-| ID-01 | Identity | OG y metadatos por Passport público | Atleta | P1 | S | `app/athletes/[id]` | Vista previa con nombre, deporte y posición; nunca para menores | CTR compartidos | 1 |
+| ID-01 | Identity | OG y metadatos por Passport público | Atleta | P1 | S | `app/athletes/[id]` | Vista previa con nombre, deporte y posición; nunca para menores | CTR compartidos | 1 ✅ |
 | ID-02 | Identity | QR del Passport | Atleta, club | P2 | S | `app/share` | QR descargable que apunta al enlace privado | Aperturas por QR | 1 |
-| OP-01 | Opportunities | Match por áreas con confianza | Atleta | P1 | M | `lib/domain/match.ts`, tests | Subpuntuación deportiva/académica/económica/plazos; "confianza baja" si faltan ≥2 datos | Candidaturas/match visto | 1 |
+| OP-01 | Opportunities | Match por áreas con confianza | Atleta | P1 | M | `lib/domain/match.ts`, tests | Áreas deportiva/académica/económica/plazos; confianza baja con < 60 % de datos | Candidaturas/match visto | 1 ✅ |
 | OP-02 | Opportunities | Detalle público de oportunidad (sin datos sensibles) | Visitante | P1 | M | `app/oportunidades/[id]` | Solo publicadas y verificadas; CTA a Passport | Visitas → Passport | 1 |
 | OP-03 | Opportunities | Flujo de club: publicar prueba | Club | P1 | M | `app/opportunities/new` | Tipo `tryout` con campos propios, revisión automática | Pruebas publicadas | 2 |
 | NW-01 | Network | Follow de organizaciones | Atleta | P3 | L | migración nueva, RLS, tests | Sin follows visibles en menores; denuncia y bloqueo | Retorno semanal | 3 |
