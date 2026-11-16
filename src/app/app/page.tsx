@@ -15,6 +15,7 @@ import { Reveal } from '@/components/Reveal';
 import { AgentHome } from './AgentHome';
 import { ROLE_SHORTCUTS, RoleHero, ShortcutTiles } from '@/components/RoleHero';
 import { PlanUnlocks } from '@/components/PlanUnlocks';
+import { isoDaysAgo } from '@/lib/domain/funnel';
 
 export const metadata: Metadata = { title: 'Inicio' };
 
@@ -70,17 +71,40 @@ async function stepsFor(session: SessionContext): Promise<{ steps: Step[]; score
   return { score: null, steps: [{ label: 'Revisa el panel de mando', href: '/app/admin/panel' }] };
 }
 
+/** Lo nuevo para cada actor: la cifra que más le importa al abrir la app, con su enlace. Datos reales filtrados por RLS. */
+async function roleSignal(session: SessionContext, supabase: Awaited<ReturnType<typeof createClient>>, role: string | undefined) {
+  const weekAgo = isoDaysAgo(7);
+  if (role === 'athlete') {
+    const { count } = await supabase.from('recruiting_link_views').select('id, recruiting_links!inner(athlete_id)', { count: 'exact', head: true }).eq('recruiting_links.athlete_id', session.userId).gte('viewed_at', weekAgo);
+    return { label: 'Aperturas de tu enlace (7 días)', value: count ?? 0, href: '/app/share', cta: (n: number) => `Mira quién ha abierto tu perfil (${n})` };
+  }
+  if (role === 'parent') {
+    const { count } = await supabase.from('contact_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending_guardian');
+    return { label: 'Contactos por aprobar', value: count ?? 0, href: '/app/family', cta: (n: number) => `Revisa ${n} solicitud${n > 1 ? 'es' : ''} de contacto` };
+  }
+  if (role === 'university' || role === 'coach') {
+    const { count } = await supabase.from('applications').select('id', { count: 'exact', head: true }).eq('status', 'applied');
+    return { label: 'Candidaturas nuevas', value: count ?? 0, href: '/app/applications', cta: (n: number) => `Revisa ${n} candidatura${n > 1 ? 's' : ''} nueva${n > 1 ? 's' : ''}` };
+  }
+  if (role === 'brand') {
+    const { count } = await supabase.from('campaign_applications').select('id', { count: 'exact', head: true }).eq('status', 'applied');
+    return { label: 'Candidaturas a tus campañas', value: count ?? 0, href: '/app/campaigns?view=mine', cta: (n: number) => `Revisa ${n} candidatura${n > 1 ? 's' : ''}` };
+  }
+  return null;
+}
+
 export default async function HomePage() {
   const session = await requireSession();
   const primary = session.primaryRole ?? session.roles[0];
   // El agente tiene un inicio propio (Agent Workspace) centrado en su cartera.
   if (primary === 'agent') return <AgentHome session={session} />;
   const supabase = await createClient();
-  const [{ steps, score }, plan, { data: activity }, { count: unreadCount }] = await Promise.all([
+  const [{ steps, score }, plan, { data: activity }, { count: unreadCount }, signal] = await Promise.all([
     stepsFor(session),
     session.roles.some((r) => r === 'athlete' || r === 'parent') ? familyPlan([session.userId]) : Promise.resolve(null),
     supabase.from('notifications').select('id, title, body, link, created_at, read_at').eq('user_id', session.userId).order('created_at', { ascending: false }).limit(5),
     supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', session.userId).is('read_at', null),
+    roleSignal(session, supabase, primary),
   ]);
   const done = steps.filter((s) => s.done).length;
   const nextStep = steps.find((s) => !s.done);
@@ -135,9 +159,10 @@ export default async function HomePage() {
           role={primary ?? 'athlete'}
           firstName={session.displayName.split(' ')[0]}
           status={done === steps.length ? 'Todo al día' : `${steps.length - done} paso${steps.length - done > 1 ? 's' : ''} por completar`}
-          next={nextStep ? { label: nextStep.label, href: nextStep.href } : undefined}
+          next={signal && signal.value > 0 ? { label: signal.cta(signal.value), href: signal.href } : nextStep ? { label: nextStep.label, href: nextStep.href } : undefined}
           stats={[
             ...(score != null ? [{ label: 'Passport listo', value: score, suffix: '%' }] : []),
+            ...(signal ? [{ label: signal.label, value: signal.value, href: signal.href }] : []),
             { label: 'Primeros pasos', value: done, note: `de ${steps.length}` },
             { label: 'Avisos sin leer', value: unread },
           ]}

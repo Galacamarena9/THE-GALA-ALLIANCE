@@ -7,7 +7,7 @@ import { CountUp } from '@/components/CountUp';
  * Cabecera de inicio por rol: foto ilustrativa, saludo, siguiente paso en lima y cifras reales.
  * Mismo lenguaje visual que el inicio del agente para que toda la app se sienta una.
  */
-interface Stat { label: string; value: number; suffix?: string; note?: string }
+interface Stat { label: string; value: number; suffix?: string; note?: string; href?: string }
 interface Shortcut { href: string; title: string; text: string; img: string }
 
 const HERO_IMG: Partial<Record<AppRole, string>> = {
@@ -76,10 +76,10 @@ export function RoleHero({ role, firstName, status, next, stats }: { role: AppRo
           </Link>
         )}
         {stats.length > 0 && (
-          <dl className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:max-w-2xl">
+          <dl className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:max-w-3xl">
             {stats.map((s) => (
-              <div key={s.label} className="rounded-2xl bg-white/10 px-4 py-3 backdrop-blur">
-                <dt className="text-xs text-lavender">{s.label}</dt>
+              <div key={s.label} className={`relative rounded-2xl bg-white/10 px-4 py-3 backdrop-blur transition-colors ${s.href ? 'hover:bg-white/20' : ''}`}>
+                <dt className="text-xs text-lavender">{s.href ? <Link href={s.href} className="after:absolute after:inset-0">{s.label}</Link> : s.label}</dt>
                 <dd className="font-display text-[34px] font-bold leading-none text-white"><CountUp value={s.value} />{s.suffix}</dd>
                 {s.note && <dd className="mt-1 text-xs text-lavender/80">{s.note}</dd>}
               </div>
