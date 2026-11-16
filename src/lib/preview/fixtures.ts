@@ -3,6 +3,7 @@
  * Son ficticios y nunca se escriben en la base de datos.
  */
 import type { MyOrg } from '@/lib/data/orgs';
+import type { CaseRow } from '@/lib/data/agency-cases';
 import { portfolioStats, type AgencyNote, type PortfolioEntry } from '@/lib/domain/portfolio';
 
 const now = Date.now();
@@ -45,4 +46,19 @@ export const previewPortfolio = {
 export const previewSports = [
   { id: 'basketball', name_es: 'Baloncesto' }, { id: 'football', name_es: 'Fútbol' }, { id: 'volleyball', name_es: 'Voleibol' },
   { id: 'tennis', name_es: 'Tenis' }, { id: 'athletics', name_es: 'Atletismo' }, { id: 'swimming', name_es: 'Natación' },
+];
+
+/** Procesos ficticios del probador (universidades inventadas: nunca se muestran en producción). */
+const pc = (id: string, athleteId: string, athleteName: string, institutionName: string, sportId: string, stage: string, days: number,
+  extra: Partial<CaseRow> = {}): CaseRow => ({
+  id, agencyId: 'org-1', athleteId, athleteName, institutionName, sportId, cycle: '2027-28', stage, ownerId: 'u1', ownerName: 'Carlos Ruiz',
+  contactId: null, nextAction: null, nextActionDue: null, sharedWithAthlete: false, outcomeReason: null, updatedAt: ago(days), createdAt: ago(days + 20), ...extra,
+});
+export const previewCases: CaseRow[] = [
+  pc('c1', 'a1', 'Marcos Jiménez', 'Northfield University', 'basketball', 'contacted', 2, { nextAction: 'Enviar vídeo de la temporada', nextActionDue: inDays(3), sharedWithAthlete: true }),
+  pc('c2', 'a1', 'Marcos Jiménez', 'Lakeshore College', 'basketball', 'active_conversation', 5, { nextAction: 'Llamada con el assistant coach', nextActionDue: inDays(-1) }),
+  pc('c3', 'a2', 'Sofía Martín', 'Westbrook State', 'volleyball', 'evaluation_visit', 3, { ownerName: 'Ana Gil', sharedWithAthlete: true }),
+  pc('c4', 'a3', 'Daniel Kim', 'Pinecrest University', 'football', 'research', 20),
+  pc('c5', 'a2', 'Sofía Martín', 'Harbor Tech', 'volleyball', 'shortlisted', 8, { nextAction: 'Revisar coste neto' }),
+  pc('c6', 'a3', 'Daniel Kim', 'Ridgeview College', 'football', 'closed', 30, { outcomeReason: 'Plantilla completa en su posición' }),
 ];

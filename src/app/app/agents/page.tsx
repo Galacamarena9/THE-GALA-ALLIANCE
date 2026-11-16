@@ -5,6 +5,7 @@ import { Badge, Card, CardTitle, EmptyState, Notice, PageHeader } from '@/compon
 import { respondRepresentation } from '@/app/actions/marketplace';
 import { StatusPill } from '@/components/portfolio';
 import { isRepStatus } from '@/lib/domain/portfolio';
+import { CASE_STAGES, stageLabel } from '@/lib/domain/agency-cases';
 
 export const metadata: Metadata = { title: 'Agentes' };
 
@@ -16,6 +17,17 @@ export default async function AthleteAgentsPage() {
     .select('id, status, message, created_at, organizations(name, website, verification_status)')
     .eq('athlete_id', session.userId)
     .order('created_at', { ascending: false });
+  // Solo llegan los procesos que la agencia ha decidido compartir (lo garantiza la RLS).
+  const { data: cases } = await supabase
+    .from('recruiting_cases')
+    .select('id, agency_id, institution_name, cycle, stage, updated_at')
+    .eq('athlete_id', session.userId)
+    .order('updated_at', { ascending: false });
+  const caseIds = (cases ?? []).map((c) => c.id);
+  const { data: changes } = caseIds.length
+    ? await supabase.from('recruiting_case_activities').select('case_id, from_stage, to_stage, created_at')
+      .in('case_id', caseIds).eq('kind', 'stage_change').order('created_at', { ascending: false })
+    : { data: [] };
 
   return (
     <>
@@ -43,12 +55,43 @@ export default async function AthleteAgentsPage() {
                     )}
                     {r.status === 'active' && <form action={respondRepresentation}><input type="hidden" name="id" value={r.id} /><input type="hidden" name="status" value="ended" /><button className="text-sm text-faint hover:text-danger">Terminar representación</button></form>}
                   </div>
+                  {r.status === 'active' && (
+                    <p className="mt-3 text-xs text-faint">Si terminas la relación, la agencia conserva el historial de lo hecho, pero no puede abrir procesos nuevos con tu nombre.</p>
+                  )}
                 </Card>
               </li>
             );
           })}
         </ul>
-      ) : <EmptyState title="Ninguna propuesta por ahora">No necesitas agente para usar la plataforma: tu Passport ya es visible para universidades verificadas.</EmptyState>}
+      ) : null}
+      {(cases ?? []).length > 0 && (
+        <section className="mt-8" aria-labelledby="my-cases">
+          <h2 id="my-cases" className="mb-1 font-display text-2xl font-bold uppercase text-paper">Tus procesos con universidades</h2>
+          <p className="mb-4 text-sm text-muted">Lo que tu agencia ha decidido compartir contigo: universidad, temporada, fase y cada cambio con su fecha. Si echas en falta algo, pregúntale a tu agente.</p>
+          <ul className="space-y-3">
+            {(cases ?? []).map((c) => {
+              const idx = CASE_STAGES.findIndex((s) => s.id === c.stage);
+              const history = (changes ?? []).filter((h) => h.case_id === c.id);
+              return (
+                <li key={c.id}>
+                  <Card>
+                    <CardTitle kicker={c.cycle} action={<Badge tone={c.stage === 'committed' ? 'ok' : c.stage === 'closed' ? 'danger' : 'neutral'}>{stageLabel(c.stage)}</Badge>}>{c.institution_name}</CardTitle>
+                    <div className="mb-3 flex gap-1" aria-hidden>
+                      {CASE_STAGES.map((s, i) => <span key={s.id} className={`h-1.5 flex-1 rounded-full ${i <= idx && c.stage !== 'closed' ? 'bg-brass' : 'bg-line'}`} />)}
+                    </div>
+                    <ul className="space-y-1 text-xs text-muted">
+                      {history.slice(0, 5).map((h, i) => (
+                        <li key={i}>{h.created_at.slice(0, 10)} · {h.from_stage ? `De «${stageLabel(h.from_stage)}» a «${stageLabel(h.to_stage ?? '')}»` : `Abierto en «${stageLabel(h.to_stage ?? '')}»`}</li>
+                      ))}
+                    </ul>
+                  </Card>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+      {!reps?.length && <EmptyState title="Ninguna propuesta por ahora">No necesitas agente para usar la plataforma: tu Passport ya es visible para universidades verificadas.</EmptyState>}
     </>
   );
 }

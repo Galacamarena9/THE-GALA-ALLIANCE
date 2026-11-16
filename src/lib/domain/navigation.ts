@@ -84,6 +84,8 @@ export const PERSONAL_SERVICES: Record<AppRole, NavItem[]> = {
   ],
   agent: [
     { href: '/app/portfolio', label: 'Cartera', icon: 'handshake', desc: 'Tu cartera: representados, propuestas, notas internas y seguimientos.' },
+    { href: '/app/pipeline', label: 'Procesos', icon: 'pipeline', desc: 'Cada atleta con cada universidad: fase, responsable, tareas e historial.' },
+    { href: '/app/contacts', label: 'Universidades y coaches', icon: 'campus', desc: 'Contactos de programas, privados de tu agencia.', more: true },
     { href: '/app/lists', label: 'Listas', icon: 'list', desc: 'Atletas guardados y búsquedas con alertas.' },
     { href: '/app/organization', label: 'Agencia', icon: 'building', desc: 'Datos de la agencia, verificación y equipo.' },
   ],
