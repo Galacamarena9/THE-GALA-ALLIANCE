@@ -13,7 +13,7 @@ export function PipelineBoard({ cases, view, sportName, writableAgencies }: {
   return view === 'board' ? (
         <div className="-mx-1 flex snap-x gap-4 overflow-x-auto px-1 pb-4">
           {columns.map((col) => (
-            <section key={col.stage.id} aria-labelledby={`st-${col.stage.id}`} className={`flex shrink-0 snap-start flex-col rounded-[var(--radius-card)] border border-line p-3 ${col.items.length ? 'w-[280px] bg-surface-2/60' : 'w-[150px] bg-surface-2/30'}`}>
+            <section key={col.stage.id} aria-labelledby={`st-${col.stage.id}`} className={`relative flex shrink-0 snap-start flex-col rounded-[var(--radius-card)] border border-line p-3 ${col.items.length ? 'w-[280px] bg-surface-2/60' : 'w-[150px] bg-surface-2/30'}`}>
               <header className="mb-3 flex items-start justify-between gap-2 px-1">
                 <div>
                   <h2 id={`st-${col.stage.id}`} className={`font-display font-bold uppercase leading-none ${col.items.length ? 'text-lg text-paper' : 'text-sm text-faint'}`}>{col.stage.label}</h2>
