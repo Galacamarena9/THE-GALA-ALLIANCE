@@ -987,6 +987,30 @@ try {
     await expectError(() => as(null, `select asker_id from opportunity_questions where id = $1`, [qId]), /permission denied/);
     await expectError(() => as(u.uni, `select asker_id from opportunity_questions where id = $1`, [qId]), /permission denied/);
   });
+
+  results.push('\nNetworking: Showcase Day');
+  let evId;
+  await check('solo administración crea jornadas', async () => {
+    await expectError(() => as(u.coach, `insert into showcase_events (title, starts_at, ends_at) values ('Jornada falsa', now(), now() + interval '1 day')`), /row-level security/);
+    evId = (await as(u.admin, `insert into showcase_events (title, sport_id, starts_at, ends_at) values ('Showcase baloncesto', 'basketball', now() + interval '7 days', now() + interval '8 days') returning id`)).rows[0].id;
+  });
+  await check('el atleta se inscribe y puede retirarse', async () => {
+    await as(u.adult, `insert into showcase_entries (event_id, athlete_id) values ($1, $2)`, [evId, u.adult]);
+    eq((await as(u.adult, `select count(*)::int n from showcase_entries where event_id = $1`, [evId])).rows[0].n, 1);
+    await expectError(() => as(u.coach, `insert into showcase_entries (event_id, athlete_id) values ($1, $2)`, [evId, u.adult]), /row-level security|duplicate/);
+  });
+  await check('antes de empezar, las organizaciones no ven a los inscritos', async () => {
+    eq((await as(u.coach, `select count(*)::int n from showcase_entries where event_id = $1`, [evId])).rows[0].n, 0);
+  });
+  await check('en directo: los ven reclutadores verificados, no marcas', async () => {
+    await db.query(`update showcase_events set starts_at = now() - interval '1 hour', ends_at = now() + interval '1 day' where id = $1`, [evId]);
+    eq((await as(u.coach, `select count(*)::int n from showcase_entries where event_id = $1`, [evId])).rows[0].n, 1);
+    eq((await as(u.brand, `select count(*)::int n from showcase_entries where event_id = $1`, [evId])).rows[0].n, 0);
+  });
+  await check('el atleta se retira', async () => {
+    await as(u.adult, `delete from showcase_entries where event_id = $1 and athlete_id = $2`, [evId, u.adult]);
+    eq((await db.query(`select count(*)::int n from showcase_entries where event_id = $1`, [evId])).rows[0].n, 0);
+  });
 } finally {
   console.log(results.join('\n'));
   console.log(`\n${passed} pruebas OK · ${failed} fallidas`);

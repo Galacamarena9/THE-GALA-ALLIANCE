@@ -26,6 +26,7 @@ export const NETWORK_SERVICES: NavItem[] = [
   { href: '/app/discover', label: 'Escaparate de atletas', icon: 'showcase', desc: 'Perfiles comparables: filtra por deporte, posición, año, división o nota.' },
   { href: '/app/inbox', label: 'Mensajes', icon: 'chat', desc: 'Conversaciones seguras; con menores, la familia aprueba y ve el hilo.' },
   { href: '/app/news', label: 'Actualidad', icon: 'news', desc: 'Novedades de atletas, comunicados oficiales y cambios de normativa.' },
+  { href: '/app/showcase', label: 'Showcase Day', icon: 'showcase', desc: 'Jornada mensual: los atletas inscritos ante universidades y clubes verificados, en directo.' },
   { href: '/app/notifications', label: 'Notificaciones', icon: 'bell', desc: 'Respuestas, cambios de estado y avisos de tu cuenta.' },
 ];
 
@@ -143,7 +144,7 @@ export function sidebarFor(roles: AppRole[]): NavSection[] {
   }
   sections.push({
     title: 'Red',
-    items: [...pick(NETWORK_SERVICES, '/app/inbox'), ...pick(NETWORK_SERVICES, '/app/news', { more: true }), ...(family ? [] : pick(OPPORTUNITY_SERVICES, '/app/opportunities', { label: 'Becas', more: true }))],
+    items: [...pick(NETWORK_SERVICES, '/app/inbox'), ...pick(NETWORK_SERVICES, '/app/showcase', family ? { more: true } : {}), ...pick(NETWORK_SERVICES, '/app/news', { more: true }), ...(family ? [] : pick(OPPORTUNITY_SERVICES, '/app/opportunities', { label: 'Becas', more: true }))],
   });
   sections.push({ title: family ? 'Aprender y decidir' : 'Herramientas', items: LEARN_SERVICES, collapsed: true });
   sections.push({ title: 'Cuenta', items: ACCOUNT_SERVICES, collapsed: true });
