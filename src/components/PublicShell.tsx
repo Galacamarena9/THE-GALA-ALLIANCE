@@ -4,12 +4,13 @@ import { Logo } from '@/components/Logo';
 import { ButtonLink } from '@/components/ui';
 import { MobileMenu } from '@/components/PublicMobileMenu';
 import { ACTORS } from '@/lib/domain/roles';
+import { BRAND } from '@/content/brand';
 
 const NAV = [
-  { href: '/#test', label: 'Test gratis' },
+  { href: '/#oportunidades', label: 'Oportunidades' },
   { href: '/#como-funciona', label: 'Cómo funciona' },
+  { href: '/#test', label: 'Test gratis' },
   { href: '/guia', label: 'Guía' },
-  { href: '/calculadora', label: 'Calculadora' },
   { href: '/precios', label: 'Precios' },
 ];
 
@@ -81,9 +82,8 @@ export function PublicFooter() {
       <div className="mx-auto grid max-w-7xl grid-cols-2 gap-10 px-6 py-14 md:grid-cols-5 md:gap-8">
         <div className="col-span-2 md:col-span-2">
           <Logo />
-          <p className="mt-5 max-w-xs text-sm leading-relaxed text-muted">
-            La plataforma de confianza para el reclutamiento deportivo internacional: datos oficiales, organizaciones verificadas y coste real.
-          </p>
+          <p className="mt-5 text-xs font-bold uppercase tracking-[0.18em] text-brass">{BRAND.network}</p>
+          <p className="mt-2 max-w-xs text-sm leading-relaxed text-muted">{BRAND.secondary}</p>
         </div>
         <nav aria-label="Para quién">
           <h4 className="mb-5 text-xs font-bold uppercase tracking-[0.2em] text-paper">Para</h4>
@@ -117,7 +117,7 @@ export function PublicFooter() {
       </div>
       <div className="border-t border-line/40">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 py-5 text-xs text-faint md:flex-row">
-          <p>© {new Date().getFullYear()} The Gala Alliance · No garantizamos admisión, becas ni resultados.</p>
+          <p>© {new Date().getFullYear()} The Gala Alliance · No garantizamos admisión, becas, contratos ni resultados.</p>
           <div className="flex flex-wrap items-center gap-5">
             <span className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5 text-brass" aria-hidden />RGPD</span>
             <span className="flex items-center gap-1.5"><Lock className="h-3.5 w-3.5 text-brass" aria-hidden />Menores protegidos por diseño</span>

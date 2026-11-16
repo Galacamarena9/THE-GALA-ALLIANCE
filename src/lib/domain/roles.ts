@@ -20,7 +20,7 @@ export const ACTORS: {
     intent: 'Soy deportista y busco una beca en EE. UU.',
     label: 'Atleta',
     plural: 'Atletas',
-    promise: 'Tu escaparate ante universidades de todo EE. UU., juegues en la liga que juegues.',
+    promise: 'Un solo Passport ante universidades, clubes y marcas verificados, juegues en la liga que juegues.',
     home: '/app/athlete',
     adultsOnly: false,
     services: ['Passport: tu perfil en el escaparate', 'Encaje explicado con cada beca', 'Roadmap y plazos según tu año', 'Candidaturas con seguimiento', 'Ofertas de marcas (18+)', 'Sports CV en PDF'],

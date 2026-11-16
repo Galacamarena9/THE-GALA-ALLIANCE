@@ -1,98 +1,58 @@
 import Link from 'next/link';
 import {
-  ArrowRight, BadgeCheck, Building2, ChevronDown, CircleCheck, GraduationCap, Handshake, Megaphone, ShieldCheck, Sparkles, Star, Trophy, Users,
+  ArrowRight, Building2, ChevronDown, CircleCheck, GraduationCap, Handshake, IdCard, Megaphone, MessagesSquare, ShieldCheck, Sparkles, Target, Trophy, Users,
 } from 'lucide-react';
-import { ButtonLink } from '@/components/ui';
 import { PublicFooter, PublicHeader } from '@/components/PublicShell';
 import { Reveal } from '@/components/Reveal';
 import { HeroAudience } from '@/components/landing/HeroAudience';
+import { PassportPreview } from '@/components/landing/PassportPreview';
 import { OptionsQuiz } from '@/components/landing/OptionsQuiz';
 import { ProductTour } from '@/components/landing/ProductTour';
-import { Timeline } from '@/components/landing/Timeline';
 import { ACTORS } from '@/lib/domain/roles';
-import { PLANS, VISIBILITY_PROMISE } from '@/content/plans';
-
-/** La foto del hero solo se usa si está en /public (se añade aparte); si no, fondo de rejilla y halos. */
-const DESTINATIONS = [
-  { tag: 'Atletas', title: 'Talento', text: 'Perfiles verificables con vídeo, estadísticas y notas.', img: '/media/hero-athletes.webp', href: '/para/atletas' },
-  { tag: 'Estados Unidos', title: 'Universidades', text: 'Tu deporte, tu próxima universidad y su coste real.', img: '/media/university-campus.webp', href: '/para/universidades' },
-  { tag: 'Internacional', title: 'Clubes', text: 'Clubes y coaches: talento comparable, más allá de las fronteras.', img: '/media/club-training.webp', href: '/para/coaches' },
-];
+import { BRAND, VERTICALS, VERTICAL_STATUS_LABEL } from '@/content/brand';
 
 const ROLE_ICON: Record<string, typeof Users> = { athlete: GraduationCap, parent: Users, university: Building2, coach: Trophy, agent: Handshake, brand: Megaphone };
 const ROLE_TITLE: Record<string, string> = { athlete: 'Soy atleta', parent: 'Soy familia', university: 'Soy universidad', coach: 'Soy coach o club', agent: 'Soy agente', brand: 'Soy marca' };
+const ROLE_IMG: Record<string, string> = { athlete: '/media/hero-athletes.webp', parent: '/media/university-campus-sm.webp', university: '/media/arena-bg.webp', coach: '/media/club-training-sm.webp', agent: '/media/agent-workspace-sm.webp', brand: '/media/hero-bg-poster.jpg' };
+const VERTICAL_IMG: Record<string, string> = { college: '/media/university-campus.webp', clubs: '/media/club-training.webp', brands: '/media/hero-bg-poster.jpg', events: '/media/arena-bg.webp' };
 
 const SPORTS = ['Baloncesto', 'Fútbol', 'Tenis', 'Atletismo', 'Natación', 'Voleibol', 'Golf', 'Remo', 'Hockey', 'Softball', 'Béisbol', 'Pádel', 'Waterpolo', 'Lacrosse', 'Triatlón', 'Esgrima'];
 
-/** Comparativa general (cada agencia es distinta). */
-const COMPARE: { row: string; gala: string; agency: string; alone: string; galaOk: boolean }[] = [
-  { row: 'Precio publicado antes de empezar', gala: 'Sí: 0 € para atletas', agency: 'Normalmente en una llamada', alone: 'Gratis', galaOk: true },
-  { row: 'Pagar para salir más arriba', gala: 'Nunca', agency: 'Depende del paquete', alone: 'No aplica', galaOk: true },
-  { row: 'Solo organizaciones verificadas', gala: 'Sí, por dominio oficial', agency: 'Depende', alone: 'No', galaOk: true },
-  { row: 'Coste real y riesgos de cada oferta', gala: 'Calculadora, sello y memo', agency: 'Depende', alone: 'Lo calculas tú', galaOk: true },
-  { row: 'La familia aprueba los contactos con menores', gala: 'Siempre', agency: 'Depende', alone: 'No', galaOk: true },
-  { row: 'Tus datos: descarga y borrado cuando quieras', gala: 'Sí, autoservicio', agency: 'Depende', alone: 'No aplica', galaOk: true },
-  { row: 'Acompañamiento personal 1:1', gala: 'Opcional (Signature)', agency: 'Sí', alone: 'No', galaOk: true },
+const STEPS = [
+  { n: '01', Icon: IdCard, title: 'Crea tu Sports Passport', text: 'Vídeo, estadísticas, notas e idiomas. Cada dato dice si es declarado, documentado o verificado.' },
+  { n: '02', Icon: Target, title: 'Recibe matches explicados', text: 'Oportunidades de organizaciones verificadas, con por qué encajas y qué te falta.' },
+  { n: '03', Icon: MessagesSquare, title: 'Gestiona tu proceso', text: 'Candidaturas, mensajes y plazos en un solo sitio. Con menores, la familia aprueba cada contacto.' },
 ];
 
-const STATS = [
-  { Icon: Star, value: '0 €', label: 'Para atletas, siempre' },
-  { Icon: Users, value: '6', label: 'Perfiles conectados en una red' },
-  { Icon: ShieldCheck, value: '5 niveles', label: 'Sello de confianza en cada beca' },
-  { Icon: BadgeCheck, value: 'Oficial', label: 'Fuente visible en cada dato' },
-];
-
-/** Los tres fallos del sistema actual (tesis del TFG) y cómo los corrige la plataforma. */
-const FAILURE_IMG = ['/media/hero-athletes-sm.webp', '/media/university-campus-sm.webp', '/media/club-training-sm.webp'];
-const ROLE_IMG: Record<string, string> = { athlete: '/media/hero-athletes.webp', parent: '/media/university-campus-sm.webp', university: '/media/arena-bg.webp', coach: '/media/club-training-sm.webp', agent: '/media/agent-workspace-sm.webp', brand: '/media/hero-bg-poster.jpg' };
-
-const FAILURES = [
-  {
-    n: '01',
-    title: 'Visibilidad que depende de contactos',
-    today: 'Solo se ve a quien va con la selección, juega los mejores campeonatos o tiene un agente con buena agenda.',
-    fix: 'Un Passport estructurado y comparable pone a cualquier atleta con nivel delante de universidades verificadas. El matching ordena por encaje real, no por fama.',
-  },
-  {
-    n: '02',
-    title: 'Asimetría de información',
-    today: 'Cada actor sabe una parte: el atleta no conoce el coste real, la universidad no puede verificar los datos.',
-    fix: 'Cada dato indica su origen (declarado, documentado o verificado), cada beca muestra el coste neto y solo publican organizaciones verificadas.',
-  },
-  {
-    n: '03',
-    title: 'Familias sin mapa',
-    today: 'Un proceso opaco, en otro idioma, con agencias que cobran miles de euros por información que debería ser accesible.',
-    fix: 'Guía con fuentes oficiales, roadmap según el curso, calculadora de coste real, panel familiar y Gala IA para resolver dudas a cualquier hora.',
-  },
-];
-
-const FAQ: [string, string][] = [
-  ['¿Cuánto cuesta?', 'Para atletas es gratis para siempre: perfil, escaparate, candidaturas y recibir contacto. Las familias que quieren ayuda experta pueden contratar servicios de pago único; las organizaciones tienen sus propios planes.'],
-  ['¿Pagar da más visibilidad?', 'No. Ningún plan compra prioridad en el escaparate ni "destacados". El orden depende del encaje con lo que busca cada organización.'],
-  ['¿Garantizáis una beca?', 'No, y desconfía de quien lo haga. Organizamos la información y el proceso; la decisión es de la universidad y de la familia.'],
-  ['¿Es seguro para menores?', 'Sí, por diseño: perfiles privados para anónimos, marcas y agentes; contacto solo de organizaciones verificadas y con la familia en el circuito; sin publicidad perfilada.'],
-  ['¿Necesito el SAT o el TOEFL?', 'La NCAA no exige SAT/ACT desde 2023, pero muchas universidades piden un examen de inglés y algunas el SAT para admisión o becas académicas. La Academia te ayuda a prepararlos.'],
-  ['¿De dónde salen los datos de las universidades?', 'Del College Scorecard del U.S. Department of Education y de las webs oficiales de cada universidad, siempre con la fuente y la fecha visibles.'],
+const PASSPORT_POINTS = [
+  'Enlaces para compartirlo con coaches y ver quién lo abre, con privacidad por bloque',
+  'Origen visible de cada dato: declarado, documentado o confirmado por el club',
+  'Recruiting Readiness: qué completar primero y cuánto suma',
 ];
 
 const TRUST = [
   'Perfiles de menores privados por defecto, nunca visibles para marcas ni agentes.',
   'Universidades, clubes, agencias y marcas verificadas con su dominio oficial antes de publicar o contactar.',
-  'Cada beca pasa controles automáticos antes de publicarse y lleva un sello de confianza de 5 niveles con sus señales de alarma.',
+  'Cada oportunidad pasa controles automáticos y lleva un sello de confianza de 5 niveles con sus señales de alarma.',
   'Tus datos, tus reglas: visibilidad por bloque, descarga de datos y borrado.',
   'Normas NCAA integradas: una universidad D-I o D-II no puede escribirte antes de la fecha que marca tu curso.',
-  'Colaboraciones con marcas con aviso NIL Go: desde 600 $, los atletas D-I saben qué declarar y cuándo.',
+  'Colaboraciones con marcas solo para mayores de edad, con aviso NIL para atletas universitarios.',
+];
+
+const FAQ: [string, string][] = [
+  ['¿Cuánto cuesta?', 'Para atletas es gratis para siempre: Passport, oportunidades, candidaturas y recibir contacto. Las familias que quieren ayuda experta pueden contratar servicios de pago único; las organizaciones tienen sus propios planes.'],
+  ['¿Pagar da más visibilidad?', 'No. Ningún plan compra prioridad ni "destacados". El orden depende del encaje con lo que busca cada organización.'],
+  ['¿Garantizáis una beca o un contrato?', 'No, y desconfía de quien lo haga. Organizamos la información y el proceso; la decisión es de la organización y de la familia. Si hoy no hay oportunidades reales para ti, te lo decimos.'],
+  ['¿Es seguro para menores?', 'Sí, por diseño: perfiles privados para anónimos, marcas y agentes; contacto solo de organizaciones verificadas y con la familia en el circuito; sin publicidad perfilada.'],
 ];
 
 export default function Home() {
-  const family = PLANS.filter((p) => p.audience === 'athlete' || p.audience === 'family');
   return (
     <div className="relative">
       <PublicHeader />
 
       <main id="main-content">
-        {/* HERO: vídeo a sangre con velo Noche y selector de perfil */}
+        {/* HERO: una promesa, selector de perfil y producto real a la vista. */}
         <section aria-label="Presentación" className="relative flex min-h-[min(88vh,820px)] items-center overflow-hidden bg-night text-white">
           <div className="absolute inset-0" aria-hidden>
             {/* Vídeo decorativo sin sonido (0,45 MB). Con "reducir movimiento" se muestra solo la imagen fija. */}
@@ -102,50 +62,170 @@ export default function Home() {
           <HeroAudience />
         </section>
 
-        {/* Franja de confianza + deportes en movimiento */}
-        <section aria-label="Confianza" className="border-y border-line/50 bg-surface/40">
-          <div className="mx-auto grid max-w-6xl grid-cols-2 gap-6 px-6 py-10 lg:grid-cols-4">
-            {STATS.map(({ Icon, value, label }, i) => (
-              <Reveal key={label} delay={i * 80} className="flex items-center gap-3">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brass/10"><Icon className="h-5 w-5 text-brass" aria-hidden /></span>
-                <span><span className="block font-display text-xl font-bold text-paper">{value}</span><span className="block text-xs text-muted">{label}</span></span>
-              </Reveal>
-            ))}
+        {/* Deportes en movimiento */}
+        <div className="relative overflow-hidden border-b border-line/50 bg-surface/40 py-4 [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]" aria-hidden>
+          <div className="marquee flex w-max gap-10 text-sm font-semibold uppercase tracking-[0.2em] text-faint">
+            {[...SPORTS, ...SPORTS].map((s, i) => <span key={i} className="flex items-center gap-10">{s}<span className="text-brass/50">✦</span></span>)}
           </div>
-          <div className="relative overflow-hidden border-t border-line/40 py-4 [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]" aria-hidden>
-            <div className="marquee flex w-max gap-10 text-sm font-semibold uppercase tracking-[0.2em] text-faint">
-              {[...SPORTS, ...SPORTS].map((s, i) => <span key={i} className="flex items-center gap-10">{s}<span className="text-brass/50">✦</span></span>)}
-            </div>
+        </div>
+
+        {/* PRODUCTO: se ve por dentro sin registrarse. */}
+        <section id="producto" aria-labelledby="producto-title" className="scroll-mt-20 px-6 py-24">
+          <div className="mx-auto max-w-6xl">
+            <Reveal className="mb-12 max-w-3xl">
+              <p className="mb-3 text-sm font-semibold text-brass">El producto</p>
+              <h2 id="producto-title" className="font-display text-5xl font-bold uppercase leading-[0.92] text-paper md:text-6xl">Míralo por dentro</h2>
+            </Reveal>
+            <Reveal><ProductTour /></Reveal>
           </div>
         </section>
 
-        {/* DESTINOS: tarjetas con imagen (las fotos son ilustrativas) */}
-        <section aria-labelledby="destinos-title" className="px-6 py-20">
-          <div className="mx-auto max-w-7xl">
-            <div className="flex flex-wrap items-end justify-between gap-4">
-              <div>
-                <p className="text-sm font-semibold text-brass">El marketplace</p>
-                <h2 id="destinos-title" className="mt-1 font-display text-4xl font-bold uppercase text-paper md:text-5xl">¿Cuál es tu próximo destino?</h2>
-              </div>
-              <Link href="/signup" className="text-sm font-semibold text-brass hover:underline">Crear cuenta gratis</Link>
-            </div>
-            <ul className="mt-8 grid gap-4 md:grid-cols-3">
-              {DESTINATIONS.map((d, i) => (
-                <li key={d.title} className={`rise-in rise-in-${i + 1}`}>
-                  <Link href={d.href} className="hover-lift group relative block h-80 overflow-hidden rounded-[var(--radius-card)] bg-night text-white">
-                    {/* eslint-disable-next-line @next/next/no-img-element -- imagen local optimizada (WebP) */}
-                    <img src={d.img} srcSet={`${d.img.replace('.webp', '-sm.webp')} 720w, ${d.img} 1280w`} sizes="(min-width: 768px) 33vw, 100vw" alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.05]" />
-                    <div className="tile-shade absolute inset-0" aria-hidden />
-                    <span className="absolute left-4 top-4 rounded-md bg-night/80 px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-lime backdrop-blur">{d.tag}</span>
-                    <div className="absolute inset-x-0 bottom-0 p-5">
-                      <h3 className="font-display text-3xl font-bold uppercase leading-none">{d.title}</h3>
-                      <p className="mt-2 text-sm text-lavender">{d.text}</p>
+        {/* CÓMO FUNCIONA: tres pasos. */}
+        <section id="como-funciona" aria-labelledby="pasos-title" className="scroll-mt-20 bg-surface-2/60 px-6 py-24">
+          <div className="mx-auto max-w-6xl">
+            <Reveal className="mb-12">
+              <p className="mb-3 text-sm font-semibold text-brass">Cómo funciona</p>
+              <h2 id="pasos-title" className="font-display text-5xl font-bold uppercase leading-[0.92] text-paper md:text-6xl">Tres pasos</h2>
+            </Reveal>
+            <ol className="grid gap-4 md:grid-cols-3">
+              {STEPS.map(({ n, Icon, title, text }, i) => (
+                <Reveal key={n} as="li" delay={i * 100}>
+                  <div className="hover-lift flex h-full flex-col rounded-[var(--radius-card)] border border-line bg-surface p-6">
+                    <div className="flex items-center justify-between">
+                      <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brass/10"><Icon className="h-5 w-5 text-brass" aria-hidden /></span>
+                      <span className="font-display text-4xl font-bold text-brass" aria-hidden>{n}</span>
                     </div>
+                    <h3 className="mt-6 text-lg font-bold text-paper">{title}</h3>
+                    <p className="mt-2 text-sm leading-relaxed text-muted">{text}</p>
+                  </div>
+                </Reveal>
+              ))}
+            </ol>
+          </div>
+        </section>
+
+        {/* OPORTUNIDADES: las verticales reales de la plataforma. */}
+        <section id="oportunidades" aria-labelledby="oportunidades-title" className="scroll-mt-20 px-6 py-24">
+          <div className="mx-auto max-w-7xl">
+            <Reveal className="mb-10 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="mb-3 text-sm font-semibold text-brass">Oportunidades</p>
+                <h2 id="oportunidades-title" className="font-display text-5xl font-bold uppercase leading-[0.92] text-paper md:text-6xl">Un perfil, cuatro caminos</h2>
+              </div>
+              <p className="max-w-sm text-sm text-muted">Solo publican organizaciones verificadas. Si un dato económico no está documentado, se muestra como «No indicado».</p>
+            </Reveal>
+            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {VERTICALS.map((v, i) => (
+                <Reveal key={v.key} as="li" delay={i * 80}>
+                  <Link href={v.href} className="hover-lift group relative flex h-full min-h-[380px] flex-col justify-end overflow-hidden rounded-[var(--radius-card)] bg-night p-6 text-white">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- foto ilustrativa local */}
+                    <img src={VERTICAL_IMG[v.key]} alt="" aria-hidden loading="lazy" className="absolute inset-0 h-full w-full object-cover opacity-70 transition-transform duration-700 group-hover:scale-[1.05]" />
+                    <span className="tile-shade absolute inset-0" aria-hidden />
+                    <span className="absolute left-5 top-5 flex gap-2">
+                      <span className="rounded-md bg-night/80 px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-lime backdrop-blur">{v.tag}</span>
+                      <span className={`rounded-md px-2.5 py-1 text-xs font-semibold backdrop-blur ${v.status === 'live' ? 'bg-white/90 text-night' : 'bg-white/15 text-white'}`}>{VERTICAL_STATUS_LABEL[v.status]}</span>
+                    </span>
+                    <span className="relative">
+                      <span className="block font-display text-3xl font-bold uppercase leading-none">{v.name}</span>
+                      <span className="mt-2 block text-sm text-lavender">{v.text}</span>
+                      <span className="mt-4 flex flex-wrap gap-1.5">
+                        {v.items.map((x) => <span key={x} className="rounded-full bg-white/10 px-2.5 py-1 text-xs text-white/90 ring-1 ring-white/15">{x}</span>)}
+                      </span>
+                    </span>
                   </Link>
-                </li>
+                </Reveal>
               ))}
             </ul>
-            <p className="mt-3 text-xs text-faint">Imágenes ilustrativas: no son atletas ni centros reales de la plataforma.</p>
+            <p className="mt-3 text-xs text-faint">Imágenes ilustrativas.</p>
+          </div>
+        </section>
+
+        {/* PASSPORT + MATCH: la identidad y el encaje explicado. */}
+        <section aria-labelledby="passport-title" className="relative overflow-hidden bg-night px-6 py-24 text-white">
+          <div className="court-lines absolute inset-0 opacity-30" aria-hidden />
+          <div className="relative mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[1.1fr_1fr]">
+            <Reveal>
+              <p className="mb-3 text-sm font-semibold text-lime">Sports Passport · Gala Match</p>
+              <h2 id="passport-title" className="font-display text-5xl font-bold uppercase leading-[0.92] md:text-6xl">Tu identidad deportiva, con el encaje explicado</h2>
+              <p className="mt-5 max-w-lg text-base leading-relaxed text-lavender">Un solo perfil para universidades, clubes, agentes y marcas. Cada match dice por qué encajas, qué te falta y con qué datos se ha calculado. Sin cajas negras.</p>
+              <ul className="mt-6 space-y-2.5">
+                {PASSPORT_POINTS.map((t) => <li key={t} className="flex items-start gap-2.5 text-sm text-white/90"><CircleCheck className="mt-0.5 h-4 w-4 shrink-0 text-lime" aria-hidden />{t}</li>)}
+              </ul>
+              <Link href="/signup?role=athlete" className="group mt-8 inline-flex h-12 items-center gap-2 rounded-xl bg-lime px-8 text-sm font-bold text-night transition-transform hover:-translate-y-0.5 focus-visible:outline-lime">Crear mi Passport <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden /></Link>
+            </Reveal>
+            <Reveal delay={120} className="mx-auto w-full max-w-md"><PassportPreview /></Reveal>
+          </div>
+        </section>
+
+        {/* TEST de opciones: el gancho de captación */}
+        <section id="test" className="scroll-mt-20 px-6 py-24">
+          <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[0.9fr_1.1fr]">
+            <Reveal>
+              <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-trust/30 bg-trust/10 px-3 py-1 text-[13px] font-semibold text-ok"><Sparkles className="h-3.5 w-3.5" aria-hidden /> Gratis · 60 segundos</p>
+              <h2 className="text-3xl font-bold tracking-tight text-paper md:text-5xl">¿Tienes opciones en EE. UU.? <span className="text-brass">Descúbrelo en 60 segundos.</span></h2>
+              <p className="mt-4 max-w-md leading-relaxed text-muted">Cuatro preguntas y te decimos dónde encajarías, qué te haría subir de nivel y tu siguiente paso. Sin registrarte.</p>
+              <ul className="mt-6 space-y-2 text-sm text-muted">
+                {['Sin email ni datos personales', 'Basado en cómo funcionan las divisiones NCAA, NAIA y JUCO', 'Después, universidades reales para tu perfil'].map((t) => <li key={t} className="flex items-center gap-2"><CircleCheck className="h-4 w-4 text-ok" aria-hidden />{t}</li>)}
+              </ul>
+            </Reveal>
+            <Reveal delay={120}><OptionsQuiz /></Reveal>
+          </div>
+        </section>
+
+        {/* PARA QUIÉN: un mosaico de fotos, una por perfil. */}
+        <section id="para-quien" className="scroll-mt-20 bg-surface-2/60 px-6 py-24">
+          <div className="mx-auto max-w-6xl">
+            <Reveal className="mb-12 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+              <h2 className="font-display text-5xl font-bold uppercase leading-[0.92] text-paper md:text-6xl">Una sola red para todo el deporte</h2>
+              <p className="max-w-sm text-sm text-muted">Cada perfil con su espacio y sus herramientas. Todos conectados por el mismo Passport.</p>
+            </Reveal>
+            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {ACTORS.map((a, i) => {
+                const Icon = ROLE_ICON[a.role] ?? Users;
+                return (
+                  <Reveal key={a.role} as="li" delay={(i % 3) * 90} className={a.role === 'athlete' ? 'sm:col-span-2 lg:col-span-1 lg:row-span-2' : a.role === 'brand' ? 'sm:col-span-2 lg:col-span-3' : ''}>
+                    <Link href={`/para/${a.slug}`} className={`group relative flex h-full flex-col justify-end overflow-hidden rounded-[var(--radius-card)] bg-night p-6 text-white ${a.role === 'athlete' ? 'min-h-[300px] lg:min-h-[100%]' : a.role === 'brand' ? 'min-h-[220px]' : 'min-h-[260px]'}`}>
+                      {/* eslint-disable-next-line @next/next/no-img-element -- foto ilustrativa local */}
+                      <img src={ROLE_IMG[a.role] ?? '/media/arena-bg-sm.webp'} alt="" aria-hidden className="absolute inset-0 h-full w-full object-cover opacity-80 transition-transform duration-700 group-hover:scale-110" />
+                      <span className="tile-shade absolute inset-0" aria-hidden />
+                      <span className="relative mb-auto flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15 backdrop-blur transition-colors duration-300 group-hover:bg-lime group-hover:text-night"><Icon className="h-5 w-5" aria-hidden /></span>
+                      <span className="relative mt-16">
+                        <span className="block font-display text-3xl font-bold uppercase leading-none">{ROLE_TITLE[a.role] ?? a.plural}</span>
+                        <span className="mt-2 block text-sm text-lavender">{a.promise}</span>
+                        <span className="mt-0 grid grid-rows-[0fr] transition-all duration-500 group-hover:mt-3 group-hover:grid-rows-[1fr] group-focus-visible:mt-3 group-focus-visible:grid-rows-[1fr]">
+                          <span className="overflow-hidden">
+                            {a.services.slice(0, 3).map((x) => <span key={x} className="flex items-start gap-2 py-0.5 text-xs text-white/90"><CircleCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-lime" aria-hidden />{x}</span>)}
+                          </span>
+                        </span>
+                        <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-lime">Ver lo que incluye <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden /></span>
+                      </span>
+                    </Link>
+                  </Reveal>
+                );
+              })}
+            </ul>
+            <p className="mt-3 text-xs text-faint">Imágenes ilustrativas.</p>
+          </div>
+        </section>
+
+        {/* CONFIANZA: bloque Noche con la promesa de seguridad en grande. */}
+        <section className="px-6 py-20">
+          <div className="relative mx-auto max-w-6xl overflow-hidden rounded-[var(--radius-card)] bg-night px-6 py-14 text-white sm:px-12">
+            <div className="court-lines absolute inset-0 opacity-40" aria-hidden />
+            <div className="relative grid gap-10 lg:grid-cols-[1fr_1.25fr] lg:items-center">
+              <Reveal>
+                <span className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-lime text-night"><ShieldCheck className="h-7 w-7" aria-hidden /></span>
+                <h2 className="font-display text-5xl font-bold uppercase leading-[0.92] md:text-6xl">Hecha para menores, familias y datos reales</h2>
+                <p className="mt-4 max-w-md text-sm leading-relaxed text-lavender">Protección de datos, verificación y transparencia no son extras: están en la base de la plataforma.</p>
+              </Reveal>
+              <ul className="grid gap-3 sm:grid-cols-2">
+                {TRUST.map((t, i) => (
+                  <Reveal key={t} as="li" delay={i * 80}>
+                    <div className="flex h-full gap-3 rounded-2xl bg-white/[0.07] p-4 text-sm leading-relaxed text-white/90 ring-1 ring-white/10 transition-colors duration-300 hover:bg-white/[0.12] hover:ring-lime/40"><CircleCheck className="mt-0.5 h-4 w-4 shrink-0 text-lime" aria-hidden />{t}</div>
+                  </Reveal>
+                ))}
+              </ul>
+            </div>
           </div>
         </section>
 
@@ -185,216 +265,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* TEST de opciones: el gancho de captación */}
-        <section id="test" className="scroll-mt-20 px-6 py-24">
-          <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[0.9fr_1.1fr]">
-            <Reveal>
-              <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-trust/30 bg-trust/10 px-3 py-1 text-[13px] font-semibold text-ok"><Sparkles className="h-3.5 w-3.5" aria-hidden /> Gratis · 60 segundos</p>
-              <h2 className="text-3xl font-bold tracking-tight text-paper md:text-5xl">¿Tienes opciones de beca? <span className="text-brass">Descúbrelo ahora.</span></h2>
-              <p className="mt-4 max-w-md leading-relaxed text-muted">Cuatro preguntas y te decimos dónde encajarías, qué te haría subir de nivel y tu siguiente paso. Sin registrarte.</p>
-              <ul className="mt-6 space-y-2 text-sm text-muted">
-                {['Sin email ni datos personales', 'Basado en cómo funcionan las divisiones NCAA, NAIA y JUCO', 'Después, universidades reales para tu perfil'].map((t) => <li key={t} className="flex items-center gap-2"><CircleCheck className="h-4 w-4 text-ok" aria-hidden />{t}</li>)}
-              </ul>
-            </Reveal>
-            <Reveal delay={120}><OptionsQuiz /></Reveal>
-          </div>
-        </section>
-
-        {/* POR QUÉ: bloque Noche con foto de estadio; cada fallo es una tarjeta con foto y su arreglo en lima. */}
-        <section className="relative overflow-hidden bg-night px-6 py-24 text-white">
-          {/* eslint-disable-next-line @next/next/no-img-element -- fondo decorativo local */}
-          <img src="/media/arena-bg.webp" alt="" aria-hidden className="absolute inset-0 h-full w-full object-cover opacity-25" />
-          <div className="absolute inset-0 bg-gradient-to-b from-night via-night/80 to-night" aria-hidden />
-          <div className="relative mx-auto max-w-6xl">
-            <Reveal className="mb-14 grid gap-6 lg:grid-cols-[1.3fr_1fr] lg:items-end">
-              <div>
-                <p className="mb-4 text-sm font-semibold text-lime">Por qué Gala Alliance</p>
-                <h2 className="font-display text-5xl font-bold uppercase leading-[0.92] text-white md:text-7xl">El reclutamiento ya no es un acto de fe</h2>
-              </div>
-              <p className="text-base leading-relaxed text-lavender lg:pb-2">Tres fallos del sistema actual que dejan fuera a atletas con nivel. Y lo que cambia la plataforma en cada uno.</p>
-            </Reveal>
-            <div className="grid gap-5 md:grid-cols-3">
-              {FAILURES.map((f, i) => (
-                <Reveal key={f.n} delay={i * 120} className="h-full">
-                  <article className="group flex h-full flex-col overflow-hidden rounded-[var(--radius-card)] bg-white/[0.06] ring-1 ring-white/10 backdrop-blur transition-all duration-500 hover:-translate-y-2 hover:bg-white/[0.1] hover:ring-lime/40">
-                    <div className="relative h-44 overflow-hidden">
-                      {/* eslint-disable-next-line @next/next/no-img-element -- foto ilustrativa local */}
-                      <img src={FAILURE_IMG[i]} alt="" aria-hidden className="h-full w-full object-cover grayscale transition-all duration-700 group-hover:scale-110 group-hover:grayscale-0" />
-                      <span className="absolute inset-0 bg-gradient-to-t from-night via-night/40 to-transparent" aria-hidden />
-                      <span className="absolute bottom-2 left-5 font-display text-7xl font-bold leading-none text-white/90 [-webkit-text-stroke:1px_rgb(200_240_60)] [color:transparent] transition-colors duration-500 group-hover:[color:rgb(200_240_60)]">{f.n}</span>
-                    </div>
-                    <div className="flex flex-1 flex-col p-6">
-                      <h3 className="font-display text-2xl font-bold uppercase leading-tight text-white">{f.title}</h3>
-                      <p className="mt-3 text-sm leading-relaxed text-lavender">{f.today}</p>
-                      <div className="mt-auto pt-6">
-                        <div className="rounded-2xl bg-lime px-4 py-4 text-sm leading-relaxed text-night transition-transform duration-500 group-hover:-translate-y-1">
-                          <p className="mb-1 text-xs font-bold">Con Gala</p>
-                          {f.fix}
-                        </div>
-                      </div>
-                    </div>
-                  </article>
-                </Reveal>
-              ))}
-            </div>
-            <p className="mt-6 text-xs text-lavender/70">Imágenes ilustrativas.</p>
-          </div>
-        </section>
-
-        {/* PRODUCTO */}
-        <section id="producto" className="scroll-mt-20 px-6 py-24">
-          <div className="mx-auto max-w-6xl">
-            <Reveal className="mb-14 max-w-3xl">
-              <p className="mb-3 text-sm font-semibold text-brass">El producto</p>
-              <h2 className="font-display text-5xl font-bold uppercase leading-[0.92] text-paper md:text-6xl">Míralo por dentro antes de registrarte</h2>
-            </Reveal>
-            <Reveal><ProductTour /></Reveal>
-          </div>
-        </section>
-
-        {/* CÓMO FUNCIONA: calendario por curso, sobre una franja de pista. */}
-        <section id="como-funciona" className="scroll-mt-20 px-6 py-24">
-          <div className="mx-auto max-w-6xl">
-            <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-stretch">
-              <Reveal variant="left" className="relative min-h-[320px] overflow-hidden rounded-[var(--radius-card)] bg-night">
-                {/* eslint-disable-next-line @next/next/no-img-element -- foto ilustrativa local */}
-                <img src="/media/club-training.webp" alt="" aria-hidden className="absolute inset-0 h-full w-full object-cover opacity-80" />
-                <div className="tile-shade absolute inset-0" aria-hidden />
-                <div className="absolute inset-x-0 bottom-0 p-7">
-                  <p className="mb-3 text-sm font-semibold text-lime">Cómo funciona</p>
-                  <h2 className="font-display text-5xl font-bold uppercase leading-[0.92] text-white md:text-6xl">Qué hacer en cada curso</h2>
-                  <p className="mt-3 max-w-sm text-sm text-lavender">Pulsa tu etapa. La plataforma te lo recuerda con fechas según tu promoción.</p>
-                </div>
-              </Reveal>
-              <Reveal delay={120} className="flex flex-col justify-center rounded-[var(--radius-card)] border border-line bg-surface p-5 sm:p-7">
-                <Timeline />
-                <ButtonLink href="/signup" className="group mt-8 h-12 self-start px-8 font-semibold">Empezar gratis ahora <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden /></ButtonLink>
-              </Reveal>
-            </div>
-          </div>
-        </section>
-
-        {/* COMPARATIVA */}
-        <section className="px-6 py-24">
-          <div className="mx-auto max-w-5xl">
-            <Reveal className="mb-12 text-center">
-              <h2 className="mb-3 font-display text-5xl font-bold uppercase leading-none text-paper md:text-6xl">Gala frente a las alternativas</h2>
-              <p className="mx-auto max-w-xl text-sm text-muted">Lo que cambia respecto a una agencia tradicional o a hacerlo por tu cuenta.</p>
-            </Reveal>
-            <Reveal>
-              <div className="overflow-x-auto rounded-[var(--radius-card)] border border-line bg-surface shadow-[var(--shadow-elevated)]">
-                <table className="w-full min-w-[640px] text-sm">
-                  <thead>
-                    <tr className="bg-surface">
-                      <th scope="col" className="p-4 text-left text-xs font-normal text-faint"><span className="sr-only">Aspecto</span></th>
-                      <th scope="col" className="bg-night p-4 text-left"><span className="flex items-center gap-2 font-bold text-white"><span className="flex h-6 w-6 items-center justify-center rounded-md bg-lime text-xs font-black text-night">G</span>The Gala Alliance</span></th>
-                      <th scope="col" className="p-4 text-left font-semibold text-muted">Agencia tradicional</th>
-                      <th scope="col" className="p-4 text-left font-semibold text-muted">Por tu cuenta</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {COMPARE.map((c) => (
-                      <tr key={c.row} className="border-t border-line transition-colors hover:bg-surface-2">
-                        <th scope="row" className="p-4 text-left font-normal text-paper">{c.row}</th>
-                        <td className="bg-night p-4"><span className="flex items-start gap-2 font-semibold text-white"><CircleCheck className="mt-0.5 h-4 w-4 shrink-0 text-lime" aria-hidden />{c.gala}</span></td>
-                        <td className="p-4 text-muted">{c.agency}</td>
-                        <td className="p-4 text-muted">{c.alone}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <p className="mt-3 text-center text-xs text-faint">Comparativa general: cada agencia trabaja de forma distinta.</p>
-            </Reveal>
-          </div>
-        </section>
-
-        {/* PARA QUIÉN: un mosaico de fotos, una por perfil. */}
-        <section id="para-quien" className="scroll-mt-20 bg-surface-2/60 px-6 py-24">
-          <div className="mx-auto max-w-6xl">
-            <Reveal className="mb-12 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-              <h2 className="font-display text-5xl font-bold uppercase leading-[0.92] text-paper md:text-6xl">Seis perfiles, una sola red</h2>
-              <p className="max-w-sm text-sm text-muted">Cada uno con su espacio y sus herramientas. Elige el tuyo.</p>
-            </Reveal>
-            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {ACTORS.map((a, i) => {
-                const Icon = ROLE_ICON[a.role] ?? Users;
-                return (
-                  <Reveal key={a.role} as="li" delay={(i % 3) * 90} className={a.role === 'athlete' ? 'sm:col-span-2 lg:col-span-1 lg:row-span-2' : a.role === 'brand' ? 'sm:col-span-2 lg:col-span-3' : ''}>
-                    <Link href={`/para/${a.slug}`} className={`group relative flex h-full flex-col justify-end overflow-hidden rounded-[var(--radius-card)] bg-night p-6 text-white ${a.role === 'athlete' ? 'min-h-[300px] lg:min-h-[100%]' : a.role === 'brand' ? 'min-h-[220px]' : 'min-h-[260px]'}`}>
-                      {/* eslint-disable-next-line @next/next/no-img-element -- foto ilustrativa local */}
-                      <img src={ROLE_IMG[a.role] ?? '/media/arena-bg-sm.webp'} alt="" aria-hidden className="absolute inset-0 h-full w-full object-cover opacity-80 transition-transform duration-700 group-hover:scale-110" />
-                      <span className="tile-shade absolute inset-0" aria-hidden />
-                      <span className="relative mb-auto flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15 backdrop-blur transition-colors duration-300 group-hover:bg-lime group-hover:text-night"><Icon className="h-5 w-5" aria-hidden /></span>
-                      <span className="relative mt-16">
-                        <span className="block font-display text-3xl font-bold uppercase leading-none">{ROLE_TITLE[a.role] ?? a.plural}</span>
-                        <span className="mt-2 block text-sm text-lavender">{a.promise}</span>
-                        <span className="mt-0 grid grid-rows-[0fr] transition-all duration-500 group-hover:mt-3 group-hover:grid-rows-[1fr] group-focus-visible:mt-3 group-focus-visible:grid-rows-[1fr]">
-                          <span className="overflow-hidden">
-                            {a.services.slice(0, 3).map((x) => <span key={x} className="flex items-start gap-2 py-0.5 text-xs text-white/90"><CircleCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-lime" aria-hidden />{x}</span>)}
-                          </span>
-                        </span>
-                        <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-lime">Ver lo que incluye <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden /></span>
-                      </span>
-                    </Link>
-                  </Reveal>
-                );
-              })}
-            </ul>
-            <p className="mt-3 text-xs text-faint">Imágenes ilustrativas.</p>
-          </div>
-        </section>
-
-        {/* PLANES */}
-        <section className="border-y border-line/50 bg-surface/40 px-6 py-24">
-          <div className="mx-auto max-w-6xl">
-            <Reveal className="mb-12 text-center">
-              <h2 className="mb-3 font-display text-5xl font-bold uppercase leading-none text-paper md:text-6xl">Precios claros, sin llamadas comerciales</h2>
-              <p className="mx-auto max-w-2xl text-sm text-muted">{VISIBILITY_PROMISE}</p>
-            </Reveal>
-            <ul className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              {family.map((p, i) => (
-                <Reveal key={p.code} as="li" delay={i * 80}>
-                  <div className={`relative flex h-full flex-col rounded-2xl border p-6 transition-all duration-300 hover:-translate-y-1 ${p.highlight ? 'animate-pulse-glow border-brass/40 bg-brass/[0.06]' : 'border-line bg-surface hover:border-brass/30'}`}>
-                    {p.highlight && <span className="absolute -top-3 left-6 rounded-full bg-brass px-3 py-0.5 text-xs font-semibold text-ink">Más elegido</span>}
-                    <p className="text-sm font-semibold text-paper">{p.name}</p>
-                    <p className="mt-2 font-display text-3xl font-bold text-paper">{p.price}</p>
-                    <p className="text-xs text-faint">{p.priceNote}</p>
-                    <p className="mt-3 text-sm text-muted">{p.pitch}</p>
-                    <ul className="mt-4 space-y-1.5">
-                      {p.includes.slice(0, 3).map((x) => <li key={x} className="flex items-start gap-2 text-xs text-muted"><CircleCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brass" aria-hidden />{x}</li>)}
-                    </ul>
-                  </div>
-                </Reveal>
-              ))}
-            </ul>
-            <Reveal className="mt-10 text-center">
-              <ButtonLink href="/precios" variant="secondary" className="px-8">Ver todos los planes</ButtonLink>
-            </Reveal>
-          </div>
-        </section>
-
-        {/* CONFIANZA: bloque Noche con la promesa de seguridad en grande. */}
-        <section className="px-6 py-20">
-          <div className="relative mx-auto max-w-6xl overflow-hidden rounded-[var(--radius-card)] bg-night px-6 py-14 text-white sm:px-12">
-            <div className="court-lines absolute inset-0 opacity-40" aria-hidden />
-            <div className="relative grid gap-10 lg:grid-cols-[1fr_1.25fr] lg:items-center">
-              <Reveal>
-                <span className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-lime text-night"><ShieldCheck className="h-7 w-7" aria-hidden /></span>
-                <h2 className="font-display text-5xl font-bold uppercase leading-[0.92] md:text-6xl">Hecha para menores, familias y datos reales</h2>
-                <p className="mt-4 max-w-md text-sm leading-relaxed text-lavender">Protección de datos, verificación y transparencia no son extras: están en la base de la plataforma.</p>
-              </Reveal>
-              <ul className="grid gap-3 sm:grid-cols-2">
-                {TRUST.map((t, i) => (
-                  <Reveal key={t} as="li" delay={i * 80}>
-                    <div className="flex h-full gap-3 rounded-2xl bg-white/[0.07] p-4 text-sm leading-relaxed text-white/90 ring-1 ring-white/10 transition-colors duration-300 hover:bg-white/[0.12] hover:ring-lime/40"><CircleCheck className="mt-0.5 h-4 w-4 shrink-0 text-lime" aria-hidden />{t}</div>
-                  </Reveal>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </section>
-
         {/* PREGUNTAS: titular grande a la izquierda y respuestas a la derecha. */}
         <section className="px-6 py-24">
           <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[0.8fr_1.2fr]">
@@ -424,10 +294,10 @@ export default function Home() {
           <video className="hero-video absolute inset-0 h-full w-full object-cover opacity-50" src="/media/hero-bg.mp4" poster="/media/hero-bg-poster.jpg" autoPlay muted loop playsInline aria-hidden />
           <div className="absolute inset-0 bg-gradient-to-t from-night via-night/70 to-night/40" aria-hidden />
           <Reveal className="relative mx-auto max-w-3xl text-center">
-            <h2 className="font-display text-6xl font-bold uppercase leading-[0.9] md:text-8xl">Conoce tus opciones reales</h2>
+            <h2 className="font-display text-6xl font-bold uppercase leading-[0.9] md:text-8xl">One profile. Every opportunity.</h2>
             <p className="mx-auto mt-5 max-w-md text-base text-lavender">Crea tu Passport gratis. Si hoy no hay ofertas reales que encajen contigo, te lo diremos claro y te diremos qué mejorar.</p>
             <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <Link href="/signup?role=athlete" className="group inline-flex h-12 items-center gap-2 rounded-xl bg-lime px-10 text-sm font-bold text-night transition-transform hover:-translate-y-0.5">Crear mi Passport gratis <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden /></Link>
+              <Link href="/signup?role=athlete" className="group inline-flex h-12 items-center gap-2 rounded-xl bg-lime px-10 text-sm font-bold text-night transition-transform hover:-translate-y-0.5">Crear mi Passport <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden /></Link>
               <Link href="#test" className="inline-flex h-12 items-center rounded-xl px-8 text-sm font-semibold text-white ring-1 ring-white/30 transition-colors hover:bg-white/10">Hacer el test primero</Link>
             </div>
           </Reveal>
@@ -438,7 +308,7 @@ export default function Home() {
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-ink/95 p-3 backdrop-blur-xl md:hidden">
         <div className="flex gap-2">
           <Link href="#test" className="flex-1 rounded-xl border border-line-strong py-3 text-center text-sm text-paper">Hacer el test</Link>
-          <Link href="/signup?role=athlete" className="btn-shine flex-1 rounded-xl bg-brass py-3 text-center text-sm font-bold text-ink">Crear Passport</Link>
+          <Link href="/signup?role=athlete" className="btn-shine flex-1 rounded-xl bg-brass py-3 text-center text-sm font-bold text-ink">Crear mi Passport</Link>
         </div>
       </div>
 
@@ -448,7 +318,7 @@ export default function Home() {
           __html: JSON.stringify({
             '@context': 'https://schema.org',
             '@graph': [
-              { '@type': 'Organization', name: 'The Gala Alliance', description: 'Plataforma de reclutamiento deportivo internacional y becas en Estados Unidos.' },
+              { '@type': 'Organization', name: 'The Gala Alliance', slogan: BRAND.claim, description: BRAND.secondary },
               { '@type': 'FAQPage', mainEntity: FAQ.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })) },
             ],
           }).replace(/</g, '\\u003c'),
