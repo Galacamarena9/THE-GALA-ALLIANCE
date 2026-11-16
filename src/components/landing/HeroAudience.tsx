@@ -12,7 +12,7 @@ const AUDIENCES: Record<Key, { tab: string; Icon: typeof Users; text: string; ct
   athlete: {
     tab: 'Atleta', Icon: GraduationCap,
     text: BRAND.heroText,
-    cta: ['Crear mi Passport', '/signup?role=athlete'], alt: ['Explorar oportunidades', '#oportunidades'],
+    cta: ['Crear mi Passport gratis', '/signup?role=athlete'], alt: ['Explorar oportunidades', '/oportunidades'],
   },
   family: {
     tab: 'Familia', Icon: Users,
@@ -95,7 +95,7 @@ export function HeroAudience() {
     <div className="relative mx-auto grid w-full max-w-7xl items-center gap-12 px-6 py-16 lg:grid-cols-[1.2fr_1fr] lg:py-20">
       <div className="max-w-3xl">
         <p className="animate-fade-in-up mb-4 text-xs font-bold uppercase tracking-[0.22em] text-lime">{BRAND.network}</p>
-        <h1 className="animate-fade-in-up font-display text-5xl font-bold uppercase leading-[0.95] text-white md:text-7xl">
+        <h1 className="animate-fade-in-up font-display text-5xl font-bold uppercase leading-[0.95] text-white md:text-6xl xl:text-7xl">
           {BRAND.heroTitle[0]} <span className="text-lime">{BRAND.heroTitle[1]}</span>
         </h1>
         <div role="tablist" aria-label="¿Quién eres?" className="animate-fade-in-up mt-8 inline-flex flex-wrap gap-1 rounded-2xl border border-white/15 bg-white/10 p-1 backdrop-blur-md [animation-delay:60ms]">
@@ -126,6 +126,11 @@ export function HeroAudience() {
             </Link>
             <Link href={a.alt[1]} className="inline-flex h-12 items-center rounded-xl border border-white/30 px-8 text-sm font-semibold text-white transition-all hover:scale-[1.02] hover:bg-white/10">{a.alt[0]}</Link>
           </div>
+          {k === 'athlete' && (
+            <Link href="/#para-quien" className="inline-flex items-center gap-1 text-sm font-semibold text-lime underline-offset-4 hover:underline">
+              Soy una organización <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+            </Link>
+          )}
         </div>
         <ul className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-lavender" aria-label="Compromisos">
           {BRAND.trust.map((t, i) => {

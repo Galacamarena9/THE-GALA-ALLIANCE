@@ -22,13 +22,14 @@ export interface OpportunityCardData {
   organizations: { name: string; verification_status: string; website?: string | null; type?: string | null } | null;
 }
 
-export function OpportunityCard({ o, match, showStatus }: { o: OpportunityCardData; match?: MatchResult; showStatus?: boolean }) {
+/** `href` permite enlazar a otro destino (p. ej. el marketplace público lleva a crear el Passport). */
+export function OpportunityCard({ o, match, showStatus, href }: { o: OpportunityCardData; match?: MatchResult; showStatus?: boolean; href?: string }) {
   const net = o.annual_cost_usd != null && o.aid_amount_usd != null ? o.annual_cost_usd - o.aid_amount_usd : null;
   const daysLeft = o.deadline ? daysUntil(o.deadline) : null;
   // El sello solo se muestra cuando la consulta trae los campos necesarios para calcularlo.
   const assessed = o.updated_at !== undefined ? assessOpportunity(o) : null;
   return (
-    <Link href={`/app/opportunities/${o.id}`} className="flex h-full flex-col rounded-[var(--radius-card)] border border-line bg-surface p-5 transition-colors hover:border-brass/60">
+    <Link href={href ?? `/app/opportunities/${o.id}`} className="flex h-full flex-col rounded-[var(--radius-card)] border border-line bg-surface p-5 transition-colors hover:border-brass/60">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate text-xs text-muted">

@@ -1,7 +1,7 @@
 import { BadgeCheck, FileCheck2, PenLine, PlayCircle } from 'lucide-react';
 
 /**
- * Vista previa ilustrativa del Sports Passport (persona ficticia).
+ * Vista previa ilustrativa del Opportunity Passport (persona ficticia).
  * Muestra el principio de procedencia: cada dato indica si es declarado, documentado o confirmado por el club.
  */
 const ROWS: { label: string; value: string; source: 'club' | 'doc' | 'self' }[] = [
@@ -22,7 +22,7 @@ export function PassportPreview() {
       <div className="flex items-center gap-4">
         <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-brass to-brass-deep font-display text-xl font-bold text-white">LM</span>
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-semibold text-brass">Sports Passport · ejemplo</p>
+          <p className="text-xs font-semibold text-brass">Opportunity Passport · ejemplo</p>
           <p className="truncate text-base font-bold">Lucía M.</p>
           <p className="text-xs text-muted">Baloncesto · Base · Promoción 2027 · Valencia</p>
         </div>

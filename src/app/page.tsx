@@ -19,7 +19,7 @@ const VERTICAL_IMG: Record<string, string> = { college: '/media/university-campu
 const SPORTS = ['Baloncesto', 'Fútbol', 'Tenis', 'Atletismo', 'Natación', 'Voleibol', 'Golf', 'Remo', 'Hockey', 'Softball', 'Béisbol', 'Pádel', 'Waterpolo', 'Lacrosse', 'Triatlón', 'Esgrima'];
 
 const STEPS = [
-  { n: '01', Icon: IdCard, title: 'Crea tu Sports Passport', text: 'Vídeo, estadísticas, notas e idiomas. Cada dato dice si es declarado, documentado o verificado.' },
+  { n: '01', Icon: IdCard, title: 'Crea tu Opportunity Passport', text: 'Vídeo, estadísticas, notas e idiomas. Cada dato dice si es declarado, documentado o verificado.' },
   { n: '02', Icon: Target, title: 'Recibe matches explicados', text: 'Oportunidades de organizaciones verificadas, con por qué encajas y qué te falta.' },
   { n: '03', Icon: MessagesSquare, title: 'Gestiona tu proceso', text: 'Candidaturas, mensajes y plazos en un solo sitio. Con menores, la familia aprueba cada contacto.' },
 ];
@@ -145,7 +145,7 @@ export default function Home() {
           <div className="court-lines absolute inset-0 opacity-30" aria-hidden />
           <div className="relative mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[1.1fr_1fr]">
             <Reveal>
-              <p className="mb-3 text-sm font-semibold text-lime">Sports Passport · Gala Match</p>
+              <p className="mb-3 text-sm font-semibold text-lime">Opportunity Passport · Gala Match</p>
               <h2 id="passport-title" className="font-display text-5xl font-bold uppercase leading-[0.92] md:text-6xl">Tu identidad deportiva, con el encaje explicado</h2>
               <p className="mt-5 max-w-lg text-base leading-relaxed text-lavender">Un solo perfil para universidades, clubes, agentes y marcas. Cada match dice por qué encajas, qué te falta y con qué datos se ha calculado. Sin cajas negras.</p>
               <ul className="mt-6 space-y-2.5">

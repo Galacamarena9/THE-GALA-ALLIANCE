@@ -5,7 +5,7 @@
 La red deportiva que conecta a **atletas, familias, universidades, clubes, coaches, agentes y marcas** con información
 verificable, para que ningún atleta con nivel dependa de su visibilidad, de su liga o de los contactos de su agente.
 College Recruiting (becas en EE. UU.) es la vertical principal; clubes y academias, marcas y eventos completan la red.
-Posicionamiento centralizado en `src/content/brand.ts`. Auditoría y plan por fases: [docs/AUDIT_PLAN.md](docs/AUDIT_PLAN.md).
+Posicionamiento centralizado en `src/content/brand.ts`. Auditoría: [docs/AUDIT_PLAN.md](docs/AUDIT_PLAN.md) · Estrategia, roadmap y backlog: [docs/STRATEGY.md](docs/STRATEGY.md).
 
 Stack: Next.js 16 (App Router) · Supabase (Postgres + Auth + RLS) · Netlify · Claude API (Gala IA).
 
