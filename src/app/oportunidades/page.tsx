@@ -106,9 +106,9 @@ export default async function PublicOpportunitiesPage({ searchParams }: { search
               <>
                 <p className="mb-4 text-sm text-muted" aria-live="polite">{items.length === PAGE ? `Mostrando las ${PAGE} con plazo más próximo` : `${items.length} ${items.length === 1 ? 'oportunidad publicada' : 'oportunidades publicadas'}`}</p>
                 <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {items.map((o) => <li key={o.id}><OpportunityCard o={o} href={`/signup?role=athlete&from=opportunity`} /></li>)}
+                  {items.map((o) => <li key={o.id}><OpportunityCard o={o} href={`/oportunidades/${o.id}`} /></li>)}
                 </ul>
-                <p className="mt-4 text-xs text-faint">Para ver el detalle, tu compatibilidad y candidatar, crea tu {BRAND.passport} gratis.</p>
+                <p className="mt-4 text-xs text-faint">Para ver tu compatibilidad y candidatar, crea tu {BRAND.passport} gratis.</p>
               </>
             ) : (
               <EmptyState title="Todavía no hay oportunidades publicadas aquí" action={<div className="flex flex-col gap-2 sm:flex-row"><ButtonLink href="/signup?role=athlete">Crear mi Passport gratis</ButtonLink><ButtonLink href="/signup?role=university" variant="secondary">Publicar como organización</ButtonLink></div>}>
