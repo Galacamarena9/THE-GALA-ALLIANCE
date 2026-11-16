@@ -960,6 +960,33 @@ try {
     eq((await as(u.coach, `select count(*)::int n from club_recommendations where id = $1`, [recId])).rows[0].n, 1);
     eq((await db.query(`select count(*)::int n from notifications where user_id = $1 and kind = 'recommendation.new'`, [u.adult])).rows[0].n, 1);
   });
+
+  results.push('\nNetworking: preguntas abiertas en cada beca');
+  const pubOpp = (await db.query(`select id from opportunities where title = 'Beca baloncesto 2028' and status = 'published' limit 1`)).rows[0].id;
+  let qId;
+  await check('un atleta pregunta en una beca publicada', async () => {
+    qId = (await as(u.adult, `insert into opportunity_questions (opportunity_id, body) values ($1, '¿Qué nivel de inglés pedís para la admisión?') returning id`, [pubOpp])).rows[0].id;
+    eq((await db.query(`select asker_id from opportunity_questions where id = $1`, [qId])).rows[0].asker_id, u.adult);
+  });
+  await check('en público no se comparten emails, teléfonos ni redes', async () => {
+    await expectError(() => as(u.adult, `insert into opportunity_questions (opportunity_id, body) values ($1, 'Escribidme a atleta@test.dev por favor')`, [pubOpp]), /contact_data_not_allowed/);
+  });
+  await check('sin responder: la ven quien pregunta y la organización, no otros atletas', async () => {
+    eq((await as(u.privateAth, `select count(*)::int n from opportunity_questions where id = $1`, [qId])).rows[0].n, 0);
+    eq((await as(u.uni, `select count(*)::int n from opportunity_questions where id = $1`, [qId])).rows[0].n, 1);
+  });
+  await check('el atleta no puede responder; la organización sí y queda visible para todos', async () => {
+    await as(u.adult, `update opportunity_questions set answer = 'Me respondo yo' where id = $1`, [qId]);
+    eq((await db.query(`select answer from opportunity_questions where id = $1`, [qId])).rows[0].answer, null);
+    await as(u.uni, `update opportunity_questions set answer = 'Pedimos TOEFL 80 o Duolingo 105.' where id = $1`, [qId]);
+    eq((await as(u.privateAth, `select count(*)::int n from opportunity_questions where id = $1`, [qId])).rows[0].n, 1);
+    eq((await as(null, `select count(*)::int n from opportunity_questions where id = $1`, [qId])).rows[0].n, 1);
+    eq((await db.query(`select count(*)::int n from notifications where user_id = $1 and kind = 'question.answered'`, [u.adult])).rows[0].n, 1);
+  });
+  await check('quién preguntó no se expone (ni en público ni a otros usuarios)', async () => {
+    await expectError(() => as(null, `select asker_id from opportunity_questions where id = $1`, [qId]), /permission denied/);
+    await expectError(() => as(u.uni, `select asker_id from opportunity_questions where id = $1`, [qId]), /permission denied/);
+  });
 } finally {
   console.log(results.join('\n'));
   console.log(`\n${passed} pruebas OK · ${failed} fallidas`);

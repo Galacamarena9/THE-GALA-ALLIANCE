@@ -13,6 +13,7 @@ import type { Opportunity } from '@/lib/types';
 import { Badge, Card, CardTitle, EmptyState, Notice, PageHeader } from '@/components/ui';
 import { ApplyOpportunityForm, ReportButton } from '@/components/forms';
 import { deleteOpportunity, submitForReview } from '@/app/actions/opportunities';
+import { AnswerQuestionForm, AskQuestionForm } from '@/components/QuestionForms';
 
 export const metadata: Metadata = { title: 'Oportunidad' };
 
@@ -37,6 +38,9 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
   const isMember = Boolean(membership);
   const isAthlete = session.roles.includes('athlete');
   if (isAthlete && !isMember) await logEvent('opportunity_viewed');
+  const { data: questions } = await supabase.from('opportunity_questions').select('id, body, answer, answered_at, created_at').eq('opportunity_id', id).order('created_at', { ascending: false }).limit(50);
+  const answered = (questions ?? []).filter((q) => q.answered_at);
+  const pending = (questions ?? []).filter((q) => !q.answered_at);
 
   const passport = isAthlete ? await loadPassport(session.userId) : null;
   const match = passport?.profile ? matchAthleteToOpportunity({ ...passport.profile, annual_budget_usd: passport.annualBudgetUsd }, passport.academics, opp) : null;
@@ -187,6 +191,33 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
           ) : (
             <EmptyState title="Aún no hay atletas compatibles visibles para ti">Los perfiles aparecen aquí cuando encajan con deporte, posición, año y nota. Los menores solo son visibles para organizaciones verificadas.</EmptyState>
           )}
+        </Card>
+      )}
+      {opp.status === 'published' && (
+        <Card className="mt-5">
+          <CardTitle kicker="Preguntas y respuestas">Lo que otros atletas han preguntado</CardTitle>
+          {answered.length > 0 ? (
+            <ul className="mb-5 divide-y divide-line">
+              {answered.map((q) => (
+                <li key={q.id} className="py-4 first:pt-0">
+                  <p className="font-semibold text-paper">{q.body}</p>
+                  <p className="mt-1.5 border-l-2 border-brass pl-3 text-sm leading-relaxed text-muted"><span className="font-semibold text-brass">{opp.organizations?.name ?? 'La universidad'}:</span> {q.answer}</p>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mb-5 text-sm text-muted">Aún no hay preguntas respondidas. Las respuestas que dé la universidad quedarán aquí para todos.</p>
+          )}
+          {isMember && pending.length > 0 && (
+            <div className="mb-5 rounded-2xl border border-brass/30 bg-brass/5 p-4">
+              <p className="mb-3 text-sm font-semibold text-paper">{pending.length} pregunta{pending.length > 1 ? 's' : ''} por responder</p>
+              <ul className="space-y-4">
+                {pending.map((q) => <li key={q.id}><p className="text-sm text-paper">“{q.body}”</p><AnswerQuestionForm id={q.id} opportunityId={opp.id} /></li>)}
+              </ul>
+            </div>
+          )}
+          {!isMember && pending.length > 0 && <p className="mb-4 text-xs text-faint">Tienes {pending.length} pregunta{pending.length > 1 ? 's' : ''} pendiente{pending.length > 1 ? 's' : ''} de respuesta.</p>}
+          {!isMember && <AskQuestionForm opportunityId={opp.id} />}
         </Card>
       )}
     </>
