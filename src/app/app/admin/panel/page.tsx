@@ -49,7 +49,8 @@ export default async function AdminPanelPage({ searchParams }: { searchParams: P
     supabase.from('audit_logs').select('created_at, details').eq('action', 'retention.run').order('created_at', { ascending: false }).limit(1),
     // Periodo doble para comparar con el anterior (doble - actual = anterior).
     supabase.rpc('admin_metrics', { p_days: days * 2 }),
-    supabase.from('product_events').select('created_at').eq('event', 'signup_completed').gte('created_at', isoDaysAgo(56)).limit(5000),
+    // Altas reales (perfiles), no el evento: con confirmación por email el evento llega sin sesión.
+    supabase.from('profiles').select('created_at').gte('created_at', isoDaysAgo(56)).limit(5000),
   ]);
   const eventRows = (events ?? []) as { event: string; users: number; total: number }[];
   const paidBy = (paid ?? []).reduce<Record<string, number>>((acc, e) => ({ ...acc, [e.plan_code]: (acc[e.plan_code] ?? 0) + 1 }), {});

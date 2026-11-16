@@ -3,21 +3,14 @@
 import { useActionState } from 'react';
 import { Captcha } from '@/components/Captcha';
 import Link from 'next/link';
-import { signUp, type FormState } from '@/app/actions/auth';
+import { resendConfirmation, signUp, type FormState } from '@/app/actions/auth';
 import { Field, inputClass, Notice } from '@/components/ui';
 import { SubmitButton } from '@/components/SubmitButton';
 
 export function SignupForm({ role }: { role?: string }) {
   const [state, action] = useActionState<FormState, FormData>(signUp, undefined);
 
-  if (state?.ok) {
-    return (
-      <Notice tone="ok">
-        <p className="font-medium">Revisa tu correo</p>
-        <p className="mt-1 text-muted">{state.message}</p>
-      </Notice>
-    );
-  }
+  if (state?.ok) return <CheckEmail email={state.message ?? ''} />;
 
   const fe = state?.fieldErrors ?? {};
   return (
@@ -55,5 +48,30 @@ export function SignupForm({ role }: { role?: string }) {
         ¿Ya tienes cuenta? <Link href="/login" className="text-brass hover:underline">Entrar</Link>
       </p>
     </form>
+  );
+}
+
+function CheckEmail({ email }: { email: string }) {
+  const [resent, resend] = useActionState<FormState, FormData>(resendConfirmation, undefined);
+  return (
+    <div className="space-y-4">
+      <Notice tone="ok">
+        <p className="font-semibold">Revisa tu correo</p>
+        <p className="mt-1">Te hemos enviado un enlace a <strong>{email}</strong> para confirmar la cuenta. Ábrelo desde este mismo dispositivo.</p>
+      </Notice>
+      <div className="rounded-2xl border border-line bg-surface-2 p-4 text-sm text-muted">
+        <p className="font-semibold text-paper">¿No te llega?</p>
+        <ul className="mt-2 space-y-1.5">
+          <li>• Mira en spam o en promociones; puede tardar un par de minutos.</li>
+          <li>• Si ya tenías una cuenta con este email no enviamos otro correo: <Link href="/login" className="text-brass underline underline-offset-2">inicia sesión</Link> o <Link href="/forgot-password" className="text-brass underline underline-offset-2">crea una contraseña nueva</Link>.</li>
+        </ul>
+        <form action={resend} className="mt-3">
+          <input type="hidden" name="email" value={email} />
+          <SubmitButton pendingText="Enviando…">Reenviar el correo</SubmitButton>
+        </form>
+        {resent?.ok && <p className="mt-2 text-ok" role="status">{resent.message}</p>}
+        {resent?.error && <p className="mt-2 text-danger" role="alert">{resent.error}</p>}
+      </div>
+    </div>
   );
 }

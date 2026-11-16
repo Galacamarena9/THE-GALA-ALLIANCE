@@ -67,7 +67,17 @@ export async function signUp(_prev: FormState, formData: FormData): Promise<Form
   const { data } = await supabase.auth.getUser();
   if (data.user) await logEvent('signup_completed');
   if (data.user) redirect(`/onboarding${role ? `?role=${role}` : ''}`);
-  return { ok: true, message: `Te hemos enviado un email a ${email}. Ábrelo para confirmar tu cuenta y continuar.` };
+  return { ok: true, message: email };
+}
+
+/** Reenvía el correo de confirmación. Misma respuesta exista o no la cuenta (sin enumeración). */
+export async function resendConfirmation(_prev: FormState, formData: FormData): Promise<FormState> {
+  const email = z.string().email().safeParse(formData.get('email'));
+  if (!email.success) return { error: 'Email no válido.' };
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resend({ type: 'signup', email: email.data, options: { emailRedirectTo: `${siteUrl()}/auth/callback?next=/onboarding` } });
+  if (error?.status === 429) return { error: 'Has pedido varios correos seguidos. Espera unos minutos y vuelve a intentarlo.' };
+  return { ok: true, message: 'Listo. Si la cuenta está pendiente de confirmar, te llegará un correo nuevo en unos minutos.' };
 }
 
 const loginSchema = z.object({
