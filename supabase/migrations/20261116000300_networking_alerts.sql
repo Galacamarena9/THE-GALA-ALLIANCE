@@ -20,8 +20,7 @@ begin
   end loop;
   return new;
 end $$;
-drop trigger if exists contact_messages_alert on public.contact_messages;
-create trigger contact_messages_alert after insert on public.contact_messages
+create or replace trigger contact_messages_alert after insert on public.contact_messages
   for each row execute function public.alert_new_message();
 
 -- 2) Perfil abierto desde un enlace de reclutamiento.
@@ -40,8 +39,7 @@ begin
   perform public.notify(v_athlete, 'profile.view', 'Alguien ha abierto tu perfil', v_label, '/app/share');
   return new;
 end $$;
-drop trigger if exists recruiting_link_views_alert on public.recruiting_link_views;
-create trigger recruiting_link_views_alert after insert on public.recruiting_link_views
+create or replace trigger recruiting_link_views_alert after insert on public.recruiting_link_views
   for each row execute function public.alert_profile_view();
 
 -- 3) Beca publicada que encaja (deporte; posición y promoción si la oferta las indica). Máx. 500 avisos por beca.
@@ -67,8 +65,7 @@ begin
   end loop;
   return new;
 end $$;
-drop trigger if exists opportunities_match_alert on public.opportunities;
-create trigger opportunities_match_alert after insert or update of status on public.opportunities
+create or replace trigger opportunities_match_alert after insert or update of status on public.opportunities
   for each row execute function public.alert_opportunity_match();
 
 -- Funciones de trigger: nadie las llama por la API.
