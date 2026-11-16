@@ -227,6 +227,32 @@ try {
     eq((await as(u.coach, `select status from opportunities where id = $1`, [oppId])).rows[0].status, 'pending_review', 'con alarmas:');
     await as(u.admin, `update opportunities set status = 'published' where id = $1`, [oppId]);
   });
+  await check('ANÓNIMO: no lee columnas internas de una oportunidad publicada', async () => {
+    await expectError(() => as(null, `select review_note from opportunities where id = $1`, [oppId]), /permission denied/);
+    await expectError(() => as(null, `select created_by from opportunities where id = $1`, [oppId]), /permission denied/);
+    await expectError(() => as(null, `select reviewed_by from opportunities where id = $1`, [oppId]), /permission denied/);
+    await expectError(() => as(null, `select * from opportunities where id = $1`, [oppId]), /permission denied/);
+  });
+  await check('ANÓNIMO: sí lee los datos públicos y si está revisada, no quién la revisó', async () => {
+    const r = (await as(null, `select title, status, is_reviewed from opportunities where id = $1`, [oppId])).rows[0];
+    eq(r.status, 'published');
+    eq(r.is_reviewed, true);
+  });
+  await check('ANÓNIMO: no lee quién creó ni quién verificó una organización', async () => {
+    await expectError(() => as(null, `select created_by from organizations where id = $1`, [uniId]), /permission denied/);
+    await expectError(() => as(null, `select verified_by from organizations where id = $1`, [uniId]), /permission denied/);
+    eq((await as(null, `select name, verification_status from organizations where id = $1`, [uniId])).rows[0].verification_status, 'verified');
+  });
+  await check('ANÓNIMO: las columnas que piden /oportunidades y /oportunidades/[id] son legibles (contrato con src/lib/data/public-opportunity.ts)', async () => {
+    const r = await as(null, `select o.id, o.title, o.type, o.sport_id, o.position_ids, o.graduation_years, o.division, o.min_gpa_4, o.english_required,
+        o.location, o.start_term, o.places, o.deadline, o.annual_cost_usd, o.aid_amount_usd, o.financial_source, o.description, o.status,
+        o.is_reviewed, o.updated_at, g.name, g.type, g.verification_status, g.website
+      from opportunities o join organizations g on g.id = o.organization_id where o.id = $1`, [oppId]);
+    eq(r.rowCount, 1);
+  });
+  await check('CON SESIÓN: el miembro de la organización sigue viendo la nota de revisión', async () => {
+    eq((await as(u.coach, `select count(review_note)::int >= 0 ok from opportunities where id = $1`, [oppId])).rows[0].ok, true);
+  });
 
   results.push('\nCandidaturas y CRM');
   let appId;

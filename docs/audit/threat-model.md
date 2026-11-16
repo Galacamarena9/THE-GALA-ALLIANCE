@@ -6,7 +6,7 @@ servidor; la clave publicable es pública por diseño, así que **la RLS es la f
 
 | ID | Amenaza | Activo | Control actual | Hueco | Prioridad |
 |---|---|---|---|---|---|
-| T-01 | Lectura directa por la API REST con la clave pública | Tablas | RLS en las 60 tablas, 161 políticas, 84 pruebas | Columnas internas de oportunidades publicadas legibles: `review_note`, `created_by`, `reviewed_by` (`opps_select`, `foundation.sql:991`) | **P1** |
+| T-01 | Lectura directa por la API REST con la clave pública | Tablas | RLS en las 60 tablas, 161 políticas, 84 pruebas | ✅ Resuelto en código (PR P1-01): permisos por columna para `anon` y `is_reviewed` público (`20261116001000_public_column_privileges.sql`), con 5 pruebas RLS. Pendiente de aplicar en producción | **P1** |
 | T-02 | Acceso de un adulto a un menor | Perfiles | `can_view_athlete`, aprobación familiar, ventana NCAA | Sin verificación de la persona dentro de la organización (solo el dominio) | P1 |
 | T-03 | Suplantación de una organización (dominio parecido) | Confianza | Verificación por dominio oficial | Sin detección de dominios similares ni emails desechables | P1 |
 | T-04 | Spam o acoso por contacto | Mensajes | Límites de 20 contactos y 60 mensajes al día; bloqueo y denuncia | Sin detección de patrones de riesgo en el contenido | P1 |

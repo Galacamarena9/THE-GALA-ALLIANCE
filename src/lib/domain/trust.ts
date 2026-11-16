@@ -132,6 +132,8 @@ export interface OpportunityTrustRow {
   aid_amount_usd: number | null;
   financial_source?: string | null;
   reviewed_by?: string | null;
+  /** Versión pública de `reviewed_by`: dice si se revisó, no quién (los anónimos no pueden leer `reviewed_by`). */
+  is_reviewed?: boolean | null;
   updated_at?: string | null;
   organizations?: { verification_status: string; website?: string | null; type?: string | null } | null;
 }
@@ -161,7 +163,7 @@ export function assessOpportunity(o: OpportunityTrustRow, now: number = Date.now
   const trust = trustLevel({
     status: o.status,
     orgVerified,
-    reviewed: Boolean(o.reviewed_by) || (o.status === 'published' && !flags.some((f) => f.severity === 'high')),
+    reviewed: Boolean(o.reviewed_by ?? o.is_reviewed) || (o.status === 'published' && !flags.some((f) => f.severity === 'high')),
     financialSource: o.financial_source ?? null,
     updatedAt: o.updated_at ?? new Date(now).toISOString(),
     institutionLinksVerified: linksOk,
