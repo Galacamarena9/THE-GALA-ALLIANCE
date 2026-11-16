@@ -64,3 +64,20 @@ test('roles de agencia: viewer no escribe', () => {
 test('cycleOptions ofrece la temporada actual y las tres siguientes', () => {
   assert.deepEqual(cycleOptions(new Date('2026-11-16')), ['2026-27', '2027-28', '2028-29', '2029-30']);
 });
+
+test('caseAgenda: primero vencidas, luego por fecha, luego paradas sin acción; nunca cerradas', async () => {
+  const { caseAgenda } = await import('./agency-cases.ts');
+  const now = new Date('2026-11-16T12:00:00Z');
+  const base = { updatedAt: '2026-11-15T00:00:00Z' };
+  const agenda = caseAgenda([
+    { id: 'later', stage: 'contacted', nextAction: 'x', nextActionDue: '2026-11-25', ...base },
+    { id: 'overdue', stage: 'contacted', nextAction: 'x', nextActionDue: '2026-11-10', ...base },
+    { id: 'soon', stage: 'research', nextAction: 'x', nextActionDue: '2026-11-18', ...base },
+    { id: 'stale', stage: 'research', nextAction: null, nextActionDue: null, updatedAt: '2026-10-01T00:00:00Z' },
+    { id: 'quiet', stage: 'research', nextAction: null, nextActionDue: null, ...base },
+    { id: 'closed', stage: 'closed', nextAction: 'x', nextActionDue: '2026-11-01', ...base },
+  ], now);
+  assert.deepEqual(agenda.map((a) => [a.id, a.reason]), [
+    ['overdue', 'overdue'], ['soon', 'due'], ['later', 'due'], ['stale', 'stale'],
+  ]);
+});

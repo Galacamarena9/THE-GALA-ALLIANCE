@@ -64,10 +64,10 @@ export const ACTORS: {
     intent: 'Soy agente o agencia',
     label: 'Agente',
     plural: 'Agentes',
-    promise: 'Gestiona tu cartera y detecta talento con información verificable.',
+    promise: 'Lleva cada atleta con cada universidad en un solo sitio, en equipo y con su permiso.',
     home: '/app/portfolio',
     adultsOnly: true,
-    services: ['Cartera de representados (con su consentimiento)', 'Prospectos y notas privadas', 'Seguimiento de candidaturas de tus atletas', 'Perfil de agencia verificada'],
+    services: ['Cartera de representados (con su consentimiento)', 'Procesos por universidad: fase, responsable, tareas e historial', 'Contactos de programas privados de tu agencia, importables desde Excel', 'Perfil de agencia verificada'],
   },
   {
     role: 'brand',

@@ -2,7 +2,7 @@
 
 import { useActionState, useRef, useEffect } from 'react';
 import type { FormState } from '@/app/actions/auth';
-import { openCase, updateCase, logActivity, addTask, addContact } from '@/app/actions/agency-cases';
+import { openCase, updateCase, logActivity, addTask, addContact, importContacts } from '@/app/actions/agency-cases';
 import { CASE_STAGES } from '@/lib/domain/agency-cases';
 import { Field, inputClass } from '@/components/ui';
 import { SubmitButton } from '@/components/SubmitButton';
@@ -205,6 +205,27 @@ export function ContactForm({ agencies, sports }: { agencies: Opt[]; sports: Opt
       </div>
       <div className="flex items-center gap-3 sm:col-span-2">
         <SubmitButton pendingText="Guardando…">Guardar contacto</SubmitButton>
+        <Status state={state} />
+      </div>
+    </form>
+  );
+}
+
+export function ImportContactsForm({ agencies }: { agencies: Opt[] }) {
+  const [state, action] = useActionState<FormState, FormData>(importContacts, undefined);
+  const ref = useResetOnOk(state);
+  return (
+    <form ref={ref} action={action} className="space-y-3">
+      {agencies.length > 1 ? (
+        <Field label="Agencia" htmlFor="im-agency">
+          <select id="im-agency" name="agency_id" className={inputClass}>{agencies.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
+        </Field>
+      ) : <input type="hidden" name="agency_id" value={agencies[0]?.id} />}
+      <Field label="Archivo CSV" htmlFor="im-file" hint="Desde Excel o Google Sheets: Archivo → Descargar/Guardar como CSV. Primera fila con títulos: Universidad, Nombre y, si los tienes, Cargo, Email, Teléfono, Notas.">
+        <input id="im-file" name="file" type="file" accept=".csv,text/csv" required className="block w-full text-sm text-muted file:mr-3 file:rounded-lg file:border-0 file:bg-night file:px-3 file:py-2 file:text-sm file:font-semibold file:text-lime" />
+      </Field>
+      <div className="flex flex-wrap items-center gap-3">
+        <SubmitButton pendingText="Importando…">Importar contactos</SubmitButton>
         <Status state={state} />
       </div>
     </form>

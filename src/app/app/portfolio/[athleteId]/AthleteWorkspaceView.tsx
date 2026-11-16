@@ -8,12 +8,15 @@ import { EndRepresentationForm, NoteBody, NoteComposer } from '@/components/port
 import { DIVISION_LABEL } from '@/lib/domain/labels';
 import { buildTimeline, dueText, isOverdue, nextSteps, relativeTime } from '@/lib/domain/portfolio';
 import type { Division } from '@/lib/types';
+import type { CaseRow } from '@/lib/data/agency-cases';
+import { stageLabel, isCaseStale } from '@/lib/domain/agency-cases';
 
 const TABS = [
   { id: 'resumen', label: 'Resumen' },
   { id: 'notas', label: 'Notas' },
   { id: 'actividad', label: 'Actividad' },
   { id: 'pasos', label: 'Próximos pasos' },
+  { id: 'procesos', label: 'Procesos' },
 ] as const;
 export type Tab = (typeof TABS)[number]['id'];
 export const TAB_IDS = TABS.map((t) => t.id);
@@ -24,7 +27,7 @@ const dateFmt = (iso: string) => new Date(iso).toLocaleDateString('es-ES', { day
 
 export type AthleteWorkspace = NonNullable<Awaited<ReturnType<typeof loadAthleteWorkspace>>>;
 
-export function AthleteWorkspaceView({ ws, tab, userId }: { ws: AthleteWorkspace; tab: Tab; userId: string }) {
+export function AthleteWorkspaceView({ ws, tab, userId, cases = [] }: { ws: AthleteWorkspace; tab: Tab; userId: string; cases?: CaseRow[] }) {
   const { current: e, history, notes, authorName, detail } = ws;
   const steps = nextSteps(notes, new Map([[e.athleteId, e.name]]));
   const timeline = buildTimeline(history, notes);
@@ -194,6 +197,33 @@ export function AthleteWorkspaceView({ ws, tab, userId }: { ws: AthleteWorkspace
       {tab === 'actividad' && (
         <Panel title="Actividad">
           <ActivityFeed events={timeline} showAthlete={false} />
+        </Panel>
+      )}
+
+      {tab === 'procesos' && (
+        <Panel title="Procesos con universidades" action={<ButtonLink href={`/app/pipeline?athlete=${e.athleteId}`} variant="secondary">Abrir o ver en Procesos</ButtonLink>}>
+          {cases.length ? (
+            <ul className="divide-y divide-line">
+              {cases.map((c) => (
+                <li key={c.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                  <div className="min-w-0">
+                    <Link href={`/app/pipeline/${c.id}`} className="font-semibold text-paper hover:text-brass">{c.institutionName}</Link>
+                    <p className="text-xs text-faint">{c.cycle} · {c.ownerName ?? 'Sin responsable'}{c.nextAction ? ` · ${c.nextAction}` : ''}</p>
+                  </div>
+                  <span className="flex gap-1">
+                    <span className="rounded-full border border-line px-2 py-0.5 text-xs text-muted">{stageLabel(c.stage)}</span>
+                    {isCaseStale(c) && <span className="rounded-full bg-danger/10 px-2 py-0.5 text-xs text-danger">Parado</span>}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted">
+              {e.status === 'active'
+                ? 'Todavía no hay procesos con universidades para este atleta.'
+                : 'Los procesos solo se abren cuando el atleta ha aceptado la representación.'}
+            </p>
+          )}
         </Panel>
       )}
 

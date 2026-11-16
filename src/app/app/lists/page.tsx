@@ -73,7 +73,16 @@ export default async function ListsPage({ searchParams }: { searchParams: Promis
         kicker="Scouting"
         title="Mis listas"
         description="Privadas: nadie más ve a quién sigues ni tus notas."
-        action={<ButtonLink href="/app/discover"><Search className="h-4 w-4" aria-hidden /> Buscar talento</ButtonLink>}
+        action={
+          <div className="flex flex-wrap gap-2">
+            {saved.length > 0 && (
+              <ButtonLink href={`/api/lists/export${view.list ? `?list=${encodeURIComponent(view.list)}` : ''}`} variant="ghost" prefetch={false}>
+                Exportar {view.list ? `«${view.list}»` : 'listas'} a CSV
+              </ButtonLink>
+            )}
+            <ButtonLink href="/app/discover"><Search className="h-4 w-4" aria-hidden /> Buscar talento</ButtonLink>
+          </div>
+        }
       />
 
       {!saved.length ? (

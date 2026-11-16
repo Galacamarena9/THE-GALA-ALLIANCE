@@ -33,11 +33,12 @@ const REVENUE = [
   { who: 'Familias', what: 'Core 247 € y Elite 497 € (pago único, automáticos) · Signature a medida (1:1)', note: 'Ingresos desde el primer día con Stripe; sin coste de entrega.' },
   { who: 'Universidades y coaches', what: 'Recruit: gratis en el piloto; suscripción anual tras validar liquidez', note: 'Hipótesis de precio a validar con el piloto.' },
   { who: 'Academias y clubes', what: 'Portal de roster + afiliados por cada familia que contrata', note: 'Canal B2B2C: un acuerdo trae decenas de atletas.' },
-  { who: 'Marcas y agencias', what: 'Campañas con atletas mayores de edad y planes de agencia', note: 'Solo tras revisión legal de contratos, fiscalidad e inmigración.' },
+  { who: 'Agencias de recruiting', what: 'Agency Core: procesos atleta-universidad, contactos de programas, tareas e historial en equipo', note: 'Producto construido; sin agencias de pago todavía. Precio a fijar tras entrevistar a 8–12 agencias. Sin comisiones ni cobro por contactar.' },
+  { who: 'Marcas', what: 'Campañas con atletas mayores de edad', note: 'Solo tras revisión legal de contratos, fiscalidad e inmigración.' },
 ];
 
 const ROADMAP = [
-  { phase: 'Ahora', title: 'Producto en producción', items: ['Plataforma de seis actores operativa', 'Pagos automáticos integrados', 'Documentación legal en revisión'] },
+  { phase: 'Ahora', title: 'Producto en producción', items: ['Plataforma de seis actores operativa', 'Pagos automáticos integrados', 'Herramienta de trabajo para agencias (Agency Core)', 'Documentación legal en revisión'] },
   { phase: '0–3 meses', title: 'Piloto y liquidez', items: ['Primeros atletas y familias de pago', 'Academias y clubes como canal', 'North Star: conexiones cualificadas'] },
   { phase: '3–12 meses', title: 'Escala', items: ['Suscripción para universidades', 'Nuevos mercados y deportes', 'Campañas de marca con revisión legal'] },
 ];

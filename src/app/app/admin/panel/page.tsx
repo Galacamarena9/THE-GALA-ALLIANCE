@@ -7,6 +7,7 @@ import { requireSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
 import { Badge, Card, CardTitle, PageHeader, inputClass } from '@/components/ui';
 import { growthPct, isoDaysAgo, weeklyBuckets } from '@/lib/domain/funnel';
+import { CASE_STAGES } from '@/lib/domain/agency-cases';
 import { CountUp } from '@/components/CountUp';
 import { updateServiceRequest } from '@/app/actions/growth';
 import { planByCode } from '@/content/plans';
@@ -39,7 +40,7 @@ export default async function AdminPanelPage({ searchParams }: { searchParams: P
   const days = [7, 30, 90].includes(Number((await searchParams).days)) ? Number((await searchParams).days) : 30;
   const supabase = await createClient();
 
-  const [{ data: m }, { data: liquidity }, { data: requests }, { data: feedback }, { data: events }, { data: paid }, { data: lastRetention }, { data: m2 }, { data: signupRows }] = await Promise.all([
+  const [{ data: m }, { data: liquidity }, { data: requests }, { data: feedback }, { data: events }, { data: paid }, { data: lastRetention }, { data: m2 }, { data: signupRows }, { data: agencyRaw }] = await Promise.all([
     supabase.rpc('admin_metrics', { p_days: days }),
     supabase.rpc('admin_liquidity'),
     supabase.from('service_requests').select('id, plan_code, message, status, admin_note, created_at, profiles:user_id(display_name), organizations(name)').order('created_at', { ascending: false }).limit(50),
@@ -51,10 +52,16 @@ export default async function AdminPanelPage({ searchParams }: { searchParams: P
     supabase.rpc('admin_metrics', { p_days: days * 2 }),
     // Altas reales (perfiles), no el evento: con confirmación por email el evento llega sin sesión.
     supabase.from('profiles').select('created_at').gte('created_at', isoDaysAgo(56)).limit(5000),
+    supabase.rpc('admin_agency_metrics', { p_days: days }),
   ]);
   const eventRows = (events ?? []) as { event: string; users: number; total: number }[];
   const paidBy = (paid ?? []).reduce<Record<string, number>>((acc, e) => ({ ...acc, [e.plan_code]: (acc[e.plan_code] ?? 0) + 1 }), {});
   const metrics = m as Metrics | null;
+  const ag = agencyRaw as null | {
+    agencies_total: number; agencies_with_cases: number; agencies_active_period: number; cases_total: number; cases_opened: number;
+    cases_committed: number; stage_changes: number; interactions: number; tasks_done: number; contacts_total: number;
+    shared_with_athlete: number; by_stage: Record<string, number>;
+  };
   if (!metrics) {
     return <PageHeader kicker="Admin" title="Panel de mando" description="No se han podido cargar las métricas." />;
   }
@@ -150,6 +157,44 @@ export default async function AdminPanelPage({ searchParams }: { searchParams: P
           </div>
         </Card>
       </div>
+
+      {ag && (
+        <Card className="mt-5">
+          <CardTitle kicker={`Agency Core · últimos ${days} días`} action={<Link href="/app/admin" className="text-xs text-brass hover:underline">Verificar agencias →</Link>}>Uso real por agencias</CardTitle>
+          <p className="mb-4 text-sm text-muted">Cifras de la base de datos, sin estimaciones. Mientras ninguna agencia pague, esto mide uso, no ingresos.</p>
+          <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {[
+              ['Agencias registradas', ag.agencies_total],
+              ['Con algún proceso', ag.agencies_with_cases],
+              ['Activas en el periodo', ag.agencies_active_period],
+              ['Procesos abiertos en el periodo', ag.cases_opened],
+              ['Cambios de fase', ag.stage_changes],
+              ['Interacciones registradas', ag.interactions],
+              ['Tareas completadas', ag.tasks_done],
+              ['Compromisos (histórico)', ag.cases_committed],
+            ].map(([k, v]) => (
+              <div key={k as string} className="rounded-2xl border border-line p-3">
+                <dt className="text-xs text-faint">{k}</dt>
+                <dd className="font-display text-3xl font-bold text-paper">{v as number}</dd>
+              </div>
+            ))}
+          </dl>
+          {ag.cases_total > 0 && (
+            <div className="mt-5">
+              <p className="mb-2 text-xs text-faint">Procesos por fase ({ag.cases_total} en total · {ag.shared_with_athlete} compartidos con el atleta · {ag.contacts_total} contactos de programas)</p>
+              <ul className="space-y-1.5">
+                {CASE_STAGES.filter((st) => ag.by_stage[st.id]).map((st) => (
+                  <li key={st.id} className="flex items-center gap-3 text-sm">
+                    <span className="w-48 shrink-0 text-muted">{st.label}</span>
+                    <span className="h-2 rounded-full bg-brass" style={{ width: `${Math.max(4, (ag.by_stage[st.id] / ag.cases_total) * 100)}%` }} aria-hidden />
+                    <span className="text-paper">{ag.by_stage[st.id]}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </Card>
+      )}
 
       <Card className="mt-5">
         <CardTitle kicker="Liquidez del marketplace">Oferta frente a demanda por posición</CardTitle>
