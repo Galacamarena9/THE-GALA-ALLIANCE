@@ -29,7 +29,7 @@ export default async function PreviewPage({ params }: { params: Promise<{ screen
         {(screen === 'pipeline' || screen === 'pipeline-table') && (
           <PipelineBoard cases={previewCases} view={screen === 'pipeline' ? 'board' : 'table'} sportName={new Map(previewSports.map((s) => [s.id, s.name_es]))} writableAgencies={new Set(['org-1'])} />
         )}
-        {screen === 'agent-home' && <AgentHomeView displayName="Carlos Ruiz" data={d} sports={previewSports} />}
+        {screen === 'agent-home' && <AgentHomeView displayName="Carlos Ruiz" data={d} sports={previewSports} cases={previewCases} />}
         {(screen === 'athlete-home' || screen === 'coach-home') && (
           <div className="space-y-6">
             <RoleHero

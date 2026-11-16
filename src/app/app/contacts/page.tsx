@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { loadAgencyCases } from '@/lib/data/agency-cases';
 import { canWrite } from '@/lib/domain/agency-cases';
 import { deleteContact } from '@/app/actions/agency-cases';
-import { ContactForm } from '@/components/agency/CaseForms';
+import { ContactForm, ImportContactsForm } from '@/components/agency/CaseForms';
 import { ButtonLink, Card, CardTitle, EmptyState, PageHeader } from '@/components/ui';
 
 export const metadata: Metadata = { title: 'Universidades y coaches' };
@@ -46,6 +46,12 @@ export default async function ContactsPage() {
         <details className="mb-6 rounded-[var(--radius-card)] border border-line bg-surface p-5" open={!data.contacts.length}>
           <summary className="cursor-pointer font-display text-xl font-bold uppercase text-paper">Añadir contacto</summary>
           <div className="mt-4"><ContactForm agencies={writable.map((a) => ({ id: a.id, name: a.name }))} sports={sportOpts} /></div>
+        </details>
+      )}
+      {writable.length > 0 && (
+        <details className="mb-6 rounded-[var(--radius-card)] border border-line bg-surface p-5">
+          <summary className="cursor-pointer font-display text-xl font-bold uppercase text-paper">Importar desde Excel o CSV</summary>
+          <div className="mt-4"><ImportContactsForm agencies={writable.map((a) => ({ id: a.id, name: a.name }))} /></div>
         </details>
       )}
       {!byInstitution.size ? (

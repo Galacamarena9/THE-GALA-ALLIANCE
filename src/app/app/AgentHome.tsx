@@ -3,10 +3,12 @@ import { SPORT_TONE_CLASS, sportTone } from '@/lib/domain/sport-tone';
 import { ArrowRight, CalendarClock, Hourglass, Search, Sparkles, UserCheck } from 'lucide-react';
 import type { SessionContext } from '@/lib/session';
 import { loadPortfolio, type PortfolioData } from '@/lib/data/portfolio';
+import { loadAgencyCases, type CaseRow } from '@/lib/data/agency-cases';
+import { caseAgenda, stageLabel } from '@/lib/domain/agency-cases';
 import { loadCatalog } from '@/lib/data/athlete';
 import { ButtonLink, Notice, inputClass } from '@/components/ui';
 import { ActivityFeed, AthleteAvatar, KpiTile, NextStepsList, Panel, PanelLink, StatusPill } from '@/components/portfolio';
-import { buildTimeline, initials, nextSteps, relativeTime, sortPortfolio } from '@/lib/domain/portfolio';
+import { buildTimeline, dueText, initials, nextSteps, relativeTime, sortPortfolio } from '@/lib/domain/portfolio';
 
 /**
  * Inicio del agente: todo sale de su cartera real (sin métricas inventadas).
@@ -19,17 +21,19 @@ const SHORTCUTS = [
 ];
 
 export async function AgentHome({ session }: { session: SessionContext }) {
-  const [data, catalog] = await Promise.all([loadPortfolio(session.userId), loadCatalog()]);
-  return <AgentHomeView displayName={session.displayName} data={data} sports={catalog.sports} />;
+  const [data, catalog, agency] = await Promise.all([loadPortfolio(session.userId), loadCatalog(), loadAgencyCases(session.userId)]);
+  return <AgentHomeView displayName={session.displayName} data={data} sports={catalog.sports} cases={agency.cases} />;
 }
 
-export function AgentHomeView({ displayName, data, sports }: { displayName: string; data: PortfolioData; sports: { id: string; name_es: string }[] }) {
+export function AgentHomeView({ displayName, data, sports, cases = [] }: { displayName: string; data: PortfolioData; sports: { id: string; name_es: string }[]; cases?: CaseRow[] }) {
   const { agencies, entries, notes, stats } = data;
   const nameOf = new Map(entries.map((e) => [e.athleteId, e.name]));
   const featured = sortPortfolio(entries.filter((e) => e.status === 'active'), 'activity').slice(0, 3);
   const pending = sortPortfolio(entries.filter((e) => e.status === 'requested'), 'recent').slice(0, 4);
   const activity = buildTimeline(entries, notes, 7);
   const steps = nextSteps(notes, nameOf).slice(0, 5);
+  const agenda = caseAgenda(cases).slice(0, 5);
+  const openCases = cases.filter((c) => c.stage !== 'closed' && c.stage !== 'committed').length;
   const first = displayName.split(' ')[0];
   const hour = new Date().getHours();
   const greeting = hour < 13 ? 'Buenos días' : hour < 20 ? 'Buenas tardes' : 'Buenas noches';
@@ -120,6 +124,33 @@ export function AgentHomeView({ displayName, data, sports }: { displayName: stri
                         <p className="truncate text-xs text-muted">{[e.sportName, e.positionName, e.graduationYear].filter(Boolean).join(' · ') || 'Sin datos deportivos'}</p>
                         <StatusPill status={e.status} className="mt-1.5" />
                       </div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Panel>
+
+          <Panel title="Procesos con universidades" action={<PanelLink href="/app/pipeline">{openCases ? `${openCases} abiertos →` : 'Ir a Procesos →'}</PanelLink>}>
+            {!cases.length ? (
+              <p className="px-3 py-6 text-center text-sm text-muted">
+                {stats.active ? 'Abre el primer proceso: un atleta, una universidad y una temporada.' : 'Los procesos se abren con atletas que han aceptado tu representación.'}
+              </p>
+            ) : !agenda.length ? (
+              <p className="px-3 py-6 text-center text-sm text-muted">Nada vencido ni parado. Todos los procesos abiertos tienen el siguiente paso en fecha.</p>
+            ) : (
+              <ul className="space-y-0.5">
+                {agenda.map((c) => (
+                  <li key={c.id}>
+                    <Link href={`/app/pipeline/${c.id}`} className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-surface-2/60">
+                      <span className={`h-2 w-2 shrink-0 rounded-full ${c.reason === 'overdue' ? 'bg-danger' : c.reason === 'stale' ? 'bg-faint' : 'bg-brass'}`} aria-hidden />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-medium text-paper">{c.athleteName} · {c.institutionName}</span>
+                        <span className={`block truncate text-xs ${c.reason === 'overdue' ? 'text-danger' : 'text-faint'}`}>
+                          {c.reason === 'stale' ? 'Sin movimiento en más de 14 días y sin próximo paso' : `${c.nextAction ?? 'Próxima acción'} · ${dueText(c.nextActionDue)}`}
+                        </span>
+                      </span>
+                      <span className="hidden rounded-full border border-line px-2 py-0.5 text-xs text-muted sm:inline">{stageLabel(c.stage)}</span>
                     </Link>
                   </li>
                 ))}

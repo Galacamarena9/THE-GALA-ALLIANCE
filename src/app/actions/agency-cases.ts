@@ -187,3 +187,33 @@ export async function setAgencyRole(formData: FormData) {
     .eq('organization_id', parsed.data.organization_id).eq('user_id', parsed.data.user_id);
   revalidatePath('/app/pipeline/team');
 }
+
+/** Importa contactos desde CSV (Excel → Guardar como CSV). Omite los que ya existen (misma universidad y nombre). */
+export async function importContacts(_prev: FormState, formData: FormData): Promise<FormState> {
+  await requireSession(['agent']);
+  const agency = z.string().uuid().safeParse(formData.get('agency_id'));
+  const file = formData.get('file');
+  if (!agency.success) return { error: 'Elige la agencia.' };
+  if (!(file instanceof File) || !file.size) return { error: 'Elige un archivo CSV.' };
+  if (file.size > 900_000) return { error: 'El archivo es demasiado grande (máximo 900 KB).' };
+  const { parseContactsCsv } = await import('@/lib/domain/csv-import');
+  const parsed = parseContactsCsv(await file.text());
+  if (!parsed.rows.length) return { error: parsed.fatal ?? parsed.errors[0]?.message ?? 'No hay filas válidas.' };
+
+  const supabase = await createClient();
+  const { data: existing } = await supabase.from('agency_contacts').select('institution_name, name').eq('agency_id', agency.data);
+  const key = (i: string, n: string) => `${i.trim().toLowerCase()}|${n.trim().toLowerCase()}`;
+  const seen = new Set((existing ?? []).map((c) => key(c.institution_name, c.name)));
+  const fresh = parsed.rows.filter((r) => { const k = key(r.institution_name, r.name); if (seen.has(k)) return false; seen.add(k); return true; });
+  const skipped = parsed.rows.length - fresh.length;
+  if (fresh.length) {
+    const { error } = await supabase.from('agency_contacts').insert(fresh.map((r) => ({ ...r, agency_id: agency.data })));
+    if (error) return { error: errorText(error.message) };
+  }
+  revalidatePath('/app/contacts');
+  const parts = [`${fresh.length} contacto${fresh.length === 1 ? '' : 's'} importado${fresh.length === 1 ? '' : 's'}`];
+  if (skipped) parts.push(`${skipped} ya existían`);
+  if (parsed.errors.length) parts.push(`${parsed.errors.length} fila${parsed.errors.length === 1 ? '' : 's'} con errores (${parsed.errors.slice(0, 3).map((e) => `línea ${e.line}: ${e.message}`).join(' · ')}${parsed.errors.length > 3 ? '…' : ''})`);
+  if (parsed.fatal) parts.push(parsed.fatal);
+  return { ok: true, message: parts.join('. ') + '.' };
+}

@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { z } from 'zod';
 import { requireSession } from '@/lib/session';
 import { loadAthleteWorkspace } from '@/lib/data/portfolio';
+import { loadAgencyCases } from '@/lib/data/agency-cases';
 import { ButtonLink, EmptyState } from '@/components/ui';
 import { AthleteWorkspaceView, TAB_IDS, type Tab } from './AthleteWorkspaceView';
 
@@ -17,7 +18,7 @@ export default async function AthleteWorkspacePage({
   const sp = await searchParams;
   const tab: Tab = TAB_IDS.find((t) => t === sp.tab) ?? 'resumen';
 
-  const ws = await loadAthleteWorkspace(session.userId, athleteId);
+  const [ws, agency] = await Promise.all([loadAthleteWorkspace(session.userId, athleteId), loadAgencyCases(session.userId)]);
   if (!ws) {
     return (
       <EmptyState title="Atleta no disponible" action={<ButtonLink href="/app/portfolio" variant="secondary">Volver al portfolio</ButtonLink>}>
@@ -25,5 +26,5 @@ export default async function AthleteWorkspacePage({
       </EmptyState>
     );
   }
-  return <AthleteWorkspaceView ws={ws} tab={tab} userId={session.userId} />;
+  return <AthleteWorkspaceView ws={ws} tab={tab} userId={session.userId} cases={agency.cases.filter((c) => c.athleteId === athleteId)} />;
 }

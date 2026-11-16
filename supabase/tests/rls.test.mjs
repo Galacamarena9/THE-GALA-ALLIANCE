@@ -1059,6 +1059,19 @@ try {
     eq((await as(u.adult, `select count(*)::int n from recruiting_case_activities where case_id = $1 and kind = 'stage_change'`, [caseId])).rows[0].n, 2, 'apertura + cambio:');
     eq((await as(u.adult, `select count(*)::int n from recruiting_case_tasks where case_id = $1`, [caseId])).rows[0].n, 0);
   });
+  await check('el atleta recibe un aviso al compartir y al cambiar de fase un proceso compartido (no antes)', async () => {
+    const count = async () => (await as(u.adult, `select count(*)::int n from notifications where user_id = $1 and kind like 'case.%'`, [u.adult])).rows[0].n;
+    const before = await count();
+    await as(u.agent, `update recruiting_cases set stage = 'response_received' where id = $1`, [caseId]);
+    eq(await count(), before + 1, 'cambio de fase compartido:');
+    await as(u.agent, `update recruiting_cases set next_action = 'Preparar visita' where id = $1`, [caseId]);
+    eq(await count(), before + 1, 'cambiar solo la próxima acción no avisa:');
+    await as(u.agent, `update recruiting_cases set shared_with_athlete = false where id = $1`, [caseId]);
+    await as(u.agent, `update recruiting_cases set stage = 'active_conversation' where id = $1`, [caseId]);
+    eq(await count(), before + 1, 'sin compartir no avisa:');
+    await as(u.agent, `update recruiting_cases set shared_with_athlete = true where id = $1`, [caseId]);
+    eq(await count(), before + 2, 'al volver a compartir avisa:');
+  });
   await check('rol de solo lectura: ve pero no escribe', async () => {
     await db.query(`set session_replication_role = replica`);
     await db.query(`insert into organization_members (organization_id, user_id, member_role, agency_role) values ($1, $2, 'recruiter', 'viewer')`, [agencyId, u.coach2]);
@@ -1068,6 +1081,13 @@ try {
   });
   await check('un miembro sin rol de administrador no puede cambiarse el rol a sí mismo', async () => {
     eq((await as(u.coach2, `update organization_members set agency_role = 'owner' where organization_id = $1 and user_id = $2`, [agencyId, u.coach2])).rowCount, 0);
+  });
+  await check('métricas de agencias: solo admin, con datos reales', async () => {
+    await expectError(() => as(u.agent, `select public.admin_agency_metrics(30)`), /admin_only/);
+    const m = (await as(u.admin, `select public.admin_agency_metrics(30) m`)).rows[0].m;
+    eq(m.agencies_with_cases, 1); eq(m.cases_total, 1); eq(m.cases_opened, 1);
+    eq(typeof m.by_stage, 'object');
+    eq(m.contacts_total, 1);
   });
   await check('REVOCACIÓN: con la relación terminada no se abren procesos nuevos', async () => {
     await as(u.adult, `update agent_representations set status = 'ended' where id = $1`, [repId]);

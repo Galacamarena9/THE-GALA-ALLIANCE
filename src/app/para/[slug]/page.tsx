@@ -10,7 +10,7 @@ const PAIN: Record<string, { problem: string; answer: string }> = {
   familias: { problem: 'Un proceso opaco, en otro idioma, con costes que nadie explica y agencias que cobran miles de euros por información.', answer: 'El proceso paso a paso, el coste neto real de cada opción y control total sobre la privacidad de tu hijo o hija.' },
   universidades: { problem: 'Encontrar talento internacional depende de intermediarios y de perfiles que no se pueden comparar ni verificar.', answer: 'Perfiles estructurados con el origen de cada dato, matching por beca y un pipeline propio, sin intermediarios.' },
   coaches: { problem: 'Horas viendo vídeos sueltos sin contexto académico ni económico.', answer: 'Búsqueda por deporte, posición, año, nota y vídeo, shortlists privadas y Gala IA para buscar en lenguaje natural.' },
-  agentes: { problem: 'Tu agenda tiene límite y los atletas no pueden comprobar quién eres.', answer: 'Perfil de agencia verificada, cartera con consentimiento expreso del atleta y talento que no conocías.' },
+  agentes: { problem: 'Llevas cada atleta y cada universidad entre hojas de cálculo, emails y WhatsApp, y los procesos se olvidan.', answer: 'Un tablero con cada proceso, quién lo lleva y qué toca hacer, compartido con tu equipo y, si quieres, con el atleta. Con agencia verificada y siempre con su consentimiento.' },
   marcas: { problem: 'Encontrar atletas auténticos con los que colaborar de forma transparente es caro y lento.', answer: 'Publica ofertas con condiciones claras y recibe candidaturas de atletas mayores de edad.' },
 };
 

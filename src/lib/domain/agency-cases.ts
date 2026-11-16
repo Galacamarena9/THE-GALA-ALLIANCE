@@ -89,3 +89,19 @@ export function cycleOptions(now: Date = new Date()): string[] {
   const start = now.getUTCMonth() >= 7 ? now.getUTCFullYear() : now.getUTCFullYear() - 1;
   return [0, 1, 2, 3].map((i) => `${start + i}-${String((start + i + 1) % 100).padStart(2, '0')}`);
 }
+
+export type AgendaReason = 'overdue' | 'due' | 'stale';
+/**
+ * Qué toca hacer: procesos abiertos con acción vencida, luego con fecha (de más cercana a más lejana),
+ * luego los parados sin próxima acción. Los cerrados y comprometidos no aparecen.
+ */
+export function caseAgenda<T extends { id: string; stage: string; nextAction: string | null; nextActionDue: string | null; updatedAt: string }>(
+  cases: T[], now: Date = new Date(),
+): (T & { reason: AgendaReason })[] {
+  const today = now.toISOString().slice(0, 10);
+  const open = cases.filter((c) => !FINAL_STAGES.includes(c.stage as CaseStageId));
+  const dated = open.filter((c) => c.nextActionDue).sort((a, b) => a.nextActionDue!.localeCompare(b.nextActionDue!))
+    .map((c) => ({ ...c, reason: (c.nextActionDue! < today ? 'overdue' : 'due') as AgendaReason }));
+  const stale = open.filter((c) => !c.nextActionDue && isCaseStale(c, now)).map((c) => ({ ...c, reason: 'stale' as AgendaReason }));
+  return [...dated.filter((c) => c.reason === 'overdue'), ...dated.filter((c) => c.reason === 'due'), ...stale];
+}
