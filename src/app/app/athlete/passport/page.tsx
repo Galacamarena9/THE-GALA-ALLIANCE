@@ -9,17 +9,19 @@ import { deleteAthleteLink } from '@/app/actions/marketplace';
 import { PassportEditor } from './PassportEditor';
 import { AthleteUpdateForm } from '@/components/growth';
 import { deleteAthleteUpdate } from '@/app/actions/growth';
+import { decideRecommendation } from '@/app/actions/recommendations';
 
 export const metadata: Metadata = { title: 'Opportunity Passport' };
 
 export default async function PassportPage() {
   const session = await requireSession(['athlete']);
   const supabase = await createClient();
-  const [passport, catalog, { data: links }, { data: updates }] = await Promise.all([
+  const [passport, catalog, { data: links }, { data: updates }, { data: recs }] = await Promise.all([
     loadPassport(session.userId),
     loadCatalog(),
     supabase.from('athlete_links').select('id, kind, url, verified').eq('athlete_id', session.userId).order('created_at'),
     supabase.from('athlete_updates').select('id, kind, body, link_url, created_at, expires_at').eq('athlete_id', session.userId).gt('expires_at', new Date().toISOString()).order('created_at', { ascending: false }),
+    supabase.from('club_recommendations').select('id, body, status, organizations(name)').eq('athlete_id', session.userId).order('created_at', { ascending: false }),
   ]);
 
   return (
@@ -40,6 +42,30 @@ export default async function PassportPage() {
         catalog={catalog}
         annualBudgetUsd={passport.annualBudgetUsd}
       />
+      {(recs ?? []).length > 0 && (
+        <Card id="recomendaciones" className="mt-5">
+          <CardTitle kicker="Respaldo de tu club">Recomendaciones</CardTitle>
+          <ul className="space-y-3">
+            {(recs ?? []).map((r) => {
+              const club = (r.organizations as unknown as { name: string } | null)?.name ?? 'Tu club';
+              return (
+                <li key={r.id} className="rounded-2xl border border-line p-4">
+                  <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-sm font-semibold text-paper">{club}</span>
+                    <Badge tone={r.status === 'published' ? 'ok' : r.status === 'hidden' ? 'neutral' : 'brass'}>{r.status === 'published' ? 'Visible en tu perfil' : r.status === 'hidden' ? 'Oculta' : 'Nueva: decide si se muestra'}</Badge>
+                  </div>
+                  <p className="text-sm leading-relaxed text-muted">“{r.body}”</p>
+                  <form action={decideRecommendation} className="mt-3 flex gap-2">
+                    <input type="hidden" name="id" value={r.id} />
+                    {r.status !== 'published' && <button name="status" value="published" className="rounded-lg bg-brass px-3 py-1.5 text-sm font-semibold text-white hover:bg-brass-soft">Mostrar en mi perfil</button>}
+                    {r.status !== 'hidden' && <button name="status" value="hidden" className="rounded-lg border border-line-strong px-3 py-1.5 text-sm text-paper hover:border-brass">Ocultar</button>}
+                  </form>
+                </li>
+              );
+            })}
+          </ul>
+        </Card>
+      )}
       <Card id="enlaces" className="mt-5">
         <CardTitle kicker="Bloque 6 · Confianza">Enlaces oficiales que respaldan tu perfil</CardTitle>
         <p className="-mt-2 mb-4 text-sm text-muted">Tu ficha en la web del club, las estadísticas de la federación, tu ranking oficial o un partido completo. Los revisamos y los marcamos como verificados: es lo que más confianza da a un coach que no te conoce.</p>

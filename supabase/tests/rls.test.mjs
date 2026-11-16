@@ -935,6 +935,31 @@ try {
     eq((await db.query(`select count(*)::int n from notifications where user_id = $1 and kind = 'opportunity.match'`, [u.adult])).rows[0].n >= 1, true);
     eq((await db.query(`select count(*)::int n from notifications where user_id = $1 and kind = 'opportunity.match'`, [u.coach])).rows[0].n, 0);
   });
+
+  results.push('\nNetworking: recomendaciones del club');
+  await db.query(`set session_replication_role = replica`);
+  await db.query(`update club_roster set status = 'active', ended_at = null where athlete_id = $1 and organization_id = $2`, [u.adult, clubId]);
+  await db.query(`set session_replication_role = default`);
+  let recId;
+  await check('el club verificado recomienda a un atleta de su roster; queda pendiente', async () => {
+    const r = (await as(u.coach2, `insert into club_recommendations (athlete_id, organization_id, body)
+      values ($1, $2, 'Base trabajador y líder del vestuario. Ha mejorado cada temporada y entrena con el primer equipo.') returning id, status, author_id`, [u.adult, clubId])).rows[0];
+    recId = r.id; eq(r.status, 'pending'); eq(r.author_id, u.coach2);
+  });
+  await check('no recomienda quien no es del club ni a quien no está en su roster', async () => {
+    await expectError(() => as(u.brand, `insert into club_recommendations (athlete_id, organization_id, body) values ($1, $2, 'Recomendación de alguien que no pertenece al club en absoluto.')`, [u.adult, clubId]), /club_admin_required|row-level security/);
+    await expectError(() => as(u.coach2, `insert into club_recommendations (athlete_id, organization_id, body) values ($1, $2, 'Recomendación para alguien que no está en el roster del club.')`, [u.minor, clubId]), /not_in_roster/);
+  });
+  await check('pendiente: la ve el atleta, no un coach externo; el club no puede publicarla', async () => {
+    eq((await as(u.adult, `select count(*)::int n from club_recommendations where id = $1`, [recId])).rows[0].n, 1);
+    eq((await as(u.coach, `select count(*)::int n from club_recommendations where id = $1`, [recId])).rows[0].n, 0);
+    await expectError(() => as(u.coach2, `update club_recommendations set status = 'published' where id = $1`, [recId]), /recommendation_transition_not_allowed|row-level security/);
+  });
+  await check('el atleta la publica y la ven los coaches verificados', async () => {
+    await as(u.adult, `update club_recommendations set status = 'published' where id = $1`, [recId]);
+    eq((await as(u.coach, `select count(*)::int n from club_recommendations where id = $1`, [recId])).rows[0].n, 1);
+    eq((await db.query(`select count(*)::int n from notifications where user_id = $1 and kind = 'recommendation.new'`, [u.adult])).rows[0].n, 1);
+  });
 } finally {
   console.log(results.join('\n'));
   console.log(`\n${passed} pruebas OK · ${failed} fallidas`);

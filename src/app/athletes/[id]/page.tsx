@@ -36,6 +36,7 @@ export default async function AthleteProfilePage({ params }: { params: Promise<{
   const { profile: p, person, academics, stats, languages, achievements } = passport;
   const catalog = await loadCatalog();
   const { data: links } = await supabase.from('athlete_links').select('id, kind, url, verified').eq('athlete_id', id);
+  const { data: recs } = await supabase.from('club_recommendations').select('id, body, organizations(name, verification_status)').eq('athlete_id', id).eq('status', 'published').limit(3);
   const { data: updates } = await supabase.from('athlete_updates').select('id, kind, body, link_url, created_at').eq('athlete_id', id).gt('expires_at', new Date().toISOString()).order('created_at', { ascending: false }).limit(5);
   const sport = catalog.sports.find((s) => s.id === p.sport_id)?.name_es;
   const pos = catalog.positions.find((x) => x.id === p.primary_position_id)?.name_es;
@@ -184,6 +185,23 @@ export default async function AthleteProfilePage({ params }: { params: Promise<{
             {session && !isOwner && <div className="text-right"><ReportButton entityType="athlete_profile" entityId={id} label="Denunciar este perfil" /></div>}
           </div>
         </div>
+        {(recs ?? []).length > 0 && (
+          <section aria-labelledby="recs-title" className="mt-8">
+            <h2 id="recs-title" className="mb-3 font-display text-[22px] font-bold uppercase text-paper">Recomendado por su club</h2>
+            <ul className="grid gap-4 md:grid-cols-2">
+              {(recs ?? []).map((r) => {
+                const org = r.organizations as unknown as { name: string; verification_status: string } | null;
+                return (
+                  <li key={r.id} className="relative overflow-hidden rounded-[var(--radius-card)] bg-night p-6 text-white">
+                    <span className="pointer-events-none absolute -top-4 right-4 font-display text-8xl leading-none text-white/10" aria-hidden>“</span>
+                    <p className="relative text-[15px] leading-relaxed text-white/90">{r.body}</p>
+                    <p className="relative mt-4 flex items-center gap-2 text-sm font-semibold text-lime">{org?.name ?? 'Club'}{org?.verification_status === 'verified' && <span className="rounded-full bg-lime/15 px-2 py-0.5 text-xs text-lime">Club verificado</span>}</p>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
         <p className="mt-8 text-xs text-faint">Cada dato indica su origen: declarado por el atleta, documentado o verificado por su club. The Gala Alliance no garantiza admisión ni beca.</p>
       </main>
     </div>
