@@ -20,10 +20,10 @@ export function Timeline() {
       <div className="relative mb-10">
         <div className="absolute left-0 right-0 top-5 h-0.5 bg-line" aria-hidden />
         <div className="absolute left-0 top-5 h-0.5 bg-gradient-to-r from-brass to-brass-soft transition-all duration-500" style={{ width: `${(i / (STAGES.length - 1)) * 100}%` }} aria-hidden />
-        <ol role="tablist" aria-label="Etapas" className="relative grid grid-cols-4 gap-2">
+        <ol aria-label="Etapas" className="relative grid grid-cols-4 gap-2">
           {STAGES.map((st, n) => (
             <li key={st.key} className="flex flex-col items-center">
-              <button role="tab" aria-selected={st.key === k} onClick={() => setK(st.key)} className={`flex h-10 w-10 items-center justify-center rounded-full border-2 text-sm font-bold transition-all duration-300 ${n <= i ? 'border-brass bg-brass text-ink shadow-[var(--shadow-gold)]' : 'border-line-strong bg-ink text-muted hover:border-brass/60'}`}>
+              <button aria-pressed={st.key === k} aria-label={`Etapa ${n + 1}: ${st.label}`} onClick={() => setK(st.key)} className={`flex h-10 w-10 items-center justify-center rounded-full border-2 text-sm font-bold transition-all duration-300 ${n <= i ? 'border-brass bg-brass text-ink shadow-[var(--shadow-gold)]' : 'border-line-strong bg-ink text-muted hover:border-brass/60'}`}>
                 {n + 1}
               </button>
               <span className={`mt-2 text-center text-xs sm:text-xs ${st.key === k ? 'font-semibold text-paper' : 'text-muted'}`}>{st.label}</span>

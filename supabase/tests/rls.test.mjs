@@ -902,6 +902,19 @@ try {
     await as(u.coach, `insert into contact_requests (organization_id, requested_by, athlete_id, message)
       values ($1, $2, $3, 'Hola, nos interesa tu perfil para la temporada que viene.')`, [uniId, u.coach, teen]);
   });
+
+  results.push('\nEndurecimiento: funciones internas sin acceso anónimo');
+  for (const fn of ['has_role(\'admin\')', 'is_verified_recruiter()', `is_blocked_by_athlete('${teen}')`, `has_connection_with_athlete('${teen}')`]) {
+    await check(`sin sesión no se puede llamar a ${fn.split('(')[0]}`, async () => {
+      await expectError(() => as(null, `select public.${fn}`), /permission denied/);
+    });
+  }
+  await check('con sesión siguen funcionando (las usan las políticas)', async () => {
+    await as(u.coach, `select public.has_role('university'), public.is_verified_recruiter()`);
+  });
+  await check('las políticas públicas siguen funcionando sin sesión (perfiles públicos)', async () => {
+    await as(null, `select count(*) from athlete_profiles`);
+  });
 } finally {
   console.log(results.join('\n'));
   console.log(`\n${passed} pruebas OK · ${failed} fallidas`);

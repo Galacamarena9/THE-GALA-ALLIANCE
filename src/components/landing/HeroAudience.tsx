@@ -40,7 +40,7 @@ function Preview({ k }: { k: Key }) {
         <div className="flex items-center gap-4">
           <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-brass to-brass-deep font-display text-xl font-bold text-ink">LM</span>
           <div><p className="font-display text-lg font-bold text-paper">Lucía M.</p><p className="text-xs text-muted">Baloncesto · Base · Promoción 2027</p></div>
-          <span className="ml-auto rounded-full border border-trust/40 bg-trust/15 px-2.5 py-1 text-xs font-semibold text-ok">Verificado</span>
+          <span className="ml-auto rounded-full border border-ok/30 bg-white px-2.5 py-1 text-xs font-semibold text-ok">Verificado</span>
         </div>
         <div className="mt-5 grid grid-cols-3 gap-2 text-center">
           {[['14,2', 'Puntos'], ['8,7', 'Nota media'], ['C1', 'Inglés']].map(([v, l]) => (

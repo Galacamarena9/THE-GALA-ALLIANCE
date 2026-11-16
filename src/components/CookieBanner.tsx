@@ -32,7 +32,7 @@ export function CookieBanner() {
       <p id="cookie-title" className="font-display text-lg text-paper">Tu privacidad, tus reglas</p>
       <p className="mt-2 text-sm leading-relaxed text-muted">
         Usamos cookies esenciales para que la plataforma funcione. Las de analítica y de terceros solo se activan si las aceptas. Puedes
-        cambiarlo cuando quieras. <Link className="text-brass underline-offset-2 hover:underline" href="/legal/cookies">Más información</Link>
+        cambiarlo cuando quieras. <Link className="text-brass underline underline-offset-2" href="/legal/cookies">Más información</Link>
       </p>
 
       {custom && (

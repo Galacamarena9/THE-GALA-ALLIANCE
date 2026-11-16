@@ -92,7 +92,7 @@ export default async function PricingPage() {
             <li>• Core y Elite se pagan una sola vez con tarjeta (Stripe) y se activan solos en cuanto se confirma el pago. Mientras el pago online no esté activo, la solicitud no te compromete a nada.</li>
             <li>• Signature es a medida: primero hablamos de tu caso y el precio se cierra por escrito antes de cualquier pago.</li>
             <li>• Ningún plan garantiza admisión, beca ni contrato, ni da prioridad en el escaparate.</li>
-            <li>• Los servicios a consumidores incluyen el derecho de desistimiento cuando corresponda. Condiciones completas en los <Link href="/legal/terminos" className="text-brass hover:underline">términos</Link>.</li>
+            <li>• Los servicios a consumidores incluyen el derecho de desistimiento cuando corresponda. Condiciones completas en los <Link href="/legal/terminos" className="text-brass underline underline-offset-2">términos</Link>.</li>
           </ul>
         </section>
       </main>
