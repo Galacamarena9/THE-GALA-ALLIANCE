@@ -3,7 +3,8 @@ import { notFound } from 'next/navigation';
 import { AgentHomeView } from '@/app/app/AgentHome';
 import { PortfolioView } from '@/app/app/portfolio/PortfolioView';
 import { DEFAULT_FILTERS } from '@/lib/domain/portfolio';
-import { previewPortfolio, previewSports } from '@/lib/preview/fixtures';
+import { previewPortfolio, previewSports, previewCases } from '@/lib/preview/fixtures';
+import { PipelineBoard } from '@/components/agency/PipelineBoard';
 import { ROLE_SHORTCUTS, RoleHero, ShortcutTiles } from '@/components/RoleHero';
 import { PlanUnlocks } from '@/components/PlanUnlocks';
 import { AthleteCard } from '@/components/AthleteCard';
@@ -15,7 +16,7 @@ import { ProgressRing } from '@/components/ProgressRing';
  */
 export const metadata: Metadata = { title: 'Probador interno', robots: { index: false, follow: false } };
 
-const SCREENS = ['agent-home', 'portfolio', 'athlete-home', 'coach-home'] as const;
+const SCREENS = ['agent-home', 'portfolio', 'athlete-home', 'coach-home', 'pipeline', 'pipeline-table'] as const;
 
 export default async function PreviewPage({ params }: { params: Promise<{ screen: string }> }) {
   if (process.env.ENABLE_PREVIEW !== '1') notFound();
@@ -25,6 +26,9 @@ export default async function PreviewPage({ params }: { params: Promise<{ screen
   return (
     <div className="min-h-dvh bg-ink px-5 py-8 sm:px-8 lg:px-10">
       <div className="mx-auto max-w-6xl">
+        {(screen === 'pipeline' || screen === 'pipeline-table') && (
+          <PipelineBoard cases={previewCases} view={screen === 'pipeline' ? 'board' : 'table'} sportName={new Map(previewSports.map((s) => [s.id, s.name_es]))} writableAgencies={new Set(['org-1'])} />
+        )}
         {screen === 'agent-home' && <AgentHomeView displayName="Carlos Ruiz" data={d} sports={previewSports} />}
         {(screen === 'athlete-home' || screen === 'coach-home') && (
           <div className="space-y-6">

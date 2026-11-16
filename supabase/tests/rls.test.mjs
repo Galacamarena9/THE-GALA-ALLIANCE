@@ -1011,6 +1011,68 @@ try {
     await as(u.adult, `delete from showcase_entries where event_id = $1 and athlete_id = $2`, [evId, u.adult]);
     eq((await db.query(`select count(*)::int n from showcase_entries where event_id = $1`, [evId])).rows[0].n, 0);
   });
+
+  results.push('\nAgency Core: procesos, contactos, tareas y aislamiento');
+  // Segunda agencia (otra persona) para probar el aislamiento entre agencias.
+  await db.query(`set session_replication_role = replica`);
+  const agencyB = (await db.query(`insert into organizations (name, type, created_by) values ('Agencia B', 'agency', $1) returning id`, [u.brand])).rows[0].id;
+  await db.query(`insert into organization_members (organization_id, user_id, member_role) values ($1, $2, 'admin')`, [agencyB, u.brand]);
+  await db.query(`set session_replication_role = default`);
+  let caseId; let contactId;
+  await check('la agencia guarda un contacto de coach privado', async () => {
+    contactId = (await as(u.agent, `insert into agency_contacts (agency_id, institution_name, sport_id, name, role_title, email)
+      values ($1, 'University of Example', 'basketball', 'Coach Rivera', 'Assistant Coach', 'rivera@example.edu') returning id`, [agencyId])).rows[0].id;
+  });
+  await check('abre un proceso atleta + universidad + temporada con un atleta que representa', async () => {
+    const r = (await as(u.agent, `insert into recruiting_cases (agency_id, athlete_id, institution_name, sport_id, cycle, contact_id, next_action, next_action_due)
+      values ($1, $2, 'University of Example', 'basketball', '2027-28', $3, 'Enviar vídeo al coach', current_date + 3) returning id, stage, owner_id`, [agencyId, u.adult, contactId])).rows[0];
+    caseId = r.id; eq(r.stage, 'research'); eq(r.owner_id, u.agent);
+  });
+  await check('no abre procesos para atletas que no representa', async () => {
+    await expectError(() => as(u.agent, `insert into recruiting_cases (agency_id, athlete_id, institution_name, sport_id, cycle) values ($1, $2, 'X University', 'basketball', '2027-28')`, [agencyId, u.privateAth]), /representation_required|row-level security/);
+  });
+  await check('cambiar de fase deja historial automático con autor', async () => {
+    await as(u.agent, `update recruiting_cases set stage = 'contacted' where id = $1`, [caseId]);
+    const h = (await as(u.agent, `select kind, from_stage, to_stage, actor_id from recruiting_case_activities where case_id = $1 and kind = 'stage_change' and from_stage is not null`, [caseId])).rows[0];
+    eq(h.from_stage, 'research'); eq(h.to_stage, 'contacted'); eq(h.actor_id, u.agent);
+  });
+  await check('registra una interacción y una tarea con responsable y fecha', async () => {
+    await as(u.agent, `insert into recruiting_case_activities (case_id, kind, body) values ($1, 'email', 'Enviado vídeo de la temporada')`, [caseId]);
+    await as(u.agent, `insert into recruiting_case_tasks (case_id, title, assignee_id, due_date) values ($1, 'Llamar al coach', $2, current_date + 5)`, [caseId, u.agent]);
+    eq((await as(u.agent, `select count(*)::int n from recruiting_case_tasks where case_id = $1`, [caseId])).rows[0].n, 1);
+  });
+  await check('una tarea no se asigna a alguien de fuera de la agencia', async () => {
+    await expectError(() => as(u.agent, `insert into recruiting_case_tasks (case_id, title, assignee_id) values ($1, 'x tarea', $2)`, [caseId, u.brand]), /assignee_not_member/);
+  });
+  await check('AISLAMIENTO: una segunda agencia no ve procesos, historial, tareas ni contactos', async () => {
+    for (const t of ['recruiting_cases', 'recruiting_case_activities', 'recruiting_case_tasks', 'agency_contacts']) {
+      eq((await as(u.brand, `select count(*)::int n from ${t}`)).rows[0].n, 0, t);
+    }
+    eq((await as(u.brand, `update recruiting_cases set stage = 'closed' where id = $1`, [caseId])).rowCount, 0);
+  });
+  await check('el atleta no ve el proceso hasta que la agencia lo comparte; nunca las notas internas', async () => {
+    await as(u.agent, `insert into recruiting_case_activities (case_id, kind, body) values ($1, 'note', 'Nota interna: coach dudoso')`, [caseId]);
+    eq((await as(u.adult, `select count(*)::int n from recruiting_cases where id = $1`, [caseId])).rows[0].n, 0);
+    await as(u.agent, `update recruiting_cases set shared_with_athlete = true where id = $1`, [caseId]);
+    eq((await as(u.adult, `select count(*)::int n from recruiting_cases where id = $1`, [caseId])).rows[0].n, 1);
+    eq((await as(u.adult, `select count(*)::int n from recruiting_case_activities where case_id = $1 and kind = 'note'`, [caseId])).rows[0].n, 0);
+    eq((await as(u.adult, `select count(*)::int n from recruiting_case_activities where case_id = $1 and kind = 'stage_change'`, [caseId])).rows[0].n, 2, 'apertura + cambio:');
+    eq((await as(u.adult, `select count(*)::int n from recruiting_case_tasks where case_id = $1`, [caseId])).rows[0].n, 0);
+  });
+  await check('rol de solo lectura: ve pero no escribe', async () => {
+    await db.query(`set session_replication_role = replica`);
+    await db.query(`insert into organization_members (organization_id, user_id, member_role, agency_role) values ($1, $2, 'recruiter', 'viewer')`, [agencyId, u.coach2]);
+    await db.query(`set session_replication_role = default`);
+    eq((await as(u.coach2, `select count(*)::int n from recruiting_cases where id = $1`, [caseId])).rows[0].n, 1);
+    eq((await as(u.coach2, `update recruiting_cases set stage = 'closed' where id = $1`, [caseId])).rowCount, 0);
+  });
+  await check('un miembro sin rol de administrador no puede cambiarse el rol a sí mismo', async () => {
+    eq((await as(u.coach2, `update organization_members set agency_role = 'owner' where organization_id = $1 and user_id = $2`, [agencyId, u.coach2])).rowCount, 0);
+  });
+  await check('REVOCACIÓN: con la relación terminada no se abren procesos nuevos', async () => {
+    await as(u.adult, `update agent_representations set status = 'ended' where id = $1`, [repId]);
+    await expectError(() => as(u.agent, `insert into recruiting_cases (agency_id, athlete_id, institution_name, sport_id, cycle) values ($1, $2, 'Otra University', 'basketball', '2027-28')`, [agencyId, u.adult]), /representation_required/);
+  });
 } finally {
   console.log(results.join('\n'));
   console.log(`\n${passed} pruebas OK · ${failed} fallidas`);
