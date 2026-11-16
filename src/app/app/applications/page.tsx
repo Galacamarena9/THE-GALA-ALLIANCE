@@ -8,7 +8,8 @@ import type { ApplicationStatus } from '@/lib/types';
 import { Badge, ButtonLink, Card, EmptyState, PageHeader, inputClass } from '@/components/ui';
 import { boardColumns, nextStatus } from '@/lib/domain/pipeline-board';
 import { initials } from '@/lib/domain/portfolio';
-import { addApplicationNote, moveApplication, withdrawApplication } from '@/app/actions/opportunities';
+import { addApplicationNote, moveApplication, saveApplicationTracking, withdrawApplication } from '@/app/actions/opportunities';
+import { dueText, isOverdue } from '@/lib/domain/portfolio';
 
 export const metadata: Metadata = { title: 'Candidaturas' };
 
@@ -33,6 +34,16 @@ export default async function ApplicationsPage() {
     const { data: names } = athleteIds.length ? await supabase.from('athlete_directory').select('user_id, display_name, graduation_year, current_team').in('user_id', athleteIds) : { data: [] };
     const nameById = new Map((names ?? []).map((n) => [n.user_id, n]));
     const oppById = new Map((opps ?? []).map((o) => [o.id, o.title]));
+    const appIds = (apps ?? []).map((a) => a.id);
+    const [{ data: tracking }, { data: memberRows }] = await Promise.all([
+      appIds.length ? supabase.from('application_tracking').select('application_id, owner_id, next_action, next_action_due').in('application_id', appIds) : Promise.resolve({ data: [] }),
+      orgIds.length ? supabase.from('organization_members').select('user_id, organization_id').in('organization_id', orgIds) : Promise.resolve({ data: [] }),
+    ]);
+    const memberIds = [...new Set((memberRows ?? []).map((m) => m.user_id as string))];
+    const { data: memberProfiles } = memberIds.length ? await supabase.from('profiles').select('id, display_name').in('id', memberIds) : { data: [] };
+    const memberName = new Map((memberProfiles ?? []).map((m) => [m.id as string, (m.display_name as string) || 'Miembro']));
+    const trackById = new Map(((tracking ?? []) as { application_id: string; owner_id: string | null; next_action: string | null; next_action_due: string | null }[]).map((t) => [t.application_id, t]));
+    const overdueCount = [...trackById.values()].filter((t) => isOverdue(t.next_action_due)).length;
     const columns = boardColumns(apps ?? []);
     const total = apps?.length ?? 0;
 
@@ -42,7 +53,7 @@ export default async function ApplicationsPage() {
           kicker="Recruiting"
           title="Candidatos"
           description="Cada candidatura avanza por cinco fases. Las notas son privadas de tu organización: el atleta solo ve en qué punto está."
-          action={total ? <Badge tone="brass">{total} candidatura{total > 1 ? 's' : ''}</Badge> : undefined}
+          action={total ? <span className="flex gap-2"><Badge tone="brass">{total} candidatura{total > 1 ? 's' : ''}</Badge>{overdueCount > 0 && <Badge tone="danger">{overdueCount} acción{overdueCount > 1 ? 'es' : ''} vencida{overdueCount > 1 ? 's' : ''}</Badge>}</span> : undefined}
         />
         {total ? (
           <div className="-mx-1 flex snap-x gap-4 overflow-x-auto px-1 pb-4">
@@ -61,6 +72,7 @@ export default async function ApplicationsPage() {
                       const athlete = nameById.get(a.athlete_id);
                       const notes = (a.application_notes as unknown as { id: string; body: string }[]) ?? [];
                       const next = nextStatus(a.status as ApplicationStatus);
+                      const tr = trackById.get(a.id);
                       return (
                         <li key={a.id} className="hover-lift rounded-2xl border border-line bg-surface p-4 shadow-sm">
                           <div className="flex items-start gap-3">
@@ -73,6 +85,11 @@ export default async function ApplicationsPage() {
                           <p className="mt-3 text-xs text-muted">{oppById.get(a.opportunity_id)}</p>
                           <div className="mt-2"><Badge tone={col.tone}>{PIPELINE_STATUS_LABEL[a.status as ApplicationStatus]}</Badge></div>
                           {a.athlete_message && <p className="mt-3 line-clamp-3 text-sm text-muted">“{a.athlete_message}”</p>}
+                          {(tr?.next_action || tr?.owner_id) && (
+                            <p className={`mt-3 text-xs ${isOverdue(tr.next_action_due) ? 'text-danger' : 'text-muted'}`}>
+                              {tr.next_action ?? 'Sin próxima acción'}{tr.next_action_due ? ` · ${dueText(tr.next_action_due)}` : ''}{tr.owner_id ? ` · ${memberName.get(tr.owner_id) ?? 'Miembro'}` : ''}
+                            </p>
+                          )}
                           {next && (
                             <form action={moveApplication} className="mt-3">
                               <input type="hidden" name="id" value={a.id} />
@@ -88,6 +105,19 @@ export default async function ApplicationsPage() {
                                 {PIPELINE_STATUSES.map((st) => <option key={st} value={st}>{PIPELINE_STATUS_LABEL[st]}</option>)}
                               </select>
                               <button className="rounded-lg border border-line-strong px-3 text-xs text-paper hover:border-brass">Mover</button>
+                            </form>
+                            <form action={saveApplicationTracking} className="mt-3 grid gap-2 border-t border-line pt-3">
+                              <input type="hidden" name="application_id" value={a.id} />
+                              <label className="text-xs text-faint" htmlFor={`own-${a.id}`}>Responsable</label>
+                              <select id={`own-${a.id}`} name="owner_id" defaultValue={tr?.owner_id ?? ''} className={`${inputClass} py-1.5`}>
+                                <option value="">Sin asignar</option>
+                                {memberIds.map((id) => <option key={id} value={id}>{memberName.get(id) ?? 'Miembro'}</option>)}
+                              </select>
+                              <label className="text-xs text-faint" htmlFor={`na-${a.id}`}>Próxima acción</label>
+                              <input id={`na-${a.id}`} name="next_action" defaultValue={tr?.next_action ?? ''} maxLength={300} placeholder="Ej. Llamar al entrenador del club" className={`${inputClass} py-1.5`} />
+                              <label className="text-xs text-faint" htmlFor={`nd-${a.id}`}>Fecha</label>
+                              <input id={`nd-${a.id}`} type="date" name="next_action_due" defaultValue={tr?.next_action_due ?? ''} className={`${inputClass} py-1.5`} />
+                              <button className="rounded-lg border border-line-strong px-3 py-1.5 text-xs text-paper hover:border-brass">Guardar seguimiento</button>
                             </form>
                             {notes.length > 0 && <ul className="mt-3 space-y-1 border-t border-line pt-2 text-xs text-muted">{notes.map((n) => <li key={n.id}>• {n.body}</li>)}</ul>}
                             <form action={addApplicationNote} className="mt-2 flex gap-2">
