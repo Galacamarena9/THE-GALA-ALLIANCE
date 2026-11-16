@@ -123,7 +123,7 @@ partes generan interacciones cualificadas cada semana.
 | ID-01 | Identity | OG y metadatos por Passport público | Atleta | P1 | S | `app/athletes/[id]` | Vista previa con nombre, deporte y posición; nunca para menores | CTR compartidos | 1 ✅ |
 | ID-02 | Identity | QR del Passport | Atleta, club | P2 | S | `app/share` | QR descargable que apunta al enlace privado | Aperturas por QR | 1 |
 | OP-01 | Opportunities | Match por áreas con confianza | Atleta | P1 | M | `lib/domain/match.ts`, tests | Áreas deportiva/académica/económica/plazos; confianza baja con < 60 % de datos | Candidaturas/match visto | 1 ✅ |
-| OP-02 | Opportunities | Detalle público de oportunidad (sin datos sensibles) | Visitante | P1 | M | `app/oportunidades/[id]` | Solo publicadas y verificadas; CTA a Passport | Visitas → Passport | 1 |
+| OP-02 | Opportunities | Detalle público de oportunidad (sin datos sensibles) | Visitante | P1 | M | `app/oportunidades/[id]` | Solo publicadas y verificadas; CTA a Passport | Visitas → Passport | 1 ✅ |
 | OP-03 | Opportunities | Flujo de club: publicar prueba | Club | P1 | M | `app/opportunities/new` | Tipo `tryout` con campos propios, revisión automática | Pruebas publicadas | 2 |
 | NW-01 | Network | Follow de organizaciones | Atleta | P3 | L | migración nueva, RLS, tests | Sin follows visibles en menores; denuncia y bloqueo | Retorno semanal | 3 |
 | AN-01 | Analítica | Embudo anónimo agregado | Negocio | P1 | M | `lib/events.ts`, migración | Sin cookies ni IP; respeta consentimiento | Conversión home→Passport | 1 |

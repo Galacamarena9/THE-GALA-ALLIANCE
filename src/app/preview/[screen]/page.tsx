@@ -11,6 +11,18 @@ import { AthleteCard } from '@/components/AthleteCard';
 import { ProgressRing } from '@/components/ProgressRing';
 import { MatchBreakdown } from '@/components/MatchBreakdown';
 import { matchAthleteToOpportunity } from '@/lib/domain/match';
+import { PublicOpportunityView } from '@/app/oportunidades/[id]/View';
+import type { PublicOpportunity } from '@/lib/data/public-opportunity';
+
+// Oportunidad pública ficticia (organización y cifras inventadas solo para revisar el diseño).
+const demoPublicOpp: PublicOpportunity = {
+  id: '00000000-0000-0000-0000-000000000000', title: 'Beca parcial de baloncesto femenino (ejemplo)', type: 'athletic_scholarship', sport_id: 'basketball',
+  position_ids: [], graduation_years: [2027, 2028], division: 'ncaa_d2', min_gpa_4: 2.5, english_required: 'TOEFL 79', location: 'Ohio, EE. UU.', start_term: 'Otoño 2027',
+  places: 2, deadline: '2027-03-01', annual_cost_usd: 42000, aid_amount_usd: 28000, financial_source: 'organization_provided',
+  description: 'Ejemplo ficticio para revisar el diseño. Buscamos bases y escoltas con buena lectura de juego.\nIncluye alojamiento en campus.',
+  status: 'published', reviewed_by: null, updated_at: new Date().toISOString(),
+  organizations: { name: 'Universidad de ejemplo', type: 'university', verification_status: 'verified', website: 'https://example.edu' },
+};
 
 /**
  * Probador interno de pantallas con datos ficticios. Solo existe si ENABLE_PREVIEW=1
@@ -18,7 +30,7 @@ import { matchAthleteToOpportunity } from '@/lib/domain/match';
  */
 export const metadata: Metadata = { title: 'Probador interno', robots: { index: false, follow: false } };
 
-const SCREENS = ['agent-home', 'portfolio', 'athlete-home', 'coach-home', 'pipeline', 'pipeline-table', 'match'] as const;
+const SCREENS = ['agent-home', 'portfolio', 'athlete-home', 'coach-home', 'pipeline', 'pipeline-table', 'match', 'opportunity'] as const;
 
 // Gala Match con el motor real y datos ficticios: un Passport completo y otro con muchos datos ausentes.
 const demoOpp = { sport_id: 'basketball', position_ids: [1], graduation_years: [2027], division: 'ncaa_d2' as const, min_gpa_4: 2.5, english_required: 'TOEFL 80', annual_cost_usd: 40000, aid_amount_usd: 30000 };
@@ -58,6 +70,7 @@ export default async function PreviewPage({ params }: { params: Promise<{ screen
             )}
           </div>
         )}
+        {screen === 'opportunity' && <PublicOpportunityView o={demoPublicOpp} sport="Baloncesto" positions={['Base', 'Escolta']} />}
         {screen === 'match' && (
           <div className="grid gap-5 md:grid-cols-2">
             {[demoFull, demoThin].map((m, i) => <section key={i} className="rounded-[var(--radius-card)] border border-line bg-surface p-6"><MatchBreakdown match={m} editHref="#" /></section>)}
