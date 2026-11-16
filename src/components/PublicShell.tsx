@@ -4,13 +4,15 @@ import { Logo } from '@/components/Logo';
 import { ButtonLink } from '@/components/ui';
 import { MobileMenu } from '@/components/PublicMobileMenu';
 import { ACTORS } from '@/lib/domain/roles';
+import { BRAND } from '@/content/brand';
 
+/** Navegación pública (prompt v2): Oportunidades · Para quién · Cómo funciona · Recursos · Precios · Seguridad. */
 const NAV = [
-  { href: '/#test', label: 'Test gratis' },
+  { href: '/oportunidades', label: 'Oportunidades' },
   { href: '/#como-funciona', label: 'Cómo funciona' },
-  { href: '/guia', label: 'Guía' },
-  { href: '/calculadora', label: 'Calculadora' },
+  { href: '/guia', label: 'Recursos' },
   { href: '/precios', label: 'Precios' },
+  { href: '/seguridad', label: 'Seguridad' },
 ];
 
 /** Cabecera pública fija con desenfoque, como en la versión de Lovable. */
@@ -25,6 +27,9 @@ export function PublicHeader() {
           <Logo />
           <nav aria-label="Principal" className="hidden flex-1 justify-center md:flex">
             <ul className="flex items-center gap-1">
+              <li>
+                <Link href={NAV[0].href} className="rounded-lg px-3 py-2 text-[13px] font-medium text-muted transition-colors hover:text-paper">{NAV[0].label}</Link>
+              </li>
               <li className="group relative">
                 <Link href="/#para-quien" className="flex items-center gap-1 rounded-lg px-3 py-2 text-[13px] font-medium text-muted transition-colors hover:text-paper group-focus-within:text-paper">
                   Para quién <ChevronDown className="h-3.5 w-3.5 transition-transform group-hover:rotate-180" aria-hidden />
@@ -43,7 +48,7 @@ export function PublicHeader() {
                   </ul>
                 </div>
               </li>
-              {NAV.map((n) => (
+              {NAV.slice(1).map((n) => (
                 <li key={n.href}>
                   <Link href={n.href} className="rounded-lg px-3 py-2 text-[13px] font-medium text-muted transition-colors hover:text-paper">
                     {n.label}
@@ -54,7 +59,7 @@ export function PublicHeader() {
           </nav>
           <div className="hidden items-center gap-2 md:flex">
             <ButtonLink href="/login" variant="ghost" className="h-9 px-3 text-[13px]">Iniciar sesión</ButtonLink>
-            <ButtonLink href="/signup" className="h-9 px-4 text-[13px] font-bold">Crear cuenta gratis</ButtonLink>
+            <ButtonLink href="/signup" className="h-9 px-4 text-[13px] font-bold">Crear Passport</ButtonLink>
           </div>
           <MobileMenu items={[...NAV, { href: '/inversores', label: 'Inversores' }, ...ACTORS.map((a) => ({ href: `/para/${a.slug}`, label: `Para ${a.plural.toLowerCase()}` }))]} />
         </div>
@@ -81,9 +86,8 @@ export function PublicFooter() {
       <div className="mx-auto grid max-w-7xl grid-cols-2 gap-10 px-6 py-14 md:grid-cols-5 md:gap-8">
         <div className="col-span-2 md:col-span-2">
           <Logo />
-          <p className="mt-5 max-w-xs text-sm leading-relaxed text-muted">
-            La plataforma de confianza para el reclutamiento deportivo internacional: datos oficiales, organizaciones verificadas y coste real.
-          </p>
+          <p className="mt-5 text-xs font-bold uppercase tracking-[0.18em] text-brass">{BRAND.network}</p>
+          <p className="mt-2 max-w-xs text-sm leading-relaxed text-muted">{BRAND.secondary}</p>
         </div>
         <nav aria-label="Para quién">
           <h4 className="mb-5 text-xs font-bold uppercase tracking-[0.2em] text-paper">Para</h4>
@@ -96,7 +100,10 @@ export function PublicFooter() {
         <nav aria-label="Recursos">
           <h4 className="mb-5 text-xs font-bold uppercase tracking-[0.2em] text-paper">Recursos</h4>
           <ul className="space-y-2.5 text-sm">
+            <li><Link href="/oportunidades" className="text-muted transition-colors hover:text-brass">Oportunidades</Link></li>
             <li><Link href="/guia" className="text-muted transition-colors hover:text-brass">Guía oficial del proceso</Link></li>
+            <li><Link href="/#test" className="text-muted transition-colors hover:text-brass">Test de opciones</Link></li>
+            <li><Link href="/seguridad" className="text-muted transition-colors hover:text-brass">Seguridad y confianza</Link></li>
             <li><Link href="/calculadora" className="text-muted transition-colors hover:text-brass">Calculadora de coste real</Link></li>
             <li><Link href="/precios" className="text-muted transition-colors hover:text-brass">Planes y precios</Link></li>
             <li><Link href="/inversores" className="text-muted transition-colors hover:text-brass">Inversores</Link></li>
@@ -117,7 +124,7 @@ export function PublicFooter() {
       </div>
       <div className="border-t border-line/40">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 py-5 text-xs text-faint md:flex-row">
-          <p>© {new Date().getFullYear()} The Gala Alliance · No garantizamos admisión, becas ni resultados.</p>
+          <p>© {new Date().getFullYear()} The Gala Alliance · No garantizamos admisión, becas, contratos ni resultados.</p>
           <div className="flex flex-wrap items-center gap-5">
             <span className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5 text-brass" aria-hidden />RGPD</span>
             <span className="flex items-center gap-1.5"><Lock className="h-3.5 w-3.5 text-brass" aria-hidden />Menores protegidos por diseño</span>

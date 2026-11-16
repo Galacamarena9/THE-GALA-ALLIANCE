@@ -1,15 +1,33 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { CookieBanner } from '@/components/CookieBanner';
+import { BRAND } from '@/content/brand';
+import { siteUrl } from '@/lib/env';
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl()),
   title: {
-    default: 'The Gala Alliance · Becas deportivas en EE. UU.',
-    template: '%s · The Gala Alliance',
+    default: BRAND.metaTitle,
+    template: `%s · ${BRAND.name}`,
   },
-  description:
-    'El sistema operativo para deportistas-estudiantes internacionales: perfil verificable, encaje explicado, coste real y el siguiente paso, en un solo lugar.',
+  description: BRAND.metaDescription,
+  applicationName: BRAND.name,
   robots: { index: true, follow: true },
+  // Vista previa al compartir (WhatsApp, LinkedIn, X). Imagen local, sin logos de terceros.
+  openGraph: {
+    type: 'website',
+    siteName: BRAND.name,
+    locale: 'es_ES',
+    title: `${BRAND.name} · ${BRAND.claim}`,
+    description: BRAND.secondary,
+    images: [{ url: '/media/hero-bg-poster.jpg', alt: BRAND.network }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: `${BRAND.name} · ${BRAND.claim}`,
+    description: BRAND.secondary,
+    images: ['/media/hero-bg-poster.jpg'],
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
