@@ -15,7 +15,8 @@ export const metadata: Metadata = {
 
 const GROUPS: { id: string; title: string; intro: string; audiences: PlanAudience[]; cols: string }[] = [
   { id: 'personas', title: 'Atletas y familias', intro: 'El perfil es gratis. Core y Elite se generan al momento desde tu Passport, sin esperas ni citas. Signature es el acompañamiento personal de la fundadora.', audiences: ['athlete', 'family'], cols: 'md:grid-cols-2 xl:grid-cols-4' },
-  { id: 'organizaciones', title: 'Organizaciones', intro: 'Universidades, academias y agencias se verifican solas con el correo de su dominio oficial. Gratis durante el piloto.', audiences: ['organization', 'academy', 'agent', 'brand'], cols: 'md:grid-cols-2 xl:grid-cols-4' },
+  { id: 'organizaciones', title: 'Universidades, academias y marcas', intro: 'Se verifican solas con el correo de su dominio oficial. Gratis durante el piloto.', audiences: ['organization', 'academy', 'brand'], cols: 'md:grid-cols-3' },
+  { id: 'agencias', title: 'Agencias', intro: 'Programa fundador: las agencias que se den de alta antes del 31 de marzo de 2027 lo usan gratis hasta esa fecha y después tienen un 50 % de descuento el primer año. A partir de ahí, el precio de la tarjeta. Precios sin IVA. Nunca cobramos comisión por atleta ni por contactar.', audiences: ['agent'], cols: 'md:grid-cols-3' },
 ];
 
 export default async function PricingPage() {

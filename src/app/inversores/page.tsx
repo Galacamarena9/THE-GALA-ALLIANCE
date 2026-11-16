@@ -33,7 +33,7 @@ const REVENUE = [
   { who: 'Familias', what: 'Core 247 € y Elite 497 € (pago único, automáticos) · Signature a medida (1:1)', note: 'Ingresos desde el primer día con Stripe; sin coste de entrega.' },
   { who: 'Universidades y coaches', what: 'Recruit: gratis en el piloto; suscripción anual tras validar liquidez', note: 'Hipótesis de precio a validar con el piloto.' },
   { who: 'Academias y clubes', what: 'Portal de roster + afiliados por cada familia que contrata', note: 'Canal B2B2C: un acuerdo trae decenas de atletas.' },
-  { who: 'Agencias de recruiting', what: 'Agency Core: procesos atleta-universidad, contactos de programas, tareas e historial en equipo', note: 'Producto construido; sin agencias de pago todavía. Precio a fijar tras entrevistar a 8–12 agencias. Sin comisiones ni cobro por contactar.' },
+  { who: 'Agencias de recruiting', what: 'Agency Core: procesos atleta-universidad, contactos de programas, tareas e historial en equipo', note: 'Agente 39 €/mes · Agencia 99 €/mes · desde 249 €/mes para grandes. Producto construido; sin agencias de pago todavía (programa fundador gratis hasta el 31/03/2027). Sin comisiones ni cobro por contactar.' },
   { who: 'Marcas', what: 'Campañas con atletas mayores de edad', note: 'Solo tras revisión legal de contratos, fiscalidad e inmigración.' },
 ];
 
@@ -152,8 +152,14 @@ export default function InvestorsPage() {
         </section>
 
         <section className="border-t border-line/50 bg-surface/40 px-6 py-24">
-          <Reveal className="mx-auto grid max-w-5xl items-center gap-10 md:grid-cols-[auto_1fr]">
-            <span className="mx-auto flex h-28 w-28 items-center justify-center rounded-3xl bg-gradient-to-br from-brass to-brass-deep font-display text-4xl font-bold text-ink shadow-[var(--shadow-gold)]">G</span>
+          <Reveal className="mx-auto grid max-w-5xl items-center gap-10 md:grid-cols-[minmax(0,320px)_1fr]">
+            <figure className="relative mx-auto w-full max-w-[320px]">
+              <div className="overflow-hidden rounded-3xl shadow-[var(--shadow-premium)] ring-1 ring-line">
+                {/* eslint-disable-next-line @next/next/no-img-element -- foto local optimizada */}
+                <img src="/media/founder-portrait-sm.webp" alt="Gala, fundadora de The Gala Alliance, en la pista antes de un tiro libre" loading="lazy" className="aspect-[4/5] w-full object-cover object-top" />
+              </div>
+              <span className="absolute -right-3 -top-3 rounded-full bg-lime px-3 py-1.5 font-display text-sm font-bold uppercase text-night shadow-lg">NCAA D-I</span>
+            </figure>
             <div>
               <p className="mb-2 text-[13px] font-semibold text-brass">La fundadora</p>
               <h2 className="text-2xl font-bold text-paper md:text-3xl">Gala vivió el problema desde dentro.</h2>
