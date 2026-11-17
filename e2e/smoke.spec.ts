@@ -2,7 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
 const PUBLIC = [
-  '/', '/oportunidades', '/oportunidades?v=college', '/oportunidades?v=brands', '/seguridad', '/precios', '/inversores', '/calculadora', '/guia', '/guia/divisiones-y-becas',
+  '/', '/oportunidades', '/oportunidades?v=college', '/oportunidades?v=brands', '/seguridad', '/herramientas', '/precios', '/inversores', '/calculadora', '/guia', '/guia/divisiones-y-becas',
   '/login', '/signup', '/forgot-password', '/legal/privacidad', '/legal/terminos', '/legal/aviso-legal',
   '/para/atletas', '/para/familias', '/para/universidades', '/para/coaches', '/para/agentes', '/para/marcas',
 ];

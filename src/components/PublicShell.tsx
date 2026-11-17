@@ -6,10 +6,10 @@ import { MobileMenu } from '@/components/PublicMobileMenu';
 import { ACTORS } from '@/lib/domain/roles';
 import { BRAND } from '@/content/brand';
 
-/** Navegación pública (prompt v2): Oportunidades · Para quién · Cómo funciona · Recursos · Precios · Seguridad. */
+/** Navegación pública (Master Plan 2.0): Oportunidades · Para quién · Herramientas · Recursos · Precios · Seguridad. */
 const NAV = [
   { href: '/oportunidades', label: 'Oportunidades' },
-  { href: '/#como-funciona', label: 'Cómo funciona' },
+  { href: '/herramientas', label: 'Herramientas' },
   { href: '/guia', label: 'Recursos' },
   { href: '/precios', label: 'Precios' },
   { href: '/seguridad', label: 'Seguridad' },
@@ -101,6 +101,7 @@ export function PublicFooter() {
           <h4 className="mb-5 text-xs font-bold uppercase tracking-[0.2em] text-paper">Recursos</h4>
           <ul className="space-y-2.5 text-sm">
             <li><Link href="/oportunidades" className="text-muted transition-colors hover:text-brass">Oportunidades</Link></li>
+            <li><Link href="/herramientas" className="text-muted transition-colors hover:text-brass">Herramientas gratuitas</Link></li>
             <li><Link href="/guia" className="text-muted transition-colors hover:text-brass">Guía oficial del proceso</Link></li>
             <li><Link href="/#test" className="text-muted transition-colors hover:text-brass">Test de opciones</Link></li>
             <li><Link href="/seguridad" className="text-muted transition-colors hover:text-brass">Seguridad y confianza</Link></li>

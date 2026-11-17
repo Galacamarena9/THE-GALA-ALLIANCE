@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import {
-  ArrowRight, Building2, ChevronDown, CircleCheck, GraduationCap, Handshake, IdCard, Megaphone, MessagesSquare, ShieldCheck, Sparkles, Target, Trophy, Users,
+  ArrowRight, BookOpen, Building2, Calculator, ChevronDown, CircleCheck, GraduationCap, Handshake, IdCard, Megaphone, MessagesSquare, ShieldCheck, Sparkles, Target, Trophy, Users,
 } from 'lucide-react';
 import { PublicFooter, PublicHeader } from '@/components/PublicShell';
 import { Reveal } from '@/components/Reveal';
@@ -23,6 +23,12 @@ const STEPS = [
   { n: '01', Icon: IdCard, title: 'Crea tu Opportunity Passport', text: 'Vídeo, estadísticas, notas e idiomas. Cada dato dice si es declarado, documentado o verificado.' },
   { n: '02', Icon: Target, title: 'Recibe matches explicados', text: 'Oportunidades de organizaciones verificadas, con por qué encajas y qué te falta.' },
   { n: '03', Icon: MessagesSquare, title: 'Gestiona tu proceso', text: 'Candidaturas, mensajes y plazos en un solo sitio. Con menores, la familia aprueba cada contacto.' },
+];
+
+const TOOLS = [
+  { Icon: Sparkles, q: '¿Tengo opciones de beca?', name: 'Test de opciones', href: '/#test' },
+  { Icon: Calculator, q: '¿Cuánto pagaría de verdad?', name: 'Calculadora del coste real', href: '/calculadora' },
+  { Icon: BookOpen, q: '¿Por dónde empiezo?', name: 'Guía oficial del proceso', href: '/guia' },
 ];
 
 const PASSPORT_POINTS = [
@@ -138,6 +144,33 @@ export default function Home() {
               ))}
             </ul>
             <p className="mt-3 text-xs text-faint">Imágenes ilustrativas.</p>
+          </div>
+        </section>
+
+        {/* HERRAMIENTAS: valor antes del registro (Master Plan 2.0). */}
+        <section aria-labelledby="herramientas-title" className="px-6 pb-24">
+          <div className="mx-auto max-w-7xl rounded-[var(--radius-card)] border border-line bg-surface p-6 md:p-10">
+            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="mb-2 text-sm font-semibold text-brass">Gratis y sin registro</p>
+                <h2 id="herramientas-title" className="font-display text-4xl font-bold uppercase leading-none text-paper md:text-5xl">Pruébalo ahora</h2>
+              </div>
+              <Link href="/herramientas" className="group inline-flex items-center gap-1 text-sm font-semibold text-brass hover:underline">Todas las herramientas<ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden /></Link>
+            </div>
+            <ul className="mt-8 grid gap-3 md:grid-cols-3">
+              {TOOLS.map(({ Icon, q, name, href }) => (
+                <li key={name} className="min-w-0">
+                  <Link href={href} className="hover-lift group flex h-full items-center gap-4 rounded-2xl border border-line bg-ink/40 p-4">
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brass/10"><Icon className="h-5 w-5 text-brass" aria-hidden /></span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-xs text-muted">{q}</span>
+                      <span className="block font-bold text-paper">{name}</span>
+                    </span>
+                    <ArrowRight className="h-4 w-4 shrink-0 text-faint transition-transform group-hover:translate-x-1 group-hover:text-brass" aria-hidden />
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </div>
         </section>
 
