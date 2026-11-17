@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test:unit": "node --test src/lib/domain/domain.test.ts src/lib/domain/trust.test.ts src/lib/domain/portfolio.test.ts src/lib/domain/recruiting.test.ts src/lib/domain/sport-tone.test.ts src/lib/domain/lists.test.ts src/lib/domain/password.test.ts src/lib/domain/mfa.test.ts src/lib/domain/navigation.test.ts src/lib/domain/pipeline-board.test.ts src/lib/domain/ncaa.test.ts src/lib/domain/funnel.test.ts src/lib/domain/unlocks.test.ts src/lib/domain/agency-cases.test.ts src/lib/domain/csv-import.test.ts src/content/content.test.ts src/lib/domain/gala-match/engine.test.ts src/lib/domain/dashboard.test.ts src/lib/domain/pipeline.test.ts src/lib/ai/ai.test.ts",
+    "test:unit": "node --test src/lib/domain/domain.test.ts src/lib/domain/trust.test.ts src/lib/domain/portfolio.test.ts src/lib/domain/recruiting.test.ts src/lib/domain/sport-tone.test.ts src/lib/domain/lists.test.ts src/lib/domain/password.test.ts src/lib/domain/mfa.test.ts src/lib/domain/navigation.test.ts src/lib/domain/pipeline-board.test.ts src/lib/domain/ncaa.test.ts src/lib/domain/funnel.test.ts src/lib/domain/unlocks.test.ts src/lib/domain/agency-cases.test.ts src/lib/domain/csv-import.test.ts src/content/content.test.ts src/lib/domain/gala-match/engine.test.ts src/lib/domain/dashboard.test.ts src/lib/domain/pipeline.test.ts src/lib/ai/ai.test.ts src/lib/domain/recruit.test.ts",
     "test:rls": "node supabase/tests/rls.test.mjs",
     "test:e2e": "playwright test"
   },

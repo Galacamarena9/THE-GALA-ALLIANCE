@@ -40,6 +40,10 @@ Medición propia, sin herramientas de terceros ni cookies de analítica: los eve
 | `pipeline_decision` | `moveStage` (comprometida / cerrada) | `stage` | Cierre de procesos |
 | `interaction_logged` | `logInteraction` | `channel` | Uso del CRM del atleta |
 | `offer_recorded` | `addProcessOffer` | `in_writing` | Ofertas y si llegan por escrito |
+| `recruiting_need_created` · `athlete_discovered` · `athlete_shortlisted` | Portal de recruiting | — | Uso del lado universidad |
+| `candidate_assigned` · `candidate_stage_changed` | Pipeline interno | `stage` | Colaboración del staff |
+| `document_requested` · `document_shared` | Solicitudes de información | `kind` | Flujo de consentimiento |
+| `offer_created` · `candidates_exported` · `coach_dashboard_viewed` | Portal | `rows` | Ofertas reales, exportaciones y retorno |
 | `passport_completed` | Reservado (aún no se emite) | — | Se activará al medir el cruce del umbral de preparación |
 
 ## Añadir un evento
