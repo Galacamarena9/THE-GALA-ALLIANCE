@@ -11,7 +11,6 @@ import { Badge, ButtonLink, Card, CardTitle, EmptyState, Meter, PageHeader, cx }
 
 export const metadata: Metadata = { title: 'Mi camino' };
 
-const BLOCK_LABEL = { perfil: 'Perfil', deportivo: 'Evidencia deportiva', academico: 'Académico', proceso: 'Proceso' } as const;
 
 export default async function MyPathPage() {
   const session = await requireSession(['athlete']);
@@ -65,7 +64,7 @@ export default async function MyPathPage() {
             <p className="stamp-in inline-block rounded-md border-2 border-ok/60 px-3 py-1 font-display text-lg text-ok">Passport completo</p>
           )}
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
-            {readiness.blocks.map((b) => <Meter key={b.block} value={b.pct} label={BLOCK_LABEL[b.block]} />)}
+            {readiness.blocks.map((b) => <Meter key={b.block} value={b.pct} label={b.label} />)}
           </div>
         </Card>
 

@@ -1,8 +1,9 @@
+import { suggestUsername, validUsername, videoEmbed } from './passport.ts';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { checkAge, ageOn } from './age.ts';
 import { matchAthleteToOpportunity, toGpa4 } from './match.ts';
-import { computeReadiness } from './readiness.ts';
+import { computeReadiness, READINESS_CATEGORIES } from './readiness.ts';
 import { stageFor, roadmapFor } from './roadmap.ts';
 import { computeNetCost } from './netCost.ts';
 import { institutionFit } from './institutionFit.ts';
@@ -84,10 +85,23 @@ test('matching por áreas: un incumplimiento baja solo su área', () => {
   assert.equal(m.areas.find((a) => a.area === 'athletic')!.score, 100);
 });
 
-test('readiness: perfil vacío propone la acción de más peso (vídeo)', () => {
+test('readiness: perfil vacío propone la acción de más peso (Highlight Reel)', () => {
   const r = computeReadiness({ profile: null, academics: null, statsCount: 0, languagesCount: 0, achievementsCount: 0, hasFamilyLink: false, isMinor: true });
   assert.equal(r.score, 0);
-  assert.equal(r.nextAction?.key, 'video');
+  assert.equal(r.nextAction?.key, 'highlight');
+  assert.equal(r.categories.reduce((s, c) => s + c.max, 0), 100);
+  assert.equal(r.target, 9 + 6 + 6);
+});
+
+test('readiness: las categorías suman exactamente sus máximos y la verificación solo cuenta si es real', () => {
+  const base = { statsCount: 3, languagesCount: 1, achievementsCount: 1, hasFamilyLink: false, isMinor: false };
+  const self = computeReadiness({ ...base, profile: null, academics: { gpa: 8.7, gpa_source: 'self_reported' } });
+  assert.equal(self.items.find((i) => i.key === 'academic_docs')!.done, false);
+  const doc = computeReadiness({ ...base, profile: null, academics: { gpa: 8.7, gpa_source: 'documented' } });
+  assert.equal(doc.items.find((i) => i.key === 'academic_docs')!.done, true);
+  for (const c of READINESS_CATEGORIES) {
+    assert.equal(doc.items.filter((i) => i.category === c.key).reduce((s, i) => s + i.points, 0), c.max, c.key);
+  }
 });
 
 test('roadmap: la etapa depende de los años hasta la graduación', () => {
@@ -121,4 +135,29 @@ test('encaje con universidad: sin el deporte, encaje bajo', () => {
   assert.equal(f.level, 'bajo');
   const g = institutionFit({ sport_id: 'basketball', target_divisions: ['ncaa_d1'] }, 20000, { sports_offered: ['basketball'], division: 'ncaa_d1', cost_attendance_usd: 15000 });
   assert.equal(g.level, 'alto');
+});
+
+test('passport: vídeo incrustable solo para YouTube y Vimeo', () => {
+  assert.equal(videoEmbed('https://youtu.be/dQw4w9WgXcQ').embedUrl, 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ');
+  assert.equal(videoEmbed('https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=3').provider, 'youtube');
+  assert.equal(videoEmbed('https://vimeo.com/123456789').embedUrl, 'https://player.vimeo.com/video/123456789?dnt=1');
+  assert.equal(videoEmbed('https://www.hudl.com/video/3/123').provider, 'link');
+  assert.equal(videoEmbed('javascript:alert(1)').embedUrl, null);
+});
+
+test('passport: nombre de usuario', () => {
+  assert.equal(suggestUsername('Lucía Martínez'), 'lucia-martinez');
+  assert.equal(validUsername('lucia-martinez'), true);
+  assert.equal(validUsername('admin'), false);
+  assert.equal(validUsername('-lucia'), false);
+});
+
+test('passport: previsualización por audiencia replica las reglas de la RLS', async () => {
+  const { visibleBlocks } = await import('./passport.ts');
+  const v = { profile: 'public', sport: 'members', stats: 'public', academics: 'verified_orgs', videos: 'private', goals: 'public' } as const;
+  assert.deepEqual(visibleBlocks(v, 'anonymous', false), { profile: true, sport: false, stats: true, academics: false, videos: false, goals: false });
+  assert.deepEqual(visibleBlocks(v, 'verified_org', false), { profile: true, sport: true, stats: true, academics: true, videos: false, goals: true });
+  assert.equal(visibleBlocks(v, 'anonymous', true).profile, false);
+  assert.equal(visibleBlocks(v, 'member', true).profile, false);
+  assert.equal(visibleBlocks(v, 'verified_org', true).stats, true);
 });
