@@ -48,7 +48,18 @@ La clave secreta de Supabase solo la usa `src/app/api/stripe/webhook/route.ts`, 
 - Netlify → Domain management → añade el dominio raíz y `www`. Usa los DNS de Netlify o los registros A/CNAME que indique el panel. El HTTPS se emite solo.
 - Actualiza la Site URL de Supabase con el dominio final.
 
-## 4. Correo (cuando se active Resend)
+## 4. Correo (Resend, dominio `thegalaalliance.com`)
+
+1. Resend → Domains → añade `thegalaalliance.com` y copia los registros que muestre en el DNS.
+2. Supabase → Authentication → SMTP Settings → Enable custom SMTP: host `smtp.resend.com`, puerto `465`,
+   usuario `resend`, contraseña = API key de Resend (nunca en el repositorio ni en GitHub), remitente
+   `hola@thegalaalliance.com`, nombre `The Gala Alliance`.
+3. Supabase → Authentication → URL Configuration → Site URL `https://thegalaalliance.com` y añade
+   `https://thegalaalliance.com/auth/callback` a las Redirect URLs.
+4. Netlify → `NEXT_PUBLIC_SITE_URL=https://thegalaalliance.com`.
+5. Crea el buzón `seguridad@` y sustituye `[email]` en `src/content/legal.ts` (recursos DSA y reclamaciones)
+   solo cuando reciba correo de verdad.
+
 
 En el proveedor DNS (p. ej. IONOS):
 - **SPF:** `v=spf1 include:_spf.resend.com ~all`. Si ya existe un SPF, combínalos en un solo registro.
