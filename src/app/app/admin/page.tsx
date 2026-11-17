@@ -9,6 +9,8 @@ import type { OrgType } from '@/lib/types';
 import { Badge, Card, CardTitle, PageHeader, inputClass } from '@/components/ui';
 import { ScorecardImportForm } from '@/components/forms';
 import { ScorecardBulkImport } from '@/components/ScorecardBulkImport';
+import { reviewClaim } from '@/app/actions/universities';
+import { expireOpportunitiesNow } from '@/app/actions/admin';
 import { decideReport, resolveDataRequest, reviewCampaign, reviewOpportunity, reviewOrganization, verifyAthleteLink } from '@/app/actions/admin';
 
 export const metadata: Metadata = { title: 'Revisión' };
@@ -21,7 +23,7 @@ export default async function AdminPage() {
   if (!session.roles.includes('admin')) redirect('/app');
   const supabase = await createClient();
 
-  const [orgs, opps, camps, reports, dsr, links, insts] = await Promise.all([
+  const [orgs, opps, camps, reports, dsr, links, insts, claims, quality] = await Promise.all([
     supabase.from('organizations').select('id, name, type, website, requester_email_domain, created_at').eq('verification_status', 'submitted').order('created_at'),
     supabase.from('opportunities').select('id, title, annual_cost_usd, aid_amount_usd, organizations(name, verification_status)').eq('status', 'pending_review').order('created_at'),
     supabase.from('brand_campaigns').select('id, title, compensation_kind, compensation_usd, organizations(name, verification_status)').eq('status', 'pending_review').order('created_at'),
@@ -29,6 +31,8 @@ export default async function AdminPage() {
     supabase.from('data_subject_requests').select('id, user_id, request_type, details, status, created_at').in('status', ['received', 'in_progress']).order('created_at'),
     supabase.from('athlete_links').select('id, athlete_id, kind, url').eq('verified', false).order('created_at').limit(30),
     supabase.from('institutions').select('id, name, state').order('name').limit(500),
+    supabase.from('institution_claims').select('id, work_email, role_title, domain_matches, organization_id, created_at, institutions(id, name, website_url), organizations(name, verification_status)').eq('status', 'pending').order('created_at'),
+    supabase.rpc('admin_institution_quality'),
   ]);
 
   const queue = (n: number) => <Badge tone={n ? 'warn' : 'ok'}>{n}</Badge>;
@@ -161,6 +165,40 @@ export default async function AdminPage() {
             <p className="mt-3 text-xs text-faint">Las supresiones de cuenta se ejecutan con service role desde el panel de Supabase (Auth → Users) tras verificar la identidad.</p>
           </Card>
         </div>
+
+        <Card>
+          <CardTitle kicker="Universidades" action={queue(claims.data?.length ?? 0)}>Reclamaciones de perfil</CardTitle>
+          <ul className="divide-y divide-line text-sm">
+            {(claims.data ?? []).map((c) => {
+              const inst = c.institutions as unknown as { id: string; name: string; website_url: string | null } | null;
+              const org = c.organizations as unknown as { name: string; verification_status: string } | null;
+              return (
+                <li key={c.id} className="py-3">
+                  <p className="text-paper"><Link href={`/app/universities/${inst?.id}`} className="hover:text-brass">{inst?.name}</Link> · {c.role_title}</p>
+                  <p className="text-xs text-muted">{c.work_email} · {c.domain_matches ? <span className="text-ok">dominio coincide con {domainOf(inst?.website_url ?? '')}</span> : <span className="text-warn">el dominio NO coincide con la web oficial</span>} · {org ? `organización: ${org.name} (${org.verification_status})` : 'sin organización vinculada'}</p>
+                  <form action={reviewClaim} className="mt-2 flex flex-wrap gap-2">
+                    <input type="hidden" name="id" value={c.id} />
+                    <input name="note" placeholder="Nota (opcional)" aria-label="Nota de revisión" className={`${inputClass} max-w-xs`} />
+                    <button name="status" value="approved" disabled={!org || org.verification_status !== 'verified'} className="text-xs text-ok disabled:text-faint">Aprobar y vincular</button>
+                    <button name="status" value="rejected" className="text-xs text-danger">Rechazar</button>
+                  </form>
+                </li>
+              );
+            })}
+          </ul>
+          {!(claims.data ?? []).length && <p className="text-sm text-muted">Sin reclamaciones pendientes.</p>}
+        </Card>
+
+        <Card>
+          <CardTitle kicker="Calidad de datos" action={queue((quality.data as unknown[] | null)?.length ?? 0)}>Duplicados, datos antiguos y programas sin revisar</CardTitle>
+          <ul className="divide-y divide-line text-sm">
+            {((quality.data ?? []) as { kind: string; institution_id: string; name: string; state: string | null; detail: string }[]).slice(0, 50).map((q) => (
+              <li key={`${q.kind}-${q.institution_id}`} className="flex justify-between gap-3 py-2"><Link href={`/app/universities/${q.institution_id}?tab=deportes`} className="text-paper hover:text-brass">{q.name}{q.state ? ` (${q.state})` : ''}</Link><span className="text-xs text-muted">{q.detail}</span></li>
+            ))}
+          </ul>
+          <form action={expireOpportunitiesNow} className="mt-3"><button className="text-xs text-brass hover:underline">Caducar ahora las oportunidades vencidas</button></form>
+          <p className="mt-1 text-xs text-faint">Se ejecuta también cada día automáticamente. Una oportunidad sin plazo caduca si la organización no la confirma en 120 días.</p>
+        </Card>
 
         <Card>
           <CardTitle kicker="Directorio">Catálogo completo de universidades</CardTitle>

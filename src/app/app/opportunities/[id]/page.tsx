@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { setOpportunityLifecycle } from '@/app/actions/universities';
+import { OPPORTUNITY_SOURCE_LABEL, OPPORTUNITY_STATE_LABEL, opportunitySource, opportunityState } from '@/lib/domain/university';
 import { TrustSeal } from '@/components/TrustSeal';
 import { assessOpportunity } from '@/lib/domain/trust';
 import { logEvent } from '@/lib/events';
@@ -79,7 +81,8 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
         description={
           <span>
             {opp.organizations?.name}
-            {opp.organizations?.verification_status === 'verified' && <span className="ml-2 text-brass">✓ Organización verificada</span>}
+            {opp.organizations?.verification_status === 'verified' && <span className="ml-2 text-brass">✓ {OPPORTUNITY_SOURCE_LABEL[opportunitySource(opp.organizations)].label}</span>}
+            {!isMember && <span className="ml-2 rounded-full border border-line px-2 py-0.5 text-xs text-paper">{OPPORTUNITY_STATE_LABEL[opportunityState(opp)]}</span>}
             {opp.organizations?.website && (
               <> · <a href={opp.organizations.website} target="_blank" rel="noopener noreferrer" className="text-brass hover:underline">{domainOf(opp.organizations.website)} ↗</a></>
             )}
@@ -94,6 +97,13 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
         <div className="mb-5 flex flex-wrap items-center gap-3">
           <Badge tone={opp.status === 'published' ? 'ok' : opp.status === 'rejected' ? 'danger' : 'warn'}>{OPPORTUNITY_STATUS_LABEL[opp.status]}</Badge>
           {opp.review_note && <span className="text-sm text-muted">Nota de revisión: {opp.review_note}</span>}
+          {opp.status === 'published' && (
+            <>
+              <form action={setOpportunityLifecycle}><input type="hidden" name="id" value={opp.id} /><button name="action" value="confirm" className="rounded-lg border border-line-strong px-3 py-1.5 text-sm text-paper hover:border-brass">Confirmar que sigue abierta</button></form>
+              <form action={setOpportunityLifecycle}><input type="hidden" name="id" value={opp.id} /><button name="action" value="filled" className="rounded-lg border border-line-strong px-3 py-1.5 text-sm text-paper hover:border-brass">Marcar plaza cubierta</button></form>
+              <form action={setOpportunityLifecycle}><input type="hidden" name="id" value={opp.id} /><button name="action" value="closed" className="text-sm text-faint hover:text-danger">Cerrar</button></form>
+            </>
+          )}
           {(opp.status === 'draft' || opp.status === 'rejected') && (
             <>
               <form action={submitForReview}><input type="hidden" name="id" value={opp.id} /><button className="rounded-lg bg-brass px-3 py-1.5 text-sm text-ink">Enviar a revisión</button></form>

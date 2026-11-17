@@ -266,7 +266,7 @@ export function ScorecardImportForm() {
   );
 }
 
-export function InstitutionAdminForm({ inst, sports }: { inst: Links & { association: string | null; division: string | null; conference: string | null; sports_offered: string[] }; sports: { id: string; name_es: string }[] }) {
+export function InstitutionAdminForm({ inst }: { inst: Links & { association: string | null; division: string | null; conference: string | null } }) {
   return (
     <ActionForm action={updateInstitutionAdmin} className="space-y-4">
       {() => (
@@ -286,13 +286,7 @@ export function InstitutionAdminForm({ inst, sports }: { inst: Links & { associa
             </Field>
             <Field label="Conferencia" htmlFor="conference"><input id="conference" name="conference" defaultValue={inst.conference ?? ''} className={inputClass} /></Field>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {sports.map((s) => (
-              <label key={s.id} className="flex items-center gap-2 rounded-full border border-line-strong px-3 py-1 text-sm text-paper">
-                <input type="checkbox" name="sports_offered" value={s.id} defaultChecked={inst.sports_offered.includes(s.id)} className="accent-[var(--color-brass)]" />{s.name_es}
-              </label>
-            ))}
-          </div>
+          <p className="text-xs text-muted">Los deportes se gestionan como programas (abajo), cada uno con su género, división y fuente.</p>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Athletics" htmlFor="a_athletics"><input id="a_athletics" name="athletics_url" defaultValue={inst.athletics_url ?? ''} className={inputClass} /></Field>
             <Field label="Admisiones" htmlFor="a_adm"><input id="a_adm" name="admissions_url" defaultValue={inst.admissions_url ?? ''} className={inputClass} /></Field>
