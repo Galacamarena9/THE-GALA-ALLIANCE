@@ -28,6 +28,15 @@ Medición propia, sin herramientas de terceros ni cookies de analítica: los eve
 | `document_uploaded` | `recordDocumentUpload` | `kind` | Avance documental |
 | `roster_joined` | `acceptRosterInvite` | — | Canal B2B2C (academias) |
 | `universities_compared` | Comparador de universidades (≥ 2) | `count` | Uso del comparador |
+| `passport_shared` | `createRecruitingLink` | `channel` | Atletas que mueven su Passport |
+| `video_uploaded` | `addVideo` | `kind` | Activación del bloque de vídeo |
+| `university_viewed` | Ficha de universidad (atletas) | — | Interés por universidades |
+| `university_saved` / `opportunity_saved` | `toggleSaved` (al guardar) | — | Construcción de shortlist |
+| `match_viewed` | Detalle de Gala Match | `kind` | Uso de la explicación del encaje |
+| `comparison_created` | Comparador (≥ 2) | `count` | Paso de descubrir a decidir |
+| `task_completed` | `setTaskState` (hecho) | `task`, `priority` | Si el Next Best Action ayuda a avanzar |
+| `dashboard_viewed` | Inicio del atleta (Command Center) | `stage`, `actions` | Retorno al panel por etapa |
+| `passport_completed` | Reservado (aún no se emite) | — | Se activará al medir el cruce del umbral de preparación |
 
 ## Añadir un evento
 

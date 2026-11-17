@@ -17,6 +17,9 @@ import { ROLE_SHORTCUTS, RoleHero, ShortcutTiles } from '@/components/RoleHero';
 import { PlanUnlocks } from '@/components/PlanUnlocks';
 import { ProgressRing } from '@/components/ProgressRing';
 import { isoDaysAgo } from '@/lib/domain/funnel';
+import { loadAthleteDashboard } from '@/lib/data/dashboard';
+import { AthleteCommandCenter } from '@/components/dashboard/AthleteCommandCenter';
+import { logEvent } from '@/lib/events';
 
 export const metadata: Metadata = { title: 'Inicio' };
 
@@ -99,6 +102,19 @@ export default async function HomePage() {
   const primary = session.primaryRole ?? session.roles[0];
   // El agente tiene un inicio propio (Agent Workspace) centrado en su cartera.
   if (primary === 'agent') return <AgentHome session={session} />;
+  // El atleta tiene su Command Center: qué hacer ahora, por qué y qué se acerca, con datos reales.
+  if (primary === 'athlete') {
+    const d = await loadAthleteDashboard(session.userId, session.isMinor);
+    if (d) {
+      void logEvent('dashboard_viewed', { stage: d.stage, actions: d.actions.length });
+      return (
+        <>
+          <AthleteCommandCenter d={d} firstName={session.displayName.split(' ')[0] || 'atleta'} isMinor={session.isMinor} />
+          <Card className="mt-6"><AskGala compact /></Card>
+        </>
+      );
+    }
+  }
   const supabase = await createClient();
   const [{ steps, score }, plan, { data: activity }, { count: unreadCount }, signal] = await Promise.all([
     stepsFor(session),
