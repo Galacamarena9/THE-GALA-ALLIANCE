@@ -1360,6 +1360,24 @@ try {
     await as(u.adult, `insert into process_documents (process_id, athlete_id, kind) values ($1, $2, 'transcript')`, [procId, u.adult]);
   });
 
+  results.push('\nGala AI: métricas sin contenido, feedback y límites');
+  await check('ai: cada usuario registra y ve solo sus métricas; el feedback solo sobre sus peticiones', async () => {
+    const rid = randomUUID();
+    await as(u.adult, `select log_ai_event($1, 'next_action', 'model', 'ok', 'anthropic', 'm', 10, 20, 1, 300, '/app')`, [rid]);
+    eq((await as(u.brand, `select count(*)::int n from ai_events where id = $1`, [rid])).rows[0].n, 0);
+    eq((await as(u.adult, `select user_id from ai_events where id = $1`, [rid])).rows[0].user_id, u.adult);
+    await expectError(() => as(u.brand, `insert into ai_feedback (request_id, user_id, rating) values ($1, $2, 1)`, [rid, u.brand]));
+    await as(u.adult, `insert into ai_feedback (request_id, user_id, rating, reason) values ($1, $2, -1, 'wrong')`, [rid, u.adult]);
+    await expectError(() => as(u.adult, `insert into ai_events (id, user_id, intent, mode, outcome) values ($1, $2, 'x', 'model', 'ok')`, [randomUUID(), u.adult]));
+  });
+  await check('ai: ráfaga de 6 por minuto y estadísticas solo para admin', async () => {
+    const r = [];
+    for (let i = 0; i < 7; i++) r.push((await as(u.coach, `select consume_ai_request() ok`)).rows[0].ok);
+    eq(r.slice(0, 6).every(Boolean), true); eq(r[6], false);
+    await expectError(() => as(u.adult, `select * from admin_ai_stats()`), /admin_only/);
+    eq((await as(u.admin, `select requests from admin_ai_stats()`)).rows[0].requests >= 1, true);
+  });
+
 } finally {
   console.log(results.join('\n'));
   console.log(`\n${passed} pruebas OK · ${failed} fallidas`);

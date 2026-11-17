@@ -23,7 +23,7 @@ export default async function AdminPage() {
   if (!session.roles.includes('admin')) redirect('/app');
   const supabase = await createClient();
 
-  const [orgs, opps, camps, reports, dsr, links, insts, claims, quality] = await Promise.all([
+  const [orgs, opps, camps, reports, dsr, links, insts, claims, quality, ai] = await Promise.all([
     supabase.from('organizations').select('id, name, type, website, requester_email_domain, created_at').eq('verification_status', 'submitted').order('created_at'),
     supabase.from('opportunities').select('id, title, annual_cost_usd, aid_amount_usd, organizations(name, verification_status)').eq('status', 'pending_review').order('created_at'),
     supabase.from('brand_campaigns').select('id, title, compensation_kind, compensation_usd, organizations(name, verification_status)').eq('status', 'pending_review').order('created_at'),
@@ -33,7 +33,9 @@ export default async function AdminPage() {
     supabase.from('institutions').select('id, name, state').order('name').limit(500),
     supabase.from('institution_claims').select('id, work_email, role_title, domain_matches, organization_id, created_at, institutions(id, name, website_url), organizations(name, verification_status)').eq('status', 'pending').order('created_at'),
     supabase.rpc('admin_institution_quality'),
+    supabase.rpc('admin_ai_stats'),
   ]);
+  const aiRow = (Array.isArray(ai.data) ? ai.data[0] : ai.data) as { requests: number; users: number; errors: number; fallbacks: number; guards: number; avg_latency_ms: number; p95_latency_ms: number; input_tokens: number; output_tokens: number; helpful: number; not_helpful: number; top_intents: Record<string, number> } | null;
 
   const queue = (n: number) => <Badge tone={n ? 'warn' : 'ok'}>{n}</Badge>;
 
@@ -41,6 +43,23 @@ export default async function AdminPage() {
     <>
       <PageHeader kicker="Trust & Safety" title="Revisión y verificación" description="Todo lo que se publica pasa por aquí. Cada decisión queda en el registro de auditoría." />
       <div className="space-y-5">
+        {aiRow && (
+          <Card>
+            <CardTitle kicker="Gala IA · 7 días">Calidad y coste</CardTitle>
+            <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+              {[
+                ['Peticiones', `${aiRow.requests} (${aiRow.users} usuarios)`],
+                ['Errores', String(aiRow.errors)],
+                ['Sin modelo / guardas', `${aiRow.fallbacks} / ${aiRow.guards}`],
+                ['Latencia media / p95', `${aiRow.avg_latency_ms} / ${aiRow.p95_latency_ms} ms`],
+                ['Tokens entrada / salida', `${aiRow.input_tokens} / ${aiRow.output_tokens}`],
+                ['Útil / no útil', `${aiRow.helpful} / ${aiRow.not_helpful}`],
+              ].map(([k, v]) => <div key={k}><dt className="text-xs text-muted">{k}</dt><dd className="font-semibold text-paper">{v}</dd></div>)}
+            </dl>
+            {Object.keys(aiRow.top_intents ?? {}).length > 0 && <p className="mt-3 text-xs text-muted">Intenciones: {Object.entries(aiRow.top_intents).map(([k, v]) => `${k} ${v}`).join(' · ')}</p>}
+            <p className="mt-2 text-[11px] text-faint">Sin contenido de conversaciones: solo métricas técnicas (13 meses).</p>
+          </Card>
+        )}
         <Card>
           <CardTitle kicker="Denuncias (DSA)" action={queue(reports.data?.length ?? 0)}>Cola por prioridad</CardTitle>
           <ul className="divide-y divide-line">
