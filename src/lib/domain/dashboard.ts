@@ -26,6 +26,8 @@ export interface DashboardInput {
   /** Oportunidades activas con encaje alto (≥ 80 %) que el atleta no ha guardado. */
   highMatchOpportunities: number;
   isMinor: boolean;
+  /** Pasos y tareas personales del pipeline con fecha (los fija el atleta). */
+  personalDue?: { id: string; title: string; date: string; href: string }[];
   /** Objetivos: si no busca universidad en EE. UU., el panel cambia de foco. */
   seeksUSCollege: boolean;
   now?: Date;
@@ -86,6 +88,16 @@ export function prioritize(i: DashboardInput): ActionItem[] {
       title: `Oferta de ${o.university_name}: responde ${n <= 1 ? 'ya' : `en ${n} días`}`,
       reason: o.in_writing ? 'Tienes la oferta por escrito.' : 'Pide la oferta por escrito antes de decidir.',
       priority: n <= 3 ? 'urgent' : 'important', weight: 95 - n,
+    });
+  }
+  // 2b. Pasos o tareas personales vencidos o de hoy/mañana (fechas que puso el atleta).
+  for (const t of i.personalDue ?? []) {
+    const n = daysUntil(t.date, now);
+    if (n > 2) continue;
+    out.push({
+      key: `personal:${t.id}`, group: 'recruiting', href: t.href, cta: 'Abrir',
+      title: n < 0 ? `${t.title} (vencido)` : n === 0 ? `${t.title}: hoy` : `${t.title}: mañana`,
+      reason: 'Fecha que pusiste tú en tu pipeline.', priority: n < 0 ? 'urgent' : 'important', weight: 85 - Math.max(n, 0),
     });
   }
   // 3. Candidaturas con información solicitada (evento real de la organización).

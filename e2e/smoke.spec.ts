@@ -7,11 +7,11 @@ const PUBLIC = [
   '/para/atletas', '/para/familias', '/para/universidades', '/para/coaches', '/para/agentes', '/para/marcas',
 ];
 // Pantallas internas con datos ficticios (solo existen con ENABLE_PREVIEW=1, nunca en producción).
-const PREVIEW = ['agent-home', 'portfolio', 'athlete-home', 'coach-home', 'pipeline', 'pipeline-table', 'match', 'opportunity', 'passport', 'galamatch', 'command-center'];
+const PREVIEW = ['agent-home', 'portfolio', 'athlete-home', 'coach-home', 'pipeline', 'pipeline-table', 'match', 'opportunity', 'passport', 'galamatch', 'command-center', 'athlete-pipeline'];
 const PROTECTED = [
   '/app', '/app/pipeline', '/app/pipeline/team', '/app/contacts', '/app/portfolio', '/app/athlete/passport',
   '/app/discover', '/app/lists', '/app/inbox', '/app/agents', '/app/admin/panel', '/app/plan', '/onboarding',
-  '/app/match', '/app/shortlist', '/app/universities',
+  '/app/match', '/app/shortlist', '/app/process', '/app/universities',
 ];
 
 async function dismissConsent(page: Page) {

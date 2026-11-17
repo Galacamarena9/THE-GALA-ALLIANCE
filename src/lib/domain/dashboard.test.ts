@@ -43,3 +43,9 @@ test('dashboard: el recorrido marca el paso actual', () => {
   const j = journey({ ...base, savedUniversities: 4 });
   assert.equal(j.find((s) => s.current)?.key, 'passport');
 });
+
+test('dashboard: un paso personal vencido es urgente; uno a 10 días no aparece', () => {
+  const r = prioritize({ ...base, personalDue: [{ id: 'a', title: 'Enviar vídeo', date: '2026-11-15', href: '/x' }, { id: 'b', title: 'Llamar', date: '2026-11-27', href: '/y' }] });
+  assert.equal(r[0].key, 'personal:a'); assert.equal(r[0].priority, 'urgent');
+  assert.equal(r.some((x) => x.key === 'personal:b'), false);
+});

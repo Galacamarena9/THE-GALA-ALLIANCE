@@ -3,6 +3,7 @@ import { computeReadiness } from '@/lib/domain/readiness';
 import { galaMatch, type AthleteContext } from '@/lib/domain/gala-match/engine';
 import { journey, prioritize, stageOf, type DashboardInput } from '@/lib/domain/dashboard';
 import type { AthleteDashboard } from '@/lib/data/dashboard';
+import type { ProcessRow } from '@/lib/data/pipeline';
 
 const ctx = { sport_id: 'basketball', primary_position_id: 1, secondary_position_id: 2, graduation_year: 2027, pathways: ['ncaa_d2'], countries: ['US'], regions: [], intended_majors: ['Business'], school_size: 'medium', sport_level: 'competitive', campus_setting: 'urban', scholarship_need: 'partial', annual_budget_usd: 30000, gpa: 8.7, gpa_scale: 10, education_system: 'es', has_english_certificate: false, has_highlight: true, has_full_game: false, verified_stats: 0 } as unknown as AthleteContext;
 const inst = (id: string, name: string, state: string, city: string) => ({ kind: 'institution' as const, id, name, state, city, sports_offered: ['basketball'], division: 'ncaa_d2', association: 'ncaa', athletic_source: 'manual_admin', ownership: 'private_nonprofit', locale: 'city', enrollment: 9000, cost_attendance_usd: 38000, tuition_in_state_usd: 28000, tuition_out_of_state_usd: 28000, program_cips: ['5214'] });
@@ -33,3 +34,18 @@ export const previewCommandCenter = {
     activity: { ok: true, data: [] }, applications: [], offers: [],
   },
 } as unknown as AthleteDashboard;
+
+const iso = (days: number) => new Date(Date.now() + days * 86400000).toISOString();
+const proc = (id: string, name: string, status: string, extra: Partial<ProcessRow> = {}): ProcessRow => ({
+  id, target_kind: 'institution', target_id: id, status, shortlist_tier: null, note: null, match_score_at_save: null,
+  created_at: iso(-30), updated_at: iso(-2), archived_at: null, next_action: null, next_action_due: null, close_reason: null,
+  stage_changed_at: iso(-5), decided_at: null, name, sub: 'Ciudad Ejemplo', official_deadline: null, org_verified: null,
+  application: null, open_tasks: 0, open_task_due: null, offers: 0, urgency: 'ok', urgencyReason: '', ...extra,
+});
+/** Pipeline FICTICIO para el probador interno. */
+export const previewPipeline: ProcessRow[] = [
+  proc('p1', 'Universidad Ficticia del Norte', 'contacted', { next_action: 'Enviar partido completo', next_action_due: iso(-1).slice(0, 10), urgency: 'overdue', urgencyReason: 'Tu siguiente paso vencido', open_tasks: 2 }),
+  proc('p2', 'College Demo del Lago', 'applied', { target_kind: 'opportunity', official_deadline: iso(4).slice(0, 10), urgency: 'due_soon', urgencyReason: 'Plazo oficial en 4 días', org_verified: true }),
+  proc('p3', 'Instituto Universitario Ejemplo', 'offer', { offers: 1 }),
+  proc('p4', 'Universidad de Prueba', 'saved'),
+];
