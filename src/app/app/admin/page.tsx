@@ -8,6 +8,7 @@ import { ORG_TYPE_LABEL, LINK_KIND_LABEL, daysSince, domainOf, usd } from '@/lib
 import type { OrgType } from '@/lib/types';
 import { Badge, Card, CardTitle, PageHeader, inputClass } from '@/components/ui';
 import { ScorecardImportForm } from '@/components/forms';
+import { ScorecardBulkImport } from '@/components/ScorecardBulkImport';
 import { decideReport, resolveDataRequest, reviewCampaign, reviewOpportunity, reviewOrganization, verifyAthleteLink } from '@/app/actions/admin';
 
 export const metadata: Metadata = { title: 'Revisión' };
@@ -162,7 +163,12 @@ export default async function AdminPage() {
         </div>
 
         <Card>
-          <CardTitle kicker="Directorio">Importar universidad con datos oficiales</CardTitle>
+          <CardTitle kicker="Directorio">Catálogo completo de universidades</CardTitle>
+          <ScorecardBulkImport />
+        </Card>
+
+        <Card>
+          <CardTitle kicker="Directorio">Importar una universidad con datos oficiales</CardTitle>
           <p className="mb-4 text-sm text-muted">Busca por nombre en College Scorecard (U.S. Department of Education). Se guardan nombre, ciudad, estado, web, calculadora de precio y coste oficial con fecha de consulta. Después completa división, deportes y enlaces desde la ficha.</p>
           <ScorecardImportForm />
         </Card>

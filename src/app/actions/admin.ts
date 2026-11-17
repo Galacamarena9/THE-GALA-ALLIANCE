@@ -95,6 +95,29 @@ const toHttps = (u: unknown) => {
   return clean.startsWith('https://') ? clean : `https://${clean}`;
 };
 
+/** Fila de College Scorecard → fila de `institutions` (con fuente y fecha de la descarga). */
+function mapScorecardRow(r: Record<string, unknown>, now: string) {
+  const num = (k: string) => (typeof r[k] === 'number' ? (r[k] as number) : null);
+  const cost = num('latest.cost.attendance.academic_year');
+  const tuition = num('latest.cost.tuition.out_of_state');
+  const sat = num('latest.admissions.sat_scores.average.overall');
+  const rate = num('latest.admissions.admission_rate.overall');
+  return {
+    ipeds_unitid: Number(r['id']),
+    name: String(r['school.name']),
+    city: (r['school.city'] as string) ?? null,
+    state: (r['school.state'] as string) ?? null,
+    website_url: toHttps(r['school.school_url']),
+    price_calculator_url: toHttps(r['school.price_calculator_url']),
+    cost_attendance_usd: cost == null ? null : Math.round(cost),
+    tuition_out_of_state_usd: tuition == null ? null : Math.round(tuition),
+    sat_avg: sat == null ? null : Math.round(sat),
+    admission_rate: rate == null ? null : Number(rate.toFixed(4)),
+    data_source: 'college_scorecard',
+    source_fetched_at: now,
+  };
+}
+
 export async function importFromScorecard(_prev: FormState, formData: FormData): Promise<FormState> {
   await requireAdmin();
   const key = process.env.COLLEGE_SCORECARD_API_KEY;
@@ -116,20 +139,7 @@ export async function importFromScorecard(_prev: FormState, formData: FormData):
 
   const supabase = await createClient();
   const now = new Date().toISOString();
-  const payload = rows.map((r) => ({
-    ipeds_unitid: Number(r['id']),
-    name: String(r['school.name']),
-    city: (r['school.city'] as string) ?? null,
-    state: (r['school.state'] as string) ?? null,
-    website_url: toHttps(r['school.school_url']),
-    price_calculator_url: toHttps(r['school.price_calculator_url']),
-    cost_attendance_usd: typeof r['latest.cost.attendance.academic_year'] === 'number' ? Math.round(r['latest.cost.attendance.academic_year'] as number) : null,
-    tuition_out_of_state_usd: typeof r['latest.cost.tuition.out_of_state'] === 'number' ? Math.round(r['latest.cost.tuition.out_of_state'] as number) : null,
-    sat_avg: typeof r['latest.admissions.sat_scores.average.overall'] === 'number' ? Math.round(r['latest.admissions.sat_scores.average.overall'] as number) : null,
-    admission_rate: typeof r['latest.admissions.admission_rate.overall'] === 'number' ? Number((r['latest.admissions.admission_rate.overall'] as number).toFixed(4)) : null,
-    data_source: 'college_scorecard',
-    source_fetched_at: now,
-  }));
+  const payload = rows.map((r) => mapScorecardRow(r, now));
   const { error } = await supabase.from('institutions').upsert(payload, { onConflict: 'ipeds_unitid' });
   if (error) return { error: 'No se ha podido guardar la importación.' };
   revalidatePath('/app/admin');
@@ -171,4 +181,58 @@ export async function updateInstitutionAdmin(_prev: FormState, formData: FormDat
   if (error) return { error: 'No se ha podido guardar.' };
   revalidatePath(`/app/universities/${id}`);
   return { ok: true, message: 'Institución actualizada y enlaces marcados como revisados.' };
+}
+
+
+/**
+ * Importación completa del catálogo, por lotes (cada llamada trae hasta 3 páginas de 100 = 300 instituciones,
+ * para no superar el tiempo máximo de una función). Solo instituciones activas (`school.operating=1`) cuya titulación
+ * principal es de grado asociado, grado o posgrado (`predominant=2,3,4`): es donde existen los programas NCAA, NAIA y JUCO.
+ * College Scorecard NO indica la división deportiva: eso se completa a mano por institución (enlaces y división).
+ * Idempotente: `upsert` por `ipeds_unitid`, se puede repetir sin duplicar.
+ */
+export type ScorecardBatchResult = { ok: true; imported: number; total: number; nextPage: number | null } | { ok: false; error: string };
+
+const BULK_PAGES_PER_CALL = 3;
+const BULK_PER_PAGE = 100;
+
+export async function importScorecardBatch(startPage: number): Promise<ScorecardBatchResult> {
+  await requireAdmin();
+  const key = process.env.COLLEGE_SCORECARD_API_KEY;
+  if (!key) return { ok: false, error: 'Falta COLLEGE_SCORECARD_API_KEY en las variables de entorno de Netlify (clave gratuita en api.data.gov/signup).' };
+  const page0 = z.number().int().min(0).max(1000).safeParse(startPage);
+  if (!page0.success) return { ok: false, error: 'Página no válida.' };
+
+  const supabase = await createClient();
+  const now = new Date().toISOString();
+  let imported = 0;
+  let total = 0;
+  let page = page0.data;
+
+  for (let i = 0; i < BULK_PAGES_PER_CALL; i++, page++) {
+    const url = new URL('https://api.data.gov/ed/collegescorecard/v1/schools');
+    url.searchParams.set('api_key', key);
+    url.searchParams.set('school.operating', '1');
+    url.searchParams.set('school.degrees_awarded.predominant', '2,3,4');
+    url.searchParams.set('fields', SCORECARD_FIELDS);
+    url.searchParams.set('sort', 'id');
+    url.searchParams.set('per_page', String(BULK_PER_PAGE));
+    url.searchParams.set('page', String(page));
+
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) return { ok: false, error: `College Scorecard respondió ${res.status} en la página ${page}. Puedes reanudar desde aquí.` };
+    const json = (await res.json()) as { metadata?: { total?: number }; results?: Record<string, unknown>[] };
+    total = json.metadata?.total ?? total;
+    const rows = json.results ?? [];
+    if (!rows.length) return { ok: true, imported, total, nextPage: null };
+
+    const { error } = await supabase.from('institutions').upsert(rows.map((r) => mapScorecardRow(r, now)), { onConflict: 'ipeds_unitid' });
+    if (error) return { ok: false, error: `No se ha podido guardar la página ${page}. Puedes reanudar desde aquí.` };
+    imported += rows.length;
+    if ((page + 1) * BULK_PER_PAGE >= total) {
+      revalidatePath('/app/universities');
+      return { ok: true, imported, total, nextPage: null };
+    }
+  }
+  return { ok: true, imported, total, nextPage: page };
 }
