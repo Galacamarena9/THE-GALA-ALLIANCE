@@ -262,3 +262,94 @@ html:not(.js) .reveal { opacity: 1; transform: none; }
 @keyframes ring-fill { from { stroke-dashoffset: 100; } to { stroke-dashoffset: var(--ring-offset); } }
 .ring-fill { animation: ring-fill 1.4s cubic-bezier(.2,.8,.2,1) both; }
 @media (prefers-reduced-motion: reduce) { .ring-fill { animation: none; } }
+
+/* =============================================================================
+   Sistema visual "Carbon" (rediseño de noviembre 2026): negro carbón + blanco + Gala Volt (lima).
+   `.carbon` y `.light-scope` remapean los tokens dentro de una sección, así los componentes
+   existentes (que usan bg-surface, text-paper, etc.) se adaptan sin reescribirse.
+   ============================================================================= */
+.carbon {
+  --color-ink: #0a0a0c;
+  --color-surface: #141418;
+  --color-surface-2: #1c1c22;
+  --color-line: #2a2a32;
+  --color-line-strong: #3d3d48;
+  --color-paper: #f5f5f7;
+  --color-muted: #a8a8b3;
+  --color-faint: #8e8e9a;
+  --color-brass: #c8f03c;
+  --color-brass-soft: #d6f56a;
+  --color-brass-deep: #9cc21f;
+  --color-trust: #3ccf91;
+  --color-ok: #3ccf91;
+  --color-warn: #f5b942;
+  --color-danger: #f06b5b;
+  --color-lavender: #c9c9d4;
+  background: var(--color-ink);
+  color: var(--color-paper);
+}
+.light-scope {
+  --color-ink: #f4f4f1;
+  --color-surface: #ffffff;
+  --color-surface-2: #ebebe6;
+  --color-line: #dedcd5;
+  --color-line-strong: #c9c7bf;
+  --color-paper: #0a0a0c;
+  --color-muted: #50505a;
+  --color-faint: #5c5c66;
+  --color-brass: #3d2fd1;
+  --color-brass-soft: #5446e6;
+  --color-brass-deep: #2a1fa8;
+  --color-trust: #0b6f5b;
+  --color-ok: #0b6f5b;
+  --color-warn: #8a5300;
+  --color-danger: #b42318;
+  background: var(--color-ink);
+  color: var(--color-paper);
+}
+
+/* Tipografía editorial: titulares enormes, compactos, en mayúsculas. */
+.display-xl { font-family: var(--font-display); font-weight: 700; text-transform: uppercase; line-height: 0.84; letter-spacing: -0.012em; font-size: clamp(3.4rem, 8.6vw, 7.6rem); }
+.display-lg { font-family: var(--font-display); font-weight: 700; text-transform: uppercase; line-height: 0.88; letter-spacing: -0.01em; font-size: clamp(2.8rem, 7vw, 6.25rem); }
+.eyebrow { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; }
+
+/* Superficies de cristal muy sutiles. */
+.glass { background: color-mix(in srgb, var(--color-surface) 72%, transparent); backdrop-filter: blur(18px) saturate(1.2); -webkit-backdrop-filter: blur(18px) saturate(1.2); border: 1px solid rgb(255 255 255 / 0.08); }
+.hairline { border-color: rgb(255 255 255 / 0.08); }
+
+/* Portada: vídeo atenuado con velo carbón. */
+.hero-carbon {
+  background:
+    radial-gradient(60% 70% at 78% 45%, rgb(200 240 60 / 0.10), transparent 70%),
+    linear-gradient(90deg, rgb(10 10 12 / 0.97) 0%, rgb(10 10 12 / 0.82) 45%, rgb(10 10 12 / 0.55) 100%),
+    linear-gradient(0deg, rgb(10 10 12) 0%, transparent 30%);
+}
+@media (max-width: 1023px) { .hero-carbon { background: linear-gradient(180deg, rgb(10 10 12 / 0.75), rgb(10 10 12 / 0.92) 55%, rgb(10 10 12)); } }
+.tile-carbon { background: linear-gradient(0deg, rgb(10 10 12 / 0.96) 0%, rgb(10 10 12 / 0.4) 55%, rgb(10 10 12 / 0.05) 100%); }
+
+/* ===== Gala Passport: la pieza firma de la marca ===== */
+.passport {
+  position: relative; isolation: isolate; overflow: hidden; border-radius: 28px; color: #f5f5f7;
+  background: linear-gradient(155deg, #1d1d24 0%, #111115 55%, #0b0b0e 100%);
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.09) inset, 0 40px 80px -24px rgb(0 0 0 / 0.7), 0 0 0 1px rgb(0 0 0 / 0.6);
+}
+.passport::before { /* brillo holográfico que recorre la tarjeta */
+  content: ""; position: absolute; inset: -40%; z-index: -1; pointer-events: none;
+  background: conic-gradient(from 210deg at 50% 50%, transparent 0deg, rgb(200 240 60 / 0.10) 40deg, rgb(120 110 255 / 0.10) 90deg, transparent 140deg, transparent 360deg);
+  animation: passport-sheen 9s linear infinite;
+}
+@keyframes passport-sheen { to { transform: rotate(360deg); } }
+.passport-tilt { transform: perspective(1400px) rotateY(-9deg) rotateX(4deg) rotate(-1.5deg); transition: transform 0.6s cubic-bezier(.22,1,.36,1); }
+@media (hover: hover) { .passport-tilt:hover { transform: perspective(1400px) rotateY(0) rotateX(0) rotate(0); } }
+@media (max-width: 1023px) { .passport-tilt { transform: none; } }
+.passport-portrait { background: radial-gradient(120% 90% at 20% 0%, #e0622a 0%, #c2410c 35%, #4a1d0b 100%); }
+.float-slow { animation: float 6s ease-in-out infinite; }
+
+/* Marcas de procedencia del dato: declarado (aro) · documentado (medio) · confirmado por el club (lleno). */
+.prov { display: inline-block; width: 10px; height: 10px; border-radius: 9999px; flex: none; }
+.prov-self { box-shadow: inset 0 0 0 1.5px currentColor; }
+.prov-doc { background: linear-gradient(90deg, currentColor 50%, transparent 50%); box-shadow: inset 0 0 0 1.5px currentColor; }
+.prov-club { background: currentColor; }
+
+/* Cinta de datos (sin interacción). */
+.ticker { animation: marquee 50s linear infinite; }

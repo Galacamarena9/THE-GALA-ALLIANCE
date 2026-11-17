@@ -45,7 +45,7 @@ export function NetworkGraph() {
               type="button"
               aria-pressed={active === a.id}
               onClick={() => setActive(a.id)}
-              className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-medium transition-colors ${active === a.id ? 'border-brass bg-brass text-white' : 'border-line bg-surface text-paper hover:border-brass/50'}`}
+              className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-medium transition-colors ${active === a.id ? 'border-brass bg-brass text-ink' : 'border-line bg-surface text-paper hover:border-brass/50'}`}
             >
               <a.Icon className="h-4 w-4" aria-hidden />{a.label}
             </button>
@@ -61,10 +61,10 @@ export function NetworkGraph() {
         </div>
       </div>
 
-      <div className="relative mx-auto aspect-square w-full max-w-md overflow-hidden rounded-[2rem] bg-night" aria-hidden>
+      <div className="relative mx-auto aspect-square w-full max-w-md overflow-hidden rounded-[2rem] bg-surface ring-1 ring-line" aria-hidden>
         <div className="court-lines absolute inset-0 opacity-30" />
         <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full">
-          <circle cx="50" cy="50" r="38" fill="none" stroke="rgb(255 255 255 / 0.12)" strokeWidth="0.3" />
+          <circle cx="50" cy="50" r="38" fill="none" className="stroke-line" strokeWidth="0.3" />
           {LINKS.map((l) => {
             const on = l.a === active || l.b === active;
             return (
@@ -73,7 +73,7 @@ export function NetworkGraph() {
                 x1={pos[l.a].x} y1={pos[l.a].y} x2={pos[l.b].x} y2={pos[l.b].y}
                 strokeWidth={on ? 0.9 : 0.35}
                 strokeDasharray={on ? undefined : '1 1'}
-                className={`transition-all duration-500 ${on ? 'stroke-lime' : 'stroke-lavender/30'}`}
+                className={`transition-all duration-500 ${on ? 'stroke-brass' : 'stroke-line-strong'}`}
               />
             );
           })}
@@ -90,10 +90,10 @@ export function NetworkGraph() {
               className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1"
               style={{ left: `${a.x}%`, top: `${a.y}%` }}
             >
-              <span className={`flex h-12 w-12 items-center justify-center rounded-full transition-all duration-300 sm:h-14 sm:w-14 ${on ? 'scale-110 bg-lime text-night' : near ? 'bg-brass text-white' : 'bg-white/10 text-lavender ring-1 ring-white/15'}`}>
+              <span className={`flex h-12 w-12 items-center justify-center rounded-full transition-all duration-300 sm:h-14 sm:w-14 ${on ? 'scale-110 bg-paper text-ink' : near ? 'bg-brass text-ink' : 'bg-surface-2 text-muted ring-1 ring-line-strong'}`}>
                 <a.Icon className="h-5 w-5" />
               </span>
-              <span className={`text-center text-[11px] font-semibold leading-tight ${on || near ? 'text-white' : 'text-lavender/70'}`}>{a.label}</span>
+              <span className={`text-center text-[11px] font-semibold leading-tight ${on || near ? 'text-paper' : 'text-faint'}`}>{a.label}</span>
             </button>
           );
         })}
