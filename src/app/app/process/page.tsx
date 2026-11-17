@@ -6,6 +6,7 @@ import { loadPipeline } from '@/lib/data/pipeline';
 import { ButtonLink, Card, EmptyState, Notice, PageHeader } from '@/components/ui';
 import { PipelineView, type PipelineFilters } from '@/components/pipeline/PipelineView';
 import { TaskForm } from '@/components/pipeline/PipelineForms';
+import { AskGala } from '@/components/AskGala';
 
 export const metadata: Metadata = { title: 'Mi pipeline' };
 
@@ -50,6 +51,12 @@ export default async function ProcessPage({ searchParams }: { searchParams: Prom
         </EmptyState>
       ) : (
         <PipelineView rows={rows} f={f} athlete={athlete.id} params={params} editable={athlete.canEdit} />
+      )}
+      {session.roles.includes('athlete') && (
+        <details className="mt-6 rounded-[var(--radius-card)] border border-line bg-surface p-5">
+          <summary className="cursor-pointer font-semibold text-brass">Pregunta a Gala sobre tu pipeline</summary>
+          <div className="mt-4"><AskGala compact context="process" /></div>
+        </details>
       )}
       {athlete.canEdit && (
         <Card className="mt-6">

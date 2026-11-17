@@ -62,6 +62,10 @@ test.describe('protección de acceso', () => {
       expect((await request.get(path)).status()).toBe(401);
     });
   }
+  test('sin sesión Gala IA devuelve 401 y no consume modelo', async ({ request }) => {
+    const res = await request.post('/api/gala-ia', { data: { mode: 'chat', messages: [{ role: 'user', content: 'hola' }] } });
+    expect(res.status()).toBe(401);
+  });
 });
 
 test.describe('accesibilidad WCAG 2.2 AA', () => {

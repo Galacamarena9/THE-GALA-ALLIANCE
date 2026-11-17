@@ -4,12 +4,13 @@ import { z } from 'zod';
 import { getSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
 import { loadCatalog } from '@/lib/data/athlete';
-import { GALA_SYSTEM, buildUserContext } from '@/lib/ai/galaContext';
+import { handle, provider } from '@/lib/ai/orchestrator';
 
 export const runtime = 'nodejs';
 
 const bodySchema = z.object({
   mode: z.enum(['chat', 'search']).default('chat'),
+  page: z.string().regex(/^\/[A-Za-z0-9/_-]{0,120}$/).optional(),
   messages: z
     .array(z.object({ role: z.enum(['user', 'assistant']), content: z.string().min(1).max(2000) }))
     .min(1)
@@ -20,14 +21,15 @@ const MODEL = process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-5-5';
 
 /**
  * Gala IA.
- * - Requiere sesión y respeta un límite diario atómico en base de datos.
- * - No guarda las conversaciones (minimización de datos).
+ * - Requiere sesión y respeta límites atómicos en base de datos (40/día, 6/minuto).
+ * - No guarda las conversaciones (minimización): solo métricas técnicas sin contenido (ai_events).
+ * - Modo "chat": orquestador con herramientas internas de solo lectura (RLS) → eventos NDJSON.
+ *   Sin ANTHROPIC_API_KEY responde con datos reales de forma determinista (sin modelo).
  * - Modo "search": traduce lenguaje natural a filtros VISIBLES del escaparate.
  */
 export async function POST(request: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: 'auth_required' }, { status: 401 });
-  if (!process.env.ANTHROPIC_API_KEY) return NextResponse.json({ error: 'Gala IA no está configurada todavía (falta ANTHROPIC_API_KEY).' }, { status: 503 });
 
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: 'invalid_request' }, { status: 400 });
@@ -36,11 +38,11 @@ export async function POST(request: NextRequest) {
   const supabase = await createClient();
   const { data: allowed, error: quotaError } = await supabase.rpc('consume_ai_request');
   if (quotaError) return NextResponse.json({ error: 'quota_check_failed' }, { status: 500 });
-  if (!allowed) return NextResponse.json({ error: 'Has llegado al límite diario de Gala IA. Vuelve mañana.' }, { status: 429 });
-
-  const client = new Anthropic();
+  if (!allowed) return NextResponse.json({ error: 'Has llegado al límite de Gala IA (40 al día, 6 por minuto). Espera un momento.' }, { status: 429 });
 
   if (parsed.data.mode === 'search') {
+    if (!process.env.ANTHROPIC_API_KEY) return NextResponse.json({ error: 'La búsqueda en lenguaje natural no está activada. Usa los filtros.' }, { status: 503 });
+    const client = new Anthropic();
     const catalog = await loadCatalog();
     const positionCodes = catalog.positions.map((p) => `${p.sport_id}:${p.name_es}=${p.id}`).join(', ');
     const response = await client.messages.create({
@@ -82,33 +84,29 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ url: `/app/discover?${params.toString()}`, explanation: String(f.explanation ?? '') });
   }
 
-  const context = await buildUserContext(session);
-  const stream = await client.messages.create({
-    model: MODEL,
-    max_tokens: 900,
-    stream: true,
-    system: [
-      { type: 'text', text: GALA_SYSTEM },
-      { type: 'text', text: `# Contexto\n${context}` },
-    ],
-    messages: parsed.data.messages,
-  });
-
   const encoder = new TextEncoder();
   const body = new ReadableStream<Uint8Array>({
     async start(controller) {
+      const send = (e: unknown) => controller.enqueue(encoder.encode(`${JSON.stringify(e)}\n`));
+      let meta: { requestId: string; intent: string; mode: string } | null = null;
       try {
-        for await (const event of stream) {
-          if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-            controller.enqueue(encoder.encode(event.delta.text));
+        for await (const ev of handle(session, parsed.data.messages, parsed.data.page)) {
+          if (ev.type === 'meta') meta = ev;
+          send(ev);
+          if (ev.type === 'done' && meta) {
+            await supabase.rpc('log_ai_event', {
+              p_id: meta.requestId, p_intent: meta.intent, p_mode: meta.mode, p_outcome: ev.usage.outcome,
+              p_provider: meta.mode === 'model' ? provider.name : null, p_model: meta.mode === 'model' ? provider.model : null,
+              p_input: ev.usage.input, p_output: ev.usage.output, p_tools: ev.usage.tools, p_latency: ev.usage.latencyMs, p_page: parsed.data.page ?? null,
+            });
           }
         }
       } catch {
-        controller.enqueue(encoder.encode('\n\n[Se ha interrumpido la respuesta. Inténtalo de nuevo.]'));
+        send({ type: 'error', message: 'Se ha interrumpido la respuesta. Inténtalo de nuevo.' });
       } finally {
         controller.close();
       }
     },
   });
-  return new Response(body, { headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' } });
+  return new Response(body, { headers: { 'Content-Type': 'application/x-ndjson; charset=utf-8', 'Cache-Control': 'no-store' } });
 }
