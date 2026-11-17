@@ -140,6 +140,7 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
           {match && (
             <Card className="paper-grain">
               <MatchBreakdown match={match} />
+              {isAthlete && <Link href={`/app/match/opportunity/${opp.id}`} className="mt-4 inline-flex text-sm font-semibold text-brass hover:underline">Ver el desglose completo de Gala Match →</Link>}
             </Card>
           )}
 

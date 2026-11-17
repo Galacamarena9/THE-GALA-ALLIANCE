@@ -1188,6 +1188,32 @@ try {
     await as(u.adult, `update athlete_profiles set username = 'lucia-martinez' where user_id = $1`, [u.adult]);
   });
 
+  results.push('\nGala Match v2: guardados, señales y datos oficiales');
+  const gmInst = (await db.query(`insert into institutions (name, state, sports_offered, data_source) values ('Test University', 'FL', '{basketball}', 'college_scorecard') returning id`)).rows[0].id;
+  await check('el atleta guarda una universidad con estado y shortlist propia', async () => {
+    await as(u.adult, `insert into saved_items (athlete_id, target_kind, target_id, shortlist_tier, match_score_at_save) values ($1, 'institution', $2, 'target', 80)`, [u.adult, gmInst]);
+    eq((await as(u.adult, `select status from saved_items where athlete_id = $1`, [u.adult])).rows[0].status, 'saved');
+  });
+  await check('no se puede guardar algo que no existe ni por otra persona', async () => {
+    await expectError(() => as(u.adult, `insert into saved_items (athlete_id, target_kind, target_id) values ($1, 'institution', gen_random_uuid())`, [u.adult]), /target_not_found/);
+    await expectError(() => as(u.brand, `insert into saved_items (athlete_id, target_kind, target_id) values ($1, 'institution', $2)`, [u.adult, gmInst]));
+  });
+  await check('los guardados son privados: ni universidades ni marcas los ven', async () => {
+    eq((await as(u.uni, `select count(*)::int n from saved_items where athlete_id = $1`, [u.adult])).rows[0].n, 0);
+    eq((await as(u.brand, `select count(*)::int n from saved_items`)).rows[0].n, 0);
+  });
+  await check('señales: cada atleta solo escribe y lee las suyas', async () => {
+    await as(u.adult, `insert into match_signals (athlete_id, target_kind, target_id, signal, match_score, engine_version) values ($1, 'institution', $2, 'hidden', 40, 'gm-2.0')`, [u.adult, gmInst]);
+    await expectError(() => as(u.uni, `insert into match_signals (athlete_id, target_kind, target_id, signal) values ($1, 'institution', $2, 'viewed')`, [u.adult, gmInst]));
+    eq((await as(u.uni, `select count(*)::int n from match_signals`)).rows[0].n, 0);
+  });
+  await check('datos oficiales nuevos: solo admin; la procedencia deportiva la fija la base de datos', async () => {
+    await as(u.admin, `update organizations set institution_id = $1 where id = $2`, [gmInst, uniId]);
+    await expectError(() => as(u.uni, `update institutions set net_price_usd = 1000 where id = $1`, [gmInst]), /official_data_admin_only/);
+    await as(u.uni, `update institutions set division = 'ncaa_d2', athletic_source = 'manual_admin' where id = $1`, [gmInst]);
+    eq((await db.query(`select athletic_source from institutions where id = $1`, [gmInst])).rows[0].athletic_source, 'organization');
+  });
+
 } finally {
   console.log(results.join('\n'));
   console.log(`\n${passed} pruebas OK · ${failed} fallidas`);

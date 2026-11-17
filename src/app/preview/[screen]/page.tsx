@@ -12,6 +12,8 @@ import { ProgressRing } from '@/components/ProgressRing';
 import { MatchBreakdown } from '@/components/MatchBreakdown';
 import { matchAthleteToOpportunity } from '@/lib/domain/match';
 import { PassportView, type PassportViewData } from '@/components/passport/PassportView';
+import { galaMatch } from '@/lib/domain/gala-match/engine';
+import { ConfidenceBadge, DimensionChips, MatchBreakdownV2, MatchScore } from '@/components/match/MatchParts';
 
 /** Atleta FICTICIA para revisar el diseño del Passport sin datos reales. */
 const demoPassport: PassportViewData = {
@@ -59,7 +61,7 @@ const demoPublicOpp: PublicOpportunity = {
  */
 export const metadata: Metadata = { title: 'Probador interno', robots: { index: false, follow: false } };
 
-const SCREENS = ['agent-home', 'portfolio', 'athlete-home', 'coach-home', 'pipeline', 'pipeline-table', 'match', 'opportunity', 'passport'] as const;
+const SCREENS = ['agent-home', 'portfolio', 'athlete-home', 'coach-home', 'pipeline', 'pipeline-table', 'match', 'opportunity', 'passport', 'galamatch'] as const;
 
 // Gala Match con el motor real y datos ficticios: un Passport completo y otro con muchos datos ausentes.
 const demoOpp = { sport_id: 'basketball', position_ids: [1], graduation_years: [2027], division: 'ncaa_d2' as const, min_gpa_4: 2.5, english_required: 'TOEFL 80', annual_cost_usd: 40000, aid_amount_usd: 30000 };
@@ -100,6 +102,13 @@ export default async function PreviewPage({ params }: { params: Promise<{ screen
           </div>
         )}
         {screen === 'passport' && <PassportView d={demoPassport} mode="owner" />}
+        {screen === 'galamatch' && (() => {
+          const m = galaMatch(
+            { sport_id: 'basketball', primary_position_id: 1, secondary_position_id: 2, graduation_year: 2027, pathways: ['ncaa_d1', 'ncaa_d2'], countries: ['US'], regions: ['Florida'], intended_majors: ['Business'], school_size: 'medium', sport_level: 'competitive', campus_setting: 'urban', scholarship_need: 'partial', annual_budget_usd: 30000, gpa: 8.7, gpa_scale: 10, education_system: 'es', has_english_certificate: false, has_highlight: true, has_full_game: false, verified_stats: 0 },
+            { kind: 'institution', id: 'demo', name: 'Universidad Ficticia', state: 'FL', sports_offered: ['basketball'], division: 'ncaa_d2', association: 'ncaa', athletic_source: 'manual_admin', ownership: 'private_nonprofit', locale: 'city', enrollment: 9000, cost_attendance_usd: 38000, tuition_in_state_usd: 28000, tuition_out_of_state_usd: 28000, program_cips: ['5214'] },
+          );
+          return (<div className="space-y-6"><div className="flex items-center gap-4"><MatchScore m={m} size="lg" /><div><p className="font-display text-3xl font-bold uppercase text-paper">Universidad Ficticia</p><ConfidenceBadge m={m} /><div className="mt-2"><DimensionChips m={m} /></div></div></div><MatchBreakdownV2 m={m} /></div>);
+        })()}
         {screen === 'opportunity' && <PublicOpportunityView o={demoPublicOpp} sport="Baloncesto" positions={['Base', 'Escolta']} />}
         {screen === 'match' && (
           <div className="grid gap-5 md:grid-cols-2">
