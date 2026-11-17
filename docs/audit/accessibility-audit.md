@@ -9,15 +9,17 @@ del E2E del CI (`e2e/smoke.spec.ts`), que ya ejecuta axe sobre WCAG 2.0 A/AA.
 
 | ID | Criterio | Gravedad | Dónde | Evidencia | Arreglo |
 |---|---|---|---|---|---|
-| A11Y-01 | 2.5.3 Etiqueta en el nombre (`label-content-name-mismatch`) | Grave | Logo de la cabecera y del pie en **todas** las páginas públicas | `src/components/Logo.tsx:6`: `aria-label="The Gala Alliance, inicio"` sustituye al texto visible | Quitar `aria-label` y dejar el texto visible como nombre (o que el nombre empiece exactamente por el texto visible) |
-| A11Y-02 | 1.4.10 Reflow | Grave | `/app/portfolio` (vista `PortfolioView`) a 320 px | Desborde horizontal de 38 px: la fila de pestañas no hace scroll | `overflow-x-auto` en el contenedor de pestañas |
-| A11Y-03 | Cobertura del CI | Media | `e2e/smoke.spec.ts` | Solo etiquetas WCAG 2.0, por eso no detectó A11Y-01 | Añadir las etiquetas 2.1/2.2 al E2E |
+| A11Y-01 ✅ | 2.5.3 Etiqueta en el nombre (`label-content-name-mismatch`) | Grave | Logo de la cabecera y del pie en **todas** las páginas públicas | `src/components/Logo.tsx:6`: `aria-label="The Gala Alliance, inicio"` sustituye al texto visible | Quitar `aria-label` y dejar el texto visible como nombre (o que el nombre empiece exactamente por el texto visible) |
+| A11Y-02 ✅ | 1.4.10 Reflow | Grave | `/app/portfolio` (vista `PortfolioView`) a 320 px | Desborde horizontal de 38 px: las tarjetas de la lista (celdas de grid con anchura mínima automática) | `grid-cols-1` + `min-w-0` en las celdas |
+| A11Y-03 ✅ | Cobertura del CI | Media | `e2e/smoke.spec.ts` | Tenía 2.0 A/AA, 2.1 AA y 2.2 AA, pero no `wcag21a` (donde axe clasifica 2.5.3); por eso no detectó A11Y-01 | Añadida `wcag21a` |
 
 El resto de criterios automatizables pasa: sin errores de JavaScript ni desbordes en las rutas públicas a 320 px, foco visible,
 formularios etiquetados, `prefers-reduced-motion` respetado en el vídeo del hero y tema de alto contraste disponible.
 **Pendiente de revisión manual:** zoom al 200 %, lector de pantalla (NVDA/VoiceOver) en los formularios largos (`PassportEditor`, `OnboardingForm`) y subtítulos en los vídeos subidos por usuarios.
 
-## Resultados literales
+**Revisión tras los arreglos (17 nov 2026): 58/58 mediciones sin infracciones, sin desbordes ni errores JS.**
+
+## Resultados literales (antes de los arreglos)
 
 | Ruta | Viewport | HTTP | Desborde (px) | Errores JS | Infracciones axe (impacto, nodos) |
 |---|---|---|---|---|---|

@@ -69,7 +69,7 @@ test.describe('accesibilidad WCAG 2.2 AA', () => {
       test.skip(info.project.name === 'mobile', 'Se audita en escritorio');
       await page.goto(path, { waitUntil: 'networkidle' });
       await dismissConsent(page);
-      const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
+      const r = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']).analyze();
       const serious = r.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
       expect(serious.map((v) => `${v.id}: ${v.nodes.length}`)).toEqual([]);
     });

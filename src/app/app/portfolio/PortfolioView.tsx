@@ -144,15 +144,15 @@ export function PortfolioView({ agencies, entries, stats, filters }: { agencies:
                 </div>
 
                 {/* Móvil y tableta: tarjetas */}
-                <ul className="grid gap-2 p-3 pt-0 sm:grid-cols-2 lg:hidden">
+                <ul className="grid grid-cols-1 gap-2 p-3 pt-0 sm:grid-cols-2 lg:hidden">
                   {visible.map((e) => (
-                    <li key={e.repId}>
+                    <li key={e.repId} className="min-w-0">
                       <Link href={`/app/portfolio/${e.athleteId}`} className="flex items-center gap-3 rounded-2xl border border-line bg-ink/40 p-3 transition-colors hover:border-brass/40">
                         <AthleteAvatar name={e.name} src={e.avatarUrl} sport={e.sportName ?? e.sportId} size="lg" />
                         <span className="min-w-0 flex-1">
                           <span className="block truncate font-semibold text-paper">{e.name}</span>
                           <span className="block truncate text-xs text-muted">{[e.sportName, e.positionName, e.graduationYear].filter(Boolean).join(' · ') || 'Sin datos deportivos'}</span>
-                          <span className="mt-1.5 flex items-center gap-2">
+                          <span className="mt-1.5 flex min-w-0 items-center gap-2">
                             <StatusPill status={e.status} />
                             <span className="truncate text-xs text-faint">{relativeTime(lastActivityAt(e))}</span>
                           </span>
