@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, BadgeCheck, Building2, GraduationCap, Lock, Search, Star, Users } from 'lucide-react';
 import { BRAND } from '@/content/brand';
-import { MatchPreview } from './MatchPreview';
+import { LiveMatch } from './LiveMatch';
 
 type Key = 'athlete' | 'family' | 'university' | 'club';
 
@@ -32,7 +32,7 @@ const AUDIENCES: Record<Key, { tab: string; Icon: typeof Users; text: string; ct
 };
 
 function Preview({ k }: { k: Key }) {
-  if (k === 'athlete') return <MatchPreview />;
+  if (k === 'athlete') return <LiveMatch />;
   if (k === 'family') {
     return (
       <div className="rounded-3xl border border-line bg-surface p-6 shadow-[var(--shadow-premium)] backdrop-blur-xl">
