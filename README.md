@@ -35,7 +35,7 @@ Documentación: [modelo de negocio](docs/BUSINESS_MODEL.md) · [qué se portó d
 
 ## Seguridad y legal (resumen)
 
-- **RLS en todas las tablas**, probada con 84 casos por rol (`npm run test:rls`).
+- **RLS en todas las tablas**, probada con 198 casos por rol (`npm run test:rls`), y permisos por columna para visitantes anónimos en oportunidades y organizaciones.
 - Menores: privados por defecto; nunca visibles para anónimos, marcas ni agentes; contacto solo de organizaciones
   verificadas con aprobación y lectura de la familia; sin emails ni teléfonos en mensajes; sin etiquetas en Actualidad.
 - COPPA: no se crean cuentas de menores de 13 (se comprueba en el formulario y en la base de datos).

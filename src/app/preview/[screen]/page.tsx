@@ -20,7 +20,7 @@ const demoPublicOpp: PublicOpportunity = {
   position_ids: [], graduation_years: [2027, 2028], division: 'ncaa_d2', min_gpa_4: 2.5, english_required: 'TOEFL 79', location: 'Ohio, EE. UU.', start_term: 'Otoño 2027',
   places: 2, deadline: '2027-03-01', annual_cost_usd: 42000, aid_amount_usd: 28000, financial_source: 'organization_provided',
   description: 'Ejemplo ficticio para revisar el diseño. Buscamos bases y escoltas con buena lectura de juego.\nIncluye alojamiento en campus.',
-  status: 'published', reviewed_by: null, updated_at: new Date().toISOString(),
+  status: 'published', is_reviewed: false, updated_at: new Date().toISOString(),
   organizations: { name: 'Universidad de ejemplo', type: 'university', verification_status: 'verified', website: 'https://example.edu' },
 };
 

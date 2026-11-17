@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 };
 
 const SELECT =
-  'id, title, type, division, location, deadline, annual_cost_usd, aid_amount_usd, status, description, financial_source, reviewed_by, updated_at, organizations!inner(name, verification_status, website, type)';
+  'id, title, type, division, location, deadline, annual_cost_usd, aid_amount_usd, status, description, financial_source, is_reviewed, updated_at, organizations!inner(name, verification_status, website, type)';
 const PAGE = 24;
 
 type LoadResult = { items: OpportunityCardData[]; error: boolean };

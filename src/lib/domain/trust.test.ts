@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { decisionMemo, redFlags, trustLevel } from './trust.ts';
+import { assessOpportunity, decisionMemo, redFlags, trustLevel } from './trust.ts';
 
 const NOW = new Date('2026-11-13T12:00:00Z').getTime();
 
@@ -33,4 +33,17 @@ test('el memo prioriza menos riesgos y menor coste, y no recomienda con riesgos 
   assert.equal(memo.decideBy, '2027-01-15');
   assert.ok(memo.questions.some((q) => q.startsWith('Uni C')));
   assert.equal(decisionMemo([{ title: 'X', orgName: 'X', netCostUsd: 1, matchScore: 1, deadline: null, flags: [{ code: 'payment', severity: 'high', text: '' }], missing: [] }]).recommended, null);
+});
+
+test('sello: la versión pública (is_reviewed) cuenta igual que reviewed_by, sin revelar quién revisó', () => {
+  const base = { status: 'pending_review', description: 'Beca parcial', deadline: null, annual_cost_usd: 40000, aid_amount_usd: 20000, financial_source: 'organization_provided', updated_at: '2026-11-10T00:00:00Z', organizations: { verification_status: 'verified', website: 'https://example.edu', type: 'university' } };
+  const now = Date.parse('2026-11-16T00:00:00Z');
+  const withId = assessOpportunity({ ...base, reviewed_by: '00000000-0000-0000-0000-000000000001' }, now);
+  const withFlag = assessOpportunity({ ...base, is_reviewed: true }, now);
+  const none = assessOpportunity({ ...base, is_reviewed: false }, now);
+  const reviewed = (r: { checks: { label: string; ok: boolean }[] }) => r.checks.find((c) => c.label.startsWith('Requisitos'))!.ok;
+  assert.equal(reviewed(withId), true);
+  assert.equal(reviewed(withFlag), true);
+  assert.equal(reviewed(none), false);
+  assert.equal(withFlag.level, withId.level);
 });

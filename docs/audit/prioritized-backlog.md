@@ -17,7 +17,7 @@ Estado de partida: lint ✓ · typecheck ✓ · 86/86 tests ✓ · build ✓ (ve
 
 | ID | Ticket | Origen | Archivos | Criterio de aceptación |
 |---|---|---|---|---|
-| P1-01 | Vista pública de oportunidades sin columnas internas (`review_note`, `created_by`, `reviewed_by`) | T-01 | Migración: vista `public_opportunities` + `revoke select` de esas columnas a `anon` | Una prueba RLS demuestra que `anon` no puede leer `review_note` |
+| P1-01 ✅ | Columnas internas fuera del alcance de `anon` en oportunidades (`review_note`, `created_by`, `reviewed_by`) y organizaciones (`created_by`, `verified_by`) | T-01 | `20261116001000_public_column_privileges.sql`, consultas públicas con `is_reviewed` | 5 pruebas RLS; fallan sin la migración |
 | P1-02 | Arreglar el nombre accesible del logo (WCAG 2.5.3) | A11Y-01 | `components/Logo.tsx` | axe con etiquetas 2.2 sin infracciones en las rutas públicas |
 | P1-03 | Pestañas de la cartera a 320 px | A11Y-02 | `app/app/portfolio/PortfolioView.tsx` | Sin desborde a 320 px |
 | P1-04 | E2E con etiquetas WCAG 2.1/2.2 | A11Y-03 | `e2e/smoke.spec.ts` | El CI falla ante infracciones graves de 2.2 |

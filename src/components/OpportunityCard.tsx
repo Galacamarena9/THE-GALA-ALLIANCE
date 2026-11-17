@@ -18,6 +18,7 @@ export interface OpportunityCardData {
   description?: string | null;
   financial_source?: string | null;
   reviewed_by?: string | null;
+  is_reviewed?: boolean | null;
   updated_at?: string | null;
   organizations: { name: string; verification_status: string; website?: string | null; type?: string | null } | null;
 }
