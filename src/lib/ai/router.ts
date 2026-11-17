@@ -6,7 +6,7 @@
 export type Lang = 'es' | 'en';
 export type Intent =
   | 'next_action' | 'match_explain' | 'search_universities' | 'compare' | 'pipeline' | 'deadlines'
-  | 'passport' | 'draft_message' | 'offers' | 'knowledge' | 'safety' | 'general';
+  | 'passport' | 'draft_message' | 'offers' | 'knowledge' | 'safety' | 'recruiting' | 'general';
 
 export const INTENT_TOOLS: Record<Intent, string[]> = {
   next_action: ['get_next_best_action'],
@@ -20,6 +20,7 @@ export const INTENT_TOOLS: Record<Intent, string[]> = {
   offers: ['get_pipeline_summary', 'search_knowledge'],
   knowledge: ['search_knowledge'],
   safety: ['search_knowledge'],
+  recruiting: ['get_recruiting_overview'],
   general: ['search_knowledge'],
 };
 
@@ -35,6 +36,7 @@ export function detectLang(text: string): Lang {
 const RULES: [Intent, RegExp][] = [
   ['safety', /(acoso|me (está|esta) presionando|fotos? (privad|íntim|intim)|me pide(n)? (fotos|dinero|mi direcci)|whatsapp privado|harass|asking (me )?for (photos|money)|groom|amenaz|threat)/i],
   ['draft_message', /(redact|escrib(e|ir|eme)|borrador|draft|write (a|an|me)|email|correo|mensaje (al|a la|para)|message (to|for))/i],
+  ['recruiting', /(candidat[oa]s? (que|sin|pendiente|necesita)|shortlist|lista de seguimiento|mi (staff|equipo de recruiting)|necesidad(es)? de recruiting|tareas del equipo|team tasks|which candidates|needs review)/i],
   ['compare', /(compar|vs\.?|versus|diferencia entre .+ y )/i],
   ['match_explain', /(por qué|porque|why).*(match|encaj|compatib|%|porcentaje)|(match|encaje).*(explica|explain|significa|mean)/i],
   ['next_action', /(siguiente paso|qué hago|que hago|por dónde empiezo|qué me toca|next (step|best action)|what should i do|where do i start|prioridad)/i],

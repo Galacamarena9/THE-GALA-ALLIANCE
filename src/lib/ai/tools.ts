@@ -56,6 +56,7 @@ export const TOOL_DEFS = [
   { name: 'search_universities', description: 'Busca universidades del directorio con el encaje real del atleta. Solo devuelve universidades existentes.', input_schema: { type: 'object', properties: { state: { type: 'string', description: 'Código de estado de EE. UU. de 2 letras' }, division: { type: 'string', enum: ['ncaa_d1', 'ncaa_d2', 'ncaa_d3', 'naia', 'njcaa'] }, name: { type: 'string' }, max_cost_usd: { type: 'integer' }, active_only: { type: 'boolean' } } } },
   { name: 'compare_universities', description: 'Compara 2-4 universidades por datos objetivos y encaje. Nunca elige una ganadora.', input_schema: { type: 'object', properties: { universities: { type: 'array', items: { type: 'string' }, minItems: 2, maxItems: 4 } }, required: ['universities'] } },
   { name: 'search_knowledge', description: 'Busca en la guía de The Gala Alliance (fuentes oficiales y fecha de revisión).', input_schema: { type: 'object', properties: { query: { type: 'string' } }, required: ['query'] } },
+  { name: 'get_recruiting_overview', description: 'Para staff de universidades: resumen de su organización (necesidades activas, candidatos por etapa interna, por revisar, tareas que vencen). Solo datos de su organización.', input_schema: { type: 'object', properties: {} } },
   { name: 'propose_action', description: 'Propone al usuario una acción dentro de Gala. NO la ejecuta: el usuario debe confirmarla.', input_schema: { type: 'object', properties: { kind: { type: 'string', enum: ['add_to_pipeline', 'create_task', 'open_page'] }, label: { type: 'string' }, href: { type: 'string', description: 'Ruta interna /app/...' }, university: { type: 'string' }, title: { type: 'string', description: 'Título de la tarea' }, due_date: { type: 'string', description: 'AAAA-MM-DD' } }, required: ['kind', 'label'] } },
   { name: 'present_drafts', description: 'Entrega borradores de un mensaje en 3 tonos (formal, cercano, breve). El usuario los revisa y envía él mismo.', input_schema: { type: 'object', properties: { drafts: { type: 'array', minItems: 3, maxItems: 3, items: { type: 'object', properties: { tone: { type: 'string' }, subject: { type: 'string' }, body: { type: 'string' } }, required: ['tone', 'body'] } } }, required: ['drafts'] } },
 ] as const;
@@ -149,6 +150,25 @@ export async function runTool(name: string, input: Record<string, unknown>, ctx:
       return {
         data: { results: hits.map((h) => ({ chapter: h.chapter, section: h.heading, text: h.text, reviewed: h.reviewed, review_pending: h.stale, guide_url: `/guia/${h.slug}` })) },
         sources: hits.flatMap((h) => h.sources.map((x) => ({ ...x, reviewed: h.reviewed, stale: h.stale }))).filter((x, i, a) => a.findIndex((y) => y.url === x.url) === i).slice(0, 4),
+      };
+    }
+    case 'get_recruiting_overview': {
+      // Mismos permisos que la interfaz: RLS por organización (org_can). Nunca datos de otra universidad.
+      const { currentRecruitOrg, loadCoachHome } = await import('@/lib/data/recruit');
+      const { org } = await currentRecruitOrg(s.userId);
+      if (!org) return { data: { available: false, reason: 'No perteneces a ninguna organización de recruiting.' } };
+      const h = await loadCoachHome(org);
+      const byStage: Record<string, number> = {};
+      for (const c of h.candidates) byStage[c.internal_stage as string] = (byStage[c.internal_stage as string] ?? 0) + 1;
+      return {
+        data: {
+          organization: org.name, verified: org.verified, role: org.role,
+          active_needs: h.needs.map((n) => n.title), candidates_by_internal_stage: byStage, to_review_in_shortlists: h.toReview,
+          open_tasks: h.tasks.length, overdue_tasks: h.overdueTasks, due_today: h.dueTodayTasks,
+          expiring_opportunities: h.expiring.map((o) => ({ title: o.title, days: o.days })),
+          rule: 'Compatibilidad no es talento: nunca ordenes personas como mejores o peores.',
+        },
+        sources: [{ label: 'Portal de recruiting', url: '/app/recruit', internal: true }],
       };
     }
     case 'propose_action': {

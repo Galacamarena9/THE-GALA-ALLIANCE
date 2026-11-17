@@ -16,6 +16,7 @@ type Msg = { role: 'user'; content: string } | { role: 'assistant'; content: str
 const SUGGESTIONS: Record<string, string[]> = {
   default: ['¿Qué hago ahora para avanzar?', '¿Qué me falta en el Passport?', '¿Qué documentos pide la NCAA a un internacional?', '¿Cómo comparo dos ofertas de beca?'],
   process: ['¿Qué procesos necesitan atención?', '¿Qué plazos tengo esta semana?', 'Redacta un email al coach para enviarle mi vídeo', '¿Cómo calculo el coste neto de una oferta?'],
+  recruit: ['¿Qué candidatos necesitan revisión?', '¿Qué tareas del equipo vencen esta semana?', 'Resume el pipeline de mi organización', '¿Qué normas de contacto aplican con menores?'],
   match: ['¿Por qué tengo este porcentaje de match?', 'Recomiéndame universidades con oportunidades activas', '¿Qué puedo mejorar para encajar mejor?', '¿Qué significa la confianza del match?'],
 };
 
@@ -86,7 +87,7 @@ function Feedback({ requestId }: { requestId: string }) {
   );
 }
 
-export function AskGala({ compact = false, initialQuestion = '', context = 'default' }: { compact?: boolean; initialQuestion?: string; context?: 'default' | 'process' | 'match' }) {
+export function AskGala({ compact = false, initialQuestion = '', context = 'default' }: { compact?: boolean; initialQuestion?: string; context?: 'default' | 'process' | 'match' | 'recruit' }) {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState(initialQuestion);
   const [busy, setBusy] = useState(false);

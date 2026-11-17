@@ -7,12 +7,18 @@ import { ORG_TYPE_LABEL, VERIFICATION_LABEL, domainOf } from '@/lib/domain/label
 import type { OrgType, VerificationStatus } from '@/lib/types';
 import { Badge, ButtonLink, Card, CardTitle, EmptyState, Notice, PageHeader } from '@/components/ui';
 import { InstitutionLinksForm, NewsForm, OrganizationForm, TeamInviteForm } from '@/components/forms';
-import { removeMember, submitVerification } from '@/app/actions/organization';
+import { submitVerification } from '@/app/actions/organization';
+import { setMemberPrograms, updateMember } from '@/app/actions/recruit';
+import { ProgramForm } from '@/components/recruit/RecruitForms';
+import { loadCatalog } from '@/lib/data/athlete';
+import { ASSIGNABLE_ROLES, ROLE_LABEL, type OrgRole } from '@/lib/domain/recruit';
 
 export const metadata: Metadata = { title: 'Organización' };
 
-export default async function OrganizationPage() {
+export default async function OrganizationPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const session = await requireSession(['university', 'coach', 'agent', 'brand']);
+  const sp = await searchParams;
+  const catalog = await loadCatalog();
   const supabase = await createClient();
   const { data: memberships } = await supabase
     .from('organization_members')
@@ -35,13 +41,16 @@ export default async function OrganizationPage() {
   return (
     <>
       <PageHeader kicker="Organización" title="Perfil, verificación y equipo" description="Una organización verificada genera confianza: puede publicar, contactar atletas y aparecer con su sello." />
+      {sp.error && <div className="mb-4"><Notice tone="danger">{sp.error}</Notice></div>}
       <div className="space-y-5">
         {await Promise.all(
           orgs.map(async ({ role, org }) => {
-            const isAdmin = role === 'admin';
-            const [{ data: members }, { data: inst }] = await Promise.all([
-              supabase.from('organization_members').select('user_id, member_role, profiles(display_name)').eq('organization_id', org.id),
+            const isAdmin = role === 'admin' || role === 'owner';
+            const isOwner = role === 'owner';
+            const [{ data: members }, { data: inst }, { data: programs }] = await Promise.all([
+              supabase.from('organization_members').select('user_id, member_role, title, program_ids, profiles(display_name)').eq('organization_id', org.id),
               org.institution_id ? supabase.from('institutions').select('*').eq('id', org.institution_id).maybeSingle() : Promise.resolve({ data: null }),
+              supabase.from('org_programs').select('id, name, sport_id, gender').eq('organization_id', org.id).is('archived_at', null).order('name'),
             ]);
             const webDomain = domainOf(org.website);
             const domainMatch = webDomain && org.requester_email_domain ? org.requester_email_domain.endsWith(webDomain) : null;
@@ -78,17 +87,45 @@ export default async function OrganizationPage() {
 
                 {(org.type === 'university' || org.type === 'college' || org.type === 'club' || org.type === 'academy') && (
                   <div className="mt-6 border-t border-line pt-5">
-                    <p className="mb-3 text-sm font-medium text-paper">Equipo</p>
+                    <p id="programas" className="mb-2 text-sm font-medium text-paper">Programas deportivos</p>
+                    {(programs ?? []).length ? <ul className="mb-3 flex flex-wrap gap-2 text-xs">{(programs ?? []).map((p) => <li key={p.id} className="rounded-full border border-line px-3 py-1 text-paper">{p.name}</li>)}</ul> : <p className="mb-3 text-xs text-muted">Sin programas. Crea uno por equipo (p. ej. Women&apos;s Basketball) para organizar necesidades, shortlists y permisos.</p>}
+                    {isAdmin && <div className="mb-6"><ProgramForm org={org.id} sports={catalog.sports.map((x) => ({ id: x.id, name: x.name_es }))} /></div>}
+                    <p id="equipo" className="mb-3 text-sm font-medium text-paper">Equipo</p>
                     <ul className="mb-4 divide-y divide-line text-sm">
-                      {(members ?? []).map((m) => (
-                        <li key={m.user_id} className="flex items-center justify-between py-2">
-                          <span className="text-paper">{(m.profiles as unknown as { display_name: string } | null)?.display_name ?? 'Miembro'} <span className="text-faint">· {m.member_role}</span></span>
-                          {isAdmin && m.member_role !== 'admin' && (
-                            <form action={removeMember}><input type="hidden" name="organization_id" value={org.id} /><input type="hidden" name="user_id" value={m.user_id} /><button className="text-xs text-faint hover:text-danger">Quitar</button></form>
-                          )}
-                        </li>
-                      ))}
+                      {(members ?? []).map((m) => {
+                        const r = m.member_role as OrgRole;
+                        const progs = (m.program_ids as string[]) ?? [];
+                        const hidden = (op: string) => (<><input type="hidden" name="org" value={org.id} /><input type="hidden" name="user" value={m.user_id} /><input type="hidden" name="op" value={op} /></>);
+                        return (
+                          <li key={m.user_id} className="space-y-2 py-3">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <span className="text-paper">{(m.profiles as unknown as { display_name: string } | null)?.display_name ?? 'Miembro'} <span className="text-faint">· {ROLE_LABEL[r] ?? r}{m.title ? ` · ${m.title}` : ''}{progs.length ? ` · ${progs.length} programa${progs.length > 1 ? 's' : ''}` : ' · todos los programas'}</span></span>
+                              {isAdmin && r !== 'owner' && m.user_id !== session.userId && (
+                                <span className="flex flex-wrap items-center gap-2">
+                                  <form action={updateMember} className="flex items-center gap-1">{hidden('role')}
+                                    <label className="sr-only" htmlFor={`role-${m.user_id}`}>Rol</label>
+                                    <select id={`role-${m.user_id}`} name="role" defaultValue={ASSIGNABLE_ROLES.includes(r) ? r : ''} className="min-h-9 rounded-lg border border-line bg-ink/40 px-2 text-xs text-paper">{!ASSIGNABLE_ROLES.includes(r) && <option value="">{ROLE_LABEL[r] ?? r}</option>}{ASSIGNABLE_ROLES.map((x) => <option key={x} value={x}>{ROLE_LABEL[x]}</option>)}</select>
+                                    <button className="min-h-9 px-2 text-xs text-brass">Cambiar</button>
+                                  </form>
+                                  {isOwner && <form action={updateMember}>{hidden('transfer')}<button className="text-xs text-muted hover:text-paper">Transferir propiedad</button></form>}
+                                  <form action={updateMember}>{hidden('remove')}<button className="text-xs text-faint hover:text-danger">Dar de baja</button></form>
+                                </span>
+                              )}
+                            </div>
+                            {isAdmin && (programs ?? []).length > 0 && r !== 'owner' && r !== 'admin' && (
+                              <form action={setMemberPrograms} className="flex flex-wrap items-center gap-2 text-xs">
+                                <input type="hidden" name="org" value={org.id} /><input type="hidden" name="user" value={m.user_id} />
+                                <span className="text-muted">Acceso a programas:</span>
+                                {(programs ?? []).map((p) => <label key={p.id} className="inline-flex items-center gap-1 text-paper"><input type="checkbox" name="programs" value={p.id} defaultChecked={progs.includes(p.id)} className="h-4 w-4" />{p.name}</label>)}
+                                <button className="text-brass">Guardar</button>
+                                <span className="text-faint">(ninguno marcado = todos)</span>
+                              </form>
+                            )}
+                          </li>
+                        );
+                      })}
                     </ul>
+                    <p className="mb-3 text-xs text-faint">Quien deja la organización pierde el acceso al momento; sus shortlists, notas y tareas quedan en la organización y todo queda en el registro de actividad.</p>
                     {isAdmin && <TeamInviteForm organizationId={org.id} siteUrl={siteUrl()} />}
                   </div>
                 )}
