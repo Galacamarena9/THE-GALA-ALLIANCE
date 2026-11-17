@@ -164,6 +164,7 @@ export async function addVideo(_prev: FormState, formData: FormData): Promise<Fo
   }
   const { error } = await supabase.from('athlete_videos').insert({ athlete_id: session.userId, ...parsed.data, is_featured });
   if (error) return { error: error.message.includes('too_many_videos') ? 'Has llegado al máximo de 30 vídeos.' : 'No se ha podido guardar el vídeo.' };
+  await logEvent('video_uploaded', { kind: parsed.data.kind });
   if (is_featured) await supabase.from('athlete_profiles').update({ highlight_video_url: parsed.data.url }).eq('user_id', session.userId);
   revalidatePath('/app/athlete', 'layout');
   return { ok: true, message: 'Vídeo añadido' };

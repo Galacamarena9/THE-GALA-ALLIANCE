@@ -13,6 +13,8 @@ import { MatchBreakdown } from '@/components/MatchBreakdown';
 import { matchAthleteToOpportunity } from '@/lib/domain/match';
 import { PassportView, type PassportViewData } from '@/components/passport/PassportView';
 import { galaMatch } from '@/lib/domain/gala-match/engine';
+import { AthleteCommandCenter } from '@/components/dashboard/AthleteCommandCenter';
+import { previewCommandCenter } from '@/lib/preview/command-center';
 import { ConfidenceBadge, DimensionChips, MatchBreakdownV2, MatchScore } from '@/components/match/MatchParts';
 
 /** Atleta FICTICIA para revisar el diseño del Passport sin datos reales. */
@@ -61,7 +63,7 @@ const demoPublicOpp: PublicOpportunity = {
  */
 export const metadata: Metadata = { title: 'Probador interno', robots: { index: false, follow: false } };
 
-const SCREENS = ['agent-home', 'portfolio', 'athlete-home', 'coach-home', 'pipeline', 'pipeline-table', 'match', 'opportunity', 'passport', 'galamatch'] as const;
+const SCREENS = ['agent-home', 'portfolio', 'athlete-home', 'coach-home', 'pipeline', 'pipeline-table', 'match', 'opportunity', 'passport', 'galamatch', 'command-center'] as const;
 
 // Gala Match con el motor real y datos ficticios: un Passport completo y otro con muchos datos ausentes.
 const demoOpp = { sport_id: 'basketball', position_ids: [1], graduation_years: [2027], division: 'ncaa_d2' as const, min_gpa_4: 2.5, english_required: 'TOEFL 80', annual_cost_usd: 40000, aid_amount_usd: 30000 };
@@ -101,6 +103,7 @@ export default async function PreviewPage({ params }: { params: Promise<{ screen
             )}
           </div>
         )}
+        {screen === 'command-center' && <AthleteCommandCenter d={previewCommandCenter} firstName="Lucía" isMinor={false} />}
         {screen === 'passport' && <PassportView d={demoPassport} mode="owner" />}
         {screen === 'galamatch' && (() => {
           const m = galaMatch(

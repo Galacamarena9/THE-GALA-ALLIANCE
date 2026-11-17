@@ -1264,6 +1264,40 @@ try {
     eq((await db.query(`select count(*)::int n from notifications where user_id = $1 and kind = 'saved_university_opportunity'`, [u.adult])).rows[0].n >= 1, true);
   });
 
+  results.push('\nAthlete Command Center: tareas, preferencias de avisos y recordatorios');
+  await check('tareas: el atleta marca las suyas; otro usuario no las ve ni las toca', async () => {
+    await as(u.adult, `insert into athlete_task_state (athlete_id, task_key, status) values ($1, 'compare', 'done')`, [u.adult]);
+    eq((await as(u.brand, `select count(*)::int n from athlete_task_state`)).rows[0].n, 0);
+    await expectError(() => as(u.brand, `insert into athlete_task_state (athlete_id, task_key, status) values ($1, 'x', 'done')`, [u.adult]));
+    eq((await db.query(`select updated_by from athlete_task_state where athlete_id = $1`, [u.adult])).rows[0].updated_by, u.adult);
+  });
+  await check('tareas: posponer exige una fecha futura razonable', async () => {
+    await expectError(() => as(u.adult, `insert into athlete_task_state (athlete_id, task_key, status, snoozed_until) values ($1, 'matches', 'snoozed', current_date - 1)`, [u.adult]), /invalid_snooze/);
+    await as(u.adult, `insert into athlete_task_state (athlete_id, task_key, status, snoozed_until) values ($1, 'matches', 'snoozed', current_date + 3)`, [u.adult]);
+  });
+  await check('avisos: una categoría silenciada no genera notificación; lo esencial siempre llega', async () => {
+    await as(u.adult, `insert into notification_preferences (user_id, category, in_app) values ($1, 'matches', false)`, [u.adult]);
+    const before = (await db.query(`select count(*)::int n from notifications where user_id = $1`, [u.adult])).rows[0].n;
+    await db.query(`select notify($1, 'saved_university_opportunity', 't', 'b', '/app')`, [u.adult]);
+    await db.query(`select notify($1, 'contact.request', 't', 'b', '/app')`, [u.adult]);
+    eq((await db.query(`select count(*)::int n from notifications where user_id = $1`, [u.adult])).rows[0].n, before + 1);
+    await expectError(() => as(u.adult, `insert into notification_preferences (user_id, category, in_app) values ($1, 'essential', false)`, [u.adult]));
+    await expectError(() => as(u.brand, `insert into notification_preferences (user_id, category, in_app) values ($1, 'messages', false)`, [u.adult]));
+  });
+  await check('recordatorios: solo plazos oficiales guardados, sin duplicados y no ejecutable por usuarios', async () => {
+    await expectError(() => as(u.adult, `select notify_upcoming_deadlines()`));
+    await db.query(`delete from notification_preferences where user_id = $1`, [u.adult]);
+    const opp = (await db.query(`select id from opportunities where organization_id = $1 and status = 'published' limit 1`, [uniId])).rows[0];
+    if (!opp) return;
+    await db.query(`alter table opportunities disable trigger user`);
+    await db.query(`update opportunities set deadline = current_date + 7 where id = $1`, [opp.id]);
+    await db.query(`alter table opportunities enable trigger user`);
+    await as(u.adult, `insert into saved_items (athlete_id, target_kind, target_id) values ($1, 'opportunity', $2) on conflict do nothing`, [u.adult, opp.id]);
+    await db.query(`select notify_upcoming_deadlines()`);
+    await db.query(`select notify_upcoming_deadlines()`);
+    eq((await db.query(`select count(*)::int n from notifications where user_id = $1 and kind = 'deadline.d7'`, [u.adult])).rows[0].n, 1);
+  });
+
 } finally {
   console.log(results.join('\n'));
   console.log(`\n${passed} pruebas OK · ${failed} fallidas`);

@@ -9,6 +9,7 @@ import { siteUrl } from '@/lib/env';
 import { checkAge } from '@/lib/domain/age';
 import { isEduEmail } from '@/lib/domain/recruiting';
 import type { FormState } from './auth';
+import { logEvent } from '@/lib/events';
 
 /*
  * Oleada 1 · Enlace privado de reclutamiento.
@@ -40,6 +41,7 @@ export async function createRecruitingLink(_prev: FormState, formData: FormData)
     expires_at: new Date(Date.now() + parsed.data.days * 86_400_000).toISOString(),
   });
   if (error) return { error: friendly(error.message) };
+  await logEvent('passport_shared', { channel: 'recruiting_link' });
   revalidatePath('/app/share');
   return { ok: true, message: 'Enlace creado. Ya puedes enviarlo.' };
 }
