@@ -87,7 +87,32 @@ const SCORECARD_FIELDS = [
   'latest.cost.tuition.out_of_state',
   'latest.admissions.sat_scores.average.overall',
   'latest.admissions.admission_rate.overall',
+  'school.ownership',
+  'school.locale',
+  'latest.student.size',
+  'latest.cost.tuition.in_state',
+  'latest.cost.avg_net_price.public',
+  'latest.cost.avg_net_price.private',
+  'latest.completion.completion_rate_4yr_150nt',
 ].join(',');
+/** Programas por código CIP (pueden no venir en todas las respuestas; se piden aparte y con respaldo). */
+const SCORECARD_PROGRAMS = 'latest.programs.cip_4_digit';
+
+const LOCALE: Record<number, 'city' | 'suburb' | 'town' | 'rural'> = { 1: 'city', 2: 'suburb', 3: 'town', 4: 'rural' };
+const OWNERSHIP: Record<number, 'public' | 'private_nonprofit' | 'private_forprofit'> = { 1: 'public', 2: 'private_nonprofit', 3: 'private_forprofit' };
+
+/** CIP de 4 dígitos de los programas de grado (bachelor, nivel 3). Formato defensivo: si cambia, devuelve []. */
+function bachelorCips(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  const out = new Set<string>();
+  for (const p of raw) {
+    if (!p || typeof p !== 'object') continue;
+    const o = p as { code?: unknown; credential?: { level?: unknown } };
+    const code = typeof o.code === 'string' || typeof o.code === 'number' ? String(o.code).replace('.', '').padStart(4, '0').slice(0, 4) : null;
+    if (code && /^\d{4}$/.test(code) && Number(o.credential?.level) === 3) out.add(code);
+  }
+  return [...out].sort();
+}
 
 const toHttps = (u: unknown) => {
   if (typeof u !== 'string' || !u.trim()) return null;
@@ -102,6 +127,12 @@ function mapScorecardRow(r: Record<string, unknown>, now: string) {
   const tuition = num('latest.cost.tuition.out_of_state');
   const sat = num('latest.admissions.sat_scores.average.overall');
   const rate = num('latest.admissions.admission_rate.overall');
+  const net = num('latest.cost.avg_net_price.public') ?? num('latest.cost.avg_net_price.private');
+  const grad = num('latest.completion.completion_rate_4yr_150nt');
+  const size = num('latest.student.size');
+  const tuitionIn = num('latest.cost.tuition.in_state');
+  const locale = num('school.locale');
+  const own = num('school.ownership');
   return {
     ipeds_unitid: Number(r['id']),
     name: String(r['school.name']),
@@ -113,6 +144,13 @@ function mapScorecardRow(r: Record<string, unknown>, now: string) {
     tuition_out_of_state_usd: tuition == null ? null : Math.round(tuition),
     sat_avg: sat == null ? null : Math.round(sat),
     admission_rate: rate == null ? null : Number(rate.toFixed(4)),
+    enrollment: size == null ? null : Math.round(size),
+    ownership: own == null ? null : OWNERSHIP[own] ?? null,
+    locale: locale == null ? null : LOCALE[Math.floor(locale / 10)] ?? null,
+    graduation_rate: grad == null || grad < 0 || grad > 1 ? null : Number(grad.toFixed(4)),
+    tuition_in_state_usd: tuitionIn == null ? null : Math.round(tuitionIn),
+    net_price_usd: net == null || net < 0 ? null : Math.round(net),
+    ...(SCORECARD_PROGRAMS in r ? { program_cips: bachelorCips(r[SCORECARD_PROGRAMS]) } : {}),
     data_source: 'college_scorecard',
     source_fetched_at: now,
   };
@@ -128,10 +166,14 @@ export async function importFromScorecard(_prev: FormState, formData: FormData):
   const url = new URL('https://api.data.gov/ed/collegescorecard/v1/schools');
   url.searchParams.set('api_key', key);
   url.searchParams.set('school.name', query.data);
-  url.searchParams.set('fields', SCORECARD_FIELDS);
+  url.searchParams.set('fields', `${SCORECARD_FIELDS},${SCORECARD_PROGRAMS}`);
   url.searchParams.set('per_page', '5');
 
-  const res = await fetch(url, { cache: 'no-store' });
+  let res = await fetch(url, { cache: 'no-store' });
+  if (!res.ok && res.status === 400) {
+    url.searchParams.set('fields', SCORECARD_FIELDS);
+    res = await fetch(url, { cache: 'no-store' });
+  }
   if (!res.ok) return { error: `College Scorecard respondió ${res.status}.` };
   const json = (await res.json()) as { results?: Record<string, unknown>[] };
   const rows = json.results ?? [];
@@ -214,12 +256,17 @@ export async function importScorecardBatch(startPage: number): Promise<Scorecard
     url.searchParams.set('api_key', key);
     url.searchParams.set('school.operating', '1');
     url.searchParams.set('school.degrees_awarded.predominant', '2,3,4');
-    url.searchParams.set('fields', SCORECARD_FIELDS);
+    url.searchParams.set('fields', `${SCORECARD_FIELDS},${SCORECARD_PROGRAMS}`);
     url.searchParams.set('sort', 'id');
     url.searchParams.set('per_page', String(BULK_PER_PAGE));
     url.searchParams.set('page', String(page));
 
-    const res = await fetch(url, { cache: 'no-store' });
+    let res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok && res.status === 400) {
+      // Si la API rechaza el campo de programas, se importa el resto (los programas quedan como "no disponibles").
+      url.searchParams.set('fields', SCORECARD_FIELDS);
+      res = await fetch(url, { cache: 'no-store' });
+    }
     if (!res.ok) return { ok: false, error: `College Scorecard respondió ${res.status} en la página ${page}. Puedes reanudar desde aquí.` };
     const json = (await res.json()) as { metadata?: { total?: number }; results?: Record<string, unknown>[] };
     total = json.metadata?.total ?? total;

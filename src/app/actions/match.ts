@@ -1,0 +1,62 @@
+'use server';
+
+import { revalidatePath } from 'next/cache';
+import { z } from 'zod';
+import { requireSession } from '@/lib/session';
+import { createClient } from '@/lib/supabase/server';
+import { logEvent } from '@/lib/events';
+import { GALA_MATCH_VERSION } from '@/lib/domain/gala-match/engine';
+
+const target = z.object({
+  kind: z.enum(['institution', 'opportunity']),
+  id: z.string().uuid(),
+  score: z.union([z.literal(''), z.coerce.number().int().min(0).max(100)]).optional().transform((v) => (v === '' || v == null ? null : v)),
+});
+
+async function signal(athleteId: string, kind: string, id: string, s: string, score: number | null) {
+  const supabase = await createClient();
+  await supabase.from('match_signals').insert({ athlete_id: athleteId, target_kind: kind, target_id: id, signal: s, match_score: score, engine_version: GALA_MATCH_VERSION });
+}
+
+/** Guardar / quitar (base del Opportunity Pipeline). */
+export async function toggleSaved(formData: FormData) {
+  const session = await requireSession(['athlete']);
+  const t = target.parse(Object.fromEntries(formData));
+  const supabase = await createClient();
+  const { data: existing } = await supabase.from('saved_items').select('id').eq('athlete_id', session.userId).eq('target_kind', t.kind).eq('target_id', t.id).maybeSingle();
+  if (existing) {
+    await supabase.from('saved_items').delete().eq('id', existing.id);
+    await signal(session.userId, t.kind, t.id, 'unsaved', t.score);
+  } else {
+    const { error } = await supabase.from('saved_items').insert({ athlete_id: session.userId, target_kind: t.kind, target_id: t.id, match_score_at_save: t.score });
+    if (!error) {
+      await signal(session.userId, t.kind, t.id, 'saved', t.score);
+      await logEvent(t.kind === 'institution' ? 'university_saved' : 'opportunity_saved');
+    }
+  }
+  revalidatePath('/app', 'layout');
+}
+
+export async function setHidden(formData: FormData) {
+  const session = await requireSession(['athlete']);
+  const t = target.parse(Object.fromEntries(formData));
+  const hide = formData.get('hide') === '1';
+  await signal(session.userId, t.kind, t.id, hide ? 'hidden' : 'unhidden', t.score);
+  revalidatePath('/app/match');
+}
+
+const tierSchema = z.object({ id: z.string().uuid(), tier: z.enum(['dream', 'target', 'strong_fit', 'backup', '']) });
+export async function setShortlistTier(formData: FormData) {
+  const session = await requireSession(['athlete']);
+  const p = tierSchema.parse(Object.fromEntries(formData));
+  const supabase = await createClient();
+  await supabase.from('saved_items').update({ shortlist_tier: p.tier || null }).eq('id', p.id).eq('athlete_id', session.userId);
+  revalidatePath('/app', 'layout');
+}
+
+/** Registro de vista de un match (señal para el futuro; una por sesión de página). */
+export async function recordMatchView(kind: 'institution' | 'opportunity', id: string, score: number | null) {
+  const session = await requireSession(['athlete']);
+  if (!z.string().uuid().safeParse(id).success) return;
+  await signal(session.userId, kind, id, 'viewed', score);
+}
