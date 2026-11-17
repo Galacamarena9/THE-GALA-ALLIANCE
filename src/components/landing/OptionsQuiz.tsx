@@ -13,6 +13,10 @@ const QUESTIONS: { key: keyof Answers; q: string; options: [string, number][] }[
   { key: 'budget', q: '¿Cuánto podría aportar tu familia al año?', options: [['Más de 20.000 €', 3], ['Entre 10.000 y 20.000 €', 2], ['Entre 3.000 y 10.000 €', 1], ['Menos de 3.000 €', 0]] },
 ];
 
+/** Recorrido de recruiting: de la identidad deportiva a la decisión. */
+const STAGES = ['Identidad', 'Elegibilidad', 'Académico', 'Vídeo', 'Oportunidades', 'Contacto', 'Decisión'] as const;
+type Stage = (typeof STAGES)[number];
+
 /** Resultado orientativo y explicado (no es una evaluación profesional ni una promesa de beca). */
 function result(a: Required<Answers>) {
   const fits: string[] = [];
@@ -25,9 +29,14 @@ function result(a: Required<Answers>) {
   if (a.grades <= 1) gaps.push('Cuidar la nota: abre becas académicas y más universidades.');
   if (a.level <= 1) gaps.push('Un buen vídeo de highlights pesa mucho: es lo primero que mira un coach.');
   if (a.budget <= 1) gaps.push('Prioriza ofertas con ayuda alta y compara el coste real de cada una.');
+  // Etapas del roadmap que tus respuestas señalan como prioritarias (no "en qué etapa estás": eso lo sabrá tu Passport).
+  const priority = new Set<Stage>();
+  if (a.english <= 1 || a.grades <= 1) priority.add('Académico');
+  if (a.level <= 1) priority.add('Vídeo');
+  if (a.budget <= 1) priority.add('Oportunidades');
   const score = a.level * 3 + a.grades * 2 + a.english * 2 + a.budget;
   const headline = score >= 18 ? 'Tienes un perfil muy competitivo' : score >= 11 ? 'Tienes opciones reales' : 'Hay camino, con un plan';
-  return { headline, fits: [...new Set(fits)], gaps: gaps.length ? gaps : ['Completa tu Passport con vídeo y datos: tu perfil ya es sólido.'] };
+  return { headline, priority, fits: [...new Set(fits)], gaps: gaps.length ? gaps : ['Completa tu Passport con vídeo y datos: tu perfil ya es sólido.'] };
 }
 
 export function OptionsQuiz() {
@@ -80,9 +89,26 @@ export function OptionsQuiz() {
               <ul className="space-y-1.5">{r.gaps.map((g) => <li key={g} className="flex items-start gap-2 text-sm text-muted"><ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-brass" aria-hidden />{g}</li>)}</ul>
             </div>
           </div>
+          <div className="mt-5 rounded-2xl border border-line bg-ink/40 p-4">
+            <p className="mb-3 text-xs font-semibold text-paper">Tu roadmap de recruiting</p>
+            <ol className="flex gap-1 overflow-x-auto pb-1" aria-label="Etapas del recorrido" tabIndex={0}>
+              {STAGES.map((st, i) => {
+                const prio = r.priority.has(st);
+                return (
+                  <li key={st} className="min-w-[4.75rem] flex-1" aria-current={i === 0 ? 'step' : undefined}>
+                    <span className={`block h-1.5 rounded-full ${i === 0 ? 'bg-brass' : prio ? 'bg-warn' : 'bg-line-strong'}`} aria-hidden />
+                    <span className={`mt-1.5 block text-xs ${i === 0 ? 'font-semibold text-brass' : 'text-muted'}`}>{st}</span>
+                    {i === 0 && <span className="block text-[11px] text-faint">Estás aquí</span>}
+                    {prio && <span className="block text-[11px] font-semibold text-warn">Prioridad</span>}
+                  </li>
+                );
+              })}
+            </ol>
+            <p className="mt-2 text-xs text-faint">Todo el mundo empieza en Identidad: tu Passport. Las etapas marcadas como prioridad salen de tus respuestas.</p>
+          </div>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
             <Link href="/signup?role=athlete" className="btn-shine group inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-brass px-7 text-sm font-bold text-ink shadow-[var(--shadow-gold)] transition-all hover:scale-[1.02]">
-              Ver universidades reales para mí <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden />
+              Guardar mi roadmap en un Passport <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden />
             </Link>
             <button type="button" onClick={() => { setStep(0); setA({}); }} className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-paper"><RotateCcw className="h-4 w-4" aria-hidden />Repetir</button>
           </div>

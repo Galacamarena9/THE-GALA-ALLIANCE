@@ -5,6 +5,7 @@ import {
 import { PublicFooter, PublicHeader } from '@/components/PublicShell';
 import { Reveal } from '@/components/Reveal';
 import { HeroAudience } from '@/components/landing/HeroAudience';
+import { NetworkGraph } from '@/components/landing/NetworkGraph';
 import { PassportPreview } from '@/components/landing/PassportPreview';
 import { OptionsQuiz } from '@/components/landing/OptionsQuiz';
 import { ProductTour } from '@/components/landing/ProductTour';
@@ -168,7 +169,7 @@ export default function Home() {
                 {['Sin email ni datos personales', 'Basado en cómo funcionan las divisiones NCAA, NAIA y JUCO', 'Después, universidades reales para tu perfil'].map((t) => <li key={t} className="flex items-center gap-2"><CircleCheck className="h-4 w-4 text-ok" aria-hidden />{t}</li>)}
               </ul>
             </Reveal>
-            <Reveal delay={120}><OptionsQuiz /></Reveal>
+            <Reveal delay={120} className="min-w-0"><OptionsQuiz /></Reveal>
           </div>
         </section>
 
@@ -176,9 +177,11 @@ export default function Home() {
         <section id="para-quien" className="scroll-mt-20 bg-surface-2/60 px-6 py-24">
           <div className="mx-auto max-w-6xl">
             <Reveal className="mb-12 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-              <h2 className="font-display text-5xl font-bold uppercase leading-[0.92] text-paper md:text-6xl">Una sola red para todo el deporte</h2>
-              <p className="max-w-sm text-sm text-muted">Cada perfil con su espacio y sus herramientas. Todos conectados por el mismo Passport.</p>
+              <h2 className="font-display text-5xl font-bold uppercase leading-[0.92] text-paper md:text-6xl">Una red, no seis productos</h2>
+              <p className="max-w-sm text-sm text-muted">Toca un actor para ver qué aporta y a quién.</p>
             </Reveal>
+            <Reveal className="mb-16"><NetworkGraph /></Reveal>
+            <h3 className="mb-5 text-sm font-semibold text-brass">Elige tu espacio</h3>
             <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {ACTORS.map((a, i) => {
                 const Icon = ROLE_ICON[a.role] ?? Users;
