@@ -55,7 +55,8 @@ export const PERSONAL_SERVICES: Record<AppRole, NavItem[]> = {
     { href: '/app/match', label: 'Gala Match', icon: 'compass', desc: 'Las universidades y oportunidades que más encajan contigo, con las razones.' },
     { href: '/app/shortlist', label: 'Mi shortlist', icon: 'list', desc: 'Tus universidades guardadas, organizadas por nivel y listas para comparar.', more: true },
     { href: '/app/share', label: 'Compartir mi perfil', icon: 'megaphone', desc: 'Enlace privado para enviar tu ficha a coaches de EE. UU. y ver quién la abre.', more: true },
-    { href: '/app/applications', label: 'Mis candidaturas', icon: 'inbox', desc: 'Estado de cada beca a la que te has apuntado.' },
+    { href: '/app/process', label: 'Mi pipeline', icon: 'pipeline', desc: 'Cada universidad y oportunidad que sigues: etapa, siguiente paso, tareas, documentos y ofertas.' },
+    { href: '/app/applications', label: 'Mis candidaturas', icon: 'inbox', desc: 'Estado de cada beca a la que te has apuntado.', more: true },
     { href: '/app/plan', label: 'Mi plan', icon: 'tag', desc: 'Informe del perfil, CV deportivo, lista de universidades y calendario.', more: true },
     { href: '/app/documents', label: 'Documentos', icon: 'doc', desc: 'Checklist y archivos privados del proceso.', more: true },
     { href: '/app/offers', label: 'Comparar ofertas', icon: 'scale', desc: 'Coste neto, riesgos y memo de decisión.', more: true },
@@ -66,6 +67,7 @@ export const PERSONAL_SERVICES: Record<AppRole, NavItem[]> = {
   parent: [
     { href: '/app/family', label: 'Panel familiar', icon: 'family', desc: 'El proceso de tu hijo o hija y lo que necesita tu aprobación.' },
     { href: '/app/share', label: 'Compartir su perfil', icon: 'megaphone', desc: 'Crea enlaces privados de reclutamiento para tu hijo o hija y ve quién los abre.' },
+    { href: '/app/process', label: 'Su pipeline', icon: 'pipeline', desc: 'Los procesos de recruiting de tu hijo o hija y qué toca hacer en cada uno.' },
     { href: '/app/plan', label: 'Plan familiar', icon: 'tag', desc: 'Informe, lista de universidades y calendario generados al momento.' },
     { href: '/app/documents', label: 'Documentos', icon: 'doc', desc: 'Checklist y archivos privados del proceso.', more: true },
     { href: '/app/offers', label: 'Comparar ofertas', icon: 'scale', desc: 'Coste neto, riesgos y memo de decisión.', more: true },

@@ -4,6 +4,7 @@ import { loadPassportViews } from '@/lib/data/athlete';
 import { athletePhotoUrl } from '@/lib/data/passport-view';
 import { loadAthleteContext, loadInstitutionMatches, loadOpportunityMatches, loadSaved, type ScoredInstitution, type ScoredOpportunity } from '@/lib/data/gala-match';
 import { DIVISION_PATHWAYS } from '@/lib/domain/passport';
+import { loadOpenTasks } from '@/lib/data/pipeline';
 import { daysUntil, journey, prioritize, stageOf, type DashboardInput } from '@/lib/domain/dashboard';
 
 /** Resultado de un módulo: si falla, el resto del panel sigue funcionando. */
@@ -27,7 +28,7 @@ export async function loadAthleteDashboard(userId: string, isMinor: boolean) {
   const goals = passport.goals?.pathways ?? passport.profile?.target_divisions ?? [];
   const seeksUSCollege = goals.length === 0 || goals.some((g) => (DIVISION_PATHWAYS as readonly string[]).includes(g));
 
-  const [instM, oppM, saved, apps, offers, viewed, views, linkViews, activity, photo, taskState] = await Promise.all([
+  const [instM, oppM, saved, apps, offers, viewed, views, linkViews, activity, photo, taskState, ptasks, pnext] = await Promise.all([
     safe(loadInstitutionMatches(userId, ctx, {})),
     safe(loadOpportunityMatches(userId, ctx)),
     safe(loadSaved(userId)),
@@ -39,7 +40,13 @@ export async function loadAthleteDashboard(userId: string, isMinor: boolean) {
     safe(Promise.resolve(supabase.from('notifications').select('id, kind, title, link, created_at, read_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(8)).then((r) => r.data ?? [])),
     athletePhotoUrl(passport.profile?.photo_path),
     safe(Promise.resolve(supabase.from('athlete_task_state').select('task_key, status, snoozed_until, updated_at').eq('athlete_id', userId)).then((r) => r.data ?? [])),
+    safe(loadOpenTasks(userId)),
+    safe(Promise.resolve(supabase.from('saved_items').select('id, next_action, next_action_due').eq('athlete_id', userId).is('archived_at', null).not('next_action_due', 'is', null).not('status', 'in', '(committed,closed)').order('next_action_due').limit(20)).then((r) => r.data ?? [])),
   ]);
+  const personalDue = [
+    ...(ptasks.ok ? ptasks.data : []).map((t) => ({ id: `t-${t.id}`, title: t.title as string, date: t.due_date as string, href: t.process_id ? `/app/process/${t.process_id}` : '/app/process' })),
+    ...(pnext.ok ? pnext.data : []).filter((x) => x.next_action).map((x) => ({ id: `n-${x.id}`, title: x.next_action as string, date: x.next_action_due as string, href: `/app/process/${x.id}` })),
+  ];
   const today = new Date().toISOString().slice(0, 10);
   const hiddenTasks = new Set((taskState.ok ? taskState.data : []).filter((t) => t.status !== 'snoozed' || (t.snoozed_until ?? '') > today).map((t) => t.task_key));
   const doneRecently = (taskState.ok ? taskState.data : []).filter((t) => t.status === 'done' && Date.now() - new Date(t.updated_at).getTime() < 14 * 86400000);
@@ -67,6 +74,7 @@ export async function loadAthleteDashboard(userId: string, isMinor: boolean) {
     ...official.map((d) => ({ ...d, kind: 'official' as const, label: 'Plazo oficial' })),
     ...offerRows.filter((o) => o.deadline).map((o) => ({ id: `offer-${o.id}`, title: `Oferta de ${o.university_name}`, date: o.deadline as string, href: '/app/offers', kind: 'official' as const, label: 'Fecha límite de la oferta' })),
   ].filter((d) => daysUntil(d.date) >= 0).sort((a, b) => a.date.localeCompare(b.date));
+  const personal = personalDue.map((t) => ({ ...t, kind: 'personal' as const, label: daysUntil(t.date) < 0 ? 'Fecha personal (vencida)' : 'Fecha personal' }));
   // Fecha recomendada por Gala: 5 días antes de cada plazo oficial (claramente separada).
   const recommended = deadlines.filter((d) => daysUntil(d.date) > 7).map((d) => {
     const r = new Date(`${d.date}T12:00:00`); r.setDate(r.getDate() - 5);
@@ -90,6 +98,7 @@ export async function loadAthleteDashboard(userId: string, isMinor: boolean) {
     highMatchOpportunities: highOpps.length,
     isMinor,
     seeksUSCollege,
+    personalDue,
   };
 
   // Shortlist con su encaje actual.
@@ -106,7 +115,7 @@ export async function loadAthleteDashboard(userId: string, isMinor: boolean) {
       matches: instM.ok ? { ok: true as const, data: { unseen: unseen.slice(0, 3), unseenCount: unseen.length, top: topMatches, directoryEmpty: instM.data.totalInDirectory === 0 } } : { ok: false as const },
       opportunities: oppM.ok ? { ok: true as const, data: activeOpps.slice(0, 3) } : { ok: false as const },
       shortlist: saved.ok ? { ok: true as const, data: { items: shortlist, total: input.savedUniversities, withActive: instM.ok ? shortlist.filter((s) => instM.data.scored.find((x) => x.inst.id === s.target_id)?.activeOpps).length : 0 } } : { ok: false as const },
-      deadlines: { ok: true as const, data: [...deadlines, ...recommended].sort((a, b) => a.date.localeCompare(b.date)).slice(0, 6) },
+      deadlines: { ok: true as const, data: [...deadlines, ...recommended, ...personal].sort((a, b) => a.date.localeCompare(b.date)).slice(0, 8) },
       changes,
       views: views.ok ? views.data : null,
       linkViews: linkViews.ok ? linkViews.data : null,

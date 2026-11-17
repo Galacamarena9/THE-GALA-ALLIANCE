@@ -178,7 +178,7 @@ export function AthleteCommandCenter({ d, firstName, isMinor }: { d: AthleteDash
                       </div>
                       <div className="shrink-0 text-right">
                         <p className="text-sm font-semibold text-paper">{fmtDate.format(new Date(`${x.date}T12:00:00`))}</p>
-                        <p className={`text-xs ${x.kind === 'official' && n <= 3 ? 'font-semibold text-danger' : 'text-faint'}`}>{n === 0 ? 'Hoy' : n === 1 ? 'Mañana' : `En ${n} días`}</p>
+                        <p className={`text-xs ${(x.kind === 'official' && n <= 3) || n < 0 ? 'font-semibold text-danger' : 'text-faint'}`}>{n < 0 ? 'Vencido' : n === 0 ? 'Hoy' : n === 1 ? 'Mañana' : `En ${n} días`}</p>
                       </div>
                     </li>
                   );
@@ -306,7 +306,7 @@ export function AthleteCommandCenter({ d, firstName, isMinor }: { d: AthleteDash
               {[
                 { href: '/app/athlete/passport?s=video', label: 'Subir vídeo' },
                 { href: '/app/universities', label: 'Universidades' },
-                { href: '/app/universities/compare', label: 'Comparar' },
+                { href: '/app/process', label: 'Mi pipeline' },
                 { href: '/app/athlete/passport?s=share', label: 'Compartir Passport' },
                 { href: '/app/ia', label: 'Pregunta a Gala' },
                 { href: '/app/documents', label: 'Documentos' },

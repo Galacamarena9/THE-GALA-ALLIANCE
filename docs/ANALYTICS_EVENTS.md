@@ -36,6 +36,10 @@ Medición propia, sin herramientas de terceros ni cookies de analítica: los eve
 | `comparison_created` | Comparador (≥ 2) | `count` | Paso de descubrir a decidir |
 | `task_completed` | `setTaskState` (hecho) | `task`, `priority` | Si el Next Best Action ayuda a avanzar |
 | `dashboard_viewed` | Inicio del atleta (Command Center) | `stage`, `actions` | Retorno al panel por etapa |
+| `pipeline_stage_changed` | `moveStage`, `quickMove` | `stage` | Avance real de los procesos |
+| `pipeline_decision` | `moveStage` (comprometida / cerrada) | `stage` | Cierre de procesos |
+| `interaction_logged` | `logInteraction` | `channel` | Uso del CRM del atleta |
+| `offer_recorded` | `addProcessOffer` | `in_writing` | Ofertas y si llegan por escrito |
 | `passport_completed` | Reservado (aún no se emite) | — | Se activará al medir el cruce del umbral de preparación |
 
 ## Añadir un evento

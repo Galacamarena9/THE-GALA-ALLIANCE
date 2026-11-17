@@ -7,7 +7,8 @@ export type FunnelEvent =
   | 'contact_requested' | 'contact_accepted' | 'search_saved' | 'plan_requested' | 'academy_attempt'
   | 'document_uploaded' | 'roster_joined' | 'universities_compared'
   | 'passport_completed' | 'passport_shared' | 'video_uploaded' | 'university_viewed' | 'university_saved'
-  | 'match_viewed' | 'opportunity_saved' | 'comparison_created' | 'task_completed' | 'dashboard_viewed';
+  | 'match_viewed' | 'opportunity_saved' | 'comparison_created' | 'task_completed' | 'dashboard_viewed'
+  | 'pipeline_stage_changed' | 'interaction_logged' | 'offer_recorded' | 'pipeline_decision';
 
 export async function logEvent(event: FunnelEvent, props: Record<string, string | number | boolean> = {}) {
   try {

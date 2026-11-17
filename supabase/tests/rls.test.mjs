@@ -1298,6 +1298,68 @@ try {
     eq((await db.query(`select count(*)::int n from notifications where user_id = $1 and kind = 'deadline.d7'`, [u.adult])).rows[0].n, 1);
   });
 
+  results.push('\nOpportunity Pipeline: procesos, línea de tiempo, tareas, contactos, documentos y ofertas');
+  let procId;
+  await check('proceso: el atleta mueve la etapa y queda en la línea de tiempo con fuente "usuario"', async () => {
+    procId = (await as(u.adult, `insert into saved_items (athlete_id, target_kind, target_id) values ($1, 'institution', $2) on conflict (athlete_id, target_kind, target_id) do update set note = saved_items.note returning id`, [u.adult, gmInst])).rows[0].id;
+    await as(u.adult, `update saved_items set status = 'contacted', next_action = 'Enviar vídeo', next_action_due = current_date + 3 where id = $1`, [procId]);
+    const ev = (await db.query(`select kind, source from pipeline_events where process_id = $1 order by id`, [procId])).rows;
+    eq(ev.some((e) => e.kind === 'stage_changed' && e.source === 'user'), true);
+    eq(ev.some((e) => e.kind === 'next_action'), true);
+  });
+  await check('línea de tiempo: el usuario no puede fingir eventos de la organización ni de la plataforma', async () => {
+    await as(u.adult, `insert into pipeline_events (athlete_id, process_id, kind, source, title, channel) values ($1, $2, 'interaction', 'organization', 'Llamada con el coach', 'call')`, [u.adult, procId]);
+    eq((await db.query(`select source from pipeline_events where process_id = $1 and kind = 'interaction'`, [procId])).rows[0].source, 'user');
+    await expectError(() => as(u.adult, `insert into pipeline_events (athlete_id, process_id, kind, source, title) values ($1, $2, 'application_update', 'user', 'x')`, [u.adult, procId]), /event_kind_not_allowed/);
+    await as(u.adult, `delete from pipeline_events where process_id = $1 and kind = 'stage_changed'`, [procId]);
+    eq((await db.query(`select count(*)::int n from pipeline_events where process_id = $1 and kind = 'stage_changed'`, [procId])).rows[0].n >= 1, true, 'la auditoría no se borra');
+  });
+  await check('pipeline aislado: otro usuario no ve procesos, eventos, tareas ni contactos', async () => {
+    await as(u.adult, `insert into pipeline_tasks (athlete_id, process_id, title, due_date) values ($1, $2, 'Pedir expediente', current_date + 1)`, [u.adult, procId]);
+    await as(u.adult, `insert into pipeline_contacts (athlete_id, process_id, name, role, email) values ($1, $2, 'Coach Demo', 'Assistant coach', 'coach@example.edu')`, [u.adult, procId]);
+    for (const t of ['saved_items', 'pipeline_events', 'pipeline_tasks', 'pipeline_contacts']) {
+      eq((await as(u.brand, `select count(*)::int n from ${t} where athlete_id = $1`, [u.adult])).rows[0].n, 0, t);
+      eq((await as(u.coach, `select count(*)::int n from ${t} where athlete_id = $1`, [u.adult])).rows[0].n, 0, t);
+    }
+    await expectError(() => as(u.brand, `insert into pipeline_tasks (athlete_id, title) values ($1, 'spam')`, [u.adult]));
+  });
+  await check('pipeline: no se pueden colgar tareas o contactos de un proceso ajeno', async () => {
+    await expectError(() => as(u.privateAth, `insert into pipeline_tasks (athlete_id, process_id, title) values ($1, $2, 'x tarea')`, [u.privateAth, procId]));
+    await expectError(() => as(u.privateAth, `insert into pipeline_contacts (athlete_id, process_id, name) values ($1, $2, 'Nombre')`, [u.privateAth, procId]));
+  });
+  await check('ofertas: lo que registra el atleta nunca figura como de la organización y abre su proceso', async () => {
+    await as(u.adult, `insert into athlete_offers (athlete_id, university_name, institution_id, source, in_writing) values ($1, 'Test U', $2, 'organization', false)`, [u.adult, gmInst]);
+    const o = (await db.query(`select source, process_id from athlete_offers where athlete_id = $1 and institution_id = $2`, [u.adult, gmInst])).rows[0];
+    eq(o.source, 'athlete'); eq(o.process_id, procId);
+    eq((await db.query(`select status from saved_items where id = $1`, [procId])).rows[0].status, 'offer');
+  });
+  await check('decisión: solo un compromiso activo por atleta', async () => {
+    await as(u.adult, `update saved_items set status = 'committed' where id = $1`, [procId]);
+    const opp = (await db.query(`select id from opportunities where status = 'published' limit 1`)).rows[0];
+    if (!opp) return;
+    const other = (await as(u.adult, `insert into saved_items (athlete_id, target_kind, target_id) values ($1, 'opportunity', $2) on conflict (athlete_id, target_kind, target_id) do update set note = saved_items.note returning id`, [u.adult, opp.id])).rows[0].id;
+    await expectError(() => as(u.adult, `update saved_items set status = 'committed' where id = $1`, [other]));
+    eq((await db.query(`select decided_at is not null ok from saved_items where id = $1`, [procId])).rows[0].ok, true);
+  });
+  await check('candidatura: crea o avanza el proceso con fuente "organización" y no retrocede', async () => {
+    const opp = (await db.query(`select id from opportunities where organization_id = $1 and status = 'published' and (deadline is null or deadline >= current_date) limit 1`, [uniId])).rows[0];
+    if (!opp) throw new Error('sin oportunidad de prueba');
+    await db.query(`delete from applications where athlete_id = $1 and opportunity_id = $2`, [u.privateAth, opp.id]);
+    await as(u.privateAth, `insert into applications (opportunity_id, athlete_id) values ($1, $2)`, [opp.id, u.privateAth]);
+    const p = (await db.query(`select id, status from saved_items where athlete_id = $1 and target_id = $2`, [u.privateAth, opp.id])).rows[0];
+    eq(p.status, 'applied');
+    await as(u.uni, `update applications set status = 'interview' where athlete_id = $1 and opportunity_id = $2`, [u.privateAth, opp.id]);
+    eq((await db.query(`select status from saved_items where id = $1`, [p.id])).rows[0].status, 'call');
+    eq((await db.query(`select count(*)::int n from pipeline_events where process_id = $1 and source = 'organization' and kind = 'application_update'`, [p.id])).rows[0].n >= 1, true);
+    await as(u.uni, `update applications set status = 'contacted' where athlete_id = $1 and opportunity_id = $2`, [u.privateAth, opp.id]);
+    eq((await db.query(`select status from saved_items where id = $1`, [p.id])).rows[0].status, 'call', 'no retrocede');
+  });
+  await check('documentos del proceso: solo se enlazan documentos propios', async () => {
+    const doc = (await as(u.privateAth, `insert into athlete_documents (athlete_id, kind, title) values ($1, 'transcript', 'Expediente') returning id`, [u.privateAth])).rows[0].id;
+    await expectError(() => as(u.adult, `insert into process_documents (process_id, athlete_id, kind, document_id) values ($1, $2, 'transcript', $3)`, [procId, u.adult, doc]));
+    await as(u.adult, `insert into process_documents (process_id, athlete_id, kind) values ($1, $2, 'transcript')`, [procId, u.adult]);
+  });
+
 } finally {
   console.log(results.join('\n'));
   console.log(`\n${passed} pruebas OK · ${failed} fallidas`);
