@@ -1119,6 +1119,75 @@ try {
     await as(u.adult, `update agent_representations set status = 'ended' where id = $1`, [repId]);
     await expectError(() => as(u.agent, `insert into recruiting_cases (agency_id, athlete_id, institution_name, sport_id, cycle) values ($1, $2, 'Otra University', 'basketball', '2027-28')`, [agencyId, u.adult]), /representation_required/);
   });
+  results.push('\nPassport v2: bloques, procedencia, vídeos, objetivos y visitas');
+  await check('verified_orgs: una universidad verificada ve el bloque; una marca y un anónimo no', async () => {
+    await as(u.adult, `update athlete_profiles set profile_visibility = 'public', videos_visibility = 'verified_orgs' where user_id = $1`, [u.adult]);
+    await as(u.adult, `insert into athlete_videos (athlete_id, kind, url, is_featured) values ($1, 'highlight', 'https://youtu.be/x', true)`, [u.adult]);
+    eq((await as(u.uni, `select count(*)::int n from athlete_videos where athlete_id = $1`, [u.adult])).rows[0].n, 1, 'uni');
+    eq((await as(u.brand, `select count(*)::int n from athlete_videos where athlete_id = $1`, [u.adult])).rows[0].n, 0, 'marca');
+    eq((await as(null, `select count(*)::int n from athlete_videos where athlete_id = $1`, [u.adult])).rows[0].n, 0, 'anon');
+  });
+  await check('solo un vídeo destacado por atleta', async () => {
+    await expectError(() => as(u.adult, `insert into athlete_videos (athlete_id, kind, url, is_featured) values ($1, 'full_game', 'https://youtu.be/y', true)`, [u.adult]));
+  });
+  await check('nadie puede añadir vídeos al Passport de otro', async () => {
+    await expectError(() => as(u.brand, `insert into athlete_videos (athlete_id, kind, url) values ($1, 'clip', 'https://youtu.be/z')`, [u.adult]));
+  });
+  await check('menor: ningún bloque se guarda como público', async () => {
+    await as(u.minor, `update athlete_profiles set profile_visibility = 'public', videos_visibility = 'public', goals_visibility = 'public' where user_id = $1`, [u.minor]);
+    const r = (await db.query(`select profile_visibility::text p, videos_visibility::text v, goals_visibility::text g from athlete_profiles where user_id = $1`, [u.minor])).rows[0];
+    eq(r.p, 'members', 'perfil'); eq(r.v, 'members', 'vídeos'); eq(r.g, 'verified_orgs', 'objetivos');
+  });
+  await check('el atleta no puede marcar su nota como documentada', async () => {
+    await as(u.minor, `update athlete_academics set gpa_source = 'documented', english_source = 'club_verified' where athlete_id = $1`, [u.minor]);
+    const r = (await db.query(`select gpa_source::text g, english_source::text e from athlete_academics where athlete_id = $1`, [u.minor])).rows[0];
+    eq(r.g, 'self_reported'); eq(r.e, 'self_reported');
+  });
+  await check('si el atleta cambia una nota documentada, vuelve a "declarado"', async () => {
+    await as(u.admin, `update athlete_academics set gpa_source = 'documented' where athlete_id = $1`, [u.minor]);
+    await as(u.minor, `update athlete_academics set gpa = 3.9 where athlete_id = $1`, [u.minor]);
+    eq((await db.query(`select gpa_source::text g from athlete_academics where athlete_id = $1`, [u.minor])).rows[0].g, 'self_reported');
+  });
+  await check('estadísticas: misma temporada en dos equipos, sin poder autoverificarse', async () => {
+    const def = (await db.query(`select id from sport_stat_definitions where sport_id = 'basketball' and code = 'ppg'`)).rows[0].id;
+    await as(u.adult, `insert into athlete_statistics (athlete_id, stat_definition_id, season, value, team, competition) values ($1, $2, '2025-26', 14.2, 'Club A', 'Liga U18')`, [u.adult, def]);
+    await as(u.adult, `insert into athlete_statistics (athlete_id, stat_definition_id, season, value, team, competition) values ($1, $2, '2025-26', 18.0, 'Selección', 'Europeo U18')`, [u.adult, def]);
+    await expectError(() => as(u.adult, `insert into athlete_statistics (athlete_id, stat_definition_id, season, value, team, source) values ($1, $2, '2024-25', 10, 'Club A', 'club_verified')`, [u.adult, def]));
+  });
+  await check('objetivos: nunca visibles para anónimos; sí para el propio atleta', async () => {
+    await as(u.adult, `insert into athlete_goals (athlete_id, pathways, countries) values ($1, '{ncaa_d1,naia}', '{US}')`, [u.adult]);
+    await expectError(() => as(null, `select count(*) from athlete_goals where athlete_id = $1`, [u.adult]));
+    eq((await as(u.adult, `select count(*)::int n from athlete_goals where athlete_id = $1`, [u.adult])).rows[0].n, 1);
+  });
+  await check('objetivos: rechaza un camino que no existe', async () => {
+    await expectError(() => as(u.adult, `update athlete_goals set pathways = '{lottery}' where athlete_id = $1`, [u.adult]));
+  });
+  await check('visitas reales: la universidad cuenta una vez al día; el propio atleta no cuenta', async () => {
+    await as(u.uni, `select record_passport_view($1)`, [u.adult]);
+    await as(u.uni, `select record_passport_view($1)`, [u.adult]);
+    await as(u.adult, `select record_passport_view($1)`, [u.adult]);
+    const r = (await as(u.adult, `select * from passport_view_stats($1)`, [u.adult])).rows[0];
+    eq(Number(r.total_views), 1, 'total'); eq(Number(r.university_views), 1, 'uni');
+  });
+  await check('visitas: nadie más puede leer las estadísticas ni la tabla', async () => {
+    eq(Number((await as(u.brand, `select * from passport_view_stats($1)`, [u.adult])).rows[0].total_views), 0);
+    await expectError(() => as(u.uni, `select count(*) from passport_views`));
+  });
+  await check('un perfil privado no registra visitas de terceros', async () => {
+    await as(u.uni, `select record_passport_view($1)`, [u.privateAth]);
+    eq((await db.query(`select count(*)::int n from passport_views where athlete_id = $1`, [u.privateAth])).rows[0].n, 0);
+  });
+  await check('edad: visible como número para quien ve el perfil; nunca para anónimos si es menor', async () => {
+    eq((await as(u.uni, `select athlete_age($1) a`, [u.minor])).rows[0].a, 16);
+    eq((await as(null, `select athlete_age($1) a`, [u.minor])).rows[0].a, null);
+    eq((await as(u.brand, `select athlete_age($1) a`, [u.minor])).rows[0].a, null);
+  });
+  await check('nombre de usuario: formato y reservados', async () => {
+    await expectError(() => as(u.adult, `update athlete_profiles set username = 'Admin' where user_id = $1`, [u.adult]));
+    await expectError(() => as(u.adult, `update athlete_profiles set username = 'admin' where user_id = $1`, [u.adult]));
+    await as(u.adult, `update athlete_profiles set username = 'lucia-martinez' where user_id = $1`, [u.adult]);
+  });
+
 } finally {
   console.log(results.join('\n'));
   console.log(`\n${passed} pruebas OK · ${failed} fallidas`);

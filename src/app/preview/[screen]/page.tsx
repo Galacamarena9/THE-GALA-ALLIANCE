@@ -11,6 +11,35 @@ import { AthleteCard } from '@/components/AthleteCard';
 import { ProgressRing } from '@/components/ProgressRing';
 import { MatchBreakdown } from '@/components/MatchBreakdown';
 import { matchAthleteToOpportunity } from '@/lib/domain/match';
+import { PassportView, type PassportViewData } from '@/components/passport/PassportView';
+
+/** Atleta FICTICIA para revisar el diseño del Passport sin datos reales. */
+const demoPassport: PassportViewData = {
+  athleteId: '00000000-0000-0000-0000-000000000000', name: 'Lucía Martínez', country: 'ES', photoUrl: null, age: 18,
+  profile: {
+    user_id: '0', headline: 'Base zurda, visión de juego y defensa al hombre. Busco NCAA D-I o D-II para estudiar Business.', bio: null,
+    sport_id: 'basketball', primary_position_id: 1, secondary_position_id: 2, graduation_year: 2027, height_cm: 178, weight_kg: null, dominant_side: 'left',
+    current_team: 'Club Ficticio Valencia', competitive_level: 'Junior nacional', league: 'Liga Junior Autonómica', years_experience: 9, city: 'Valencia', nationality: 'ES',
+    target_divisions: ['ncaa_d1', 'ncaa_d2'], intended_major: 'Business', open_to_opportunities: true, highlight_video_url: null, username: 'lucia-martinez',
+    profile_visibility: 'public', academics_visibility: 'verified_orgs', stats_visibility: 'public', sport_visibility: 'public', videos_visibility: 'members', goals_visibility: 'verified_orgs', updated_at: '',
+  },
+  academics: { athlete_id: '0', gpa: 8.7, gpa_scale: 10, grade_display: '8,7 / 10', education_system: 'es', school_name: 'IES Ficticio', english_test: null, english_score: null, cambridge_level: 'c1', toefl_score: null, ielts_score: null, duolingo_score: null, sat_score: null, act_score: null, school_year: 'bach_2', gpa_source: 'documented', english_source: 'documented', tests_source: 'self_reported' },
+  stats: [
+    { id: 's1', season: '2025-26', value: 14.2, team: 'Club Ficticio Valencia', competition: 'Liga Junior', source: 'club_verified', sport_stat_definitions: { code: 'ppg', label_es: 'Puntos por partido', unit: 'pts', sort_order: 1 } },
+    { id: 's2', season: '2025-26', value: 5.1, team: 'Club Ficticio Valencia', competition: 'Liga Junior', source: 'club_verified', sport_stat_definitions: { code: 'apg', label_es: 'Asistencias por partido', unit: 'ast', sort_order: 3 } },
+    { id: 's3', season: '2025-26', value: 41, team: 'Club Ficticio Valencia', competition: 'Liga Junior', source: 'self_reported', sport_stat_definitions: { code: 'fg_pct', label_es: '% tiro de campo', unit: '%', sort_order: 4 } },
+    { id: 's4', season: '2025-26', value: 2.3, team: 'Club Ficticio Valencia', competition: 'Liga Junior', source: 'self_reported', sport_stat_definitions: { code: 'spg', label_es: 'Robos por partido', unit: 'rob', sort_order: 7 } },
+  ],
+  languages: [{ language_code: 'es', level: 'native' }, { language_code: 'en', level: 'c1' }],
+  achievements: [
+    { id: 'a1', title: 'Campeonato autonómico junior', year: 2025, description: null, source: 'self_reported', kind: 'championship', level: 'regional' },
+    { id: 'a2', title: 'Capitana del equipo', year: 2025, description: null, source: 'self_reported', kind: 'captaincy', level: 'club' },
+  ],
+  career: [{ id: 'c1', team: 'Escuela Ficticia', league: 'Cadete', country: 'ES', season_from: '2021-22', season_to: '2023-24', role: 'Titular' }],
+  videos: [{ id: 'v1', kind: 'highlight', url: 'https://www.hudl.com/video/ejemplo', title: 'Highlights 2025-26', season: '2025-26', is_featured: true }],
+  goals: { athlete_id: '0', pathways: ['ncaa_d1', 'ncaa_d2'], countries: ['US'], regions: ['Florida'], intended_majors: ['Business'], school_size: 'medium', sport_level: 'competitive', scholarship_need: 'partial', campus_setting: 'any', start_term: '2027-08' },
+  links: [], recs: [], sportName: 'Baloncesto', position: 'Base', position2: 'Escolta',
+};
 import { PublicOpportunityView } from '@/app/oportunidades/[id]/View';
 import type { PublicOpportunity } from '@/lib/data/public-opportunity';
 
@@ -30,7 +59,7 @@ const demoPublicOpp: PublicOpportunity = {
  */
 export const metadata: Metadata = { title: 'Probador interno', robots: { index: false, follow: false } };
 
-const SCREENS = ['agent-home', 'portfolio', 'athlete-home', 'coach-home', 'pipeline', 'pipeline-table', 'match', 'opportunity'] as const;
+const SCREENS = ['agent-home', 'portfolio', 'athlete-home', 'coach-home', 'pipeline', 'pipeline-table', 'match', 'opportunity', 'passport'] as const;
 
 // Gala Match con el motor real y datos ficticios: un Passport completo y otro con muchos datos ausentes.
 const demoOpp = { sport_id: 'basketball', position_ids: [1], graduation_years: [2027], division: 'ncaa_d2' as const, min_gpa_4: 2.5, english_required: 'TOEFL 80', annual_cost_usd: 40000, aid_amount_usd: 30000 };
@@ -70,6 +99,7 @@ export default async function PreviewPage({ params }: { params: Promise<{ screen
             )}
           </div>
         )}
+        {screen === 'passport' && <PassportView d={demoPassport} mode="owner" />}
         {screen === 'opportunity' && <PublicOpportunityView o={demoPublicOpp} sport="Baloncesto" positions={['Base', 'Escolta']} />}
         {screen === 'match' && (
           <div className="grid gap-5 md:grid-cols-2">

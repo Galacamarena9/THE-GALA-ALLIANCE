@@ -2,7 +2,8 @@
 // exista, se pueden sustituir por los generados con `supabase gen types typescript`.
 
 export type AppRole = 'athlete' | 'parent' | 'university' | 'coach' | 'agent' | 'brand' | 'admin';
-export type Visibility = 'public' | 'members' | 'connections' | 'private';
+export type Visibility = 'public' | 'members' | 'verified_orgs' | 'connections' | 'private';
+export type DataSource = 'self_reported' | 'documented' | 'club_verified';
 export type Division = 'ncaa_d1' | 'ncaa_d2' | 'ncaa_d3' | 'naia' | 'njcaa';
 export type OrgType = 'university' | 'college' | 'club' | 'academy' | 'agency' | 'brand';
 export type VerificationStatus = 'unverified' | 'submitted' | 'verified' | 'rejected';
@@ -47,6 +48,15 @@ export interface AthleteProfile {
   profile_visibility: Visibility;
   academics_visibility: Visibility;
   stats_visibility: Visibility;
+  sport_visibility: Visibility;
+  videos_visibility: Visibility;
+  goals_visibility: Visibility;
+  username: string | null;
+  photo_path?: string | null;
+  nationality: string | null;
+  weight_kg: number | null;
+  league: string | null;
+  years_experience: number | null;
   updated_at: string;
 }
 
@@ -59,6 +69,48 @@ export interface AthleteAcademics {
   sat_score: number | null;
   act_score: number | null;
   school_year: 'eso_3' | 'eso_4' | 'bach_1' | 'bach_2' | 'graduated' | 'college' | null;
+  education_system?: string | null;
+  school_name?: string | null;
+  grade_display?: string | null;
+  toefl_score?: number | null;
+  ielts_score?: number | null;
+  cambridge_level?: 'b1' | 'b2' | 'c1' | 'c2' | null;
+  duolingo_score?: number | null;
+  gpa_source?: DataSource;
+  english_source?: DataSource;
+  tests_source?: DataSource;
+}
+
+export interface AthleteGoals {
+  athlete_id: string;
+  pathways: string[];
+  countries: string[];
+  regions: string[];
+  intended_majors: string[];
+  school_size: 'small' | 'medium' | 'large' | 'any' | null;
+  sport_level: 'top' | 'competitive' | 'development' | 'any' | null;
+  scholarship_need: 'full' | 'partial' | 'none' | 'unsure' | null;
+  campus_setting: 'urban' | 'suburban' | 'rural' | 'any' | null;
+  start_term: string | null;
+}
+
+export interface AthleteVideo {
+  id: string;
+  kind: 'highlight' | 'full_game' | 'training' | 'clip' | 'season';
+  url: string;
+  title: string | null;
+  season: string | null;
+  is_featured: boolean;
+}
+
+export interface CareerEntry {
+  id: string;
+  team: string;
+  league: string | null;
+  country: string | null;
+  season_from: string;
+  season_to: string | null;
+  role: string | null;
 }
 
 export interface Opportunity {

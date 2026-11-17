@@ -10,7 +10,8 @@ export const DIVISION_LABEL: Record<Division, string> = {
 
 export const VISIBILITY_LABEL: Record<Visibility, string> = {
   public: 'Pública',
-  members: 'Miembros registrados',
+  members: 'Solo usuarios de Gala',
+  verified_orgs: 'Solo organizaciones verificadas',
   connections: 'Solo organizaciones con las que conectes',
   private: 'Privada',
 };
