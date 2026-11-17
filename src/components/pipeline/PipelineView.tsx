@@ -114,16 +114,16 @@ export function PipelineView({ rows, f, athlete, params, editable }: { rows: Pro
       )}
 
       {f.view === 'board' && !f.archived ? (
-        <div className="-mx-4 overflow-x-auto px-4 pb-2">
-          <ol className="grid auto-cols-[minmax(240px,1fr)] grid-flow-col gap-3" aria-label="Tablero por etapas">
+        <div className="min-w-0 max-w-full pb-2 lg:overflow-x-auto">
+          <ol className="grid gap-3 lg:auto-cols-[minmax(230px,1fr)] lg:grid-flow-col" aria-label="Tablero por etapas">
             {BOARD_STAGES.map((s) => {
               const items = list.filter((r) => r.status === s);
               return (
-                <li key={s} className="rounded-2xl border border-line bg-ink/30 p-2.5">
+                <li key={s} className={`rounded-2xl border border-line bg-ink/30 p-2.5 ${items.length ? "" : "hidden lg:block"}`}>
                   <h3 className="mb-2 flex items-center justify-between px-1 text-xs font-bold uppercase tracking-wide text-faint">{STAGE_INFO[s].label}<span className="rounded-full bg-surface px-2 py-0.5 text-paper">{items.length}</span></h3>
                   <div className="space-y-2">
                     {items.map((r) => <ProcessCard key={r.id} r={r} athlete={athlete} editable={editable} />)}
-                    {!items.length && <p className="px-1 py-3 text-xs text-faint">Vacío</p>}
+                    {!items.length && <p className="px-1 py-2 text-xs text-faint">Vacío</p>}
                   </div>
                 </li>
               );
