@@ -40,7 +40,12 @@ export async function loadAthleteContext(userId: string) {
   return { ctx, passport: p };
 }
 
-export interface MatchFilters { division?: string; state?: string; size?: string; maxCost?: number; minScore?: number; confidence?: string; program?: string; q?: string }
+export interface MatchFilters {
+  division?: string; state?: string; size?: string; maxCost?: number; minScore?: number; confidence?: string; program?: string; q?: string;
+  /** Directorio: deporte elegido o todos (por defecto, el del atleta). */
+  sport?: string; allSports?: boolean; association?: string; family?: string; activeOnly?: boolean;
+  sort?: 'match' | 'name' | 'cost' | 'enrollment';
+}
 
 export type ScoredInstitution = { inst: InstitutionRow; m: GalaMatch; saved: boolean; activeOpps: number };
 export type ScoredOpportunity = { opp: OpportunityRow; m: GalaMatch; saved: boolean };
@@ -71,7 +76,9 @@ const toInstTarget = (i: InstitutionRow): InstitutionTarget => ({ kind: 'institu
 export async function loadInstitutionMatches(userId: string, ctx: AthleteContext, f: MatchFilters) {
   const supabase = await createClient();
   let q = supabase.from('institutions').select(INST_COLS).limit(600);
-  if (ctx.sport_id) q = q.contains('sports_offered', [ctx.sport_id]);
+  const sport = f.sport ?? (f.allSports ? null : ctx.sport_id);
+  if (sport) q = q.contains('sports_offered', [sport]);
+  if (f.association) q = q.eq('association', f.association);
   if (f.division) q = q.eq('division', f.division);
   if (f.state && /^[A-Z]{2}$/.test(f.state)) q = q.eq('state', f.state);
   if (f.q) q = q.ilike('name', `%${f.q.replace(/[%_,()]/g, '').slice(0, 60)}%`);
@@ -97,7 +104,14 @@ export async function loadInstitutionMatches(userId: string, ctx: AthleteContext
     .filter((x) => (f.minScore ? (x.m.score ?? 0) >= f.minScore : true))
     .filter((x) => (f.confidence ? x.m.confidence === f.confidence : true))
     .filter((x) => (f.program ? x.m.why.some((w) => w.id === 'program') : true))
-    .sort((x, y) => compareMatches(x.m, y.m));
+    .filter((x) => (f.family ? (x.inst.program_cips ?? []).some((c) => c.startsWith(f.family!)) : true))
+    .filter((x) => (f.activeOnly ? x.activeOpps > 0 : true))
+    .sort((x, y) => {
+      if (f.sort === 'name') return x.inst.name.localeCompare(y.inst.name);
+      if (f.sort === 'cost') return (x.inst.cost_attendance_usd ?? Infinity) - (y.inst.cost_attendance_usd ?? Infinity);
+      if (f.sort === 'enrollment') return (y.inst.enrollment ?? -1) - (x.inst.enrollment ?? -1);
+      return compareMatches(x.m, y.m);
+    });
   return { scored, hiddenCount: sets.hidden.size, totalInDirectory: rows.length };
 }
 

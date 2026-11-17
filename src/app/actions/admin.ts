@@ -204,7 +204,6 @@ export async function updateInstitutionAdmin(_prev: FormState, formData: FormDat
   await requireAdmin();
   const parsed = instLinks.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: 'Datos no válidos.' };
-  const sports = z.string().array().safeParse(formData.getAll('sports_offered'));
   const { id, ...d } = parsed.data;
   const supabase = await createClient();
   const { error } = await supabase
@@ -217,7 +216,6 @@ export async function updateInstitutionAdmin(_prev: FormState, formData: FormDat
       admissions_url: toHttps(d.admissions_url),
       international_url: toHttps(d.international_url),
       virtual_tour_url: toHttps(d.virtual_tour_url),
-      sports_offered: sports.success ? sports.data : [],
     })
     .eq('id', id);
   if (error) return { error: 'No se ha podido guardar.' };
@@ -282,4 +280,12 @@ export async function importScorecardBatch(startPage: number): Promise<Scorecard
     }
   }
   return { ok: true, imported, total, nextPage: page };
+}
+
+/** Ejecuta la caducidad de oportunidades vencidas (también corre a diario). */
+export async function expireOpportunitiesNow() {
+  await requireAdmin();
+  const supabase = await createClient();
+  await supabase.rpc('expire_stale_opportunities');
+  revalidatePath('/app/admin');
 }

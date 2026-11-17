@@ -161,3 +161,15 @@ test('passport: previsualización por audiencia replica las reglas de la RLS', a
   assert.equal(visibleBlocks(v, 'member', true).profile, false);
   assert.equal(visibleBlocks(v, 'verified_org', true).stats, true);
 });
+
+test('universidad: estado visible de una oportunidad', async () => {
+  const { opportunityState, opportunitySource, programFamilies } = await import('./university.ts');
+  const now = new Date('2026-11-17T12:00:00');
+  assert.equal(opportunityState({ status: 'published', deadline: null }, now), 'active');
+  assert.equal(opportunityState({ status: 'published', deadline: '2026-11-25' }, now), 'closing_soon');
+  assert.equal(opportunityState({ status: 'published', deadline: '2026-11-10' }, now), 'expired');
+  assert.equal(opportunityState({ status: 'filled', deadline: '2027-01-01' }, now), 'filled');
+  assert.equal(opportunitySource({ verification_status: 'verified', type: 'university' }), 'verified_university_posting');
+  assert.equal(opportunitySource({ verification_status: 'pending', type: 'university' }), 'unconfirmed');
+  assert.equal(programFamilies(['5202', '5214', '4201'])[0].label, 'Empresa, gestión y marketing');
+});

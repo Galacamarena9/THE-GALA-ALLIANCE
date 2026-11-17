@@ -31,6 +31,8 @@ export const OPPORTUNITY_STATUS_LABEL: Record<OpportunityStatus, string> = {
   published: 'Publicada',
   rejected: 'Rechazada',
   expired: 'Caducada',
+  closed: 'Cerrada',
+  filled: 'Plaza cubierta',
 };
 
 export const ORG_TYPE_LABEL: Record<OrgType, string> = {

@@ -11,6 +11,7 @@ const PREVIEW = ['agent-home', 'portfolio', 'athlete-home', 'coach-home', 'pipel
 const PROTECTED = [
   '/app', '/app/pipeline', '/app/pipeline/team', '/app/contacts', '/app/portfolio', '/app/athlete/passport',
   '/app/discover', '/app/lists', '/app/inbox', '/app/agents', '/app/admin/panel', '/app/plan', '/onboarding',
+  '/app/match', '/app/shortlist', '/app/universities',
 ];
 
 async function dismissConsent(page: Page) {

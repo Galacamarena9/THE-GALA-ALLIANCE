@@ -53,6 +53,7 @@ export const PERSONAL_SERVICES: Record<AppRole, NavItem[]> = {
     { href: '/app/athlete', label: 'Mi camino', icon: 'path', desc: 'Tu siguiente paso y los plazos según tu año.' },
     { href: '/app/athlete/passport', label: 'Mi Passport', icon: 'id', desc: 'Tu perfil deportivo y académico: lo que ven las universidades.' },
     { href: '/app/match', label: 'Gala Match', icon: 'compass', desc: 'Las universidades y oportunidades que más encajan contigo, con las razones.' },
+    { href: '/app/shortlist', label: 'Mi shortlist', icon: 'list', desc: 'Tus universidades guardadas, organizadas por nivel y listas para comparar.', more: true },
     { href: '/app/share', label: 'Compartir mi perfil', icon: 'megaphone', desc: 'Enlace privado para enviar tu ficha a coaches de EE. UU. y ver quién la abre.', more: true },
     { href: '/app/applications', label: 'Mis candidaturas', icon: 'inbox', desc: 'Estado de cada beca a la que te has apuntado.' },
     { href: '/app/plan', label: 'Mi plan', icon: 'tag', desc: 'Informe del perfil, CV deportivo, lista de universidades y calendario.', more: true },

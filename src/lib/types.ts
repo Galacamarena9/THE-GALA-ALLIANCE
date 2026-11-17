@@ -14,7 +14,7 @@ export type OpportunityType =
   | 'academy'
   | 'tryout'
   | 'camp_showcase';
-export type OpportunityStatus = 'draft' | 'pending_review' | 'published' | 'rejected' | 'expired';
+export type OpportunityStatus = 'draft' | 'pending_review' | 'published' | 'rejected' | 'expired' | 'closed' | 'filled';
 export type ApplicationStatus =
   | 'applied'
   | 'reviewed'

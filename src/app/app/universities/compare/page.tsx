@@ -2,12 +2,14 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { requireSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
-import { loadPassport } from '@/lib/data/athlete';
-import { institutionFit } from '@/lib/domain/institutionFit';
+import { loadAthleteContext } from '@/lib/data/gala-match';
+import { galaMatch, estimatedIntlCost, STATE_NAME, usdFmt, type GalaMatch } from '@/lib/domain/gala-match/engine';
+import { OWNERSHIP_LABEL } from '@/lib/domain/university';
+import { ConfidenceBadge, MatchScore } from '@/components/match/MatchParts';
 import { DIVISION_LABEL, domainOf, usd } from '@/lib/domain/labels';
 import { logEvent } from '@/lib/events';
 import type { Division } from '@/lib/types';
-import { Badge, Card, CardTitle, EmptyState, PageHeader, inputClass } from '@/components/ui';
+import { Card, CardTitle, EmptyState, PageHeader, inputClass } from '@/components/ui';
 
 export const metadata: Metadata = { title: 'Comparar universidades' };
 
@@ -19,6 +21,9 @@ interface Inst {
   sports_offered: string[]; website_url: string | null; price_calculator_url: string | null; athletics_url: string | null;
   international_url: string | null; cost_attendance_usd: number | null; tuition_out_of_state_usd: number | null;
   sat_avg: number | null; admission_rate: number | null; data_source: string | null; source_fetched_at: string | null;
+  association: string | null; athletic_source: 'manual_admin' | 'organization' | 'official_external' | null; ownership: 'public' | 'private_nonprofit' | 'private_forprofit' | null;
+  locale: 'city' | 'suburb' | 'town' | 'rural' | null; enrollment: number | null; tuition_in_state_usd: number | null; net_price_usd: number | null;
+  graduation_rate: number | null; program_cips: string[];
 }
 
 const href = (ids: string[]) => `/app/universities/compare${ids.length ? `?ids=${ids.join(',')}` : ''}`;
@@ -30,34 +35,38 @@ export default async function CompareUniversitiesPage({ searchParams }: { search
   const supabase = await createClient();
 
   const { data } = ids.length
-    ? await supabase.from('institutions').select('id, name, city, state, division, conference, sports_offered, website_url, price_calculator_url, athletics_url, international_url, cost_attendance_usd, tuition_out_of_state_usd, sat_avg, admission_rate, data_source, source_fetched_at').in('id', ids)
+    ? await supabase.from('institutions').select('id, name, city, state, division, conference, sports_offered, website_url, price_calculator_url, athletics_url, international_url, cost_attendance_usd, tuition_out_of_state_usd, sat_avg, admission_rate, data_source, source_fetched_at, association, athletic_source, ownership, locale, enrollment, tuition_in_state_usd, net_price_usd, graduation_rate, program_cips').in('id', ids)
     : { data: [] };
   const insts = ids.map((id) => (data as Inst[] | null)?.find((i) => i.id === id)).filter(Boolean) as Inst[];
-  if (insts.length >= 2) await logEvent('universities_compared', { count: insts.length });
+  if (insts.length >= 2) { await logEvent('universities_compared', { count: insts.length }); await logEvent('comparison_created', { count: insts.length }); }
 
   const q = (sp.q ?? '').replace(/[%_,()]/g, '').slice(0, 60);
   const { data: results } = q.length >= 2 && ids.length < MAX
     ? await supabase.from('institutions').select('id, name, state, division').ilike('name', `%${q}%`).order('name').limit(8)
     : { data: [] };
 
-  const passport = session.roles.includes('athlete') ? await loadPassport(session.userId) : null;
-  const fits = insts.map((i) => (passport?.profile ? institutionFit(passport.profile, passport.annualBudgetUsd, i) : null));
-  const costs = insts.map((i) => i.cost_attendance_usd).filter((c): c is number => c != null);
+  const loaded = session.roles.includes('athlete') ? await loadAthleteContext(session.userId) : null;
+  const matches: (GalaMatch | null)[] = insts.map((i) => (loaded ? galaMatch(loaded.ctx, { kind: 'institution', ...i, program_cips: i.program_cips ?? [] }) : null));
+  const { data: activeRows } = ids.length ? await supabase.from('opportunities').select('organizations!inner(institution_id)').eq('status', 'published').in('organizations.institution_id', ids) : { data: [] };
+  const activeBy = new Map<string, number>();
+  for (const r of activeRows ?? []) { const k = (r.organizations as unknown as { institution_id: string }).institution_id; activeBy.set(k, (activeBy.get(k) ?? 0) + 1); }
+  const costs = insts.map((i) => estimatedIntlCost(i)).filter((c): c is number => c != null);
   const cheapest = costs.length ? Math.min(...costs) : null;
 
   const rows: { label: string; cell: (i: Inst, n: number) => React.ReactNode }[] = [
-    { label: 'Ubicación', cell: (i) => [i.city, i.state].filter(Boolean).join(', ') || '—' },
-    { label: 'División', cell: (i) => (i.division ? DIVISION_LABEL[i.division] : 'Sin dato') + (i.conference ? ` · ${i.conference}` : '') },
-    { label: 'Coste anual oficial (sin beca)', cell: (i) => <span className={i.cost_attendance_usd != null && i.cost_attendance_usd === cheapest ? 'text-ok' : ''}>{usd(i.cost_attendance_usd)}</span> },
-    { label: 'Matrícula fuera del estado', cell: (i) => usd(i.tuition_out_of_state_usd) },
+    ...(loaded ? [{ label: 'Gala Match', cell: (_i: Inst, n: number) => { const m = matches[n]!; return <div className="flex items-center gap-2"><MatchScore m={m} size="sm" /><ConfidenceBadge m={m} /></div>; } }] : []),
+    { label: 'Ubicación', cell: (i) => [i.city, STATE_NAME(i.state)].filter(Boolean).join(', ') || '—' },
+    { label: 'Nivel deportivo', cell: (i) => [i.association?.toUpperCase(), i.division ? DIVISION_LABEL[i.division] : null, i.conference].filter(Boolean).join(' · ') || 'Sin confirmar' },
+    { label: 'Oportunidades activas', cell: (i) => (activeBy.get(i.id) ? <span className="font-semibold text-ok">{activeBy.get(i.id)}</span> : <span className="text-faint">Ninguna verificada</span>) },
+    ...(loaded ? [{ label: 'Tus estudios', cell: (_i: Inst, n: number) => { const f = matches[n]!.dimensions.flatMap((d) => d.factors).find((x) => x.id === 'program'); return f ? <span className="text-xs">{f.detail}</span> : '—'; } }] : []),
+    { label: 'Coste publicado est. (internacional, sin becas)', cell: (i) => { const c = estimatedIntlCost(i); return <span className={c != null && c === cheapest ? 'text-ok' : ''}>{c != null ? usdFmt(c) : 'No publicado'}</span>; } },
+    { label: 'Matrícula no residentes', cell: (i) => usd(i.tuition_out_of_state_usd) },
+    { label: 'Precio neto medio publicado', cell: (i) => <span>{usd(i.net_price_usd)}<span className="block text-[11px] text-faint">Con ayuda federal de EE. UU.; no aplica a internacionales</span></span> },
+    { label: 'Tipo', cell: (i) => (i.ownership ? OWNERSHIP_LABEL[i.ownership] : 'Sin dato') },
+    { label: 'Estudiantes de grado', cell: (i) => (i.enrollment != null ? i.enrollment.toLocaleString('es-ES') : 'Sin dato') },
+    { label: 'Tasa de graduación', cell: (i) => (i.graduation_rate != null ? `${Math.round(i.graduation_rate * 100)} %` : 'Sin dato') },
     { label: 'SAT medio de admitidos', cell: (i) => i.sat_avg ?? 'Sin dato' },
     { label: 'Tasa de admisión', cell: (i) => (i.admission_rate != null ? `${Math.round(i.admission_rate * 100)} %` : 'Sin dato') },
-    ...(passport?.profile
-      ? [{ label: 'Tu encaje', cell: (_i: Inst, n: number) => {
-          const f = fits[n];
-          return f ? <div><Badge tone={f.level === 'alto' ? 'ok' : f.level === 'bajo' ? 'danger' : 'neutral'}>{f.level}</Badge><ul className="mt-1 space-y-0.5 text-xs">{f.reasons.map((r) => <li key={r.label} className={r.ok === null ? 'text-faint' : r.ok ? 'text-ok' : 'text-danger'}>{r.ok === null ? '?' : r.ok ? '✓' : '✗'} {r.label}</li>)}</ul></div> : '—';
-        } }]
-      : []),
     { label: 'Enlaces oficiales', cell: (i) => (
       <ul className="space-y-0.5 text-xs">
         {[['Web', i.website_url], ['Calculadora de precio neto', i.price_calculator_url], ['Deportes', i.athletics_url], ['Estudiantes internacionales', i.international_url]]
@@ -113,7 +122,7 @@ export default async function CompareUniversitiesPage({ searchParams }: { search
               </tbody>
             </table>
           </div>
-          <p className="mt-4 text-xs text-faint">El encaje es orientativo (deporte, división y presupuesto); no es probabilidad de admisión ni de beca.</p>
+          <p className="mt-4 text-xs text-faint">Gala Match mide compatibilidad con tu Passport; no es probabilidad de admisión, beca ni oferta. Ninguna cifra resta becas no confirmadas.</p>
         </Card>
       )}
     </>

@@ -1214,6 +1214,56 @@ try {
     eq((await db.query(`select athletic_source from institutions where id = $1`, [gmInst])).rows[0].athletic_source, 'organization');
   });
 
+  results.push('\nUniversidades v2: programas, reclamaciones, ciclo de vida y avisos');
+  await check('programas: la organización verificada los gestiona; la procedencia la fija la base de datos', async () => {
+    await as(u.uni, `insert into institution_programs (institution_id, sport_id, gender, division, source, source_url) values ($1, 'tennis', 'women', 'ncaa_d2', 'official_external', 'https://fake.example')`, [gmInst]);
+    const r = (await db.query(`select source, source_url from institution_programs where institution_id = $1 and sport_id = 'tennis'`, [gmInst])).rows[0];
+    eq(r.source, 'organization'); eq(r.source_url, null);
+    eq((await db.query(`select 'tennis' = any(sports_offered) ok from institutions where id = $1`, [gmInst])).rows[0].ok, true, 'sincroniza sports_offered');
+  });
+  await check('programas: una marca u otra universidad no pueden tocarlos; cualquiera los lee', async () => {
+    await expectError(() => as(u.brand, `insert into institution_programs (institution_id, sport_id, gender, source) values ($1, 'soccer', 'men', 'organization')`, [gmInst]));
+    eq((await as(null, `select count(*)::int n from institution_programs where institution_id = $1`, [gmInst])).rows[0].n >= 1, true);
+  });
+  await check('reclamar universidad: dominio comprobado, privada y solo un admin la aprueba', async () => {
+    await as(u.admin, `update institutions set website_url = 'https://www.testu.edu' where id = $1`, [gmInst]);
+    await as(u.coach, `insert into institution_claims (institution_id, user_id, work_email, role_title) values ($1, $2, 'coach@athletics.testu.edu', 'Head Coach')`, [gmInst, u.coach]);
+    eq((await db.query(`select domain_matches from institution_claims where user_id = $1`, [u.coach])).rows[0].domain_matches, true);
+    eq((await as(u.brand, `select count(*)::int n from institution_claims`)).rows[0].n, 0);
+    await as(u.coach, `update institution_claims set status = 'approved' where user_id = $1`, [u.coach]).catch(() => null);
+    eq((await db.query(`select status from institution_claims where user_id = $1`, [u.coach])).rows[0].status, 'pending');
+  });
+  await check('reclamar universidad: no se puede reclamar en nombre de una organización ajena', async () => {
+    await expectError(() => as(u.brand, `insert into institution_claims (institution_id, user_id, organization_id, work_email, role_title) values ($1, $2, $3, 'x@testu.edu', 'Coach')`, [gmInst, u.brand, uniId]), /not_org_admin/);
+  });
+  await check('oportunidad: la organización puede cerrarla o marcarla cubierta, pero no republicarla', async () => {
+    const opp = (await db.query(`select id from opportunities where organization_id = $1 and status = 'published' limit 1`, [uniId])).rows[0];
+    if (!opp) return;
+    await as(u.uni, `update opportunities set status = 'filled' where id = $1`, [opp.id]);
+    await expectError(() => as(u.uni, `update opportunities set status = 'published' where id = $1`, [opp.id]), /opportunity_status_admin_only/);
+    await as(u.admin, `update opportunities set status = 'published' where id = $1`, [opp.id]);
+  });
+  await check('caducidad: una oportunidad con plazo vencido pasa a "expired"; solo admin o el sistema la ejecutan', async () => {
+    await expectError(() => as(u.uni, `select expire_stale_opportunities()`), /admin_only/);
+    const opp = (await db.query(`select id from opportunities where organization_id = $1 and status = 'published' limit 1`, [uniId])).rows[0];
+    if (!opp) return;
+    await db.query(`alter table opportunities disable trigger user`);
+    await db.query(`update opportunities set deadline = current_date - 2 where id = $1`, [opp.id]);
+    await db.query(`alter table opportunities enable trigger user`);
+    await as(u.admin, `select expire_stale_opportunities()`);
+    eq((await db.query(`select status::text s from opportunities where id = $1`, [opp.id])).rows[0].s, 'expired');
+  });
+  await check('aviso: quien guardó la universidad recibe una notificación al publicarse una oportunidad', async () => {
+    await as(u.admin, `update organizations set institution_id = $1 where id = $2`, [gmInst, uniId]);
+    const opp = (await db.query(`select id from opportunities where organization_id = $1 limit 1`, [uniId])).rows[0];
+    if (!opp) return;
+    await db.query(`alter table opportunities disable trigger user`);
+    await db.query(`update opportunities set status = 'draft', deadline = current_date + 30 where id = $1`, [opp.id]);
+    await db.query(`alter table opportunities enable trigger user`);
+    await as(u.admin, `update opportunities set status = 'published' where id = $1`, [opp.id]);
+    eq((await db.query(`select count(*)::int n from notifications where user_id = $1 and kind = 'saved_university_opportunity'`, [u.adult])).rows[0].n >= 1, true);
+  });
+
 } finally {
   console.log(results.join('\n'));
   console.log(`\n${passed} pruebas OK · ${failed} fallidas`);
