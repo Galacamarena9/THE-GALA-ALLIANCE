@@ -72,8 +72,8 @@ Regla: la RLS de Postgres es la fuente de verdad de permisos; la interfaz solo r
 **Hipótesis:** atletas de España crean Passports útiles, organizaciones verificadas publican oportunidades reales y ambas
 partes generan interacciones cualificadas cada semana.
 
-- **Beachhead propuesto:** España → EE. UU., **baloncesto** (autoridad de la fundadora, NCAA D-I) **+ un segundo deporte** a elegir
-  con datos (fútbol por volumen o tenis por oferta de becas por plaza).
+- **Beachhead decidido (17-11-2026):** España → EE. UU., **baloncesto** (autoridad de la fundadora, NCAA D-I) **+ tenis**
+  (oferta de becas por plaza) **+ fútbol** (volumen de atletas). El catálogo de universidades se completa primero en estos tres.
 - **Flujo mínimo de principio a fin:** organización publica → aparece en `/oportunidades` → atleta crea Passport → ve su match →
   candidatura → la organización la gestiona en el pipeline → mensaje con control familiar.
 - **North Star:** interacciones cualificadas semanales entre talento y organizaciones verificadas
@@ -107,9 +107,9 @@ partes generan interacciones cualificadas cada semana.
 
 ## I) Preguntas imprescindibles (para la fundadora)
 
-1. ¿Qué segundo deporte entra en el piloto junto al baloncesto?
+1. ~~¿Qué segundo deporte entra en el piloto?~~ Decidido: baloncesto + tenis + fútbol.
 2. ¿Cuántas organizaciones socias puedes comprometer para publicar oportunidades reales antes de abrir?
-3. ¿Con qué dominio público se lanza (para metadatos, OG y verificación)?
+3. ~~¿Con qué dominio se lanza?~~ Decidido: `thegalaalliance.com` (pendiente conectar en Netlify y verificar en Resend).
 
 ## J) Acción inmediata
 
