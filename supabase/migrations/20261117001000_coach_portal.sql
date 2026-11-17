@@ -54,8 +54,8 @@ returns boolean language sql stable security definer set search_path = public as
   );
 $$;
 
-drop policy members_admin on public.organization_members;
-create policy members_admin on public.organization_members for all to authenticated
+-- ALTER (no DROP): misma política, nueva condición.
+alter policy members_admin on public.organization_members
   using (public.org_can(organization_id, 'manage_members') or public.is_admin())
   with check (public.org_can(organization_id, 'manage_members') or public.is_admin());
 
