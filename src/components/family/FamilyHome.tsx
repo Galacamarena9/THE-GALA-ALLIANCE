@@ -110,7 +110,7 @@ export function FamilyHome({ links, current, home, action, today, switchHref }: 
           <div className="grid gap-5 lg:grid-cols-2">
             <Card>
               <CardTitle kicker="Coste real" action={s.costs ? <Link href={`/app/family/costs?child=${current.athleteId}`} className="text-sm text-brass hover:underline">Comparar</Link> : undefined}>
-                {s.costs ? (home.scenarios.total ? `${home.scenarios.total} opción(es) en estudio` : 'Aún sin comparar') : 'Sin acceso a costes'}
+                {s.costs ? (home.scenarios.total ? `${home.scenarios.total} ${home.scenarios.total === 1 ? 'opción' : 'opciones'} en estudio` : 'Aún sin comparar') : 'Sin acceso a costes'}
               </CardTitle>
               {s.costs ? (
                 home.scenarios.total ? (
@@ -127,7 +127,7 @@ export function FamilyHome({ links, current, home, action, today, switchHref }: 
 
             <Card>
               <CardTitle kicker="Documentos" action={s.documents ? <Link href="/app/requests" className="text-sm text-brass hover:underline">Revisar solicitudes</Link> : undefined}>
-                {s.documents ? `${home.missingDocuments} por subir · ${home.pendingDocRequests} solicitud(es) abiertas` : 'Sin acceso a documentos'}
+                {s.documents ? `${home.missingDocuments} por subir · ${home.pendingDocRequests} ${home.pendingDocRequests === 1 ? 'solicitud abierta' : 'solicitudes abiertas'}` : 'Sin acceso a documentos'}
               </CardTitle>
               <p className="text-sm text-muted">
                 {s.documents
@@ -164,23 +164,31 @@ export function FamilyHome({ links, current, home, action, today, switchHref }: 
             <p className="mt-3 text-xs text-faint">«Verificada» significa que hemos comprobado su afiliación institucional. No significa que recomendemos al coach ni que garanticemos la oportunidad.</p>
           </Card>
 
+          {/* Herramientas de la familia: plegadas para que el panel enseñe primero lo que necesita atención. */}
           <div className="grid gap-5 lg:grid-cols-2">
             <Card>
-              <CardTitle kicker="Solo familia">Notas</CardTitle>
-              <FamilyNotes athleteId={current.athleteId} notes={home.notes} />
+              <details open={home.notes.length > 0}>
+                <summary className="cursor-pointer list-none"><CardTitle kicker="Solo familia" action={<span className="text-sm font-semibold text-brass">{home.notes.length ? `${home.notes.length}` : 'Añadir'}</span>}>Notas</CardTitle></summary>
+                <FamilyNotes athleteId={current.athleteId} notes={home.notes} />
+              </details>
             </Card>
             <Card>
-              <CardTitle kicker="Tareas">Algo que hacer</CardTitle>
-              <FamilyTaskForm athleteId={current.athleteId} />
+              <details>
+                <summary className="cursor-pointer list-none"><CardTitle kicker="Tareas" action={<span className="text-sm font-semibold text-brass">Crear</span>}>Algo que hacer</CardTitle></summary>
+                <FamilyTaskForm athleteId={current.athleteId} />
+              </details>
             </Card>
           </div>
         </>
       )}
 
       <Card>
-        <CardTitle kicker={`${RELATIONSHIP[current.relationship] ?? 'Familiar'} · ${current.verification === 'admin_verified' ? 'verificado por The Gala Alliance' : current.verification === 'athlete_confirmed' ? 'confirmado por el atleta' : 'sin confirmar'}`}>
+        <details>
+        <summary className="cursor-pointer list-none">
+        <CardTitle action={<span className="text-sm font-semibold text-brass">Ver</span>} kicker={`${RELATIONSHIP[current.relationship] ?? 'Familiar'} · ${current.verification === 'admin_verified' ? 'verificado por The Gala Alliance' : current.verification === 'athlete_confirmed' ? 'confirmado por el atleta' : 'sin confirmar'}`}>
           Lo que puedes ver de {current.name}
         </CardTitle>
+        </summary>
         <ul className="grid gap-2 sm:grid-cols-2">
           {SCOPES.map(([k, label]) => (
             <li key={k} className="flex items-center justify-between rounded-lg border border-line px-3 py-2 text-sm">
@@ -193,6 +201,7 @@ export function FamilyHome({ links, current, home, action, today, switchHref }: 
           </li>
         </ul>
         <p className="mt-3 text-xs text-faint">Lo decide {current.name} desde sus ajustes. Si cumple 18 años, tendrá que confirmar si sigues teniendo acceso.</p>
+        </details>
       </Card>
     </div>
   );
