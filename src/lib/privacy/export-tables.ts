@@ -23,6 +23,7 @@ export const EXPORT_SOURCES: ExportSource[] = [
   { key: 'blocked_users', table: 'user_blocks', column: 'blocker_id' },
   { key: 'notification_preferences', table: 'notification_preferences' },
   { key: 'plans', table: 'entitlements' },
+  { key: 'professional_credentials', table: 'professional_credentials' },
   // Familia y privacidad
   { key: 'family_links', table: 'parent_athlete_links', select: 'id, parent_id, athlete_id, status, relationship, verification_status, verified_at, restricted_at, last_reviewed_at, can_view_profile, can_view_applications, can_view_academics, can_edit_profile, can_view_costs, can_view_budget, can_view_documents, can_view_contacts, can_view_messages, created_at, approved_at, revoked_at', either: ['parent_id', 'athlete_id'] },
   { key: 'family_notes', table: 'family_notes', column: 'author_id' },

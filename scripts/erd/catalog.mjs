@@ -131,6 +131,7 @@ export const TABLES = {
   // 10 · Agencias y clubes
   agent_representations: { domain: '10-agencias-clubes', cls: 'sensitive', minors: true, decision: 'KEEP', export: true },
   agency_contacts: { domain: '10-agencias-clubes', cls: 'internal', decision: 'KEEP' },
+  professional_credentials: { domain: '10-agencias-clubes', cls: 'sensitive', decision: 'KEEP', export: true, note: 'Licencias del agente; el número nunca es público.' },
   agency_athlete_notes: { domain: '10-agencias-clubes', cls: 'internal', decision: 'KEEP', noExport: 'Nota interna de la agencia sobre el atleta' },
   recruiting_cases: { domain: '10-agencias-clubes', cls: 'internal', minors: true, decision: 'KEEP', noExport: 'Caso interno de la agencia' },
   recruiting_case_tasks: { domain: '10-agencias-clubes', cls: 'internal', decision: 'KEEP' },

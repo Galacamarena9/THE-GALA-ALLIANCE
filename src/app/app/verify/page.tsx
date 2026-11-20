@@ -5,13 +5,15 @@ import { createClient } from '@/lib/supabase/server';
 import { REQUEST_STATUS_TEXT, accessLevel, checks, type VerificationSummary } from '@/lib/domain/verification';
 import { ButtonLink, Card, PageHeader } from '@/components/ui';
 import { ResendEmailButton } from '@/components/verify/ResendEmailButton';
+import { CredentialForm } from '@/components/verify/CredentialForm';
+import { submitCredential } from '@/app/actions/credentials';
 
 export const metadata: Metadata = { title: 'Mi verificación' };
 
 const ICON = { done: '✓', review: '⏳', todo: '○' } as const;
 const TEXT = { done: 'Verificado', review: 'En revisión', todo: 'Pendiente' } as const;
 const TYPE: Record<string, string> = {
-  organization_claim: 'Representar la institución', organization_affiliation: 'Afiliación a la institución', program_affiliation: 'Afiliación al programa', role: 'Cargo',
+  credential: 'Credencial profesional', organization_claim: 'Representar la institución', organization_affiliation: 'Afiliación a la institución', program_affiliation: 'Afiliación al programa', role: 'Cargo',
 };
 
 /** Estado de verificación en lenguaje claro, calculado (no un booleano). Funciona igual en el móvil. */
@@ -30,6 +32,11 @@ export default async function VerifyPage() {
     ...(requests ?? []).filter((r) => r.organization_id).map((r) => [r.organization_id as string, (r.organizations as unknown as { name: string } | null)?.name ?? 'Organización'] as [string, string]),
   ]);
   const pendingEmail = (emails ?? []).find((e) => e.result === 'pending');
+  const isAgent = session.roles.includes('agent');
+  const { data: creds } = isAgent
+    ? await supabase.from('professional_credentials').select('id, issuing_body, credential_type, country, expires_on, status').eq('user_id', session.userId).order('created_at', { ascending: false })
+    : { data: null };
+  const agencyId = isAgent ? ((members ?? []).find((m) => m.organization_id)?.organization_id as string | undefined) ?? null : null;
   const full = summaries.find(([, s]) => accessLevel(s).key === 'full');
 
   return (
@@ -89,6 +96,29 @@ export default async function VerifyPage() {
           </Card>
         )}
 
+        {isAgent && (
+          <Card>
+            <h2 className="font-display text-lg font-bold text-paper">Credenciales profesionales</h2>
+            <p className="mt-1 text-sm text-muted">Licencias o registros como agente. En tu perfil solo aparece «Licencia verificada» cuando Gala ha comprobado el documento y está vigente.</p>
+            {(creds ?? []).length > 0 && (
+              <ul className="mt-3 divide-y divide-line">
+                {(creds ?? []).map((c) => (
+                  <li key={c.id} className="flex min-h-12 flex-wrap items-center justify-between gap-2 text-sm">
+                    <span className="text-paper">{c.issuing_body}{c.country ? ` · ${c.country}` : ''}{c.expires_on ? ` · hasta ${c.expires_on}` : ''}</span>
+                    {c.status === 'declared' || c.status === 'rejected' ? (
+                      <form action={submitCredential}><input type="hidden" name="id" value={c.id} /><button className="min-h-11 text-sm font-semibold text-brass">Pedir verificación</button></form>
+                    ) : (
+                      <span className={c.status === 'verified' ? 'font-semibold text-ok' : c.status === 'under_review' ? 'text-warn' : 'text-muted'}>
+                        {({ verified: '✓ Verificada', under_review: '⏳ En revisión', expired: 'Caducada', revoked: 'Retirada' } as Record<string, string>)[c.status as string] ?? c.status}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="mt-4"><CredentialForm agencyId={agencyId} /></div>
+          </Card>
+        )}
         {pendingEmail && (
           <Card>
             <p className="text-sm text-paper">Correo pendiente de confirmar: <strong>{pendingEmail.email}</strong></p>
