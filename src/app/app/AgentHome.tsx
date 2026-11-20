@@ -14,12 +14,6 @@ import { buildTimeline, dueText, initials, nextSteps, relativeTime, representati
  * Inicio del agente: todo sale de su cartera real (sin métricas inventadas).
  * Estructura inspirada en los mejores CRMs: resumen → cartera → qué ha pasado → qué toca hacer.
  */
-const SHORTCUTS = [
-  { href: '/app/lists', title: 'Mis listas', text: 'Atletas que sigues y tus notas', img: '/media/club-training-sm.webp' },
-  { href: '/app/opportunities', title: 'Oportunidades', text: 'Becas y ofertas publicadas', img: '/media/university-campus-sm.webp' },
-  { href: '/app/organization', title: 'Mi agencia', text: 'Equipo, verificación y perfil', img: '/media/agent-workspace-sm.webp' },
-];
-
 export async function AgentHome({ session }: { session: SessionContext }) {
   const [data, catalog, agency] = await Promise.all([loadPortfolio(session.userId), loadCatalog(), loadAgencyCases(session.userId)]);
   return <AgentHomeView displayName={session.displayName} data={data} sports={catalog.sports} cases={agency.cases} />;
@@ -30,7 +24,7 @@ export function AgentHomeView({ displayName, data, sports, cases = [] }: { displ
   const nameOf = new Map(entries.map((e) => [e.athleteId, e.name]));
   const featured = sortPortfolio(entries.filter((e) => e.status === 'active'), 'activity').slice(0, 3);
   const pending = sortPortfolio(entries.filter((e) => e.status === 'requested'), 'recent').slice(0, 4);
-  const activity = buildTimeline(entries, notes, 7);
+  const activity = buildTimeline(entries, notes, 5);
   const steps = nextSteps(notes, nameOf).slice(0, 5);
   const agenda = caseAgenda(cases).slice(0, 5);
   const openCases = cases.filter((c) => c.stage !== 'closed' && c.stage !== 'committed').length;
@@ -65,7 +59,7 @@ export function AgentHomeView({ displayName, data, sports, cases = [] }: { displ
                 <Search className="h-4 w-4" aria-hidden /> Explorar talento
               </Link>
               <Link href="/app/portfolio" className="inline-flex items-center gap-2 rounded-xl border border-white/30 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-white/10 focus-visible:outline-lime">
-                Ver portfolio <ArrowRight className="h-4 w-4" aria-hidden />
+                Ver cartera <ArrowRight className="h-4 w-4" aria-hidden />
               </Link>
             </div>
           </div>
@@ -85,25 +79,6 @@ export function AgentHomeView({ displayName, data, sports, cases = [] }: { displ
         <Notice>Registra tu agencia para empezar a construir tu cartera: <Link href="/app/organization" className="font-semibold underline">crear agencia</Link>.</Notice>
       )}
 
-      {alerts.length > 0 && (
-        <Panel title="Necesita atención" action={<PanelLink href="/app/portfolio">Cartera →</PanelLink>}>
-          <ul className="space-y-0.5">
-            {alerts.map((a) => (
-              <li key={a.repId}>
-                <Link href={`/app/portfolio/${a.athleteId}`} className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-surface-2/60">
-                  <span className={`h-2 w-2 shrink-0 rounded-full ${a.tone === 'danger' ? 'bg-danger' : a.tone === 'warn' ? 'bg-warn' : 'bg-faint'}`} aria-hidden />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium text-paper">{a.name}</span>
-                    <span className={`block truncate text-xs ${a.tone === 'danger' ? 'text-danger' : 'text-faint'}`}>{a.text}</span>
-                  </span>
-                  <ArrowRight className="h-4 w-4 shrink-0 text-faint" aria-hidden />
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </Panel>
-      )}
-
       {/* KPIs reales y clicables */}
       <div className="rise-in rise-in-1 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiTile label="Atletas representados" value={stats.active} icon={UserCheck} href="/app/portfolio?status=active" />
@@ -118,9 +93,33 @@ export function AgentHomeView({ displayName, data, sports, cases = [] }: { displ
         />
       </div>
 
+      {/* Hoy: lo único que hay que mirar primero (vencimientos de representación y seguimientos). */}
+      {(alerts.length > 0 || steps.length > 0) && (
+        <Panel title="Hoy" action={<PanelLink href="/app/portfolio">Cartera →</PanelLink>}>
+          <div className="grid gap-x-6 lg:grid-cols-2">
+            {alerts.length > 0 && (
+              <ul className="space-y-0.5">
+                {alerts.map((a) => (
+                  <li key={a.repId}>
+                    <Link href={`/app/portfolio/${a.athleteId}`} className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-surface-2/60">
+                      <span className={`h-2 w-2 shrink-0 rounded-full ${a.tone === 'danger' ? 'bg-danger' : a.tone === 'warn' ? 'bg-warn' : 'bg-faint'}`} aria-hidden />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-medium text-paper">{a.name}</span>
+                        <span className={`block truncate text-xs ${a.tone === 'danger' ? 'text-danger' : 'text-faint'}`}>{a.text}</span>
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {steps.length > 0 && <NextStepsList steps={steps.slice(0, alerts.length ? 3 : 5)} empty="" />}
+          </div>
+        </Panel>
+      )}
+
       <div className="rise-in rise-in-2 grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
         <div className="min-w-0 space-y-5">
-          <Panel title="Tu portfolio" action={<PanelLink href="/app/portfolio">Ver todo →</PanelLink>}>
+          <Panel title="Tu cartera" action={<PanelLink href="/app/portfolio">Ver todo →</PanelLink>}>
             {!featured.length ? (
               <div className="px-4 py-10 text-center">
                 <p className="text-sm text-muted">Cuando un atleta acepte tu propuesta aparecerá aquí.</p>
@@ -227,30 +226,11 @@ export function AgentHomeView({ displayName, data, sports, cases = [] }: { displ
             </div>
           </section>
 
-          {/* Atajos con foto */}
-          <ul className="grid gap-3 sm:grid-cols-3">
-            {SHORTCUTS.map((c, i) => (
-              <li key={c.href} className={`rise-in rise-in-${i + 1}`}>
-                <Link href={c.href} className="hover-lift group relative block h-36 overflow-hidden rounded-[var(--radius-card)] bg-night text-white">
-                  {/* eslint-disable-next-line @next/next/no-img-element -- imagen local optimizada */}
-                  <img src={c.img} alt="" aria-hidden loading="lazy" className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                  <div className="tile-shade absolute inset-0" aria-hidden />
-                  <span className="absolute inset-x-0 bottom-0 p-4">
-                    <span className="block font-display text-xl font-bold uppercase leading-none">{c.title}</span>
-                    <span className="mt-1 block text-xs text-lavender">{c.text}</span>
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
         </div>
 
         <div className="space-y-5">
           <Panel title="Actividad reciente">
             <ActivityFeed events={activity} empty="Aquí verás propuestas, respuestas y notas de tu agencia." />
-          </Panel>
-          <Panel title="Próximas acciones" action={<PanelLink href="/app/portfolio">Ver cartera</PanelLink>}>
-            <NextStepsList steps={steps} empty="Sin seguimientos pendientes. Prográmalos desde la ficha de cada atleta." />
           </Panel>
         </div>
       </div>

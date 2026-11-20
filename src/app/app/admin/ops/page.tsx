@@ -34,8 +34,8 @@ export default async function AdminOpsPage({ searchParams }: { searchParams: Pro
   const h = (healthRaw ?? {}) as Record<string, number | boolean | string[] | null>;
   const alarms = [
     (h.child_safety_oldest_hours as number) >= 24 && `Hay una denuncia de seguridad infantil sin atender desde hace ${h.child_safety_oldest_hours} h (objetivo: < 24 h).`,
-    (h.stripe_unprocessed as number) > 0 && `${h.stripe_unprocessed} evento(s) de Stripe sin procesar: revisa el webhook.`,
-    (h.break_glass_unreviewed as number) > 0 && `${h.break_glass_unreviewed} acceso(s) de emergencia sin revisar.`,
+    (h.stripe_unprocessed as number) > 0 && `${h.stripe_unprocessed} ${h.stripe_unprocessed === 1 ? 'evento' : 'eventos'} de Stripe sin procesar: revisa el webhook.`,
+    (h.break_glass_unreviewed as number) > 0 && `${h.break_glass_unreviewed} ${h.break_glass_unreviewed === 1 ? 'acceso' : 'accesos'} de emergencia sin revisar.`,
     Array.isArray(h.kill_switches_off) && h.kill_switches_off.length > 0 && `Funcionalidades apagadas: ${(h.kill_switches_off as string[]).join(', ')}.`,
     h.cron_available === false && 'pg_cron no está activo: las caducidades y limpiezas no corren solas.',
   ].filter(Boolean) as string[];

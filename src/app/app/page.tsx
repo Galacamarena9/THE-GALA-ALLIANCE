@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { CheckCircle2 } from 'lucide-react';
@@ -7,15 +8,14 @@ import { createClient } from '@/lib/supabase/server';
 import { loadPassport } from '@/lib/data/athlete';
 import { familyPlan } from '@/lib/data/family';
 import { sidebarFor } from '@/lib/domain/navigation';
-import { roleHome, roleLabel } from '@/lib/domain/roles';
+import { roleHome } from '@/lib/domain/roles';
 import { NavIcon } from '@/components/NavIcon';
-import { Badge, ButtonLink, Card, Meter } from '@/components/ui';
+import { Card, CardTitle } from '@/components/ui';
 import { AskGala } from '@/components/AskGala';
 import { Reveal } from '@/components/Reveal';
 import { AgentHome } from './AgentHome';
-import { ROLE_SHORTCUTS, RoleHero, ShortcutTiles } from '@/components/RoleHero';
+import { RoleHero } from '@/components/RoleHero';
 import { PlanUnlocks } from '@/components/PlanUnlocks';
-import { ProgressRing } from '@/components/ProgressRing';
 import { isoDaysAgo } from '@/lib/domain/funnel';
 import { loadAthleteDashboard } from '@/lib/data/dashboard';
 import { AthleteCommandCenter } from '@/components/dashboard/AthleteCommandCenter';
@@ -126,135 +126,92 @@ export default async function HomePage() {
   const done = steps.filter((s) => s.done).length;
   const nextStep = steps.find((s) => !s.done);
   const unread = unreadCount ?? 0;
-  const sections = sidebarFor(session.roles).filter((s) => s.title !== 'Inicio');
-  const initials = session.displayName.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join('');
-  const PLAN_NAME: Record<string, string> = { free: 'Passport gratis', family_core: 'Core', family_elite: 'Elite', family_signature: 'Signature' };
+  // Con los primeros pasos hechos, cada organización y la familia van directas a su espacio de trabajo:
+  // el inicio genérico solo existe para arrancar, no para repetir el menú.
+  const workspace: Partial<Record<string, string>> = { parent: '/app/family', coach: '/app/recruit', university: '/app/recruit', brand: '/app/campaigns?view=mine', admin: '/app/admin/ops' };
+  if (primary && done === steps.length && workspace[primary] && !(signal && signal.value > 0)) redirect(workspace[primary]!);
+  const mine = sidebarFor(session.roles).find((s) => s.title.startsWith('Mi espacio') || s.title === 'Administración');
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[280px_1fr]">
-      {/* Columna de perfil (como LinkedIn): quién eres, cómo de completo está tu perfil y tu plan. */}
-      <div className="space-y-5">
-        <Reveal>
-          <section className="overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface">
-            <div className="relative h-20 bg-gradient-to-br from-brass/40 via-brass-deep/30 to-trust/30">
-              <div className="bg-grid absolute inset-0" aria-hidden />
-            </div>
-            <div className="-mt-9 px-5 pb-5">
-              <span className="flex h-[72px] w-[72px] items-center justify-center rounded-2xl border-4 border-surface bg-gradient-to-br from-brass to-brass-deep font-display text-2xl font-bold text-ink shadow-[var(--shadow-gold)]">{initials || 'G'}</span>
-              <p className="mt-3 font-display text-lg font-bold text-paper">{session.displayName}</p>
-              <p className="text-xs text-muted">{session.roles.map(roleLabel).join(' · ')}</p>
-              {plan && <div className="mt-3"><Badge tone={plan === 'free' ? 'neutral' : 'brass'}>{PLAN_NAME[plan]}</Badge></div>}
-              {score != null && <div className="mt-4"><Meter value={score} label="Passport listo" /></div>}
-              {primary && <ButtonLink href={roleHome(primary)} variant="secondary" className="mt-4 w-full">Ir a mi espacio</ButtonLink>}
-            </div>
-          </section>
-        </Reveal>
+    <div className="mx-auto max-w-5xl space-y-6">
+      <RoleHero
+        role={primary ?? 'athlete'}
+        firstName={session.displayName.split(' ')[0]}
+        status={done === steps.length ? 'Todo al día' : `${steps.length - done} paso${steps.length - done > 1 ? 's' : ''} por completar`}
+        next={signal && signal.value > 0 ? { label: signal.cta(signal.value), href: signal.href } : nextStep ? { label: nextStep.label, href: nextStep.href } : primary ? { label: 'Ir a mi espacio', href: roleHome(primary) } : undefined}
+        stats={[
+          ...(score != null ? [{ label: 'Passport listo', value: score, suffix: '%' }] : []),
+          ...(signal ? [{ label: signal.label, value: signal.value, href: signal.href }] : []),
+          { label: 'Primeros pasos', value: done, note: `de ${steps.length}` },
+          { label: 'Avisos sin leer', value: unread },
+        ]}
+      />
 
-        <Reveal delay={80}>
-          <Card>
-            <p className="mb-3 text-[13px] font-semibold text-faint">Actividad reciente</p>
-            {activity?.length ? (
-              <ul className="space-y-3">
-                {activity.map((n) => (
-                  <li key={n.id} className="text-sm">
-                    <Link href={n.link ?? '/app/notifications'} className="group block">
-                      <span className={`block ${n.read_at ? 'text-muted' : 'font-medium text-paper'} group-hover:text-brass`}>{n.title}</span>
-                      <span className="block text-xs text-faint">{new Date(n.created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}</span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-sm text-muted">Aquí verás respuestas, cambios de estado y avisos.</p>
-            )}
-          </Card>
-        </Reveal>
-      </div>
-
-      <div className="min-w-0 space-y-6">
-        <RoleHero
-          role={primary ?? 'athlete'}
-          firstName={session.displayName.split(' ')[0]}
-          status={done === steps.length ? 'Todo al día' : `${steps.length - done} paso${steps.length - done > 1 ? 's' : ''} por completar`}
-          next={signal && signal.value > 0 ? { label: signal.cta(signal.value), href: signal.href } : nextStep ? { label: nextStep.label, href: nextStep.href } : undefined}
-          stats={[
-            ...(score != null ? [{ label: 'Passport listo', value: score, suffix: '%' }] : []),
-            ...(signal ? [{ label: signal.label, value: signal.value, href: signal.href }] : []),
-            { label: 'Primeros pasos', value: done, note: `de ${steps.length}` },
-            { label: 'Avisos sin leer', value: unread },
-          ]}
-        />
-
-        {primary && ROLE_SHORTCUTS[primary] && <ShortcutTiles items={ROLE_SHORTCUTS[primary]!} />}
-
-        {plan && <PlanUnlocks plan={plan} />}
-
+      {done < steps.length && (
         <Reveal delay={60}>
-          <Card className="relative overflow-hidden">
-            <div className="glow-gold pointer-events-none absolute -right-20 -top-20 h-60 w-60" aria-hidden />
-            <div className="relative grid gap-6 lg:grid-cols-[auto_1fr] lg:items-center">
-              <div className="flex items-center gap-5">
-                <ProgressRing value={score ?? (steps.length ? (done / steps.length) * 100 : 0)} label={score != null ? 'Passport listo' : 'Primeros pasos completados'} />
-                <div>
-                  <p className="text-[13px] font-semibold text-brass">{score != null ? 'Tu Passport' : 'Primeros pasos'}</p>
-                  <h2 className="font-display text-[28px] font-bold uppercase leading-[0.95] text-paper">{done === steps.length ? 'Todo listo' : 'En marcha'}</h2>
-                  <p className="mt-1 max-w-xs text-sm text-muted">{nextStep ? <>Siguiente: <Link href={nextStep.href} className="font-semibold text-brass underline underline-offset-2">{nextStep.label}</Link></> : 'Ya puedes sacarle todo el partido.'}</p>
-                </div>
-              </div>
-              {/* Tu camino: los pasos como línea de tiempo horizontal. */}
-              <ol className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Tu camino">
-                {steps.map((s, i) => {
-                  const current = !s.done && s === nextStep;
-                  return (
-                    <li key={s.label} className="relative">
-                      {i < steps.length - 1 && <span className={`absolute left-9 right-0 top-4 hidden h-0.5 xl:block ${s.done ? 'bg-brass' : 'bg-line'}`} aria-hidden />}
-                      <Link href={s.href} className="group relative block rounded-xl p-1">
-                        <span className={`relative grid h-8 w-8 place-items-center rounded-full border text-xs font-bold transition-all ${s.done ? 'border-brass bg-brass text-white' : current ? 'border-brass bg-surface text-brass ring-4 ring-brass/10' : 'border-line bg-surface text-faint'}`}>
-                          {s.done ? <CheckCircle2 className="h-4 w-4" aria-hidden /> : i + 1}
-                        </span>
-                        <span className={`mt-2 block text-sm font-semibold leading-snug ${s.done ? 'text-muted line-through decoration-faint/60' : 'text-paper group-hover:text-brass'}`}>{s.label}</span>
-                        <span className={`text-xs ${current ? 'font-semibold text-brass' : 'text-faint'}`}>{s.done ? 'Completado' : current ? 'Estás aquí' : 'Pendiente'}</span>
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ol>
-            </div>
-          </Card>
-        </Reveal>
-
-        <Reveal delay={100}>
-          <Card className="paper-grain">
-            <AskGala compact />
-          </Card>
-        </Reveal>
-
-        {/* Mapa completo de servicios: cada uno dice para qué sirve, para que nadie se pierda. */}
-        {sections.map((section, si) => (
-          <Reveal key={section.title} delay={120 + si * 40}>
-            <section aria-labelledby={`sec-${si}`}>
-              <h2 id={`sec-${si}`} className="mb-3 text-[13px] font-semibold text-faint">{section.title}</h2>
-              <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                {section.items.map((s) => (
-                  <li key={s.href}>
-                    <Link href={s.href} className="group flex h-full items-start gap-3 rounded-2xl border border-line bg-surface p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-brass/40 hover:shadow-[var(--shadow-elevated)]">
-                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brass/10 text-brass transition-transform group-hover:scale-110"><NavIcon name={s.icon} className="h-5 w-5" /></span>
-                      <span className="min-w-0">
-                        <span className="block text-sm font-semibold text-paper">{s.label}</span>
-                        {s.desc && <span className="mt-0.5 block text-xs leading-relaxed text-muted">{s.desc}</span>}
+          <Card>
+            <CardTitle kicker="Para empezar" action={<span className="text-sm text-muted">{done} de {steps.length}</span>}>Tus primeros pasos</CardTitle>
+            <ol className="grid gap-3 sm:grid-cols-2" aria-label="Primeros pasos">
+              {steps.map((s, i) => {
+                const current = !s.done && s === nextStep;
+                return (
+                  <li key={s.label}>
+                    <Link href={s.href} className={`group flex items-center gap-3 rounded-xl border p-3 transition-colors ${current ? 'border-brass/50 bg-brass/5' : 'border-line hover:border-brass/40'}`}>
+                      <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full border text-xs font-bold ${s.done ? 'border-brass bg-brass text-white' : current ? 'border-brass text-brass' : 'border-line text-faint'}`}>
+                        {s.done ? <CheckCircle2 className="h-4 w-4" aria-hidden /> : i + 1}
                       </span>
+                      <span className={`text-sm font-semibold ${s.done ? 'text-muted line-through decoration-faint/60' : 'text-paper group-hover:text-brass'}`}>{s.label}</span>
                     </Link>
                   </li>
-                ))}
-              </ul>
-            </section>
-          </Reveal>
-        ))}
+                );
+              })}
+            </ol>
+          </Card>
+        </Reveal>
+      )}
 
+      {mine && (
+        <section aria-labelledby="mine">
+          <h2 id="mine" className="mb-3 text-[13px] font-semibold text-faint">Lo que más vas a usar</h2>
+          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {mine.items.filter((i) => !i.more).slice(0, 4).map((s) => (
+              <li key={s.href}>
+                <Link href={s.href} className="group flex h-full flex-col gap-2 rounded-2xl border border-line bg-surface p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-brass/40 hover:shadow-[var(--shadow-elevated)]">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brass/10 text-brass"><NavIcon name={s.icon} className="h-5 w-5" /></span>
+                  <span className="text-sm font-semibold text-paper">{s.label}</span>
+                  {s.desc && <span className="text-xs leading-relaxed text-muted">{s.desc}</span>}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+        <Card className="paper-grain"><AskGala compact /></Card>
         <Card>
-          <FeedbackForm page="/app" />
+          <CardTitle kicker="Avisos" action={<Link href="/app/notifications" className="text-sm font-semibold text-brass">Todos</Link>}>Lo último</CardTitle>
+          {activity?.length ? (
+            <ul className="space-y-3">
+              {activity.slice(0, 4).map((n) => (
+                <li key={n.id} className="text-sm">
+                  <Link href={n.link ?? '/app/notifications'} className="group block">
+                    <span className={`block ${n.read_at ? 'text-muted' : 'font-medium text-paper'} group-hover:text-brass`}>{n.title}</span>
+                    <span className="block text-xs text-faint">{new Date(n.created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : <p className="text-sm text-muted">Aquí verás respuestas, cambios de estado y avisos.</p>}
         </Card>
       </div>
+
+      {plan && plan === 'free' && <PlanUnlocks plan={plan} />}
+
+      <details className="rounded-[var(--radius-card)] border border-line bg-surface p-5">
+        <summary className="cursor-pointer text-sm font-semibold text-paper">¿Algo que mejorar? Cuéntanoslo</summary>
+        <div className="mt-3"><FeedbackForm page="/app" /></div>
+      </details>
     </div>
   );
 }

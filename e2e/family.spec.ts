@@ -23,9 +23,13 @@ for (const width of [375, 1280]) {
       await expect(page.getByText('Oficial', { exact: true })).toBeVisible();
       await expect(page.getByText('Vuestra', { exact: true })).toBeVisible();
       await expect(page.getByText(/No significa que recomendemos al coach/)).toBeVisible();
+      // Permisos y notas están plegados para no saturar: se abren con un clic.
+      await page.getByText(/Lo que puedes ver de/).click();
       await expect(page.getByText('Sus notas privadas')).toBeVisible();
       await expect(page.getByText('Nunca', { exact: true })).toBeVisible();
-      await expect(page.getByRole('button', { name: 'Guardar nota' })).toBeVisible();
+      const saveNote = page.getByRole('button', { name: 'Guardar nota' });
+      if (!(await saveNote.isVisible())) await page.getByRole('heading', { name: 'Notas', exact: true }).click();
+      await expect(saveNote).toBeVisible();
     });
 
     test('bienvenida: con quién, qué puede ver, qué aprueba y cómo se protege, en una sola tarjeta', async ({ page }) => {
