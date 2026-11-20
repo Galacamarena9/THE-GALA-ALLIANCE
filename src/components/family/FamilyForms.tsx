@@ -15,7 +15,7 @@ export function FamilyNotes({ athleteId, notes }: { athleteId: string; notes: Fa
           {notes.map((n) => (
             <li key={n.id} className="rounded-lg border border-line p-3 text-sm">
               <p className="whitespace-pre-wrap text-paper">{n.body}</p>
-              <p className="mt-1 flex items-center justify-between text-xs text-faint">
+              <div className="mt-1 flex items-center justify-between text-xs text-faint">
                 <span>{n.author} · {n.visibility === 'family' ? 'compartida con el atleta' : 'solo tutores'}</span>
                 {n.mine && (
                   <form action={deleteFamilyNote}>
@@ -23,7 +23,7 @@ export function FamilyNotes({ athleteId, notes }: { athleteId: string; notes: Fa
                     <button className="hover:text-danger">Borrar</button>
                   </form>
                 )}
-              </p>
+              </div>
             </li>
           ))}
         </ul>
