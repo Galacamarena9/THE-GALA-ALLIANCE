@@ -131,10 +131,14 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                         <input type="hidden" name="restrict" value={paused ? 'no' : 'yes'} />
                         <button className="mr-4 text-xs text-muted hover:text-paper">{paused ? 'Reanudar acceso' : 'Pausar acceso'}</button>
                       </form>
-                      <form action={revokeFamilyLink} className="mt-3 inline-block">
-                        <input type="hidden" name="id" value={l.id} />
-                        <button className="text-xs text-faint hover:text-danger">Desvincular</button>
-                      </form>
+                      <details className="mt-3">
+                        <summary className="cursor-pointer text-xs text-faint hover:text-danger">Desvincular</summary>
+                        <form action={revokeFamilyLink} className="mt-2 rounded-lg border border-line p-3 text-xs text-muted">
+                          <input type="hidden" name="id" value={l.id} /><input type="hidden" name="confirm" value="yes" />
+                          <p>Dejará de ver tu información desde ahora. Tus candidaturas, documentos y ofertas no cambian.</p>
+                          <button className="mt-2 min-h-11 rounded-full border border-danger/40 px-4 font-semibold text-danger">Sí, desvincular</button>
+                        </form>
+                      </details>
                     </li>
                   );
                 })}

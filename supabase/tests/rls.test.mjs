@@ -2565,6 +2565,36 @@ try {
     eq((await db.query(`select count(*)::int n from consents where target_id = $1`, [target])).rows[0].n, 1);
   });
 
+  // ---------------------------------------------------------------- Prompt 10D · Recorrido E2E de la familia
+  results.push('\nPrompt 10D: recorrido de la familia de extremo a extremo (solicitud → aprobación → acceso → retirada)');
+  await check('P10D · Club A pide el expediente; la madre (sin «editar») lo aprueba; A accede, B no; la madre lo retira; el proceso sigue intacto', async () => {
+    const doc = (await db.query(`insert into athlete_documents (athlete_id, kind, title, storage_path, uploaded_at) values ($1, 'transcript', 'Expediente 10D', $2, now()) returning id`, [fam.kid, `${fam.kid}/exp10d.pdf`])).rows[0].id;
+    const req = (await as(u.coach2, `insert into info_requests (organization_id, athlete_id, requested_by, kind, message) values ($1, $2, $3, 'transcript', 'Necesitamos el expediente para la candidatura.') returning id`, [clubA, fam.kid, u.coach2])).rows[0].id;
+    eq((await db.query(`select can_edit_profile c from parent_athlete_links where id = $1`, [fam.momKid])).rows[0].c, false, 'la madre no edita el perfil');
+    const before = (await db.query(`select count(*)::int n from saved_items where athlete_id = $1`, [fam.kid])).rows[0].n;
+    await as(fam.mom, `select respond_info_request($1, true, $2, (current_date + 30)::date)`, [req, doc]);
+    eq((await as(u.coach2, `select document_open($1) p`, [doc])).rows[0].p, `${fam.kid}/exp10d.pdf`, 'Club A accede');
+    await expectError(() => as(v.ownerB, `select document_open($1)`, [doc]), /not_found/);
+    eq((await db.query(`select count(*)::int n from audit_logs where action = 'document_opened' and entity_id = $1`, [doc])).rows[0].n, 1, 'acceso registrado');
+    await as(fam.mom, `select respond_info_request($1, false, null, null)`, [req]);
+    await expectError(() => as(u.coach2, `select document_open($1)`, [doc]), /not_found/);
+    eq((await db.query(`select status from info_requests where id = $1`, [req])).rows[0].status, 'revoked');
+    eq((await db.query(`select count(*)::int n from saved_items where athlete_id = $1`, [fam.kid])).rows[0].n, before, 'el pipeline no se rompe');
+    await expectError(() => as(fam.stranger, `select respond_info_request($1, true, $2, null)`, [req, doc]), /not_open|not_allowed|guardian_required/);
+  });
+
+  await check('P10D · la madre también concede y retira un acceso directo; un tutor pausado no puede', async () => {
+    const doc = (await db.query(`select id from athlete_documents where athlete_id = $1 and title = 'Expediente 10D'`, [fam.kid])).rows[0].id;
+    const g = (await as(fam.mom, `insert into document_access_grants (document_id, athlete_id, organization_id, purpose, expires_at) values ($1, $2, $3, 'application_review', now() + interval '10 days') returning id`, [doc, fam.kid, clubA])).rows[0].id;
+    eq((await as(u.coach2, `select count(*)::int n from athlete_documents where id = $1`, [doc])).rows[0].n, 1);
+    eq((await as(fam.mom, `update document_access_grants set revoked_at = now() where id = $1 and revoked_at is null`, [g])).rowCount, 1, 'retirado');
+    eq((await as(u.coach2, `select count(*)::int n from athlete_documents where id = $1`, [doc])).rows[0].n, 0);
+    await as(fam.kid, `select family_link_restrict($1, true, null)`, [fam.momKid]);
+    try {
+      await expectError(() => as(fam.mom, `insert into document_access_grants (document_id, athlete_id, organization_id, purpose, expires_at) values ($1, $2, $3, 'application_review', now() + interval '10 days')`, [doc, fam.kid, clubA]), /not_allowed|row-level/);
+    } finally { await as(fam.kid, `select family_link_restrict($1, false)`, [fam.momKid]); }
+  });
+
   // ---------------------------------------------------------------- Prompt 9 · Supabase & PostgreSQL
   results.push('\nPrompt 9: integridad, documentos, concurrencia y catálogo');
   await check('P9 S9-01 · un documento, la foto o una evidencia no pueden apuntar a la carpeta de otra persona', async () => {

@@ -12,6 +12,11 @@ export async function createFamilyInvitation(): Promise<FormState> {
   const session = await requireSession(['parent', 'athlete']);
   const supabase = await createClient();
   const asParent = session.roles.includes('parent');
+  // 10D: si ya hay una invitación propia pendiente y vigente, se reutiliza (sin enlaces duplicados).
+  const { data: pending } = await supabase.from('parent_athlete_links').select('invitation_token')
+    .eq('invited_by', session.userId).eq('status', 'pending').gt('expires_at', new Date(Date.now() + 86400000).toISOString())
+    .order('created_at', { ascending: false }).limit(1).maybeSingle();
+  if (pending?.invitation_token) return { ok: true, message: pending.invitation_token as string };
   const { data, error } = await supabase
     .from('parent_athlete_links')
     .insert(
@@ -34,13 +39,14 @@ export async function acceptFamilyInvitation(formData: FormData) {
   if (!session) redirect(`/login?next=/invite/${token.data}`);
   const supabase = await createClient();
   const { error } = await supabase.rpc('accept_family_invitation', { p_token: token.data });
-  if (error) redirect(`/invite/${token.data}?error=1`);
-  redirect(session.roles.includes('parent') ? '/app/family' : '/app/settings#familia');
+  if (error) redirect(`/invite/${token.data}?error=${error.code === '23505' ? 'linked' : '1'}`);
+  redirect(session.roles.includes('parent') ? '/app/family?bienvenida=1' : '/app/settings#familia');
 }
 
 export async function revokeFamilyLink(formData: FormData) {
   const session = await requireSession(['parent', 'athlete']);
   const id = z.string().uuid().parse(formData.get('id'));
+  if (formData.get('confirm') !== 'yes') return; // 10D: dejar de seguir siempre pasa por la confirmación
   const supabase = await createClient();
   await supabase
     .from('parent_athlete_links')
@@ -186,4 +192,16 @@ export async function addFamilyTask(_prev: FormState, formData: FormData): Promi
   if (error) return { error: 'No se ha podido crear la tarea. Puede que ya no tengas acceso a este atleta.' };
   revalidatePath('/app/family');
   return { ok: true, message: p.data.owner === 'both' ? 'Tarea compartida con tu hijo/a.' : 'Tarea guardada.' };
+}
+
+/** 10D · Retirar el acceso de una organización a un documento. La base de datos decide quién puede (atleta o tutor activo). */
+export async function revokeDocumentGrant(formData: FormData) {
+  await requireSession(['parent', 'athlete']);
+  const p = z.object({ id: z.string().uuid(), child: z.string().uuid().optional(), confirm: z.literal('yes') }).safeParse(Object.fromEntries(formData));
+  if (!p.success) return;
+  const supabase = await createClient();
+  const { data } = await supabase.from('document_access_grants').update({ revoked_at: new Date().toISOString() })
+    .eq('id', p.data.id).is('revoked_at', null).select('id');
+  revalidatePath('/app/family/safety');
+  redirect(`/app/family/safety?${p.data.child ? `child=${p.data.child}&` : ''}${data?.length ? 'revoked=1' : 'error=1'}`);
 }

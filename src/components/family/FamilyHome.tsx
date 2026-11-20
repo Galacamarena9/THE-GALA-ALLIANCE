@@ -126,7 +126,7 @@ export function FamilyHome({ links, current, home, action, today, switchHref }: 
             </Card>
 
             <Card>
-              <CardTitle kicker="Documentos" action={s.documents ? <Link href="/app/requests" className="text-sm text-brass hover:underline">Solicitudes</Link> : undefined}>
+              <CardTitle kicker="Documentos" action={s.documents ? <Link href="/app/requests" className="text-sm text-brass hover:underline">Revisar solicitudes</Link> : undefined}>
                 {s.documents ? `${home.missingDocuments} por subir · ${home.pendingDocRequests} solicitud(es) abiertas` : 'Sin acceso a documentos'}
               </CardTitle>
               <p className="text-sm text-muted">
@@ -138,7 +138,7 @@ export function FamilyHome({ links, current, home, action, today, switchHref }: 
           </div>
 
           <Card>
-            <CardTitle kicker="Seguridad" action={<Link href="/app/inbox" className="text-sm text-brass hover:underline">Bandeja</Link>}>Quién contacta</CardTitle>
+            <CardTitle kicker="Seguridad" action={<Link href={`/app/family/safety?child=${current.athleteId}`} className="text-sm text-brass hover:underline">Centro de seguridad</Link>}>Quién contacta</CardTitle>
             {s.contacts ? (
               home.contacts.length ? (
                 <ul className="divide-y divide-line">
@@ -204,5 +204,25 @@ export function FamilyWelcome() {
       Cuando tu hijo o hija acepte la invitación, aquí verás lo importante: documentos, costes, plazos, quién le contacta y qué permisos hay.
       Sin contraseñas compartidas: cada uno con su propia cuenta.
     </EmptyState>
+  );
+}
+
+/** 10D · Bienvenida en 4 puntos tras aceptar la invitación. Corta: luego, directos al panel. */
+export function FamilyOnboarding({ name, scopes }: { name: string; scopes: GuardianLink['scopes'] }) {
+  const can = SCOPES.filter(([k]) => scopes[k]).map(([, l]) => l.toLowerCase());
+  return (
+    <section aria-labelledby="family-welcome" className="mb-5 rounded-2xl border border-brass/40 bg-brass/5 p-5">
+      <h2 id="family-welcome" className="text-lg font-semibold text-paper">Ya estáis vinculados</h2>
+      <ol className="mt-3 grid gap-3 text-sm text-muted sm:grid-cols-2">
+        <li><span className="font-semibold text-paper">1 · Con quién:</span> {name}.</li>
+        <li><span className="font-semibold text-paper">2 · Qué puedes ver:</span> {can.length ? can.join(', ') : 'nada todavía'}. {name} puede cambiarlo cuando quiera.</li>
+        <li><span className="font-semibold text-paper">3 · Qué necesita tu aprobación:</span> si es menor, los contactos de organizaciones, los documentos que pidan y la participación en trials.</li>
+        <li><span className="font-semibold text-paper">4 · Cómo se protege:</span> ninguna organización ve un documento sin vuestro permiso, y el presupuesto familiar nunca se enseña a nadie.</li>
+      </ol>
+      <div className="mt-4 flex flex-wrap gap-3 text-sm">
+        <Link href="/app/notifications" className="inline-flex min-h-11 items-center rounded-full border border-line px-4 text-paper hover:border-brass">Elegir qué avisos recibir</Link>
+        <Link href="/app/family" className="inline-flex min-h-11 items-center rounded-full bg-brass px-4 font-semibold text-ink">Ir al panel</Link>
+      </div>
+    </section>
   );
 }
