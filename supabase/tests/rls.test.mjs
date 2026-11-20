@@ -1607,7 +1607,7 @@ try {
     await expectError(() => as(u.coach, `update payment_requirements set status = 'paid' where registration_id = $1`, [reg]), /permission denied/);
     // Capacidad confirmada: plazas libres derivadas; no se confirma por encima.
     eq((await as(u.coach, `select trial_org_action($1, 'confirm') s`, [reg])).rows[0].s, 'confirmed');
-    eq((await as(u.coach, `select opportunity_confirmed_count($1) n`, [paidTrial])).rows[0].n, 1);
+    eq((await as(u.coach, `select opportunity_visible_confirmed_count($1) n`, [paidTrial])).rows[0].n, 1);
     const reg2 = (await as(u.privateAth, `select trial_register($1, $2) id`, [paidTrial, u.privateAth])).rows[0].id;
     await expectError(() => as(u.coach, `select trial_org_action($1, 'confirm')`, [reg2]), /capacity_reached/);
     eq((await as(u.coach, `select trial_org_action($1, 'waitlist') s`, [reg2])).rows[0].s, 'waitlisted');
@@ -1919,6 +1919,8 @@ try {
     eq((await as(u.coach, `select discovery_consume() ok`)).rows[0].ok, true);
   });
   await check('7B Discovery: un campo visible pero no filtrable no sirve para filtrar; para Match se respeta su permiso', async () => {
+    // (Un bloqueo anterior del atleta a u.brand, ahora miembro de la universidad, ocultaría al atleta a toda la organización: 11D G-06.)
+    await db.query(`delete from user_blocks where blocker_id = $1 and blocked_id = $2`, [u.adult, u.brand]);
     await as(u.adult, `update athlete_profiles set height_cm = 185 where user_id = $1`, [u.adult]);
     let ids = (await as(u.coach, `select user_id from discover_athlete_ids($1, '{"sport":"basketball","min_height":180}')`, [uniId])).rows.map((r) => r.user_id);
     eq(ids.includes(u.adult), true);
@@ -2022,6 +2024,113 @@ try {
   });
 
   // Debe ir la última: borra todas las cuentas y organizaciones de prueba.
+  // ---------------------------------------------------------------- 11D · Pentest de Clubs & Academies (ataques como regresión)
+  results.push('\nPrompt 11D: ataques controlados (local, datos sintéticos)');
+  await check('11D A1 · IDOR de organización: el scout del Club A pidiendo datos del Club B no obtiene nada', async () => {
+    const tB = await makeOpp(v.ownerB, clubB, { title: 'Trial B privado' });
+    await as(u.adult, `select trial_register($1, $2)`, [tB, u.adult]);
+    await as(v.ownerB, `insert into recruiting_needs (organization_id, sport_id, title) values ($1, 'basketball', 'Pívot U18 B')`, [clubB]);
+    await as(v.ownerB, `insert into org_notes (organization_id, athlete_id, author_id, body) values ($1, $2, $3, 'Nota interna B')`, [clubB, u.adult, v.ownerB]);
+    await as(v.ownerB, `insert into org_tasks (organization_id, athlete_id, title) values ($1, $2, 'Tarea interna B')`, [clubB, u.adult]);
+    for (const t of ['recruiting_needs', 'opportunity_registrations', 'opportunity_invitations', 'applications', 'opportunity_attendance', 'org_shortlists', 'org_notes', 'org_tasks', 'org_candidates', 'document_access_grants', 'payment_requirements']) {
+      eq((await as(v.scoutU18, `select count(*)::int n from ${t} where organization_id = $1`, [clubB])).rows[0].n, 0, t);
+    }
+    await expectError(() => as(v.scoutU18, `select * from discover_athlete_ids($1, '{"sport":"basketball"}')`, [clubB]), /not_allowed/);
+    await expectError(() => as(v.scoutU18, `select trial_org_invite($1, $2)`, [tB, u.adult]), /not_allowed/);
+  });
+
+  await check('11D A2/A3 · escalada de equipo y de rol: ni mover el trial a mi equipo ni subirme el rol ni verificarme', async () => {
+    eq((await as(v.scoutU18, `update opportunities set team_id = $1 where id = $2`, [teamU18, trialFirst])).rowCount, 0, 'mover trial ajeno a mi equipo');
+    await expectError(() => as(v.scoutU18, `insert into opportunities (organization_id, created_by, type, title, description, sport_id, team_id, program_id) values ($1, $2, 'tryout', 'Colado', 'Intento de crear en el primer equipo.', 'basketball', $3, $4)`, [clubA, v.scoutU18, teamFirst, progFem]), /row-level security/);
+    eq((await as(v.scoutU18, `update organization_members set member_role = 'owner', team_scope = 'all' where user_id = $1`, [v.scoutU18])).rowCount, 0, 'subirse el rol');
+    await expectError(() => as(v.scoutU18, `insert into organization_members (organization_id, user_id, member_role) values ($1, $2, 'owner')`, [clubB, v.scoutU18]), /row-level security/);
+    await expectError(() => as(v.scoutU18, `insert into user_roles (user_id, role) values ($1, 'admin')`, [v.scoutU18]), /row-level security|violates|admin/);
+    const unvOrg = (await db.query(`select id from organizations where name = 'Club Sin Verificar'`)).rows[0].id;
+    await expectError(() => as(v.unverified, `update organizations set verification_status = 'verified' where id = $1`, [unvOrg]), /verification_admin_only/);
+    // Metadatos del JWT editables por el usuario no dan privilegios.
+    const fake = randomUUID();
+    await db.query(`insert into auth.users (id, email, raw_user_meta_data) values ($1, 'fake-admin@test.dev', '{"role":"admin","is_admin":true}')`, [fake]);
+    eq((await as(fake, `select is_admin() a`)).rows[0].a, false, 'metadatos ≠ rol');
+    eq((await as(v.scoutU18, `select count(*)::int n from opportunity_registrations where opportunity_id = $1`, [trialFirst])).rows[0].n, 0, 'sigue sin ver el First Team');
+  });
+
+  await check('11D A4/A5 · organización sin verificar y atleta oculto: ni Discovery, ni exportar, ni encontrar por id', async () => {
+    const unvOrg = (await db.query(`select id from organizations where name = 'Club Sin Verificar'`)).rows[0].id;
+    await expectError(() => as(v.unverified, `select * from discover_athlete_ids($1, '{"sport":"basketball"}')`, [unvOrg]), /not_allowed/);
+    const caps = (await as(v.unverified, `select org_can($1, 'export') e, org_can($1, 'request_info') r, org_can($1, 'offers') o, org_can($1, 'contact') c`, [unvOrg])).rows[0];
+    eq(JSON.stringify(caps), JSON.stringify({ e: false, r: false, o: false, c: false }), 'capacidades sin verificar');
+    await expectError(() => as(v.unverified, `insert into info_requests (organization_id, athlete_id, requested_by, kind, message) values ($1, $2, $3, 'transcript', 'Envíanos tu expediente')`, [unvOrg, u.minor, v.unverified]), /row-level security|violates|not_allowed|verified/);
+    const ids = (await as(v.directorA, `select user_id from discover_athlete_ids($1, '{"sport":"basketball","q":"privateAth"}')`, [clubA])).rows.map((r) => r.user_id);
+    eq(ids.includes(u.privateAth), false, 'por nombre exacto');
+    eq((await as(v.directorA, `select count(*)::int n from athlete_directory where user_id = $1`, [u.privateAth])).rows[0].n, 0, 'por id');
+    eq((await as(v.directorA, `select can_view_athlete($1, 'profile') c`, [u.privateAth])).rows[0].c, false);
+  });
+
+  await check('11D A7/A8/A10 · presupuesto familiar, datos del tutor y contacto privado del menor: denegado en todas las vías', async () => {
+    for (const who of [v.scoutU18, v.directorA, v.ownerB, u.coach2]) {
+      eq((await as(who, `select count(*)::int n from athlete_finances`)).rows[0].n, 0, 'finanzas');
+      eq((await as(who, `select count(*)::int n from parent_athlete_links where athlete_id = $1`, [u.minor])).rows[0].n, 0, 'vínculo familiar');
+      eq((await as(who, `select count(*)::int n from private_profile_data where user_id in ($1, $2)`, [u.minor, u.parent])).rows[0].n, 0, 'email/teléfono/fecha');
+    }
+    const cols = (await db.query(`select string_agg(column_name, ',') c from information_schema.columns where table_name = 'athlete_directory'`)).rows[0].c;
+    for (const banned of ['budget', 'email', 'phone', 'date_of_birth', 'address']) eq(cols.includes(banned), false, `directorio sin ${banned}`);
+  });
+
+  await check('11D G-04 · «¿es menor?» ya no es un oráculo: solo lo sabe quien ya puede ver al atleta', async () => {
+    await expectError(() => as(null, `select is_minor($1)`, [u.adult]), /permission denied/);
+    await expectError(() => as(u.brand, `select is_minor($1)`, [u.adult]), /permission denied/);
+    eq((await as(u.adult, `select viewer_is_minor($1) m`, [u.adult])).rows[0].m, false, 'uno mismo');
+    eq((await as(null, `select viewer_is_minor($1) m`, [u.privateAth])).rows[0].m, true, 'anónimo ante un perfil privado: respuesta constante');
+    eq((await as(u.brand, `select viewer_is_minor($1) m`, [u.privateAth])).rows[0].m, true, 'marca ante un perfil privado: respuesta constante');
+    eq((await as(u.parent, `select viewer_is_minor($1) m`, [u.minor])).rows[0].m, true, 'familia vinculada');
+    for (const fn of ['consent_granted($1, \'contact\', \'organization\', $1)', 'guardian_requirement_satisfied($1, \'contact\', \'organization\', $1)', 'agency_has_active_representation($1, $1)']) {
+      await expectError(() => as(u.brand, `select ${fn}`, [u.adult]), /permission denied/);
+    }
+  });
+
+  await check('11D A11/G-06 · bloqueo: si el atleta bloquea a alguien del club, nadie de ese club le encuentra ni le invita', async () => {
+    const before = (await as(v.directorA, `select user_id from discover_athlete_ids($1, '{"sport":"basketball"}')`, [clubA])).rows.map((r) => r.user_id);
+    eq(before.includes(u.adult), true, 'visible antes');
+    await as(u.adult, `insert into user_blocks (blocker_id, blocked_id) values ($1, $2)`, [u.adult, v.scoutU18]);
+    const after = (await as(v.directorA, `select user_id from discover_athlete_ids($1, '{"sport":"basketball"}')`, [clubA])).rows.map((r) => r.user_id);
+    eq(after.includes(u.adult), false, 'otro miembro del club tampoco le encuentra');
+    await expectError(() => as(v.directorA, `select trial_org_invite($1, $2)`, [trialU18, u.adult]), /blocked|already_registered/);
+    eq((await as(v.directorA, `select minor_contact_mode($1, $2) m`, [u.adult, clubA])).rows[0].m, 'contact_blocked');
+    await as(u.adult, `delete from user_blocks where blocker_id = $1 and blocked_id = $2`, [u.adult, v.scoutU18]);
+  });
+
+  await check('11D A12/A13 · trial ajeno y borradores: ni editar precio, plazas o plazo, ni descubrir que existen', async () => {
+    eq((await as(v.ownerB, `update trial_details set capacity = 999, price_status = 'free' where opportunity_id = $1`, [trialU18])).rowCount, 0, 'capacidad/precio');
+    eq((await as(v.ownerB, `update opportunity_cost_components set amount = 1 where opportunity_id = $1`, [paidTrial])).rowCount, 0, 'importe');
+    eq((await as(v.ownerB, `update opportunities set deadline = current_date + 1, status = 'archived' where id = $1`, [trialU18])).rowCount, 0, 'plazo/cerrar');
+    const draftB = (await as(v.ownerB, `insert into opportunities (organization_id, created_by, type, title, description, sport_id) values ($1, $2, 'tryout', 'Borrador secreto B', 'Trial interno todavía sin anunciar.', 'basketball') returning id`, [clubB, v.ownerB])).rows[0].id;
+    for (const who of [null, u.adult, v.directorA]) {
+      eq((await as(who, `select count(*)::int n from opportunities where id = $1`, [draftB])).rows[0].n, 0, `select ${who}`);
+      await expectError(() => as(who, `select opportunity_publish_gaps($1)`, [draftB]), /not_allowed|permission denied/);
+    }
+    eq((await as(u.adult, `select opportunity_visible_confirmed_count($1) n`, [draftB])).rows[0].n, null, 'recuento de borrador ajeno');
+    eq((await as(v.ownerB, `select opportunity_publish_gaps($1) g`, [draftB])).rows[0].g.length > 0, true, 'el dueño sí ve sus huecos');
+    await expectError(() => as(u.adult, `select opportunity_confirmed_count($1)`, [trialU18]), /permission denied/);
+  });
+
+  await check('11D A14 · el atleta no manipula costes, pagos ni su propia inscripción', async () => {
+    eq((await as(u.adult, `update opportunity_cost_components set amount = 0 where opportunity_id = $1`, [paidTrial])).rowCount, 0, 'coste');
+    await expectError(() => as(u.adult, `update payment_requirements set amount = 1 where athlete_id = $1`, [u.adult]), /permission denied/);
+    await expectError(() => as(u.adult, `update opportunity_registrations set status = 'confirmed', needs_athlete_ok = false where athlete_id = $1`, [u.adult]), /permission denied/);
+    await expectError(() => as(u.adult, `insert into opportunity_attendance (registration_id, opportunity_id, organization_id, athlete_id, status) select id, opportunity_id, organization_id, athlete_id, 'attended' from opportunity_registrations where athlete_id = $1 limit 1`, [u.adult]), /permission denied/);
+  });
+
+  await check('11D A15+ · sesión tras baja, cuota de Discovery por RPC directa e inyección en notas', async () => {
+    // Baja del scout: el acceso se pierde en la siguiente petición (sin esperar a que caduque el token).
+    await as(u.coach2, `delete from organization_members where organization_id = $1 and user_id = $2`, [clubA, v.viewerA]);
+    eq((await as(v.viewerA, `select count(*)::int n from opportunities where organization_id = $1 and status = 'draft'`, [clubA])).rows[0].n, 0);
+    // La cuota diaria se aplica dentro de discover_athlete_ids (antes se podía saltar llamándola directamente).
+    await db.query(`insert into discovery_usage (user_id, day, searches) values ($1, current_date, 300) on conflict (user_id, day) do update set searches = 300`, [v.directorA]);
+    await expectError(() => as(v.directorA, `select * from discover_athlete_ids($1, '{"sport":"basketball"}')`, [clubA]), /rate_limited/);
+    await db.query(`delete from discovery_usage where user_id = $1`, [v.directorA]);
+    await expectError(() => as(v.directorA, `insert into org_notes (organization_id, athlete_id, author_id, body) values ($1, $2, $3, '<img src=x onerror=alert(1)>')`, [clubA, u.adult, v.directorA]), /unsafe_content/);
+  });
+
   if (!process.env.SKIP_ERASURE) await check('RGPD: toda cuenta y toda organización se puede borrar (anonimiza auditoría, no bloquea)', async () => {
     await db.query(`select set_config('request.jwt.claims', '{}', false)`);
     const fails = [];

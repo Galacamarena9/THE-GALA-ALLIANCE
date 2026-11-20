@@ -37,7 +37,7 @@ export default async function CandidatePage({ params, searchParams }: { params: 
   }
   const supabase = await createClient();
   const [{ data: minorRow }, { data: needs }, { data: lists }] = await Promise.all([
-    supabase.rpc('is_minor', { p_user: athleteId }),
+    supabase.rpc('viewer_is_minor', { p_user: athleteId }),
     supabase.from('recruiting_needs').select('id, title, sport_id, position_ids, class_years, min_height_cm, requires_video, requires_documented_academics, countries').eq('organization_id', org.id).eq('status', 'active'),
     supabase.from('org_shortlists').select('id, name').eq('organization_id', org.id).is('archived_at', null),
   ]);

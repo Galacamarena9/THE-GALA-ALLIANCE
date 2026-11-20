@@ -74,7 +74,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
         supabase.from('opportunity_registrations').select('id, athlete_id, status, origin, needs_athlete_ok, guardian_status, materials_status, athlete_update, updated_at, opportunity_attendance(status, check_in_at)').eq('opportunity_id', id).order('updated_at', { ascending: false }).limit(300),
         supabase.from('opportunity_invitations').select('id, athlete_id, status, guardian_required').eq('opportunity_id', id).limit(300),
         supabase.from('applications').select('id, athlete_id, status, guardian_consent_status, materials_complete').eq('opportunity_id', id).limit(300),
-        supabase.rpc('opportunity_confirmed_count', { p_opp: id }),
+        supabase.rpc('opportunity_visible_confirmed_count', { p_opp: id }),
       ])
     : [{ data: null }, { data: [] }, { data: [] }, { data: [] }, { data: [] }, { data: [] }, { data: [] }, { data: 0 }];
   // Resultados internos: solo los lee el staff con permiso (RLS); el atleta nunca los recibe.

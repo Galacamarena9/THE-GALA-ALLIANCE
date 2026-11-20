@@ -322,7 +322,7 @@ export async function loadQuickView(input: { org: string; athlete: string }): Pr
   if (!org || !org.caps.has('discover')) return { ok: false, message: 'Tu acceso ya no permite ver este perfil.' };
   const supabase = await createClient();
   const [{ data: minor }, { data: acad }, { data: stats }, { data: videos }, { data: cand }] = await Promise.all([
-    supabase.rpc('is_minor', { p_user: p.data.athlete }),
+    supabase.rpc('viewer_is_minor', { p_user: p.data.athlete }),
     supabase.from('athlete_academics').select('gpa_source').eq('athlete_id', p.data.athlete).maybeSingle(),
     supabase.from('athlete_statistics').select('season, value, source, sport_stat_definitions(label_es, unit)').eq('athlete_id', p.data.athlete).order('season', { ascending: false }).limit(5),
     supabase.from('athlete_videos').select('id, kind, title, url').eq('athlete_id', p.data.athlete).order('is_featured', { ascending: false }).limit(4),

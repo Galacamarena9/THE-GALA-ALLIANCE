@@ -8,12 +8,15 @@ export function asData(value: unknown, max = 4000): string {
   return `<untrusted_data>${json.slice(0, max)}</untrusted_data>`;
 }
 
-const INJECTION = /(ignore (all |the )?(previous|above) instructions|ignora (todas )?las instrucciones|you are now|act[uú]a como|system prompt|revela (tu|el) prompt|developer mode)/i;
+// 11D: también «ignora tus instrucciones/permisos», «olvida las reglas», «ignore permissions» (antes solo la forma exacta).
+const INJECTION = /(ignore (all |the |your |previous )?(previous |above )?(instructions|rules|permissions)|ignora (todas )?(las |tus |mis )?(instrucciones|reglas|normas|permisos)|olvida (todas )?(las |tus )?(instrucciones|reglas)|sin (respetar|tener en cuenta) (los )?permisos|you are now|act[uú]a como|system prompt|revela (tu|el) prompt|developer mode)/i;
 export function looksLikeInjection(text: string) { return INJECTION.test(text); }
 
 /** Peticiones de datos privados de otras personas: se rechazan antes de llamar al modelo. */
+/** 11D: datos que ningún usuario obtiene de otros por chat: presupuestos familiares, notas internas ajenas, «todos los atletas». */
+const OTHERS_SCOPE = /(presupuestos famil|presupuesto familiar de|family budgets|budget of (the |other |another )|notas (internas |de scouting )?del? (otro club|club b|otra organizaci)|scouting notes of|club b'?s notes|todos los atletas de la base|all athletes in the database|athletes hidden from discovery|atletas ocultos)/i;
 const OTHERS_DATA = /(tel[eé]fono|m[oó]vil|email|correo|direcci[oó]n|d[oó]nde vive|n[uú]mero|dni|pasaporte|phone|address|where does .+ live).{0,40}(de (la |el )?(atleta|jugador|jugadora|chica|chico|menor|coach|entrenador)|of (the )?(athlete|player|girl|boy|minor|coach))/i;
-export function asksForOthersPrivateData(text: string) { return OTHERS_DATA.test(text); }
+export function asksForOthersPrivateData(text: string) { return OTHERS_DATA.test(text) || OTHERS_SCOPE.test(text); }
 
 /** Señal de riesgo para un menor o de abuso: respuesta fija de seguridad, sin modelo. */
 const RISK = /(acoso|me (está|esta) presionando|fotos? (privad|íntim|intim)|me pide(n)? (fotos|dinero)|whatsapp privado|harass|asking (me )?for (photos|money)|groom|amenaz|threat)/i;
