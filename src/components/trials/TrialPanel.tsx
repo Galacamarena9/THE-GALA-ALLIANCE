@@ -18,6 +18,10 @@ export type PanelApplication = { id: string; athlete_id: string; status: string;
 /** Filtros de participantes (móvil): uno a la vez, por URL (?pf=), para volver al mismo sitio tras actuar. */
 export const PARTICIPANT_FILTERS = { all: 'Todos', confirmed: 'Confirmados', pending: 'Pendientes', docs: 'Docs. pendientes', waitlisted: 'Espera', cancelled: 'Cancelados' } as const;
 export type ParticipantFilter = keyof typeof PARTICIPANT_FILTERS;
+/** ¿Es el día del trial? (±18 h del inicio): se muestra el resumen de la puerta. */
+function isTrialDay(startAt: string | null) {
+  return !!startAt && Math.abs(new Date(startAt).getTime() - Date.now()) < 18 * 3600_000;
+}
 function matchesFilter(r: PanelRegistration, f: ParticipantFilter) {
   if (f === 'confirmed') return r.status === 'confirmed';
   if (f === 'pending') return r.status === 'pending' || r.status === 'registered';
@@ -50,10 +54,10 @@ function requirementText(r: PanelRequirement) {
  * Trial: transparencia antes del botón (quién, cuándo, dónde, cuánto —obligatorio vs opcional—, requisitos, qué pasa después)
  * y, según quién mira, inscribirse / responder a la invitación (atleta), aprobar (familia) o gestionar (club).
  */
-export function TrialPanel({ opportunityId, open, details, core, costs, requirements, materials, confirmed, me, registrations, invitations, applications, asClub, asFamily, preview, participantFilter = 'all', filterHref }: {
+export function TrialPanel({ opportunityId, open, details, core, costs, requirements, materials, confirmed, me, registrations, invitations, applications, asClub, asFamily, preview, participantFilter = 'all', filterHref, participantQuery = '' }: {
   opportunityId: string; open: boolean; details: PanelDetails | null; core: PanelCore; costs: CostComponent[]; requirements: PanelRequirement[]; materials: PanelMaterial[];
   confirmed: number; me: string | null; registrations: PanelRegistration[]; invitations: PanelInvitation[]; applications: PanelApplication[];
-  asClub: boolean; asFamily: boolean; preview: boolean; participantFilter?: ParticipantFilter; filterHref?: (f: ParticipantFilter) => string;
+  asClub: boolean; asFamily: boolean; preview: boolean; participantFilter?: ParticipantFilter; filterHref?: (f: ParticipantFilter) => string; participantQuery?: string;
 }) {
   const d = details;
   const price = d?.price_status ?? 'price_not_provided';
@@ -95,7 +99,7 @@ export function TrialPanel({ opportunityId, open, details, core, costs, requirem
                   {optional.map((c, i) => <li key={`o${i}`} className="flex justify-between gap-2"><span className="text-muted">{c.label || COST_TYPE_LABEL[c.component_type]} <span className="text-[11px]">(opcional)</span></span><span className="text-muted">{costLine(c)}</span></li>)}
                 </ul>
                 <p className="mt-2 border-t border-line pt-2 text-sm font-semibold text-paper">
-                  Coste obligatorio conocido: {known.total != null && known.currency ? money(known.total, known.currency) : <span className="font-normal text-warn">{known.reason}</span>}
+                  Coste obligatorio conocido: {known.total != null && known.currency ? `${money(known.total, known.currency)}${known.basis ? ` (${known.basis})` : ''}` : <span className="font-normal text-warn">{known.reason}</span>}
                 </p>
                 <p className="mt-1 text-xs text-muted">{REFUND[d?.refundable ?? 'unknown']}{d?.refund_policy ? ` · ${d.refund_policy}` : ''}</p>
               </>
@@ -127,6 +131,9 @@ export function TrialPanel({ opportunityId, open, details, core, costs, requirem
           {mine?.athlete_update && <p className="mb-2 rounded-lg bg-surface-2 p-2 text-sm text-paper">Mensaje del club: {mine.athlete_update}</p>}
           {mine?.status === 'completed' && !mine.athlete_update && <p className="mb-2 text-sm text-muted">Trial completado. No tienes que hacer nada: si el club comparte novedades, las verás aquí.</p>}
           {mine?.status === 'waitlisted' && <p className="mb-2 text-sm text-muted">El club ha puesto tu inscripción en su lista de espera.</p>}
+          {mine && ['pending', 'registered'].includes(mine.status) && mine.origin === 'application' && <p className="mb-2 text-sm text-paper">✓ El club ha aceptado tu candidatura <strong>para este trial</strong>. No es un fichaje ni una oferta: es una plaza para probar.</p>}
+          {mine?.status === 'registered' && <p className="mb-2 text-sm text-muted">Inscrito. Falta que el club confirme tu plaza; te avisaremos.</p>}
+          {mine?.status === 'confirmed' && <p className="mb-2 text-sm text-paper">Plaza confirmada: {eventWhen(core.start_at, core.timezone)}{core.city ? ` · ${[core.venue_name, core.city].filter(Boolean).join(', ')}` : ''}.</p>}
           {mine?.guardian_status === 'pending' && <p className="mb-2 text-sm text-warn">Esperando la aprobación de tu familia.</p>}
           <div className="flex flex-wrap gap-2">
             {myInvite && !mine && myInvite.status !== 'interested' && <TrialButton call={{ kind: 'invite', invitation: myInvite.id, action: 'interested', opportunity: opportunityId }} label="Me interesa" variant="primary" />}
@@ -205,6 +212,23 @@ export function TrialPanel({ opportunityId, open, details, core, costs, requirem
           )}
           <Card id="participantes">
             <CardTitle kicker="Club">Participantes ({registrations.length}) · {capacityLabel(d?.capacity, confirmed)}</CardTitle>
+            {/* Día del trial: la cuenta que importa en la puerta (confirmados, con check-in y los que faltan). */}
+            {isTrialDay(core.start_at) && (
+              <dl className="mb-3 grid grid-cols-3 gap-2 text-center" aria-label="Hoy">
+                {[['Confirmados', registrations.filter((r) => r.status === 'confirmed' || r.status === 'completed').length],
+                  ['Con check-in', registrations.filter((r) => r.check_in_at || r.attendance === 'attended').length],
+                  ['Faltan', registrations.filter((r) => r.status === 'confirmed' && !r.check_in_at && !r.attendance).length]].map(([k, n]) => (
+                  <div key={k as string} className="rounded-xl bg-ink/40 p-2"><dt className="text-[10px] text-faint">{k}</dt><dd className="font-display text-xl font-bold text-paper">{n}</dd></div>
+                ))}
+              </dl>
+            )}
+            {filterHref && registrations.length > 8 && (
+              <form method="get" className="mb-2" role="search">
+                <input type="hidden" name="pf" value={participantFilter} />
+                <label htmlFor="pq" className="sr-only">Buscar participante</label>
+                <input id="pq" name="pq" type="search" defaultValue={participantQuery} placeholder="Buscar por nombre…" className="min-h-11 w-full rounded-xl border border-line bg-ink/40 px-3 text-sm text-paper" />
+              </form>
+            )}
             {filterHref && registrations.length > 0 && (
               <nav aria-label="Filtrar participantes" className="-mx-1 mb-2 flex gap-1.5 overflow-x-auto px-1 pb-1">
                 {(Object.keys(PARTICIPANT_FILTERS) as ParticipantFilter[]).map((f) => {
@@ -217,7 +241,7 @@ export function TrialPanel({ opportunityId, open, details, core, costs, requirem
             {invitations.length > 0 && <p className="mb-2 text-xs text-muted">Invitaciones: {invitations.filter((i) => ['sent', 'viewed'].includes(i.status)).length} sin respuesta · {invitations.filter((i) => i.status === 'interested').length} interesados · {invitations.filter((i) => i.status === 'declined').length} rechazadas</p>}
             {registrations.length ? (
               <ul className="divide-y divide-line">
-                {registrations.filter((r) => matchesFilter(r, participantFilter)).map((r) => (
+                {registrations.filter((r) => matchesFilter(r, participantFilter) && (!participantQuery || r.name.toLowerCase().includes(participantQuery.toLowerCase()))).map((r) => (
                   <li key={r.id} className="py-2.5">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <span className="text-sm text-paper">{r.name}<span className="ml-2 text-[11px] text-faint">{r.origin === 'agent' ? 'vía agente' : r.origin === 'club_invite' ? 'invitado' : r.origin === 'application' ? 'por candidatura' : ''}</span></span>

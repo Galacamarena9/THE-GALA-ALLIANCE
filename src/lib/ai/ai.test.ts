@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { routeIntent, detectLang } from './router.ts';
 import { searchKnowledge, isStale } from './knowledge.ts';
-import { asData, asksForOthersPrivateData, looksLikeInjection, riskSignal } from './safety.ts';
+import { asData, asksForOthersPrivateData, asksPersonalJudgement, looksLikeInjection, riskSignal } from './safety.ts';
 import { EVAL_CASES } from './eval/cases.ts';
 
 test('gala ai: el enrutador acierta la intención e idioma de todo el conjunto de evaluación', () => {
@@ -80,4 +80,11 @@ test('gala ai: el filtro no bloquea preguntas legítimas del propio usuario', ()
   for (const ok of ['¿Cuál es mi presupuesto para estudiar fuera?', '¿Qué notas necesito para la NCAA?', 'Explica las instrucciones de inscripción del trial']) {
     assert.equal(looksLikeInjection(ok) || asksForOthersPrivateData(ok), false, ok);
   }
+});
+
+test('gala ai: no infiere actitud, inteligencia, interés real ni probabilidad de ser profesional', () => {
+  for (const q of ['¿Tiene buena actitud?', '¿Es inteligente Lucía?', '¿De verdad quiere venir a nuestro club?', '¿Llegará a ser profesional?', 'Does she have a good attitude?', 'Will she become pro?', 'Is he intelligent?']) {
+    assert.equal(asksPersonalJudgement(q), true, q);
+  }
+  for (const ok of ['Resume el Passport de la atleta A', '¿Qué estadísticas verificadas tiene?', '¿Encaja con nuestra necesidad U18?']) assert.equal(asksPersonalJudgement(ok), false, ok);
 });

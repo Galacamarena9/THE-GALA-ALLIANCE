@@ -4,7 +4,7 @@ import type { SessionContext } from '@/lib/session';
 import { roleLabel } from '@/lib/domain/roles';
 import { GALA_SYSTEM } from './galaContext';
 import { routeIntent, type Intent, type Lang } from './router';
-import { LIMITS, OTHERS_DATA_REPLY, SAFETY_REPLY, asData, asksForOthersPrivateData, looksLikeInjection, riskSignal } from './safety';
+import { LIMITS, OTHERS_DATA_REPLY, PERSONAL_JUDGEMENT_REPLY, SAFETY_REPLY, asData, asksForOthersPrivateData, asksPersonalJudgement, looksLikeInjection, riskSignal } from './safety';
 import { TOOL_DEFS, runTool, type Draft, type Proposal, type Source, type ToolResult } from './tools';
 
 export type AiEvent =
@@ -102,9 +102,9 @@ export async function* handle(s: SessionContext, messages: { role: 'user' | 'ass
   const lang: Lang = prefs.language === 'auto' ? routed.lang : prefs.language;
 
   // 1. Guardas antes del modelo.
-  if (riskSignal(q) || asksForOthersPrivateData(q)) {
+  if (riskSignal(q) || asksForOthersPrivateData(q) || asksPersonalJudgement(q)) {
     yield { type: 'meta', requestId, intent: riskSignal(q) ? 'safety' : intent, lang, mode: 'guard' };
-    yield { type: 'text', delta: riskSignal(q) ? SAFETY_REPLY[lang] : OTHERS_DATA_REPLY[lang] };
+    yield { type: 'text', delta: riskSignal(q) ? SAFETY_REPLY[lang] : asksPersonalJudgement(q) ? PERSONAL_JUDGEMENT_REPLY[lang] : OTHERS_DATA_REPLY[lang] };
     yield { type: 'done', usage: { input: 0, output: 0, tools: 0, latencyMs: Date.now() - started, outcome: 'guard' } };
     return;
   }

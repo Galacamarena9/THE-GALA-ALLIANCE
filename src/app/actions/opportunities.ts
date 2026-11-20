@@ -213,7 +213,12 @@ export async function applyToOpportunity(_prev: FormState, formData: FormData): 
   revalidatePath('/app/applications');
   revalidatePath('/app/athlete');
   await logEvent('application_submitted');
-  return { ok: true, message: 'Candidatura enviada. La universidad podrá ver tu Passport.' };
+  // El mensaje nombra a quien la recibe de verdad (antes decía «la universidad» también en clubes y academias).
+  const { data: o } = await supabase.from('opportunities').select('type, organizations(type)').eq('id', parsed.data.opportunity_id).maybeSingle();
+  const orgType = (o?.organizations as unknown as { type: string } | null)?.type;
+  if (o && ['academy', 'development_program'].includes(o.type as string)) await logEvent('academy_program_applied');
+  const who = orgType === 'club' ? 'El club' : orgType === 'academy' ? 'La academia' : 'La universidad';
+  return { ok: true, message: `✓ Candidatura enviada. ${who} podrá ver tu Passport y te avisaremos de cada cambio.` };
 }
 
 export async function withdrawApplication(formData: FormData) {

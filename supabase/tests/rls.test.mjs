@@ -2131,6 +2131,19 @@ try {
     await expectError(() => as(v.directorA, `insert into org_notes (organization_id, athlete_id, author_id, body) values ($1, $2, $3, '<img src=x onerror=alert(1)>')`, [clubA, u.adult, v.directorA]), /unsafe_content/);
   });
 
+  // ---------------------------------------------------------------- 11E · QA: integridad que la UI no puede garantizar sola
+  results.push('\nPrompt 11E: QA de datos');
+  await check('11E QA-01 · «Valencia Basket», «VALENCIA BASKET», «Valencia Basket Club» y «ValenciaBasket» son la misma organización', async () => {
+    await as(v.unverified, `insert into organizations (name, type, created_by, country) values ('Valencia Basket', 'club', $1, 'ES')`, [v.unverified]);
+    for (const n of ['VALENCIA BASKET', 'Valencia Basket Club', 'ValenciaBasket', 'Valencia Basket S.A.D.']) {
+      await expectError(() => as(v.unverified, `insert into organizations (name, type, created_by, country) values ($1, 'academy', $2, 'ES')`, [n, v.unverified]), /organization_exists/);
+    }
+    eq((await db.query(`select count(*)::int n from organizations where name_key = 'valenciabasket'`)).rows[0].n, 1, 'una sola entidad');
+    // Otra entidad legítima con nombre parecido sí se crea; las importaciones del sistema (o de otro país) también.
+    await as(v.unverified, `insert into organizations (name, type, created_by, country) values ('Valencia CF', 'club', $1, 'ES')`, [v.unverified]);
+    await as(v.ownerB, `insert into organizations (name, type, created_by, country) values ('Valencia Basket', 'club', $1, 'IT')`, [v.ownerB]); // otro país
+  });
+
   if (!process.env.SKIP_ERASURE) await check('RGPD: toda cuenta y toda organización se puede borrar (anonimiza auditoría, no bloquea)', async () => {
     await db.query(`select set_config('request.jwt.claims', '{}', false)`);
     const fails = [];

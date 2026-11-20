@@ -122,6 +122,9 @@ export async function completeOnboarding(_prev: FormState, formData: FormData): 
         // Señal para la verificación: ¿el email coincide con el dominio oficial?
         requester_email_domain: session.email?.split('@')[1]?.toLowerCase() ?? null,
       });
+      if (error?.message.includes('organization_exists')) {
+        return { fieldErrors: { org_name: 'Esta organización ya existe en Gala.' }, error: `«${data.org_name}» ya está en Gala: no crees otra. Termina el registro eligiendo «Unirme a una existente» y verifica tu afiliación desde Verificación.` };
+      }
       if (error) return { error: 'No hemos podido crear tu organización. Revisa los datos.' };
     }
   }

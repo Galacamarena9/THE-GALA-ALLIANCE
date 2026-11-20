@@ -55,7 +55,33 @@ export async function loadCoachHome(org: RecruitOrg) {
     return days >= 0 && days <= 7 ? { id: o.id as string, title: o.title as string, days } : null;
   }).filter((x): x is { id: string; title: string; days: number } => !!x);
   const taskRows = tasks.data ?? [];
+
+  // Clubes y academias: candidaturas a trials sin revisar y el próximo trial (≤48 h), con 2 consultas más.
+  let trialApplications: { id: string; title: string; count: number }[] = [];
+  let upcomingTrial: { id: string; title: string; hours: number; confirmed: number; missingDocs: number } | null = null;
+  if (['club', 'academy'].includes(org.type)) {
+    const { data: trials } = await supabase.from('opportunities').select('id, title, start_at')
+      .eq('organization_id', org.id).in('type', ['tryout', 'camp_showcase', 'club_recruitment', 'academy', 'development_program']).eq('status', 'published').limit(60);
+    const ids = (trials ?? []).map((t) => t.id as string);
+    if (ids.length) {
+      const [{ data: apps }, { data: regs }] = await Promise.all([
+        supabase.from('applications').select('opportunity_id').in('opportunity_id', ids).in('status', ['applied', 'reviewed', 'information_requested']),
+        supabase.from('opportunity_registrations').select('opportunity_id, status, materials_status').in('opportunity_id', ids).in('status', ['registered', 'confirmed', 'pending']),
+      ]);
+      trialApplications = (trials ?? []).map((t) => ({ id: t.id as string, title: t.title as string, count: (apps ?? []).filter((a) => a.opportunity_id === t.id).length }))
+        .filter((t) => t.count > 0).sort((a, b) => b.count - a.count).slice(0, 3);
+      const soon = (trials ?? []).map((t) => ({ ...t, hours: t.start_at ? Math.round((new Date(t.start_at as string).getTime() - Date.now()) / 3600000) : null }))
+        .filter((t) => t.hours != null && t.hours >= -12 && t.hours <= 48).sort((a, b) => (a.hours ?? 0) - (b.hours ?? 0))[0];
+      if (soon) {
+        const r = (regs ?? []).filter((x) => x.opportunity_id === soon.id);
+        upcomingTrial = { id: soon.id as string, title: soon.title as string, hours: Math.max(0, soon.hours ?? 0),
+          confirmed: r.filter((x) => x.status === 'confirmed').length, missingDocs: r.filter((x) => x.materials_status === 'pending').length };
+      }
+    }
+  }
   return {
+    trialApplications,
+    upcomingTrial,
     activeOpportunities: oppRows.filter((o) => o.status === 'published').length,
     drafts: oppRows.filter((o) => o.status !== 'published').length,
     needs: needs.data ?? [],

@@ -183,6 +183,7 @@ erDiagram
     text source
     text external_id
     timestamptz last_reviewed_at
+    text name_key
   }
   PROGRAM_MEMBERSHIPS {
     uuid id PK

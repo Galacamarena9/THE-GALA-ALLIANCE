@@ -70,7 +70,7 @@ export function costLine(c: CostComponent) {
  * Coste obligatorio CONOCIDO: solo se suma si el cálculo es correcto (todo obligatorio tiene importe, una sola moneda
  * y el mismo periodo). Si no, `total` es null y `reason` explica por qué. Lo opcional nunca se suma.
  */
-export function knownRequiredCost(price: PriceStatus | null | undefined, components: CostComponent[]): { total: number | null; currency: string | null; reason: string | null } {
+export function knownRequiredCost(price: PriceStatus | null | undefined, components: CostComponent[]): { total: number | null; currency: string | null; reason: string | null; basis?: string } {
   if (price === 'free') return { total: 0, currency: null, reason: null };
   if (!price || price === 'price_not_provided') return { total: null, currency: null, reason: 'La organización no ha indicado el coste.' };
   const req = components.filter((c) => c.required && !c.included);
@@ -79,9 +79,17 @@ export function knownRequiredCost(price: PriceStatus | null | undefined, compone
   const currencies = new Set(req.map((c) => c.currency));
   if (currencies.size > 1) return { total: null, currency: null, reason: 'Los costes están en monedas distintas.' };
   const periods = new Set(req.map((c) => c.period ?? 'one_off'));
-  if (periods.size > 1) return { total: null, currency: null, reason: 'Los costes tienen periodos distintos.' };
-  return { total: req.reduce((s, c) => s + Number(c.amount), 0), currency: req[0].currency, reason: null };
+  const recurring = [...periods].filter((p) => p !== 'one_off');
+  // Pagos únicos + UN periodo recurrente (p. ej. cuota y alojamiento por temporada + matrícula única) = coste del
+  // primer ciclo, y se dice así. Dos periodos recurrentes distintos (mes y año) no se suman.
+  if (recurring.length > 1) return { total: null, currency: null, reason: 'Los costes tienen periodos distintos.' };
+  const total = req.reduce((s, c) => s + Number(c.amount), 0);
+  if (recurring.length === 1 && periods.has('one_off')) {
+    return { total, currency: req[0].currency, reason: null, basis: `${FIRST_CYCLE[recurring[0]] ?? 'primer periodo'}, incluye pagos únicos` };
+  }
+  return recurring.length ? { total, currency: req[0].currency, reason: null, basis: PERIOD_LABEL[recurring[0]].replace(' / ', 'por ') } : { total, currency: req[0].currency, reason: null };
 }
+const FIRST_CYCLE: Record<string, string> = { per_month: 'primer mes', per_term: 'primer trimestre', per_season: 'primera temporada', per_year: 'primer año' };
 
 /** Resumen para tarjetas: «Gratis», «150,00 €» o «Coste sin indicar». Nunca «0 €». */
 export function priceLabel(price: PriceStatus | null | undefined, components: CostComponent[] = []) {

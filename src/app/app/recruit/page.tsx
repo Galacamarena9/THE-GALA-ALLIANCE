@@ -29,7 +29,7 @@ export default async function RecruitHome({ searchParams }: { searchParams: Prom
     verified: org.verified, hasPrograms: home.programs > 0, activeNeeds: home.needs.length,
     newApplications: home.candidates.filter((c) => c.source === 'application' && c.internal_stage === 'new').length,
     toReview: home.toReview, overdueTasks: home.overdueTasks, dueTodayTasks: home.dueTodayTasks, expiringOpportunities: home.expiring,
-    sharedInfo: home.sharedInfo, members: home.members,
+    sharedInfo: home.sharedInfo, members: home.members, trialApplications: home.trialApplications, upcomingTrial: home.upcomingTrial,
   }) : [];
   const f = home ? funnel(home.candidates.map((c) => c.internal_stage as string)) : [];
 
@@ -69,7 +69,7 @@ export default async function RecruitHome({ searchParams }: { searchParams: Prom
                         </li>
                       ))}
                     </ul>
-                  ) : <p className="text-sm text-muted">Todo al día.</p>}
+                  ) : <p className="text-sm text-muted">Estás al día: no hay nada urgente ahora mismo.</p>}
                 </Card>
 
                 <Card>
