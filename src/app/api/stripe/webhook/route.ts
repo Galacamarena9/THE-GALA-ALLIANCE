@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import { planByCode } from '@/content/plans';
+import { log } from '@/lib/observability/log';
 
 /**
  * Webhook de Stripe: concede el plan automáticamente al confirmarse el pago y lo retira si se reembolsa.
@@ -52,7 +53,11 @@ export async function POST(req: Request) {
 
   if (DB_EVENTS.has(event.type)) {
     const { data, error } = await db.rpc('billing_apply_event', { p_event: event });
-    if (error) return new Response('db error', { status: 500 }); // Stripe reintentará; el id de evento evita duplicar.
+    if (error) {
+      log('error', 'stripe_webhook_failed', { type: event.type, code: error.code });
+      return new Response('db error', { status: 500 }); // Stripe reintentará; el id de evento evita duplicar.
+    }
+    log('info', 'stripe_webhook', { type: event.type, outcome: String(data) });
     // El reembolso de un pago único también retira el plan concedido (lógica de abajo).
     if (event.type !== 'charge.refunded') return Response.json({ outcome: data });
   }
