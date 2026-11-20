@@ -1109,10 +1109,12 @@ try {
     await as(u.agent, `update recruiting_cases set shared_with_athlete = true where id = $1`, [caseId]);
     eq(await count(), before + 2, 'al volver a compartir avisa:');
   });
-  await check('rol de solo lectura: ve pero no escribe', async () => {
+  await check('rol de solo lectura: sin asignación no ve; asignado como viewer ve pero no escribe (12B)', async () => {
     await db.query(`set session_replication_role = replica`);
     await db.query(`insert into organization_members (organization_id, user_id, member_role, agency_role) values ($1, $2, 'recruiter', 'viewer')`, [agencyId, u.coach2]);
     await db.query(`set session_replication_role = default`);
+    eq((await as(u.coach2, `select count(*)::int n from recruiting_cases where id = $1`, [caseId])).rows[0].n, 0, 'sin asignación');
+    await as(u.agent, `select representation_assign($1, $2, 'viewer')`, [repId, u.coach2]);
     eq((await as(u.coach2, `select count(*)::int n from recruiting_cases where id = $1`, [caseId])).rows[0].n, 1);
     eq((await as(u.coach2, `update recruiting_cases set stage = 'closed' where id = $1`, [caseId])).rowCount, 0);
   });
@@ -2947,6 +2949,92 @@ try {
     await expectError(() => as(u.agent, `select representation_activate($1)`, [r]), /permission denied/);
     await expectError(() => as(u.agent, `select representation_expire_due()`), /permission denied/);
     await expectError(() => as(null, `select agent_can($1, 'pipeline.view')`, [a]), /permission denied/);
+  });
+
+  // ---------------------------------------------------------------- Prompt 12B · RLS del agente
+  results.push('\nPrompt 12B: matriz de acceso del agente (cada recurso, cada actor)');
+  const X = await mkUser('b-athlete', 'athlete', 21);
+  await as(X, `update athlete_profiles set profile_visibility = 'private', stats_visibility = 'private' where user_id = $1`, [X]);
+  const A2 = await mkUser('b-secondary', 'agent', 32); const A3 = await mkUser('b-unassigned', 'agent', 33);
+  await db.query(`insert into organization_members (organization_id, user_id, member_role, agency_role) values ($1, $2, 'recruiter', 'recruiter'), ($1, $3, 'recruiter', 'recruiter')`, [agencyId, A2, A3]);
+  await as(X, `select representation_invite($1, $2)`, [agencyId, X]); // perfil privado: solo así puede proponer
+  const repX = await repRequest(u.agent, agencyId, X, { territories: ['US'], categories: ['university'], perms: ['passport.view', 'pipeline.view', 'pipeline.manage', 'offers.view', 'opportunities.manage', 'financial_context.view'] });
+  await as(X, `select representation_respond($1, true)`, [repX]);
+  await as(u.agent, `select representation_assign($1, $2, 'secondary')`, [repX, A2]);
+  const offerX = (await as(X, `insert into athlete_offers (athlete_id, university_name, source) values ($1, 'State University', 'athlete') returning id`, [X])).rows[0].id;
+  const budgetX = (await as(X, `insert into family_cost_scenarios (athlete_id, created_by, label) values ($1, $1, 'Presupuesto 2027') returning id`, [X])).rows[0].id;
+  const docX = (await as(X, `insert into athlete_documents (athlete_id, kind, title, due_date) values ($1, 'transcript', 'Notas', current_date + 60) returning id`, [X])).rows[0].id;
+  const seeProfile = async (who) => (await as(who, `select count(*)::int n from athlete_profiles where user_id = $1`, [X])).rows[0].n;
+  const seeOffer = async (who) => (await as(who, `select count(*)::int n from athlete_offers where id = $1`, [offerX])).rows[0].n;
+  let caseX;
+  await check('P12B-1/8 primario y secundario dentro del alcance; miembro sin asignar y otra agencia: nada', async () => {
+    eq(await seeProfile(u.agent), 1, 'primario ve el Passport privado'); eq(await seeProfile(A2), 1, 'secundario');
+    eq(await seeProfile(A3), 0, 'miembro sin asignar'); eq(await seeProfile(agent2), 0, 'otra agencia');
+    eq(await seeOffer(u.agent), 1); eq(await seeOffer(A3), 0); eq(await seeOffer(agent2), 0);
+    caseX = (await as(A2, `insert into recruiting_cases (agency_id, athlete_id, institution_name, sport_id, cycle) values ($1, $2, 'State University', 'basketball', '2027-28') returning id`, [agencyId, X])).rows[0].id;
+    eq((await as(A3, `select count(*)::int n from recruiting_cases where id = $1`, [caseX])).rows[0].n, 0, 'sin asignar no ve el pipeline');
+    eq((await as(agent2, `select count(*)::int n from recruiting_cases where id = $1`, [caseX])).rows[0].n, 0);
+    await expectError(() => as(A3, `insert into recruiting_cases (agency_id, athlete_id, institution_name, sport_id, cycle) values ($1, $2, 'Otra', 'basketball', '2027-28')`, [agencyId, X]), /row-level/);
+  });
+  await check('P12B-2 atleta no representado: ni el dueño de la agencia lo ve', async () => {
+    const Y = await mkUser('b-unrep', 'athlete', 22);
+    await as(Y, `update athlete_profiles set profile_visibility = 'private' where user_id = $1`, [Y]);
+    eq((await as(u.agent, `select count(*)::int n from athlete_profiles where user_id = $1`, [Y])).rows[0].n, 0);
+    eq((await as(u.agent, `select agent_can($1, 'passport.view') ok`, [Y])).rows[0].ok, false);
+  });
+  await check('P12B-5/6/7 deporte, territorio y tipo de oportunidad equivocados → denegado', async () => {
+    await expectError(() => as(A2, `insert into recruiting_cases (agency_id, athlete_id, institution_name, sport_id, cycle) values ($1, $2, 'State University', 'volleyball', '2027-28')`, [agencyId, X]), /row-level/);
+    eq(await can(A2, X, 'pipeline.manage', 'basketball', 'ES'), false, 'territorio');
+    eq(await can(A2, X, 'pipeline.manage', 'basketball', 'US', 'club'), false, 'tipo de oportunidad');
+    eq(await can(A2, X, 'pipeline.manage', 'basketball', 'US', 'university'), true);
+  });
+  await check('P12B-9 documentos: sin concesión no; con concesión a la agencia solo quien tiene documents.view', async () => {
+    eq((await as(u.agent, `select count(*)::int n from athlete_documents where id = $1`, [docX])).rows[0].n, 0, 'sin concesión');
+    await as(X, `insert into document_access_grants (document_id, athlete_id, organization_id, purpose, expires_at) values ($1, $2, $3, 'application_review', now() + interval '10 days')`, [docX, X, agencyId]);
+    eq((await as(u.agent, `select count(*)::int n from athlete_documents where id = $1`, [docX])).rows[0].n, 0, 'concesión sin permiso documents.view');
+    await as(X, `select representation_set_permissions($1, array['passport.view','pipeline.view','pipeline.manage','offers.view','opportunities.manage','financial_context.view','documents.view'])`, [repX]);
+    eq((await as(u.agent, `select count(*)::int n from athlete_documents where id = $1`, [docX])).rows[0].n, 1, 'concesión + permiso');
+    eq((await as(A3, `select count(*)::int n from athlete_documents where id = $1`, [docX])).rows[0].n, 0, 'miembro sin asignar');
+    await expectError(() => as(A3, `select document_open($1)`, [docX]), /not_found|not_allowed/);
+  });
+  await check('P12B-10/11 presupuesto y notas de familia: nunca para la agencia, ni con contexto económico', async () => {
+    eq((await as(u.agent, `select count(*)::int n from family_cost_scenarios where id = $1`, [budgetX])).rows[0].n, 0);
+    eq((await as(u.agent, `select count(*)::int n from family_notes where athlete_id = $1`, [X])).rows[0].n, 0);
+  });
+  await check('P12B-12/13 acuerdo solo para las partes; aceptar una oferta es del atleta', async () => {
+    const ag = (await as(X, `select representation_add_agreement($1, null, current_date, current_date + 300) id`, [repX])).rows[0].id;
+    eq((await as(A2, `select count(*)::int n from representation_agreements where id = $1`, [ag])).rows[0].n, 1, 'asignado');
+    eq((await as(A3, `select count(*)::int n from representation_agreements where id = $1`, [ag])).rows[0].n, 0, 'sin asignar');
+    eq((await as(u.uni, `select count(*)::int n from representation_agreements where id = $1`, [ag])).rows[0].n, 0, 'universidad');
+    eq((await as(u.agent, `update athlete_offers set status = 'accepted' where id = $1`, [offerX])).rowCount, 0, 'el agente no acepta');
+    eq((await as(u.agent, `delete from athlete_offers where id = $1`, [offerX])).rowCount, 0);
+  });
+  await check('P12B-18 enumeración del roster: otra agencia no construye el de la primera', async () => {
+    eq((await as(agent2, `select count(*)::int n from agency_roster where agency_id = $1`, [agencyId])).rows[0].n, 0);
+    eq((await as(agent2, `select count(*)::int n from agent_representations where agency_id = $1`, [agencyId])).rows[0].n, 0);
+    eq((await as(agent2, `select count(*)::int n from representation_assignments where agency_id = $1`, [agencyId])).rows[0].n, 0);
+  });
+  await check('P12B-20 agencia suspendida: nadie de ella accede', async () => {
+    await db.query(`update organizations set org_status = 'suspended' where id = $1`, [agencyId]);
+    try { eq(await seeProfile(u.agent), 0); eq(await seeOffer(A2), 0); }
+    finally { await db.query(`update organizations set org_status = 'active' where id = $1`, [agencyId]); }
+    eq(await seeProfile(u.agent), 1);
+  });
+  await check('P12B-3 caducada: acceso nuevo fuera; el historial del caso queda para la dirección de la agencia', async () => {
+    await db.query(`update agent_representations set start_date = current_date - 300, end_date = current_date - 1 where id = $1`, [repX]);
+    try {
+      eq(await seeOffer(A2), 0); eq(await seeProfile(A2), 0);
+      eq((await as(A2, `select count(*)::int n from recruiting_cases where id = $1`, [caseX])).rows[0].n, 0, 'el agente pierde el pipeline');
+      eq((await as(u.agent, `select count(*)::int n from recruiting_cases where id = $1`, [caseX])).rows[0].n, 1, 'la dirección conserva el historial');
+      eq((await as(u.agent, `update recruiting_cases set stage = 'closed' where id = $1`, [caseX])).rowCount, 0, 'pero no lo mueve');
+    } finally { await db.query(`update agent_representations set start_date = current_date, end_date = current_date + 300 where id = $1`, [repX]); }
+  });
+  await check('P12B-15 revocación en vivo: la siguiente consulta ya no ve nada; datos del atleta intactos', async () => {
+    eq(await seeOffer(A2), 1);
+    await as(X, `select representation_end($1, 'Fin')`, [repX]);
+    eq(await seeOffer(A2), 0); eq(await seeProfile(u.agent), 0);
+    eq((await as(A2, `select count(*)::int n from athlete_documents where id = $1`, [docX])).rows[0].n, 0);
+    eq((await db.query(`select (select count(*) from athlete_offers where id = $1) + (select count(*) from athlete_documents where id = $2) + (select count(*) from recruiting_cases where id = $3) n`, [offerX, docX, caseX])).rows[0].n, '3', 'nada se borra');
   });
 
   // ---------------------------------------------------------------- Prompt 9 · Supabase & PostgreSQL
