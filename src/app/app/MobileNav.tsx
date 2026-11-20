@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, LayoutGrid, Menu, MessageSquare, Trophy, X } from 'lucide-react';
+import { Compass, GitBranch, Home, LayoutGrid, ListChecks, Menu, MessageSquare, Trophy, X } from 'lucide-react';
 import type { NavSection } from '@/lib/domain/navigation';
 import { cx } from '@/components/ui';
 import { Sidebar } from './Sidebar';
@@ -14,9 +14,17 @@ const TABS = [
   { href: '/app/opportunities', label: 'Becas', Icon: Trophy },
   { href: '/app/inbox', label: 'Mensajes', Icon: MessageSquare },
 ];
+/** Staff de universidades y clubes: lo que un coach usa a diario, a un toque (Descubrir ↔ Shortlists ↔ Pipeline). */
+const STAFF_TABS = [
+  { href: '/app/recruit', label: 'Inicio', Icon: Home, exact: true },
+  { href: '/app/recruit/discover', label: 'Descubrir', Icon: Compass },
+  { href: '/app/recruit/shortlists', label: 'Shortlists', Icon: ListChecks },
+  { href: '/app/recruit/candidates', label: 'Pipeline', Icon: GitBranch },
+];
 
 /** Móvil: barra inferior tipo app (como LinkedIn) + menú completo en panel lateral. */
-export function MobileNav({ sections }: { sections: NavSection[] }) {
+export function MobileNav({ sections, staff = false }: { sections: NavSection[]; staff?: boolean }) {
+  const tabs = staff ? STAFF_TABS : TABS;
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const [lastPath, setLastPath] = useState(pathname);
@@ -33,8 +41,9 @@ export function MobileNav({ sections }: { sections: NavSection[] }) {
     <div className="lg:hidden">
       <nav aria-label="Accesos rápidos" className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-ink/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl">
         <ul className="grid grid-cols-5">
-          {TABS.map(({ href, label, Icon }) => {
-            const active = href === '/app' ? pathname === '/app' : pathname.startsWith(href);
+          {tabs.map(({ href, label, Icon, ...rest }) => {
+            const exact = href === '/app' || ('exact' in rest && rest.exact);
+            const active = exact ? pathname === href : pathname.startsWith(href);
             return (
               <li key={href}>
                 <Link href={href} className={cx('flex flex-col items-center gap-1 py-2.5 text-xs', active ? 'text-brass' : 'text-muted')} aria-current={active ? 'page' : undefined}>
@@ -47,7 +56,7 @@ export function MobileNav({ sections }: { sections: NavSection[] }) {
           <li>
             <button type="button" onClick={() => setOpen(true)} aria-expanded={open} aria-controls="mobile-sidebar" className="flex w-full flex-col items-center gap-1 py-2.5 text-xs text-muted">
               <Menu className="h-5 w-5" aria-hidden strokeWidth={1.8} />
-              Todo
+              {staff ? 'Más' : 'Todo'}
             </button>
           </li>
         </ul>

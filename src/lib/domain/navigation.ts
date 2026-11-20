@@ -94,6 +94,7 @@ export const PERSONAL_SERVICES: Record<AppRole, NavItem[]> = {
     { href: '/app/lists', label: 'Listas personales', icon: 'list', desc: 'Atletas guardados y búsquedas con alertas.', more: true },
     { href: '/app/applications', label: 'Candidaturas (vista clásica)', icon: 'inbox', desc: 'Candidaturas recibidas por oportunidad.', more: true },
     { href: '/app/organization', label: 'Mi universidad o club', icon: 'building', desc: 'Datos de la organización, verificación y equipo.', more: true },
+    { href: '/app/verify', label: 'Mi verificación', icon: 'shield', desc: 'Correo institucional, afiliación, programa y cargo: qué está verificado y qué falta.', more: true },
     { href: '/app/club', label: 'Portal de club', icon: 'users', desc: 'Plantilla, validación de estadísticas y colocaciones.', more: true },
   ],
   agent: [

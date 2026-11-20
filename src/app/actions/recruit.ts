@@ -7,6 +7,7 @@ import { requireSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
 import { logEvent } from '@/lib/events';
 import { ASSIGNABLE_ROLES, INTERNAL_STAGES } from '@/lib/domain/recruit';
+import { currentRecruitOrg } from '@/lib/data/recruit';
 import type { FormState } from './auth';
 
 /**
@@ -20,6 +21,9 @@ const intList = (s: unknown) => String(s ?? '').split(',').map((x) => Number(x.t
 
 function friendly(msg: string) {
   if (msg.includes('assignee_not_member')) return 'Solo puedes asignar a miembros de tu organización.';
+  if (msg.includes('assignee_not_authorized')) return 'Esa persona no tiene permiso para trabajar candidatos.';
+  if (msg.includes('athlete_not_accessible')) return 'El atleta ya no comparte su perfil con vosotros.';
+  if (msg.includes('not_an_authorized_member')) return 'Solo puedes compartir con miembros de tu organización con acceso a shortlists.';
   if (msg.includes('row-level security') || msg.includes('not_allowed') || msg.includes('42501')) return 'Tu rol no permite esta acción o la organización aún no está verificada.';
   if (msg.includes('duplicate') || msg.includes('unique')) return 'Ya existe.';
   if (msg.includes('last_admin')) return 'La organización necesita al menos un administrador.';
@@ -67,8 +71,9 @@ export async function setNeedStatus(formData: FormData) {
 /* ------------------------------------------------------------------ Shortlists */
 export async function createShortlist(_prev: FormState, formData: FormData): Promise<FormState> {
   const session = await requireSession();
-  const p = z.object({ org: uuid, name: z.string().trim().min(2).max(80), visibility: z.enum(['private', 'team']), program_id: optUuid, need_id: optUuid }).safeParse(Object.fromEntries(formData));
+  const p = z.object({ org: uuid, name: z.string().trim().min(2).max(80), visibility: z.enum(['private', 'shared', 'program', 'team']), program_id: optUuid, need_id: optUuid }).safeParse(Object.fromEntries(formData));
   if (!p.success) return { error: 'Pon un nombre (2-80 caracteres).' };
+  if (p.data.visibility === 'program' && !p.data.program_id) return { error: 'Elige el programa para compartirla con su staff.' };
   const supabase = await createClient();
   const { error } = await supabase.from('org_shortlists').insert({ organization_id: p.data.org, name: p.data.name, visibility: p.data.visibility, program_id: p.data.program_id, need_id: p.data.need_id, owner_id: session.userId });
   if (error) return { error: friendly(error.message) };
@@ -182,7 +187,8 @@ export async function addOrgNote(_prev: FormState, formData: FormData): Promise<
   if (!p.success) return { error: 'Escribe la nota (máx. 2000 caracteres).' };
   const supabase = await createClient();
   const { error } = await supabase.from('org_notes').insert({ organization_id: p.data.org, athlete_id: p.data.athlete, author_id: session.userId, body: p.data.body });
-  if (error) return { error: friendly(error.message) };
+  if (error) return { error: error.message.includes('unsafe_content') ? 'La nota no puede contener código ni enlaces ejecutables.' : friendly(error.message) };
+  await logEvent('note_added');
   refresh(`/app/recruit/candidates/${p.data.athlete}`);
   return { ok: true, message: 'Nota interna guardada' };
 }
@@ -294,4 +300,94 @@ export async function respondInfoRequest(formData: FormData) {
   if (!error && t.share === '1') await logEvent('document_shared');
   revalidatePath('/app/requests');
   if (error) redirect(`/app/requests?error=${encodeURIComponent(error.message.includes('guardian_required') ? 'Al ser menor, tu familia debe responder esta solicitud.' : 'No se ha podido responder.')}`);
+}
+
+/* ------------------------------------------------------------------ Quick View (móvil) */
+export type QuickView = {
+  ok: true; minor: boolean; academics: 'documented' | 'declared' | 'private';
+  videos: { id: string; kind: string; title: string | null; url: string }[];
+  stats: { label: string; value: string; verified: boolean }[];
+  inPipeline: boolean;
+} | { ok: false; message: string };
+
+/**
+ * Datos para la vista rápida: los mismos que la ficha, recortados (vídeo, 3–5 métricas, verificación).
+ * Lee con la sesión del coach: la RLS por bloque decide qué llega. Nunca recalcula Gala Match.
+ */
+export async function loadQuickView(input: { org: string; athlete: string }): Promise<QuickView> {
+  const session = await requireSession();
+  const p = z.object({ org: uuid, athlete: uuid }).safeParse(input);
+  if (!p.success) return { ok: false, message: 'Datos no válidos.' };
+  const { org } = await currentRecruitOrg(session.userId, p.data.org);
+  if (!org || !org.caps.has('discover')) return { ok: false, message: 'Tu acceso ya no permite ver este perfil.' };
+  const supabase = await createClient();
+  const [{ data: minor }, { data: acad }, { data: stats }, { data: videos }, { data: cand }] = await Promise.all([
+    supabase.rpc('is_minor', { p_user: p.data.athlete }),
+    supabase.from('athlete_academics').select('gpa_source').eq('athlete_id', p.data.athlete).maybeSingle(),
+    supabase.from('athlete_statistics').select('season, value, source, sport_stat_definitions(label_es, unit)').eq('athlete_id', p.data.athlete).order('season', { ascending: false }).limit(5),
+    supabase.from('athlete_videos').select('id, kind, title, url').eq('athlete_id', p.data.athlete).order('is_featured', { ascending: false }).limit(4),
+    supabase.from('org_candidates').select('internal_stage, archived_at').eq('organization_id', org.id).eq('athlete_id', p.data.athlete).maybeSingle(),
+  ]);
+  await logEvent('athlete_quick_view');
+  return {
+    ok: true,
+    minor: minor !== false,
+    academics: !acad ? 'private' : acad.gpa_source !== 'self_reported' ? 'documented' : 'declared',
+    videos: (videos ?? []).map((v) => ({ id: v.id as string, kind: v.kind as string, title: v.title as string | null, url: v.url as string })),
+    stats: (stats ?? []).map((s) => {
+      const d = s.sport_stat_definitions as unknown as { label_es: string; unit: string | null } | null;
+      return { label: `${d?.label_es ?? 'Dato'} (${s.season})`, value: `${s.value}${d?.unit ? ` ${d.unit}` : ''}`, verified: s.source !== 'self_reported' };
+    }),
+    inPipeline: !!cand && !cand.archived_at && !['new', 'review', 'shortlisted', 'closed'].includes(cand.internal_stage as string),
+  };
+}
+
+/* ------------------------------------------------------------------ Shortlist → Pipeline, compartir y asignar con tarea (móvil) */
+export type PromoteResult = { ok: boolean; message: string; existed?: boolean };
+/** Iniciar el recruiting desde una shortlist: explícito, sin duplicados y conservando el vínculo (función shortlist_promote). */
+export async function promoteFromShortlist(input: { list: string; athlete: string; need?: string; opportunity?: string }): Promise<PromoteResult> {
+  await requireSession();
+  const p = z.object({ list: uuid, athlete: uuid, need: uuid.optional(), opportunity: uuid.optional() }).safeParse(input);
+  if (!p.success) return { ok: false, message: 'Datos no válidos.' };
+  const supabase = await createClient();
+  const { data: list } = await supabase.from('org_shortlists').select('organization_id').eq('id', p.data.list).maybeSingle();
+  if (!list) return { ok: false, message: 'Shortlist no encontrada.' };
+  const { data: before } = await supabase.from('org_candidates').select('internal_stage, archived_at').eq('organization_id', list.organization_id).eq('athlete_id', p.data.athlete).maybeSingle();
+  const existed = !!before && !before.archived_at && !['new', 'review', 'priority_review', 'shortlisted', 'closed'].includes(before.internal_stage as string);
+  const { error } = await supabase.rpc('shortlist_promote', { p_list: p.data.list, p_athlete: p.data.athlete, p_need: p.data.need ?? null, p_opportunity: p.data.opportunity ?? null });
+  if (error) return { ok: false, message: friendly(error.message) };
+  await logEvent('athlete_promoted_to_pipeline');
+  refresh(`/app/recruit/shortlists/${p.data.list}`, '/app/recruit/candidates');
+  return { ok: true, existed, message: existed ? 'Ya tenía un proceso activo: no se ha duplicado.' : 'Proceso de recruiting creado. El atleta sigue en la shortlist.' };
+}
+
+/** Compartir una shortlist con una persona del staff (o revocar). La BD comprueba que sea miembro con acceso a shortlists. */
+export async function shareShortlist(formData: FormData) {
+  const session = await requireSession();
+  const t = z.object({ list: uuid, user: uuid, role: z.enum(['editor', 'contributor', 'viewer']).optional(), revoke: z.literal('1').optional() }).parse(Object.fromEntries(formData));
+  const supabase = await createClient();
+  const { data: list } = await supabase.from('org_shortlists').select('organization_id').eq('id', t.list).maybeSingle();
+  if (!list) return;
+  if (t.revoke) await supabase.from('shortlist_access').update({ revoked_at: new Date().toISOString() }).eq('shortlist_id', t.list).eq('user_id', t.user);
+  else await supabase.from('shortlist_access').upsert({ shortlist_id: t.list, organization_id: list.organization_id, user_id: t.user, access_role: t.role ?? 'viewer', granted_by: session.userId, revoked_at: null });
+  refresh(`/app/recruit/shortlists/${t.list}`);
+}
+
+/** Asignar desde la shortlist y, opcionalmente, crear la tarea en el sistema central de tareas (org_tasks). */
+export async function assignWithTask(input: { list: string; athlete: string; assignee: string | null; task?: string; due?: string }): Promise<{ ok: boolean; message: string }> {
+  await requireSession();
+  const p = z.object({ list: uuid, athlete: uuid, assignee: uuid.nullable(), task: z.string().trim().max(160).optional(), due: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().or(z.literal('')) }).safeParse(input);
+  if (!p.success) return { ok: false, message: 'Datos no válidos.' };
+  const supabase = await createClient();
+  const { data: list } = await supabase.from('org_shortlists').select('organization_id').eq('id', p.data.list).maybeSingle();
+  if (!list) return { ok: false, message: 'Shortlist no encontrada.' };
+  const { error } = await supabase.from('org_shortlist_members').update({ assigned_to: p.data.assignee }).eq('shortlist_id', p.data.list).eq('athlete_id', p.data.athlete);
+  if (error) return { ok: false, message: friendly(error.message) };
+  if (p.data.task && p.data.task.length >= 2) {
+    const { error: te } = await supabase.from('org_tasks').insert({ organization_id: list.organization_id, athlete_id: p.data.athlete, shortlist_id: p.data.list, title: p.data.task, due_date: p.data.due || null, assignee_id: p.data.assignee });
+    if (te) return { ok: false, message: 'Asignado, pero la tarea no se ha podido crear.' };
+  }
+  if (p.data.assignee) await logEvent('candidate_assigned');
+  refresh(`/app/recruit/shortlists/${p.data.list}`, '/app/recruit/tasks');
+  return { ok: true, message: p.data.assignee ? 'Asignado' : 'Asignación quitada' };
 }
