@@ -52,7 +52,11 @@ export const EXPORT_SOURCES: ExportSource[] = [
   { key: 'institution_claims', table: 'institution_claims', select: 'id, institution_id, organization_id, work_email, role_title, status, reviewed_at, created_at' },
   // Oportunidades y pipeline del atleta (el historial de estados va dentro de cada candidatura)
   { key: 'applications', table: 'applications', column: 'athlete_id', select: '*, application_status_history(*)' },
-  { key: 'trials', table: 'trial_registrations', column: 'athlete_id' },
+  { key: 'trials', table: 'opportunity_registrations', column: 'athlete_id' },
+  { key: 'trial_invitations', table: 'opportunity_invitations', column: 'athlete_id', select: 'id, opportunity_id, organization_id, status, message, sent_at, viewed_at, responded_at, expires_at' },
+  { key: 'attendance', table: 'opportunity_attendance', column: 'athlete_id' },
+  { key: 'program_enrollments', table: 'program_enrollments', column: 'athlete_id' },
+  { key: 'payments', table: 'payment_requirements', column: 'athlete_id' },
   { key: 'processes', table: 'saved_items', column: 'athlete_id' },
   { key: 'match_signals', table: 'match_signals', column: 'athlete_id' },
   { key: 'process_events', table: 'pipeline_events', column: 'athlete_id' },

@@ -1,7 +1,7 @@
 <!-- Generado por scripts/erd/generate.mjs a partir de las migraciones. No editar a mano: `npm run erd`. -->
 # 04 · Catálogo deportivo y eventos
 
-Tablas: **5** · RLS activada en 5/5.
+Tablas: **7** · RLS activada en 7/7.
 Se relaciona con: `athlete_profiles` (03).
 
 ## AS-IS · Modelo actual
@@ -13,6 +13,14 @@ erDiagram
   SPORTS |o--o{ SHOWCASE_EVENTS : "sport_id"
   SPORTS ||--o{ SPORT_POSITIONS : "sport_id"
   SPORTS ||--o{ SPORT_STAT_DEFINITIONS : "sport_id"
+  AGE_CATEGORIES {
+    text code PK
+    text label
+    int2 max_age
+    int2 min_age
+    text kind
+    int2 sort
+  }
   SHOWCASE_ENTRIES {
     uuid event_id PK,FK
     uuid athlete_id PK,FK
@@ -50,17 +58,28 @@ erDiagram
     text name_en
     bool active
   }
+  SPORTS_SEASONS {
+    text id PK
+    text label
+    date starts_on
+    date ends_on
+  }
 ```
 
 ## Inventario
 
 | Tabla | Clasificación | Menores | Al borrar | Retención | Exportación RGPD | Decisión |
 |---|---|---|---|---|---|---|
+| `age_categories` | Pública | — | No depende de personas | Mientras esté publicado o vigente | — | KEEP |
 | `showcase_entries` | Personal | Sí | atleta (athlete_id) → se borra | Mientras exista la cuenta | Sí | KEEP |
 | `showcase_events` | Pública | — | No depende de personas | Mientras esté publicado o vigente | — | KEEP |
 | `sport_positions` | Pública | — | En cascada con `sports` | Mientras esté publicado o vigente | — | KEEP |
 | `sport_stat_definitions` | Pública | — | En cascada con `sports` | Mientras esté publicado o vigente | — | KEEP |
 | `sports` | Pública | — | No depende de personas | Mientras esté publicado o vigente | — | KEEP |
+| `sports_seasons` | Pública | — | No depende de personas | Mientras esté publicado o vigente | — | KEEP |
+
+- `age_categories`: Categorías U14…First Team con regla de edad cuando existe.
+- `sports_seasons`: Temporadas normalizadas («2027-28»).
 
 ## TO-BE · Modelo objetivo
 

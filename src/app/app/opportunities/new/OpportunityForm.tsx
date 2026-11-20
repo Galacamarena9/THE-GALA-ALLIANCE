@@ -6,7 +6,7 @@ import { SubmitButton } from '@/components/SubmitButton';
 import { Card, CardTitle, Field, inputClass } from '@/components/ui';
 import { createOpportunity } from '@/app/actions/opportunities';
 import { DIVISION_LABEL, OPPORTUNITY_TYPE_LABEL } from '@/lib/domain/labels';
-import { TRIAL_TYPES } from '@/lib/domain/trials';
+import { CLUB_TYPES, PROGRAM_TYPES } from '@/lib/domain/trials';
 import { CONTACT_METHOD_LABEL, INTERNATIONAL_LABEL, REQUIRED_MATERIAL_LABEL, SCHOLARSHIP_LABEL } from '@/lib/domain/recruit';
 
 interface Props {
@@ -19,8 +19,10 @@ interface Props {
 export function OpportunityForm({ orgs, catalog, needs = [] }: Props) {
   const [org, setOrg] = useState(orgs[0]?.id ?? '');
   const [type, setType] = useState(Object.keys(OPPORTUNITY_TYPE_LABEL)[0]);
-  const [fee, setFee] = useState<'free' | 'paid' | 'unknown'>('unknown');
-  const isTrial = (TRIAL_TYPES as readonly string[]).includes(type);
+  const [fee, setFee] = useState<'free' | 'paid' | 'price_not_provided'>('price_not_provided');
+  const [acc, setAcc] = useState('unknown');
+  const isTrial = (CLUB_TYPES as readonly string[]).includes(type);
+  const isProgram = (PROGRAM_TYPES as readonly string[]).includes(type);
   const orgNeeds = needs.filter((n) => n.organization_id === org);
   const [sport, setSport] = useState(catalog.sports[0]?.id ?? '');
   const positions = useMemo(() => catalog.positions.filter((p) => p.sport_id === sport), [catalog.positions, sport]);
@@ -135,7 +137,7 @@ export function OpportunityForm({ orgs, catalog, needs = [] }: Props) {
 
           {isTrial && (
             <Card>
-              <CardTitle kicker="Trial / programa">Fecha, lugar y coste</CardTitle>
+              <CardTitle kicker={isProgram ? 'Programa' : 'Trial'}>Fecha, lugar y coste</CardTitle>
               <p className="-mt-2 mb-5 text-sm text-muted">Las familias y los agentes deciden con esta información. El coste se muestra siempre antes de inscribirse; no anunciéis plazas limitadas si no tenéis una capacidad confirmada.</p>
               <div className="grid gap-5 sm:grid-cols-4">
                 <Field label="Fecha de inicio" htmlFor="ev_start"><input id="ev_start" name="ev_start" type="date" className={inputClass} /></Field>
@@ -150,13 +152,31 @@ export function OpportunityForm({ orgs, catalog, needs = [] }: Props) {
                 <Field label="Categoría" htmlFor="ev_cat" hint="U16, U18, Senior…"><input id="ev_cat" name="ev_cat" maxLength={40} className={inputClass} /></Field>
               </div>
               <div className="mt-5 grid gap-5 sm:grid-cols-4">
-                <Field label="Coste" htmlFor="ev_fee">
-                  <select id="ev_fee" name="ev_fee" value={fee} onChange={(e) => setFee(e.target.value as typeof fee)} className={inputClass}>
-                    <option value="unknown">Sin indicar</option><option value="free">Gratis</option><option value="paid">De pago</option>
+                <Field label="Edad mínima" htmlFor="ev_age_min"><input id="ev_age_min" name="ev_age_min" type="number" min={5} max={45} className={inputClass} /></Field>
+                <Field label="Edad máxima" htmlFor="ev_age_max" error={fe.ev_age_max}><input id="ev_age_max" name="ev_age_max" type="number" min={5} max={45} className={inputClass} /></Field>
+                <Field label="Capacidad confirmada" htmlFor="ev_capacity" hint="Vacío si no la sabéis (nunca se mostrará «ilimitada»)"><input id="ev_capacity" name="ev_capacity" type="number" min={1} max={10000} className={inputClass} /></Field>
+                {isProgram ? (
+                  <Field label="Calendario" htmlFor="ev_calendar">
+                    <select id="ev_calendar" name="ev_calendar" defaultValue="fixed_term" className={inputClass}>
+                      <option value="fixed_term">Fechas fijas</option><option value="rolling">Admisión continua</option><option value="seasonal">Por temporada</option><option value="one_off">Puntual</option>
+                    </select>
+                  </Field>
+                ) : (
+                  <Field label="Inscripción" htmlFor="ev_mode">
+                    <select id="ev_mode" name="ev_mode" defaultValue="direct" className={inputClass}>
+                      <option value="direct">Directa</option><option value="application_required">Con candidatura previa</option><option value="invitation_only">Solo por invitación</option>
+                    </select>
+                  </Field>
+                )}
+              </div>
+              <div className="mt-5 grid gap-5 sm:grid-cols-4">
+                <Field label="Coste" htmlFor="ev_price">
+                  <select id="ev_price" name="ev_price" value={fee} onChange={(e) => setFee(e.target.value as typeof fee)} className={inputClass}>
+                    <option value="price_not_provided">Sin indicar (no se podrá publicar)</option><option value="free">Gratis</option><option value="paid">De pago</option>
                   </select>
                 </Field>
                 {fee === 'paid' && <>
-                  <Field label="Importe" htmlFor="ev_amount" error={fe.ev_amount}><input id="ev_amount" name="ev_amount" type="number" min={0} step="0.01" required className={inputClass} /></Field>
+                  <Field label={isProgram ? 'Cuota del programa' : 'Inscripción'} htmlFor="ev_amount" error={fe.ev_amount}><input id="ev_amount" name="ev_amount" type="number" min={0} step="0.01" required className={inputClass} /></Field>
                   <Field label="Moneda" htmlFor="ev_currency" error={fe.ev_currency}><input id="ev_currency" name="ev_currency" defaultValue="EUR" maxLength={3} required className={`${inputClass} uppercase`} /></Field>
                   <Field label="Reembolso" htmlFor="ev_refund">
                     <select id="ev_refund" name="ev_refund" defaultValue="unknown" className={inputClass}>
@@ -168,11 +188,25 @@ export function OpportunityForm({ orgs, catalog, needs = [] }: Props) {
               <div className="mt-5 grid gap-5 sm:grid-cols-4">
                 {([['ev_acc', 'Alojamiento', ['unknown', 'included', 'available_paid', 'not_included']], ['ev_meals', 'Comidas', ['unknown', 'included', 'not_included']], ['ev_travel', 'Viaje', ['unknown', 'included', 'not_included']]] as const).map(([n, l, opts]) => (
                   <Field key={n} label={l} htmlFor={n}>
-                    <select id={n} name={n} defaultValue="unknown" className={inputClass}>
+                    <select id={n} name={n} defaultValue="unknown" onChange={n === 'ev_acc' ? (e) => setAcc(e.target.value) : undefined} className={inputClass}>
                       {opts.map((o) => <option key={o} value={o}>{{ unknown: 'Sin información', included: 'Incluido', available_paid: 'Disponible (de pago)', not_included: 'No incluido' }[o]}</option>)}
                     </select>
                   </Field>
                 ))}
+                {acc === 'available_paid' && <Field label="Alojamiento (opcional)" htmlFor="ev_acc_amount" hint="Importe en la misma moneda"><input id="ev_acc_amount" name="ev_acc_amount" type="number" min={0} step="0.01" className={inputClass} /></Field>}
+                {isProgram && <>
+                  <Field label="Residencia" htmlFor="ev_residential">
+                    <select id="ev_residential" name="ev_residential" defaultValue="unknown" className={inputClass}>
+                      <option value="unknown">Sin indicar</option><option value="residential">Residencial</option><option value="non_residential">No residencial</option><option value="both">Ambas opciones</option>
+                    </select>
+                  </Field>
+                  <Field label="Apoyo educativo" htmlFor="ev_education">
+                    <select id="ev_education" name="ev_education" defaultValue="unknown" className={inputClass}><option value="unknown">Sin indicar</option><option value="yes">Sí</option><option value="no">No</option></select>
+                  </Field>
+                  <Field label="Ayudas" htmlFor="ev_aid" hint="Que la academia ofrezca ayudas no significa que un atleta las tenga">
+                    <select id="ev_aid" name="ev_aid" defaultValue="unknown" className={inputClass}><option value="unknown">Sin indicar</option><option value="available">Puede haber ayudas</option><option value="not_available">Sin ayudas</option></select>
+                  </Field>
+                </>}
                 <Field label="Menores" htmlFor="ev_minor">
                   <select id="ev_minor" name="ev_minor" defaultValue="guardian_consent_required" className={inputClass}>
                     <option value="guardian_consent_required">Con aprobación familiar</option><option value="adults_only">Solo mayores de edad</option>
