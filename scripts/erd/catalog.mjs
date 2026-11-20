@@ -35,6 +35,13 @@ export const TABLES = {
   user_roles: { domain: '01-identidad', cls: 'personal', decision: 'KEEP', export: true },
   user_blocks: { domain: '01-identidad', cls: 'personal', decision: 'KEEP', export: true },
   notification_preferences: { domain: '01-identidad', cls: 'personal', decision: 'KEEP', export: true },
+  plan_catalog: { domain: '12-marcas-negocio', cls: 'public', decision: 'KEEP', note: 'Catálogo versionado: los límites salen de aquí, no del código.' },
+  billing_accounts: { domain: '12-marcas-negocio', cls: 'sensitive', decision: 'KEEP', export: true, note: 'Sin datos de tarjeta: solo el id de cliente de Stripe.' },
+  subscriptions: { domain: '12-marcas-negocio', cls: 'sensitive', decision: 'KEEP', noExport: 'De la cuenta de facturación (persona u organización); la escribe solo el webhook' },
+  seat_assignments: { domain: '12-marcas-negocio', cls: 'personal', decision: 'KEEP', export: true },
+  stripe_events: { domain: '12-marcas-negocio', cls: 'internal', decision: 'KEEP', noExport: 'Idempotencia técnica del webhook' },
+  billing_ledger: { domain: '12-marcas-negocio', cls: 'sensitive', decision: 'KEEP', noExport: 'Registro financiero de la cuenta; append-only', retention: 'Obligación fiscal (6 años)' },
+  usage_counters: { domain: '12-marcas-negocio', cls: 'personal', decision: 'KEEP', export: true },
   entitlements: { domain: '01-identidad', cls: 'personal', decision: 'KEEP', export: true, note: 'Planes contratados (Stripe).' },
 
   // 02 · Familia y privacidad

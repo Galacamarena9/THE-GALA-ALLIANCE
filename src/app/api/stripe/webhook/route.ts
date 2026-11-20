@@ -25,9 +25,18 @@ function verifySignature(payload: string, header: string | null, secret: string)
 }
 
 interface StripeEvent {
+  id: string;
   type: string;
+  created: number;
   data: { object: Record<string, unknown> };
 }
+
+/** 15 · Eventos de suscripción, facturas, reembolsos y disputas: los aplica la base de datos (idempotente y
+ *  tolerante al desorden, ver billing_apply_event). Aquí solo se verifica la firma y se reenvía. */
+const DB_EVENTS = new Set([
+  'customer.subscription.created', 'customer.subscription.updated', 'customer.subscription.deleted',
+  'invoice.paid', 'invoice.payment_failed', 'charge.refunded', 'charge.dispute.created', 'charge.dispute.closed',
+]);
 
 export async function POST(req: Request) {
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -40,6 +49,13 @@ export async function POST(req: Request) {
 
   const event = JSON.parse(payload) as StripeEvent;
   const db = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
+
+  if (DB_EVENTS.has(event.type)) {
+    const { data, error } = await db.rpc('billing_apply_event', { p_event: event });
+    if (error) return new Response('db error', { status: 500 }); // Stripe reintentará; el id de evento evita duplicar.
+    // El reembolso de un pago único también retira el plan concedido (lógica de abajo).
+    if (event.type !== 'charge.refunded') return Response.json({ outcome: data });
+  }
 
   if (event.type === 'checkout.session.completed') {
     const s = event.data.object as { id: string; payment_status?: string; metadata?: Record<string, string>; client_reference_id?: string };
