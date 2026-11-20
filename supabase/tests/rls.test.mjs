@@ -1476,6 +1476,15 @@ try {
     await as(u.uni, `insert into organization_members (organization_id, user_id, member_role) values ($1, $2, 'coach')`, [uniId, u.coach]);
   });
 
+  // ---------------------------------------------------------------- Fase 04 · foto del encaje al guardar
+  await check('foto de encaje: el atleta la guarda en su guardado; nadie más la lee; tamaño acotado', async () => {
+    const snap = JSON.stringify({ v: 'gm-2.0', s: 82, c: 'medium', f: { english: ['unknown', 'Inglés', 'athlete'] } });
+    await as(u.adult, `update saved_items set match_snapshot = $2::jsonb where athlete_id = $1 and target_kind = 'institution' and target_id = $3`, [u.adult, snap, gmInst]);
+    eq((await as(u.adult, `select match_snapshot->>'c' c from saved_items where athlete_id = $1 and target_id = $2`, [u.adult, gmInst])).rows[0].c, 'medium');
+    eq((await as(u.uni, `select count(*)::int n from saved_items where match_snapshot is not null`)).rows[0].n, 0);
+    await expectError(() => as(u.adult, `update saved_items set match_snapshot = to_jsonb(repeat('x', 20000)) where athlete_id = $1`, [u.adult]));
+  });
+
 } finally {
   console.log(results.join('\n'));
   console.log(`\n${passed} pruebas OK · ${failed} fallidas`);

@@ -4,6 +4,8 @@ import { Badge, ButtonLink, Card, CardTitle, Meter } from '@/components/ui';
 import { InstitutionCard } from '@/components/match/InstitutionCard';
 import { MatchScore } from '@/components/match/MatchParts';
 import { setTaskState } from '@/app/actions/dashboard';
+import { describeConfidence } from '@/lib/domain/gala-match/changes';
+import type { MatchChangeItem } from '@/lib/data/dashboard';
 import { daysUntil, PRIORITY_LABEL, STAGE_LABEL, type ActionItem } from '@/lib/domain/dashboard';
 import type { AthleteDashboard } from '@/lib/data/dashboard';
 
@@ -140,16 +142,7 @@ export function AthleteCommandCenter({ d, firstName, isMinor }: { d: AthleteDash
               ) : (
                 <p className="text-sm text-muted">Aún no hay datos suficientes para calcular tu encaje. Añade deporte, nivel académico y objetivos en tu Passport.</p>
               )}
-              {changes.length > 0 && (
-                <div className="mt-4 border-t border-line pt-3">
-                  <p className="text-xs font-semibold text-faint">Cambios en tu shortlist desde que las guardaste</p>
-                  <ul className="mt-2 space-y-1 text-sm">
-                    {changes.slice(0, 4).map((c) => (
-                      <li key={c.id}><Link href={`/app/match/institution/${c.id}`} className="text-paper hover:text-brass">{c.name}</Link>: <span className="text-muted">{c.from}% → </span><span className={c.to > c.from ? 'font-semibold text-trust' : 'font-semibold text-paper'}>{c.to}%</span></li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+              {changes.length > 0 && <MatchChanges items={changes} />}
             </Card>
           ) : (
             <Card>
@@ -319,5 +312,38 @@ export function AthleteCommandCenter({ d, firstName, isMinor }: { d: AthleteDash
         </aside>
       </div>
     </div>
+  );
+}
+
+/** Cambios de encaje desde que se guardó: cifra, confianza y el porqué (solo si hay datos reales para explicarlo). */
+function MatchChanges({ items }: { items: MatchChangeItem[] }) {
+  return (
+    <section aria-labelledby="match-changes" className="mt-4 border-t border-line pt-3">
+      <h3 id="match-changes" className="text-xs font-semibold text-faint">Cambios desde que las guardaste</h3>
+      <ul className="mt-2 space-y-3 text-sm">
+        {items.slice(0, 3).map(({ id, name, href, change: c }) => {
+          const up = c.from != null && c.to != null && c.to > c.from;
+          const conf = describeConfidence(c);
+          return (
+            <li key={id}>
+              <p>
+                <Link href={href} className="font-semibold text-paper hover:text-brass">{name}</Link>{' '}
+                {c.from != null && c.to != null && c.from !== c.to ? (
+                  <span><span className="text-muted">{c.from}% → </span><span className={up ? 'font-semibold text-trust' : 'font-semibold text-paper'}>{c.to}%</span><span className="sr-only">{up ? ' (ha mejorado)' : ' (ha bajado)'}</span></span>
+                ) : c.to == null ? <span className="text-muted">· sin porcentaje por ahora (faltan datos)</span> : null}
+              </p>
+              {conf && <p className="text-xs text-muted">{conf}</p>}
+              {c.reasons.length > 0 ? (
+                <ul className="mt-1 space-y-0.5 text-xs text-muted">
+                  {c.reasons.map((r) => <li key={r.factor}><span aria-hidden>{r.direction === 'up' ? '↑' : '↓'} </span>{r.text}</li>)}
+                </ul>
+              ) : c.methodChanged ? (
+                <p className="mt-1 text-xs text-muted">Actualizamos el método de cálculo de Gala Match; ningún dato concreto explica el cambio.</p>
+              ) : null}
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }

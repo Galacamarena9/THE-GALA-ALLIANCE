@@ -3,6 +3,7 @@
 import { z } from 'zod';
 import { requireSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
+import { stampMatchAtSave } from '@/lib/data/gala-match';
 
 /** Feedback sobre una respuesta de Gala AI: útil / no útil y motivo. No guarda el contenido. */
 export async function sendAiFeedback(input: { requestId: string; rating: 1 | -1; reason?: string }) {
@@ -29,7 +30,9 @@ export async function confirmAiProposal(input: { kind: 'add_to_pipeline' | 'crea
     const p = z.object({ target_kind: z.enum(['institution', 'opportunity']), target_id: z.string().uuid() }).safeParse(input);
     if (!p.success) return { ok: false, message: 'Datos no válidos.' };
     const { error } = await supabase.from('saved_items').upsert({ athlete_id: session.userId, target_kind: p.data.target_kind, target_id: p.data.target_id }, { onConflict: 'athlete_id,target_kind,target_id', ignoreDuplicates: true });
-    return error ? { ok: false, message: 'No se ha podido añadir.' } : { ok: true, message: 'Añadido a tu pipeline' };
+    if (error) return { ok: false, message: 'No se ha podido añadir.' };
+    await stampMatchAtSave(session.userId, p.data.target_kind, p.data.target_id);
+    return { ok: true, message: 'Añadido a tu pipeline' };
   }
   const p = z.object({ title: z.string().trim().min(2).max(160), due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional() }).safeParse(input);
   if (!p.success) return { ok: false, message: 'Tarea no válida.' };

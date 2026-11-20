@@ -5,7 +5,10 @@ import { athletePhotoUrl } from '@/lib/data/passport-view';
 import { loadAthleteContext, loadInstitutionMatches, loadOpportunityMatches, loadSaved, type ScoredInstitution, type ScoredOpportunity } from '@/lib/data/gala-match';
 import { DIVISION_PATHWAYS } from '@/lib/domain/passport';
 import { loadOpenTasks } from '@/lib/data/pipeline';
+import { explainChange, parseSnapshot, type MatchChange } from '@/lib/domain/gala-match/changes';
 import { daysUntil, journey, prioritize, stageOf, type DashboardInput } from '@/lib/domain/dashboard';
+
+export type MatchChangeItem = { id: string; name: string; href: string; change: MatchChange };
 
 /** Resultado de un módulo: si falla, el resto del panel sigue funcionando. */
 export type Mod<T> = { ok: true; data: T } | { ok: false };
@@ -81,11 +84,26 @@ export async function loadAthleteDashboard(userId: string, isMinor: boolean) {
     return { id: `rec-${d.id}`, title: `Tenlo listo: ${d.title}`, date: r.toISOString().slice(0, 10), href: d.href, kind: 'recommended' as const, label: 'Fecha recomendada por Gala' };
   });
 
-  // Cambios reales de encaje: guardadas cuyo porcentaje actual difiere del de cuando se guardaron.
-  const changes = instM.ok ? savedRows.filter((s) => s.target_kind === 'institution' && s.match_score_at_save != null).map((s) => {
-    const cur = instM.data.scored.find((x) => x.inst.id === s.target_id);
-    return cur && cur.m.score != null && cur.m.score !== s.match_score_at_save ? { name: s.name, id: s.target_id, from: s.match_score_at_save!, to: cur.m.score } : null;
-  }).filter((x): x is { name: string; id: string; from: number; to: number } => x != null) : [];
+  // Cambios reales de encaje: guardadas cuyo resultado actual difiere del congelado al guardar.
+  // Con foto se explica el porqué factor a factor; sin foto (guardados antiguos) solo se muestra la cifra.
+  const changes: MatchChangeItem[] = [];
+  for (const s of savedRows) {
+    const cur = s.target_kind === 'institution'
+      ? (instM.ok ? instM.data.scored.find((x) => x.inst.id === s.target_id)?.m : undefined)
+      : (oppM.ok ? oppM.data.scored.find((x) => x.opp.id === s.target_id)?.m : undefined);
+    if (!cur) continue;
+    const snap = parseSnapshot(s.match_snapshot);
+    const href = `/app/match/${s.target_kind}/${s.target_id}`;
+    if (snap) {
+      const c = explainChange(snap, cur);
+      if (c) changes.push({ id: s.target_id, name: s.name, href, change: c });
+    } else if (s.match_score_at_save != null && cur.score != null && cur.score !== s.match_score_at_save) {
+      changes.push({ id: s.target_id, name: s.name, href, change: { from: s.match_score_at_save, to: cur.score, confidenceFrom: cur.confidence, confidenceTo: cur.confidence, reasons: [], methodChanged: false } });
+    }
+  }
+  // Primero los que tienen explicación y los que más se mueven.
+  changes.sort((a, b) => (b.change.reasons.length > 0 ? 1 : 0) - (a.change.reasons.length > 0 ? 1 : 0)
+    || Math.abs((b.change.to ?? 0) - (b.change.from ?? 0)) - Math.abs((a.change.to ?? 0) - (a.change.from ?? 0)));
 
   const input: DashboardInput = {
     readiness: passport.readiness,
