@@ -6,6 +6,7 @@ import { respondRepresentation } from '@/app/actions/marketplace';
 import { StatusPill } from '@/components/portfolio';
 import { REP_PERMISSIONS, REP_TYPE_LABEL, repStatusDetail, toRepStatus } from '@/lib/domain/portfolio';
 import { RepPermissionsForm } from '@/components/agency/RepPermissionsForm';
+import { InviteAgencyForm } from '@/components/agency/InviteAgencyForm';
 import { CASE_STAGES, stageLabel } from '@/lib/domain/agency-cases';
 
 export const metadata: Metadata = { title: 'Agentes' };
@@ -18,6 +19,8 @@ export default async function AthleteAgentsPage() {
     .select('id, status, message, created_at, representation_type, start_date, end_date, organizations(name, website, verification_status), representation_coverage(dimension, value), representation_permissions(permission, status)')
     .eq('athlete_id', session.userId)
     .order('created_at', { ascending: false });
+  const { data: verifiedAgencies } = await supabase.from('organizations').select('id, name')
+    .eq('type', 'agency').eq('verification_status', 'verified').eq('org_status', 'active').order('name').limit(100);
   // Solo llegan los procesos que la agencia ha decidido compartir (lo garantiza la RLS).
   const { data: cases } = await supabase
     .from('recruiting_cases')
@@ -34,6 +37,11 @@ export default async function AthleteAgentsPage() {
     <>
       <PageHeader kicker="Agentes" title="Quién quiere representarte" description="Tú decides. Nadie te representa sin tu aceptación expresa, y puedes terminar la relación cuando quieras." />
       {session.isMinor && <div className="mb-5"><Notice tone="neutral">Las agencias no pueden encontrarte mientras seas menor. Si quieres una propuesta, tu familia o tú podéis invitar a una agencia verificada, y nada se activa sin la aprobación de tu familia.</Notice></div>}
+      <Card className="mb-5">
+        <CardTitle kicker="Tú eliges">Invitar a una agencia</CardTitle>
+        <p className="mb-3 text-sm text-muted">Si ya sabes con quién quieres trabajar, invítala a enviarte su propuesta. Verás el alcance exacto antes de aceptar{session.isMinor ? ', y tu familia tendrá que aprobarla' : ''}.</p>
+        <InviteAgencyForm agencies={(verifiedAgencies ?? []) as { id: string; name: string }[]} />
+      </Card>
       <div className="mb-5"><Notice tone="neutral">Antes de firmar con un agente, consulta las normas de agentes de la NCAA/NAIA y de tu federación: algunos acuerdos pueden afectar a tu elegibilidad.</Notice></div>
       {reps?.length ? (
         <ul className="space-y-4">

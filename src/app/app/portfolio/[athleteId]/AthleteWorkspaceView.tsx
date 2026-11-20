@@ -6,7 +6,7 @@ import { ButtonLink, cx } from '@/components/ui';
 import { ActivityFeed, AthleteAvatar, NextStepsList, Panel, StatusPill } from '@/components/portfolio';
 import { EndRepresentationForm, NoteBody, NoteComposer } from '@/components/portfolio-client';
 import { DIVISION_LABEL } from '@/lib/domain/labels';
-import { buildTimeline, dueText, isOverdue, nextSteps, relativeTime } from '@/lib/domain/portfolio';
+import { buildTimeline, dueText, isOverdue, nextSteps, relativeTime, REP_PERMISSIONS, REP_TYPE_LABEL, repStatusDetail } from '@/lib/domain/portfolio';
 import type { Division } from '@/lib/types';
 import type { CaseRow } from '@/lib/data/agency-cases';
 import { stageLabel, isCaseStale } from '@/lib/domain/agency-cases';
@@ -28,7 +28,13 @@ const dateFmt = (iso: string) => new Date(iso).toLocaleDateString('es-ES', { day
 export type AthleteWorkspace = NonNullable<Awaited<ReturnType<typeof loadAthleteWorkspace>>>;
 
 export function AthleteWorkspaceView({ ws, tab, userId, cases = [] }: { ws: AthleteWorkspace; tab: Tab; userId: string; cases?: CaseRow[] }) {
-  const { current: e, history, notes, authorName, detail } = ws;
+  const { current: e, history, notes, authorName, detail, scope, roster } = ws;
+  const others = roster.filter((r) => r.athleteId !== e.athleteId);
+  const ROLE_LABEL: Record<string, string> = { primary: 'Agente principal', secondary: 'Agente de apoyo', operations: 'Operaciones', collaborator: 'Colaborador', viewer: 'Solo lectura' };
+  const daysLeft = scope.daysLeft;
+  const statusNote = repStatusDetail(scope.dbStatus);
+  const place = (v: string) => (v === 'WORLD' ? 'Todo el mundo' : v === 'EUROPE' ? 'Europa' : v === 'NORTH_AMERICA' ? 'Norteamérica' : v === 'LATAM' ? 'Latinoamérica' : v);
+  const CAT: Record<string, string> = { university: 'Universidades', club: 'Clubes', academy: 'Academias', brand: 'Marcas' };
   const steps = nextSteps(notes, new Map([[e.athleteId, e.name]]));
   const timeline = buildTimeline(history, notes);
   const canNote = e.status !== 'declined';
@@ -53,9 +59,33 @@ export function AthleteWorkspaceView({ ws, tab, userId, cases = [] }: { ws: Athl
 
   return (
     <div className="space-y-6">
-      <Link href="/app/portfolio" className="inline-flex items-center gap-1.5 text-sm text-muted transition-colors hover:text-paper">
-        <ArrowLeft className="h-4 w-4" aria-hidden /> Portfolio
-      </Link>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Link href="/app/portfolio" className="inline-flex items-center gap-1.5 text-sm text-muted transition-colors hover:text-paper">
+          <ArrowLeft className="h-4 w-4" aria-hidden /> Portfolio
+        </Link>
+        {others.length > 0 && (
+          <details className="relative">
+            <summary className="cursor-pointer list-none rounded-xl border border-line px-3 py-1.5 text-sm text-paper hover:border-brass/40">Cambiar de atleta ▾</summary>
+            <ul className="absolute right-0 z-20 mt-1 max-h-72 w-60 overflow-y-auto rounded-xl border border-line bg-surface p-1 shadow-[var(--shadow-elevated)]">
+              {others.map((o) => (
+                <li key={o.athleteId}><Link href={`/app/portfolio/${o.athleteId}`} className="block truncate rounded-lg px-3 py-2 text-sm text-paper hover:bg-surface-2/60">{o.name}</Link></li>
+              ))}
+            </ul>
+          </details>
+        )}
+      </div>
+
+      {/* «Actuando para»: evita confundir atletas al trabajar con varios a la vez. */}
+      {scope.dbStatus === 'active' && scope.myRole && (
+        <p className="sticky top-2 z-10 flex flex-wrap items-center gap-x-2 rounded-xl bg-night px-4 py-2 text-sm text-white shadow-[var(--shadow-elevated)]" role="status">
+          <span className="text-xs font-semibold uppercase tracking-wide text-lime">Actuando para</span>
+          <span className="font-semibold">{e.name}</span>
+          <span className="text-lavender">· {ROLE_LABEL[scope.myRole] ?? scope.myRole}</span>
+        </p>
+      )}
+      {scope.dbStatus === 'active' && !scope.myRole && (
+        <p className="rounded-xl bg-warn/10 px-4 py-2 text-sm text-warn ring-1 ring-inset ring-warn/25">No estás asignado a este atleta: ves la ficha de la agencia, pero no puedes actuar en su nombre. Pide a quien dirige la agencia que te asigne.</p>
+      )}
 
       {/* Cabecera tipo perfil (LinkedIn Recruiter): quién es, en qué estado está y la acción posible */}
       <header className="relative overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface">
@@ -118,13 +148,30 @@ export function AthleteWorkspaceView({ ws, tab, userId, cases = [] }: { ws: Athl
             <Panel title="Representación">
               <dl className="px-2 text-sm">
                 <Row label="Estado"><StatusPill status={e.status} /></Row>
+                {statusNote && <Row label="Detalle">{statusNote}</Row>}
                 <Row label="Agencia">{e.agencyName}</Row>
+                {scope.type && <Row label="Tipo">{REP_TYPE_LABEL[scope.type] ?? scope.type}</Row>}
+                {scope.startDate && scope.endDate && <Row label="Vigencia">{dateFmt(scope.startDate)} → {dateFmt(scope.endDate)}</Row>}
+                {daysLeft != null && daysLeft <= 30 && <Row label="Vence"><span className={daysLeft <= 7 ? 'text-danger' : 'text-warn'}>{daysLeft <= 0 ? 'Hoy' : `En ${daysLeft} días`}</span></Row>}
+                {scope.sports.length > 0 && <Row label="Deporte">{scope.sports.join(', ')}</Row>}
+                {scope.territories.length > 0 && <Row label="Territorio">{scope.territories.map(place).join(', ')}</Row>}
+                {scope.categories.length > 0 && <Row label="Oportunidades">{scope.categories.map((c) => CAT[c] ?? c).join(', ')}</Row>}
+                {scope.myRole && <Row label="Tu papel">{ROLE_LABEL[scope.myRole] ?? scope.myRole}</Row>}
                 <Row label="Propuesta">{dateFmt(e.createdAt)}</Row>
                 {e.respondedAt && <Row label={e.status === 'declined' ? 'Rechazada' : 'Aceptada'}>{dateFmt(e.respondedAt)}</Row>}
                 {e.endedAt && <Row label="Finalizada">{dateFmt(e.endedAt)}</Row>}
                 {history.length > 1 && <Row label="Historial">{history.length} propuestas</Row>}
               </dl>
               {e.message && <p className="mx-2 mb-2 mt-1 rounded-xl bg-ink/50 p-3 text-xs italic text-muted">“{e.message}”</p>}
+              {scope.permissions.length > 0 && (
+                <div className="mx-2 mb-2 mt-2">
+                  <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-faint">El atleta te permite</p>
+                  <ul className="space-y-0.5 text-xs text-muted">
+                    {REP_PERMISSIONS.filter((p) => scope.permissions.includes(p.id)).map((p) => <li key={p.id} className="flex gap-1.5"><Check className="h-3.5 w-3.5 shrink-0 text-ok" aria-hidden />{p.label}</li>)}
+                  </ul>
+                  <p className="mt-2 text-[11px] text-faint">Aceptar ofertas, el presupuesto familiar y las notas de la familia quedan siempre fuera.</p>
+                </div>
+              )}
             </Panel>
             <Panel title="Próximos pasos" action={<Link href={`/app/portfolio/${e.athleteId}?tab=pasos`} className="text-xs font-medium text-brass hover:underline">Ver todos</Link>}>
               <NextStepsList steps={steps.slice(0, 3)} showAthlete={false} />

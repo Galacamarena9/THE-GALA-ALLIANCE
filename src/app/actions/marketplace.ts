@@ -131,6 +131,19 @@ export async function respondRepresentation(formData: FormData) {
   revalidatePath('/app/family/safety');
 }
 
+/** El atleta o su familia invitan a una agencia verificada a enviar UNA propuesta (30 días). Es la vía de los menores. */
+export async function inviteAgency(_prev: FormState, formData: FormData): Promise<FormState> {
+  const session = await requireSession(['athlete', 'parent']);
+  const parsed = z.object({ agency_id: z.string().uuid(), athlete_id: z.string().uuid().optional() }).safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: 'Elige una agencia.' };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('representation_invite', { p_agency: parsed.data.agency_id, p_athlete: parsed.data.athlete_id ?? session.userId });
+  if (error) return { error: error.message.includes('agency_not_verified') ? 'Esa agencia no está verificada.' : 'No se ha podido enviar la invitación.' };
+  revalidatePath('/app/agents');
+  revalidatePath('/app/family/safety');
+  return { ok: true, message: 'Invitación enviada. La agencia tiene 30 días para mandaros su propuesta; nada se activa sin vuestra aprobación.' };
+}
+
 /** El atleta (o su familia) decide qué puede hacer la agencia. Quitar un permiso tiene efecto inmediato. */
 export async function setRepresentationPermissions(_prev: FormState, formData: FormData): Promise<FormState> {
   await requireSession(['athlete', 'parent']);

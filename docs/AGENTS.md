@@ -51,4 +51,4 @@ Administrar la agencia **no** da acceso a los datos privados de un atleta. Hace 
 | 12A | Modelo de datos de la representación (fuente de verdad única). Ver [REPRESENTATION-ARCHITECTURE.md](REPRESENTATION-ARCHITECTURE.md). |
 | 12A.1 | Pruebas de integridad, concurrencia y transiciones. |
 | 12B | RLS y matriz de consentimiento: el agente accede a cada recurso del atleta solo si su permiso, deporte, territorio y tipo de oportunidad lo cubren. Ver [AGENT-RLS.md](AGENT-RLS.md). |
-| 12C | Workspace multi-atleta, móvil, pentest y QA final. |
+| 12C | Workspace multi-atleta, móvil, pentest y QA final. Ver [AGENT-WORKSPACE-QA.md](AGENT-WORKSPACE-QA.md). |

@@ -13,7 +13,7 @@ export interface PortfolioData {
 
 type RepRow = {
   id: string; agency_id: string; agent_id: string; athlete_id: string; status: string; message: string | null;
-  created_at: string; responded_at: string | null; ended_at: string | null;
+  created_at: string; responded_at: string | null; ended_at: string | null; end_date: string | null; representation_type: string | null;
 };
 type DirRow = {
   user_id: string; display_name: string | null; avatar_url: string | null; country: string | null; sport_id: string | null;
@@ -34,7 +34,7 @@ export const loadPortfolio = cache(async (userId: string): Promise<PortfolioData
   const [{ data: reps }, { data: notes }] = await Promise.all([
     supabase
       .from('agent_representations')
-      .select('id, agency_id, agent_id, athlete_id, status, message, created_at, responded_at, ended_at')
+      .select('id, agency_id, agent_id, athlete_id, status, message, created_at, responded_at, ended_at, end_date, representation_type')
       .in('agency_id', agencyIds)
       .order('created_at', { ascending: false })
       .limit(1000),
@@ -91,6 +91,9 @@ export const loadPortfolio = cache(async (userId: string): Promise<PortfolioData
         agentId: r.agent_id,
         athleteId: r.athlete_id,
         status: toRepStatus(r.status) as PortfolioEntry['status'],
+        dbStatus: r.status,
+        endDate: r.end_date,
+        representationType: r.representation_type,
         message: r.message,
         createdAt: r.created_at,
         respondedAt: r.responded_at,
@@ -173,7 +176,31 @@ export async function loadAthleteWorkspace(userId: string, athleteId: string) {
     schoolYear: ac?.school_year ?? null,
   };
 
+  // 12C: alcance real de la representación y el papel de quien mira (todo lo filtra la RLS).
+  const repId = history[0].repId;
+  const [{ data: cov }, { data: perms }, { data: assigns }, { data: rep }] = await Promise.all([
+    supabase.from('representation_coverage').select('dimension, value').eq('representation_id', repId),
+    supabase.from('representation_permissions').select('permission').eq('representation_id', repId).eq('status', 'active'),
+    supabase.from('representation_assignments').select('user_id, role').eq('representation_id', repId).is('ended_at', null),
+    supabase.from('agent_representations').select('representation_type, start_date, end_date, status').eq('id', repId).maybeSingle(),
+  ]);
+  const scope = {
+    type: (rep?.representation_type as string | null) ?? null,
+    startDate: (rep?.start_date as string | null) ?? null,
+    endDate: (rep?.end_date as string | null) ?? null,
+    dbStatus: (rep?.status as string | null) ?? history[0].status,
+    sports: (cov ?? []).filter((c) => c.dimension === 'sport').map((c) => c.value as string),
+    territories: (cov ?? []).filter((c) => c.dimension === 'territory').map((c) => c.value as string),
+    categories: (cov ?? []).filter((c) => c.dimension === 'opportunity_type').map((c) => c.value as string),
+    permissions: (perms ?? []).map((p) => p.permission as string),
+    daysLeft: rep?.end_date && rep.status === 'active' ? Math.round((Date.parse(`${rep.end_date}T00:00:00Z`) - Date.now()) / 864e5) : null,
+    myRole: ((assigns ?? []).find((a) => a.user_id === userId)?.role as string | undefined) ?? null,
+  };
+  const roster = portfolio.entries.filter((x) => x.status === 'active').map((x) => ({ athleteId: x.athleteId, name: x.name }));
+
   return {
+    scope,
+    roster,
     current: history[0], // la más reciente
     history,
     notes,

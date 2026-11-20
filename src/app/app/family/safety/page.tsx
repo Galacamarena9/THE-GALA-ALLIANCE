@@ -4,6 +4,10 @@ import { requireSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
 import { guardianLinks } from '@/lib/data/family-home';
 import { revokeDocumentGrant } from '@/app/actions/family';
+import { respondRepresentation } from '@/app/actions/marketplace';
+import { RepPermissionsForm } from '@/components/agency/RepPermissionsForm';
+import { InviteAgencyForm } from '@/components/agency/InviteAgencyForm';
+import { REP_PERMISSIONS, REP_TYPE_LABEL, repStatusDetail } from '@/lib/domain/portfolio';
 import { Badge, Card, CardTitle, EmptyState, Notice, PageHeader } from '@/components/ui';
 
 export const metadata: Metadata = { title: 'Seguridad · Familia' };
@@ -41,6 +45,16 @@ export default async function FamilySafetyPage({ searchParams }: { searchParams:
       ? supabase.from('contact_requests').select('id, status, organizations(name, verification_status)').eq('athlete_id', current.athleteId).order('created_at', { ascending: false }).limit(20)
       : Promise.resolve({ data: null }),
   ]) : [{ data: null }, { data: null }];
+  // 12C · Agencias: solo menores (para adultos la familia no decide). La RLS solo devuelve lo del menor vinculado.
+  const minorGuardian = current.active && (await supabase.rpc('is_minor_guardian_of', { p_athlete: current.athleteId })).data === true;
+  const [{ data: repsRaw }, { data: verifiedAgencies }] = minorGuardian ? await Promise.all([
+    supabase.from('agent_representations')
+      .select('id, status, representation_type, start_date, end_date, organizations(name), representation_permissions(permission, status)')
+      .eq('athlete_id', current.athleteId).in('status', ['requested', 'pending_guardian', 'pending_review', 'active', 'suspended']).order('created_at', { ascending: false }),
+    supabase.from('organizations').select('id, name').eq('type', 'agency').eq('verification_status', 'verified').eq('org_status', 'active').order('name').limit(100),
+  ]) : [{ data: null }, { data: null }];
+  type R = { id: string; status: string; representation_type: string; start_date: string; end_date: string; organizations: { name: string } | null; representation_permissions: { permission: string; status: string }[] };
+  const reps = (repsRaw ?? []) as unknown as R[];
   type G = { id: string; purpose: string; expires_at: string; revoked_at: string | null; athlete_documents: { title: string } | null; organizations: { name: string; verification_status: string } | null };
   const all = (grants ?? []) as unknown as G[];
   const active = all.filter((g) => !g.revoked_at && g.expires_at > now);
@@ -105,6 +119,54 @@ export default async function FamilySafetyPage({ searchParams }: { searchParams:
                 </details>
               )}
             </Card>
+
+            {minorGuardian && (
+              <Card>
+                <CardTitle kicker="Agencias">Quién representa a {current.name}</CardTitle>
+                {reps.length ? (
+                  <ul className="divide-y divide-line">
+                    {reps.map((r) => {
+                      const perms = r.representation_permissions.filter((p) => p.status === 'active').map((p) => p.permission);
+                      return (
+                        <li key={r.id} className="py-3">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <p className="text-sm font-medium text-paper">{r.organizations?.name ?? 'Agencia'}</p>
+                            <Badge tone={r.status === 'active' ? 'ok' : 'warn'}>{r.status === 'active' ? 'Activa' : repStatusDetail(r.status) ?? 'Pendiente de su respuesta'}</Badge>
+                          </div>
+                          <p className="mt-1 text-xs text-muted">{REP_TYPE_LABEL[r.representation_type] ?? r.representation_type} · {date(r.start_date)} → {date(r.end_date)}</p>
+                          {r.status === 'pending_guardian' && (
+                            <>
+                              <p className="mt-2 text-xs text-muted">Podría: {REP_PERMISSIONS.filter((p) => perms.includes(p.id)).map((p) => p.label.toLowerCase()).join(' · ') || 'nada todavía'}. Quita lo que no quieras antes de aprobar.</p>
+                              <details className="mt-2"><summary className="cursor-pointer text-xs text-brass">Ajustar permisos</summary><div className="mt-2"><RepPermissionsForm id={r.id} active={perms} /></div></details>
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                <form action={respondRepresentation}><input type="hidden" name="id" value={r.id} /><input type="hidden" name="status" value="guardian_approve" /><button className="min-h-11 rounded-full bg-brass px-4 text-sm font-semibold text-ink">Aprobar</button></form>
+                                <form action={respondRepresentation}><input type="hidden" name="id" value={r.id} /><input type="hidden" name="status" value="guardian_decline" /><button className="min-h-11 rounded-full border border-line-strong px-4 text-sm text-paper">No aprobar</button></form>
+                              </div>
+                            </>
+                          )}
+                          {(r.status === 'active' || r.status === 'suspended') && (
+                            <div className="mt-2 flex flex-wrap items-start gap-4">
+                              <details><summary className="inline-flex min-h-11 cursor-pointer items-center text-sm text-brass">Qué puede hacer</summary><div className="mt-2"><RepPermissionsForm id={r.id} active={perms} /></div></details>
+                              <details>
+                                <summary className="inline-flex min-h-11 cursor-pointer items-center text-sm text-muted hover:text-danger">Revocar</summary>
+                                <form action={respondRepresentation} className="mt-2 max-w-xs rounded-xl border border-line p-3 text-xs text-muted">
+                                  <input type="hidden" name="id" value={r.id} /><input type="hidden" name="status" value="ended" />
+                                  <p>La agencia pierde el acceso al momento. Sus procesos, documentos y ofertas no se borran.</p>
+                                  <button className="mt-2 min-h-11 rounded-full border border-danger/40 px-4 font-semibold text-danger">Sí, revocar</button>
+                                </form>
+                              </details>
+                            </div>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-muted">Ninguna agencia representa a {current.name}. Las agencias no pueden encontrar a menores: si queréis una propuesta, invitad a una verificada.</p>
+                )}
+                <div className="mt-4 border-t border-line pt-4"><InviteAgencyForm agencies={(verifiedAgencies ?? []) as { id: string; name: string }[]} athleteId={current.athleteId} /></div>
+              </Card>
+            )}
 
             <Card>
               <CardTitle kicker="Contacto" action={<Link href="/app/inbox" className="text-sm text-brass hover:underline">Abrir bandeja</Link>}>Quién quiere hablar con {current.name}</CardTitle>
