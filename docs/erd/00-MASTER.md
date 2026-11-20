@@ -1,8 +1,8 @@
 <!-- Generado por scripts/erd/generate.mjs a partir de las migraciones. No editar a mano: `npm run erd`. -->
 # 00 · MASTER · Mapa de datos de The Gala Alliance
 
-**136 tablas** en 14 dominios, todas con RLS (136/136).
-Clasificación: Pública 17 · Interna 36 · Personal 61 · Sensible 22 · con posibles datos de menores: 49.
+**143 tablas** en 14 dominios, todas con RLS (143/143).
+Clasificación: Pública 17 · Interna 39 · Personal 61 · Sensible 26 · con posibles datos de menores: 49.
 
 Cómo leerlo: cada dominio tiene su fichero con el diagrama AS-IS (columnas reales), el inventario y el TO-BE. La arquitectura, las reglas y el plan están en [`docs/DATA_ARCHITECTURE.md`](../DATA_ARCHITECTURE.md).
 
@@ -22,9 +22,9 @@ flowchart LR
   D08["08 · Pipeline del atleta y Gala Match<br>8 tablas"]
   D09["09 · Discovery, shortlists y pipeline del staff<br>15 tablas"]
   D10["10 · Agencias y clubes<br>18 tablas"]
-  D11["11 · Comunicación, avisos y seguridad<br>6 tablas"]
+  D11["11 · Comunicación, avisos y seguridad<br>10 tablas"]
   D12["12 · Marcas y negocio<br>8 tablas"]
-  D13["13 · IA, academia, analítica y auditoría<br>10 tablas"]
+  D13["13 · IA, academia, analítica y auditoría<br>13 tablas"]
   D14["14 · Clubs & Academies: trials, programas y participación<br>13 tablas"]
   D02 --> D01
   D02 --> D03
@@ -63,6 +63,9 @@ flowchart LR
   D11 --> D01
   D11 --> D03
   D11 --> D05
+  D13 --> D01
+  D13 --> D05
+  D13 --> D11
   D12 --> D01
   D12 --> D03
   D12 --> D05
@@ -73,8 +76,6 @@ flowchart LR
   D14 --> D07
   D14 --> D08
   D14 --> D09
-  D13 --> D01
-  D13 --> D05
 ```
 
 ## Entidades núcleo
@@ -164,7 +165,7 @@ erDiagram
 | [08 · Pipeline del atleta y Gala Match](./08-pipeline-atleta.md) | 8 | `saved_items` |
 | [09 · Discovery, shortlists y pipeline del staff](./09-recruiting-staff.md) | 15 | `saved_athletes`, `saved_searches` |
 | [10 · Agencias y clubes](./10-agencias-clubes.md) | 18 | `club_roster_invites` |
-| [11 · Comunicación, avisos y seguridad](./11-comunicacion.md) | 6 | — |
+| [11 · Comunicación, avisos y seguridad](./11-comunicacion.md) | 10 | — |
 | [12 · Marcas y negocio](./12-marcas-negocio.md) | 8 | — |
-| [13 · IA, academia, analítica y auditoría](./13-ia-analitica.md) | 10 | — |
+| [13 · IA, academia, analítica y auditoría](./13-ia-analitica.md) | 13 | — |
 | [14 · Clubs & Academies: trials, programas y participación](./14-clubs-academias.md) | 13 | — |
