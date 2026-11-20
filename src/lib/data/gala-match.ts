@@ -1,6 +1,7 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
 import { loadPassport } from '@/lib/data/athlete';
+import { snapshotOf } from '@/lib/domain/gala-match/changes';
 import { compareMatches, galaMatch, type AthleteContext, type GalaMatch, type InstitutionTarget, type OpportunityTarget } from '@/lib/domain/gala-match/engine';
 
 const INST_COLS = 'id, name, city, state, sports_offered, division, association, conference, athletic_source, ownership, locale, enrollment, cost_attendance_usd, tuition_in_state_usd, tuition_out_of_state_usd, net_price_usd, graduation_rate, program_cips, website_url, data_source, source_fetched_at';
@@ -162,12 +163,35 @@ export async function loadOneMatch(userId: string, ctx: AthleteContext, kind: 'i
   return { kind, inst, opp, m: galaMatch(ctx, { kind: 'opportunity', ...opp, institution: inst ? toInstTarget(inst) : null }), saved: sets.savedSet.has(`opportunity:${id}`), hidden: sets.hidden.has(`opportunity:${id}`) };
 }
 
-export type SavedRow = { id: string; target_kind: 'institution' | 'opportunity'; target_id: string; status: string; shortlist_tier: string | null; note: string | null; match_score_at_save: number | null; created_at: string; name: string; sub: string };
+/**
+ * Congela el encaje en el momento de guardar: se calcula aquí, en el servidor, con el motor real (nunca lo envía el navegador).
+ * Solo rellena guardados sin foto previa, para no reescribir la historia de uno antiguo. Si falla, el guardado sigue siendo válido.
+ */
+export async function stampMatchAtSave(athleteId: string, kind: 'institution' | 'opportunity', id: string): Promise<number | null> {
+  try {
+    const supabase = await createClient();
+    // Solo con la sesión del propio atleta: un familiar puede no ver todos los bloques y la foto saldría incompleta.
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user?.id !== athleteId) return null;
+    const loaded = await loadAthleteContext(athleteId);
+    if (!loaded) return null;
+    const one = await loadOneMatch(athleteId, loaded.ctx, kind, id);
+    if (!one) return null;
+    await supabase.from('saved_items').update({ match_score_at_save: one.m.score, match_snapshot: snapshotOf(one.m) })
+      .eq('athlete_id', athleteId).eq('target_kind', kind).eq('target_id', id).is('match_snapshot', null).is('match_score_at_save', null);
+    return one.m.score;
+  } catch (e) {
+    console.error('[gala-match] no se pudo congelar el encaje', e instanceof Error ? e.message : e);
+    return null;
+  }
+}
+
+export type SavedRow = { id: string; target_kind: 'institution' | 'opportunity'; target_id: string; status: string; shortlist_tier: string | null; note: string | null; match_score_at_save: number | null; match_snapshot: unknown; created_at: string; name: string; sub: string };
 
 /** Guardados con nombre (para listas y shortlist). */
 export async function loadSaved(userId: string): Promise<SavedRow[]> {
   const supabase = await createClient();
-  const { data } = await supabase.from('saved_items').select('id, target_kind, target_id, status, shortlist_tier, note, match_score_at_save, created_at').eq('athlete_id', userId).order('created_at', { ascending: false });
+  const { data } = await supabase.from('saved_items').select('id, target_kind, target_id, status, shortlist_tier, note, match_score_at_save, match_snapshot, created_at').eq('athlete_id', userId).order('created_at', { ascending: false });
   const rows = data ?? [];
   const iIds = rows.filter((r) => r.target_kind === 'institution').map((r) => r.target_id);
   const oIds = rows.filter((r) => r.target_kind === 'opportunity').map((r) => r.target_id);

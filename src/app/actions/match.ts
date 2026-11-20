@@ -6,6 +6,7 @@ import { requireSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
 import { logEvent } from '@/lib/events';
 import { GALA_MATCH_VERSION } from '@/lib/domain/gala-match/engine';
+import { stampMatchAtSave } from '@/lib/data/gala-match';
 
 const target = z.object({
   kind: z.enum(['institution', 'opportunity']),
@@ -28,9 +29,11 @@ export async function toggleSaved(formData: FormData) {
     await supabase.from('saved_items').delete().eq('id', existing.id);
     await signal(session.userId, t.kind, t.id, 'unsaved', t.score);
   } else {
-    const { error } = await supabase.from('saved_items').insert({ athlete_id: session.userId, target_kind: t.kind, target_id: t.id, match_score_at_save: t.score });
+    // El encaje al guardar lo calcula el servidor (no se fía del valor que envía el navegador).
+    const { error } = await supabase.from('saved_items').insert({ athlete_id: session.userId, target_kind: t.kind, target_id: t.id });
     if (!error) {
-      await signal(session.userId, t.kind, t.id, 'saved', t.score);
+      const score = await stampMatchAtSave(session.userId, t.kind, t.id);
+      await signal(session.userId, t.kind, t.id, 'saved', score ?? t.score);
       await logEvent(t.kind === 'institution' ? 'university_saved' : 'opportunity_saved');
     }
   }

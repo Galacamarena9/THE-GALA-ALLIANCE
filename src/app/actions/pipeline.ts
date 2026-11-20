@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { requireSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
+import { stampMatchAtSave } from '@/lib/data/gala-match';
 import { managedAthletes } from '@/lib/data/family';
 import { logEvent } from '@/lib/events';
 import { STAGES } from '@/lib/domain/pipeline';
@@ -231,6 +232,7 @@ export async function addToPipeline(formData: FormData) {
   const athlete = await editableAthlete(formData);
   const t = z.object({ kind: z.enum(['institution', 'opportunity']), target: uuid }).parse(Object.fromEntries(formData));
   const supabase = await createClient();
-  await supabase.from('saved_items').upsert({ athlete_id: athlete, target_kind: t.kind, target_id: t.target }, { onConflict: 'athlete_id,target_kind,target_id', ignoreDuplicates: true });
+  const { error } = await supabase.from('saved_items').upsert({ athlete_id: athlete, target_kind: t.kind, target_id: t.target }, { onConflict: 'athlete_id,target_kind,target_id', ignoreDuplicates: true });
+  if (!error) await stampMatchAtSave(athlete, t.kind, t.target);
   refresh();
 }
