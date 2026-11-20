@@ -40,7 +40,7 @@ export default async function OrganizationPage({ searchParams }: { searchParams:
 
   return (
     <>
-      <PageHeader kicker="Organización" title="Perfil, verificación y equipo" description="Una organización verificada genera confianza: puede publicar, contactar atletas y aparecer con su sello." />
+      <PageHeader kicker="Organización" title="Perfil, verificación y equipo" description="Una organización verificada genera confianza: puede publicar, contactar atletas y aparecer con su sello." action={<ButtonLink href="/app/billing" variant="secondary">Facturación</ButtonLink>} />
       {sp.error && <div className="mb-4"><Notice tone="danger">{sp.error}</Notice></div>}
       <div className="space-y-5">
         {await Promise.all(

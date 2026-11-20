@@ -3245,6 +3245,79 @@ try {
     });
   });
 
+  // ---------------------------------------------------------------- Prompt 15 · Facturación
+  results.push('\nPrompt 15: catálogo, derechos, cuotas atómicas, asientos, webhook idempotente y libro contable');
+  const svc = async (sql, params = []) => {
+    await db.query('begin'); try { await db.query('set local role service_role'); const r = await db.query(sql, params); await db.query('commit'); return r; } catch (e) { await db.query('rollback'); throw e; }
+  };
+  const ev = (id, type, created, object) => JSON.stringify({ id, type, created, data: { object } });
+  const T0 = Math.floor(Date.now() / 1000);
+  let acct; let subId;
+  await check('P15 §7/§17 el catálogo es público y los límites salen de él (no del código)', async () => {
+    eq((await as(null, `select count(*)::int n from plan_catalog where code = 'agent_team'`)).rows[0].n, 1);
+    eq((await as(u.agent, `select feature_limit('represented_athletes', $1) n`, [agencyId])).rows[0].n, 100, 'lanzamiento: plan de agencia gratis hasta la fecha anunciada');
+    const fr = await mkUser('s-free', 'athlete', 19);
+    eq((await as(fr, `select feature_limit('ai_questions_day') n`)).rows[0].n, 30, 'gratis');
+    await expectError(() => as(u.adult, `select effective_features($1)`, [u.agent]), /permission denied/);
+  });
+  await check('P15 §30-32/§66-67 webhook: solo el servidor; idempotente; un evento atrasado no pisa uno más reciente', async () => {
+    acct = (await as(u.agent, `select billing_account_ensure($1) id`, [agencyId])).rows[0].id;
+    await expectError(() => as(A3, `select billing_account_ensure($1)`, [agencyId]), /billing_owner_required/);
+    await expectError(() => as(u.agent, `select billing_set_customer($1, 'cus_hack')`, [acct]), /permission denied/);
+    await svc(`select billing_set_customer($1, 'cus_test_1')`, [acct]);
+    const sub = { id: 'sub_1', customer: 'cus_test_1', status: 'active', metadata: { plan_code: 'agent_team' }, items: { data: [{ quantity: 3, price: { id: 'price_x' } }] }, current_period_start: T0, current_period_end: T0 + 2592000, cancel_at_period_end: false };
+    await expectError(() => as(u.agent, `select billing_apply_event($1::jsonb)`, [ev('evt_1', 'customer.subscription.created', T0, sub)]), /permission denied/);
+    eq((await svc(`select billing_apply_event($1::jsonb) r`, [ev('evt_1', 'customer.subscription.created', T0, sub)])).rows[0].r, 'subscription_active');
+    eq((await svc(`select billing_apply_event($1::jsonb) r`, [ev('evt_1', 'customer.subscription.created', T0, sub)])).rows[0].r, 'duplicate');
+    eq((await svc(`select billing_apply_event($1::jsonb) r`, [ev('evt_2', 'customer.subscription.updated', T0 + 100, { ...sub, status: 'past_due' })])).rows[0].r, 'subscription_past_due');
+    eq((await svc(`select billing_apply_event($1::jsonb) r`, [ev('evt_3', 'customer.subscription.updated', T0 + 50, { ...sub, status: 'active' })])).rows[0].r, 'stale_event');
+    const row = (await db.query(`select id, status, seats from subscriptions where stripe_subscription_id = 'sub_1'`)).rows[0];
+    eq(row.status, 'past_due', 'el atrasado no lo pisa'); eq(row.seats, 3); subId = row.id;
+    eq((await svc(`select billing_apply_event($1::jsonb) r`, [ev('evt_4', 'customer.subscription.updated', T0 + 200, { ...sub, customer: 'cus_desconocido' })])).rows[0].r, 'unknown_customer_or_plan');
+    await expectError(() => as(u.agent, `insert into subscriptions (billing_account_id, plan_code, status) values ($1, 'agent_scale', 'active')`, [acct]), /permission denied|row-level/);
+  });
+  await check('P15 §43-44 la facturación de la organización la ve quien la dirige; un miembro cualquiera u otra agencia no', async () => {
+    eq((await as(u.agent, `select count(*)::int n from subscriptions where id = $1`, [subId])).rows[0].n, 1);
+    eq((await as(A3, `select count(*)::int n from subscriptions where id = $1`, [subId])).rows[0].n, 0);
+    eq((await as(agent2, `select count(*)::int n from billing_accounts where id = $1`, [acct])).rows[0].n, 0);
+  });
+  await check('P15 §40-42 asientos: nunca más de lo contratado; solo miembros; salir de la organización libera el asiento', async () => {
+    const extra = await mkUser('s-extra', 'agent', 30);
+    await db.query(`insert into organization_members (organization_id, user_id, member_role, agency_role) values ($1, $2, 'recruiter', 'recruiter')`, [agencyId, extra]);
+    await expectError(() => as(u.agent, `select seat_assign($1, $2, true)`, [subId, agent2]), /not_org_member/);
+    for (const x of [u.agent, A2, extra]) await as(u.agent, `select seat_assign($1, $2, true)`, [subId, x]);
+    await expectError(() => as(u.agent, `select seat_assign($1, $2, true)`, [subId, A3]), /no_seats_left/);
+    await expectError(() => as(A3, `select seat_assign($1, $2, true)`, [subId, A3]), /not_allowed/);
+    await db.query(`delete from organization_members where organization_id = $1 and user_id = $2`, [agencyId, extra]);
+    await as(u.agent, `select seat_assign($1, $2, true)`, [subId, A3]);
+    eq((await db.query(`select count(*)::int n from seat_assignments where subscription_id = $1`, [subId])).rows[0].n, 3);
+  });
+  await check('P15 §19/§23 cuotas atómicas: el límite se respeta incluso con peticiones simultáneas; sin plan, no incluido', async () => {
+    const q = await mkUser('s-quota', 'athlete', 20);
+    for (let i = 0; i < 29; i++) await as(q, `select consume_usage('ai_questions_day')`);
+    const mk = async () => { const c = new pg.Client({ connectionString: url.toString() }); await c.connect(); await c.query('begin'); await c.query('set local role authenticated');
+      await c.query(`select set_config('request.jwt.claims', $1, true)`, [JSON.stringify({ sub: q, role: 'authenticated' })]); return c; };
+    const c1 = await mk(); const c2 = await mk();
+    try {
+      const run = (c) => c.query(`select consume_usage('ai_questions_day') n`).then(async () => { await c.query('commit'); return 'ok'; }, async (e) => { await c.query('rollback'); return /quota_exceeded/.test(e.message) ? 'quota' : e.message; });
+      eq((await Promise.all([run(c1), run(c2)])).sort().join(','), 'ok,quota');
+    } finally { await c1.end(); await c2.end(); }
+    await expectError(() => as(q, `select consume_usage('offer_compare')`), /feature_not_included/);
+    await db.query(`insert into entitlements (user_id, plan_code, source, reference) values ($1, 'family_elite', 'stripe', $2)`, [q, `cs_test_${q}`]);
+    eq((await as(q, `select feature_limit('offer_compare') n`)).rows[0].n, 5, 'el pago único concede su cuota');
+    await expectError(() => as(q, `select consume_usage('ai_questions_day', 1, $1)`, [agencyId]), /not_allowed/);
+  });
+  await check('P15 §63 libro contable: cobro, reembolso y disputa; nunca se edita ni se borra', async () => {
+    eq((await svc(`select billing_apply_event($1::jsonb) r`, [ev('evt_5', 'invoice.paid', T0 + 300, { id: 'in_1', customer: 'cus_test_1', amount_paid: 9900, currency: 'eur' })])).rows[0].r, 'ledger_charge');
+    eq((await svc(`select billing_apply_event($1::jsonb) r`, [ev('evt_6', 'charge.refunded', T0 + 400, { id: 'ch_1', customer: 'cus_test_1', amount_refunded: 9900, currency: 'eur' })])).rows[0].r, 'ledger_refund');
+    const rows = (await as(u.agent, `select kind, amount_cents::int a from billing_ledger where billing_account_id = $1 order by occurred_at`, [acct])).rows;
+    eq(rows.map((r) => `${r.kind}:${r.a}`).join(','), 'charge:9900,refund:-9900');
+    await expectError(() => db.query(`update billing_ledger set amount_cents = 0 where billing_account_id = $1`, [acct]), /ledger_append_only/);
+    await expectError(() => db.query(`delete from billing_ledger where billing_account_id = $1`, [acct]), /ledger_append_only/);
+    eq((await svc(`select billing_apply_event($1::jsonb) r`, [ev('evt_7', 'invoice.payment_failed', T0 + 500, { id: 'in_2', customer: 'cus_test_1' })])).rows[0].r, 'payment_failed_notified');
+    eq((await as(u.agent, `select count(*)::int n from notifications where kind = 'billing.payment_failed'`)).rows[0].n, 1, 'aviso al dueño');
+  });
+
   // ---------------------------------------------------------------- Prompt 9 · Supabase & PostgreSQL
   results.push('\nPrompt 9: integridad, documentos, concurrencia y catálogo');
   await check('P9 S9-01 · un documento, la foto o una evidencia no pueden apuntar a la carpeta de otra persona', async () => {
