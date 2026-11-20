@@ -59,7 +59,7 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
         kicker="Marcas"
         title={mine ? 'Mis ofertas' : 'Ofertas de marcas'}
         description={mine ? 'Cada oferta se revisa antes de publicarse. Solo pueden aplicar atletas mayores de 18 años.' : 'Colaboraciones con marcas verificadas para atletas mayores de 18. Revisa siempre la normativa de tu universidad y de tu visado antes de aceptar.'}
-        action={mine ? <ButtonLink href="/app/campaigns/new">Nueva oferta</ButtonLink> : undefined}
+        action={mine ? <ButtonLink href="/app/campaigns/new">Nueva oferta</ButtonLink> : !isBrand && !session.isMinor ? <ButtonLink href="/app/collaborations" variant="secondary">Mis colaboraciones</ButtonLink> : undefined}
       />
       {isBrand && (
         <div className="mb-6 flex gap-1 rounded-full border border-line bg-surface p-1 text-sm sm:w-fit">

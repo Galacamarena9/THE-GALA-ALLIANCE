@@ -159,6 +159,11 @@ export const TABLES = {
   // 12 · Marcas y negocio
   brand_campaigns: { domain: '12-marcas-negocio', cls: 'public', decision: 'KEEP' },
   campaign_applications: { domain: '12-marcas-negocio', cls: 'personal', minors: true, decision: 'KEEP', export: true },
+  campaign_offers: { domain: '12-marcas-negocio', cls: 'sensitive', decision: 'KEEP', export: true, note: 'Oferta inmutable; cambiarla crea versión nueva.' },
+  campaign_offer_components: { domain: '12-marcas-negocio', cls: 'sensitive', decision: 'KEEP', export: false, noExport: 'Hija de la oferta (sin columna de persona); el titular la ve junto a su oferta en la app.', note: 'Producto ≠ dinero; bonus siempre condicionado.' },
+  campaign_deliverables: { domain: '12-marcas-negocio', cls: 'personal', decision: 'KEEP', export: false, noExport: 'Lo define la marca; lo del atleta (sus entregas) se exporta en campaign_deliverable_submissions.', note: 'Entregables de la oferta.' },
+  campaign_deliverable_submissions: { domain: '12-marcas-negocio', cls: 'personal', decision: 'KEEP', export: true, note: 'Versiones de cada entrega; nunca se sobrescriben.' },
+  brand_application_notes: { domain: '12-marcas-negocio', cls: 'internal', decision: 'KEEP', export: false, note: 'Notas internas de la marca; nunca visibles para el atleta.' },
   service_requests: { domain: '12-marcas-negocio', cls: 'personal', decision: 'KEEP', export: true },
 
   // 14 · Clubs & Academies

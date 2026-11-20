@@ -15,14 +15,22 @@ const campaignSchema = z
     description: z.string().trim().min(20, 'Describe la oferta (mín. 20 caracteres)').max(4000),
     kind: z.enum(['ambassador', 'social_content', 'event', 'product_testing', 'sponsorship']),
     deliverables: z.string().trim().min(5, 'Indica los entregables').max(2000),
-    compensation_kind: z.enum(['product', 'fixed_fee', 'mixed']),
+    compensation_kind: z.enum(['product', 'fixed_fee', 'mixed', 'conditional', 'unknown']),
     compensation_usd: z.union([z.literal(''), z.coerce.number().int().min(0).max(1000000)]).optional().transform((v) => (v === '' || v == null ? null : v)),
     usage_rights: z.string().trim().max(1000).optional(),
     territory: z.string().trim().max(160).optional(),
     application_deadline: z.union([z.literal(''), z.string().regex(/^\d{4}-\d{2}-\d{2}$/)]).optional().transform((v) => v || null),
+    // 13: términos estructurados (producto ≠ dinero; derechos de uso y exclusividad explícitos)
+    product_description: z.string().trim().max(500).optional().transform((v) => v || null),
+    product_value_usd: z.union([z.literal(''), z.coerce.number().int().min(0).max(1000000)]).optional().transform((v) => (v === '' || v == null ? null : v)),
+    usage_months: z.union([z.literal(''), z.coerce.number().int().min(0).max(60)]).optional().transform((v) => (v === '' || v == null ? null : v)),
+    usage_channels: z.string().trim().max(200).optional().transform((v) => (v ?? '').split(',').map((x) => x.trim().toLowerCase()).filter(Boolean).slice(0, 10)),
+    paid_media: z.literal('on').optional().transform((v) => v === 'on'),
+    exclusivity_category: z.string().trim().max(120).optional().transform((v) => v || null),
+    exclusivity_days: z.union([z.literal(''), z.coerce.number().int().min(0).max(730)]).optional().transform((v) => (v === '' || v == null ? null : v)),
     submit: z.enum(['draft', 'review']),
   })
-  .refine((d) => d.compensation_kind === 'product' || d.compensation_usd != null, { message: 'Indica el importe', path: ['compensation_usd'] });
+  .refine((d) => ['product', 'conditional', 'unknown'].includes(d.compensation_kind) || d.compensation_usd != null, { message: 'Indica el importe', path: ['compensation_usd'] });
 
 export async function createCampaign(_prev: FormState, formData: FormData): Promise<FormState> {
   const session = await requireSession(['brand']);
