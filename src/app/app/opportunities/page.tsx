@@ -61,7 +61,10 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
   }
 
   let query = supabase.from('opportunities').select(SELECT).eq('status', 'published').order('deadline', { ascending: true, nullsFirst: false }).limit(200);
-  if (sp.type && sp.type in OPPORTUNITY_TYPE_LABEL) query = query.eq('type', sp.type);
+  // Atajos móviles: «Trials» (pruebas, campus, captación) y «Academias» (programas) agrupan varios tipos.
+  if (sp.type === 'trials') query = query.in('type', ['tryout', 'camp_showcase', 'club_recruitment']);
+  else if (sp.type === 'academies') query = query.in('type', ['academy', 'development_program']);
+  else if (sp.type && sp.type in OPPORTUNITY_TYPE_LABEL) query = query.eq('type', sp.type);
   if (sp.division && sp.division in DIVISION_LABEL) query = query.eq('division', sp.division);
   const today = new Date().toISOString().slice(0, 10);
   query = query.or(`deadline.is.null,deadline.gte.${today}`);
@@ -87,6 +90,14 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
         description="Solo oportunidades revisadas de organizaciones verificadas. La compatibilidad no es una probabilidad de admisión ni de beca."
       />
       {isRecruiter && <ViewTabs current="all" />}
+      {isAthlete && (
+        <nav aria-label="Tipo de oportunidad" className="-mx-1 mb-4 flex gap-2 overflow-x-auto px-1 pb-1 text-sm">
+          {([['', 'Todas'], ['trials', 'Trials'], ['academies', 'Academias'], ['athletic_scholarship', 'Becas']] as const).map(([v, label]) => (
+            <Link key={v} href={v ? `/app/opportunities?type=${v}` : '/app/opportunities'} aria-current={(sp.type ?? '') === v ? 'page' : undefined}
+              className={`inline-flex min-h-11 shrink-0 items-center rounded-full border px-4 font-semibold ${(sp.type ?? '') === v ? 'border-brass bg-brass/10 text-brass' : 'border-line text-muted'}`}>{label}</Link>
+          ))}
+        </nav>
+      )}
       <form method="get" className="mb-6 flex flex-wrap gap-3">
         <select name="type" defaultValue={sp.type ?? ''} aria-label="Tipo" className={`${inputClass} w-auto`}>
           <option value="">Todos los tipos</option>

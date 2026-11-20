@@ -57,5 +57,8 @@ test('trials: el tablero del agente pone primero lo que espera al atleta', () =>
 test('trials: errores y huecos de publicación se traducen a mensajes concretos', () => {
   assert.match(trialErrorMessage('organization_not_verified'), /verificadas/);
   assert.match(trialErrorMessage('xyz'), /No se ha podido/);
+  // Errores técnicos de la base de datos nunca llegan tal cual al usuario.
+  assert.match(trialErrorMessage('new row violates row-level security policy for table "x"'), /permiso/);
+  assert.match(trialErrorMessage('use_application_org_decide'), /desde el propio trial/);
   assert.deepEqual(publishGapMessages('not_publishable:date,price'), ['Añade la fecha y la zona horaria antes de publicar.', 'Es de pago: indica el importe de la inscripción o de la cuota.']);
 });

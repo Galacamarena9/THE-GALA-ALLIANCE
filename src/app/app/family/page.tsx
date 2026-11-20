@@ -10,6 +10,7 @@ import type { ApplicationStatus } from '@/lib/types';
 import { Badge, Card, CardTitle, EmptyState, Meter, PageHeader } from '@/components/ui';
 import { InviteLink } from '@/components/InviteLink';
 import { revokeFamilyLink } from '@/app/actions/family';
+import { FamilyTrialCenter, type FamilyTrialItem } from '@/components/trials/FamilyTrialCenter';
 
 export const metadata: Metadata = { title: 'Familia' };
 
@@ -40,6 +41,31 @@ export default async function FamilyPage() {
     }),
   );
 
+  // Trials y programas de los hijos vinculados (RLS: solo con permiso «ver candidaturas»). 3 consultas en total.
+  const visible = approved.filter((l) => l.can_view_applications).map((l) => l.athlete_id!);
+  const nameOf = new Map(athletes.map((a) => [a.link.athlete_id, (a.passport?.person?.display_name as string | undefined) ?? 'Tu hijo/a']));
+  const OPP = 'opportunities(id, title, start_at, timezone, city, organizations(name, verification_status))';
+  const [{ data: fRegs }, { data: fInvs }, { data: fEnrs }] = visible.length ? await Promise.all([
+    supabase.from('opportunity_registrations').select(`id, athlete_id, status, guardian_status, needs_athlete_ok, materials_status, ${OPP}`).in('athlete_id', visible).not('status', 'in', '(cancelled,withdrawn)').limit(50),
+    supabase.from('opportunity_invitations').select(`id, athlete_id, status, guardian_required, ${OPP}`).in('athlete_id', visible).in('status', ['sent', 'viewed', 'interested']).limit(50),
+    supabase.from('program_enrollments').select(`id, athlete_id, status, guardian_status, ${OPP}`).in('athlete_id', visible).not('status', 'in', '(declined,withdrawn,cancelled)').limit(50),
+  ]) : [{ data: [] }, { data: [] }, { data: [] }];
+  type O = { id: string; title: string; start_at: string | null; timezone: string | null; city: string | null; organizations: { name: string; verification_status: string } | null };
+  const item = (kind: FamilyTrialItem['kind'], r: Record<string, unknown>, familyAction: boolean): FamilyTrialItem | null => {
+    const o = r.opportunities as unknown as O | null;
+    if (!o) return null;
+    return { key: `${kind}-${r.id}`, kind, opportunityId: o.id, title: o.title, org: o.organizations?.name ?? 'Organización', orgVerified: o.organizations?.verification_status === 'verified',
+      athleteName: nameOf.get(r.athlete_id as string) ?? 'Tu hijo/a', startAt: o.start_at, timezone: o.timezone, city: o.city, status: r.status as string, familyAction,
+      materials: (r.materials_status as string | undefined) ?? null };
+  };
+  const trialItems = [
+    ...(fInvs ?? []).filter((i) => !(fRegs ?? []).some((r) => (r.opportunities as unknown as O | null)?.id === (i.opportunities as unknown as O | null)?.id && r.athlete_id === i.athlete_id))
+      .map((i) => item('invitation', i, !!i.guardian_required)),
+    ...(fRegs ?? []).map((r) => item('registration', r, r.guardian_status === 'pending')),
+    ...(fEnrs ?? []).map((e) => item('enrollment', e, e.guardian_status === 'pending')),
+  ].filter((x): x is FamilyTrialItem => !!x)
+   .sort((a, b) => Number(b.familyAction) - Number(a.familyAction) || (a.startAt ?? '9').localeCompare(b.startAt ?? '9'));
+
   return (
     <>
       <PageHeader
@@ -47,6 +73,8 @@ export default async function FamilyPage() {
         title="El proceso, de un vistazo"
         description="Plazos, candidaturas y coste real de cada opción. Solo ves lo que tu hijo o hija ha decidido compartir contigo."
       />
+
+      <div className="mb-6"><FamilyTrialCenter items={trialItems} /></div>
 
       {athletes.length === 0 && (
         <Card>

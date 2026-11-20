@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { headers } from 'next/headers';
 import { requireSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
 import { loadCatalog } from '@/lib/data/athlete';
@@ -26,10 +27,12 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
   const catalog = await loadCatalog();
   const canDiscover = org?.caps.has('discover') ?? false;
 
-  const [{ data: needs }, { data: lists }] = org ? await Promise.all([
+  const [{ data: needs }, { data: lists }, { data: staff }] = org ? await Promise.all([
     supabase.from('recruiting_needs').select('id, title, sport_id, position_ids, class_years, min_height_cm, requires_video, requires_documented_academics, countries').eq('organization_id', org.id).eq('status', 'active'),
     supabase.from('org_shortlists').select('id, name').eq('organization_id', org.id).is('archived_at', null).order('updated_at', { ascending: false }),
-  ]) : [{ data: [] }, { data: [] }];
+    supabase.from('organization_members').select('user_id, profiles(display_name)').eq('organization_id', org.id).limit(100),
+  ]) : [{ data: [] }, { data: [] }, { data: [] }];
+  const members = (staff ?? []).map((m) => ({ id: m.user_id as string, name: (m.profiles as unknown as { display_name: string } | null)?.display_name ?? 'Miembro' }));
   const need = (needs ?? []).find((n) => n.id === sp.need) as (NeedCriteria & { id: string; title: string }) | undefined;
 
   const f: DiscoverFilters = {
@@ -42,7 +45,10 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
   let failed = false;
   if (canDiscover) {
     try { result = await discoverAthletes(f, need ?? null, org?.id); } catch { failed = true; }
-    if (result && f.page === 1) void logEvent('athlete_discovered', { filters: Object.values(f).filter(Boolean).length, need: !!need });
+    if (result && f.page === 1) {
+      void logEvent('athlete_discovered', { filters: Object.values(f).filter(Boolean).length, need: !!need });
+      if (/Mobi|Android/i.test((await headers()).get('user-agent') ?? '')) void logEvent('mobile_discovery_search', { filters: Object.values(f).filter(Boolean).length });
+    }
   }
   const sport = f.sport ?? need?.sport_id;
   const positions = catalog.positions.filter((p) => !sport || p.sport_id === sport);
@@ -115,7 +121,7 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
             : result?.needsSport ? <EmptyState title="Elige un deporte para buscar">Para proteger a los atletas, Discovery no lista toda la base: empieza por un deporte (o una necesidad de recruiting).</EmptyState>
             : !rows.length ? <EmptyState title="Sin resultados">Prueba a quitar algún filtro. Solo aparecen atletas abiertos a oportunidades que comparten su perfil contigo.</EmptyState>
             : (
-              <QuickViewProvider org={org.id} lists={listOpts} rows={rows.map((r) => ({
+              <QuickViewProvider org={org.id} lists={listOpts} members={org.caps.has('tasks') ? members : []} rows={rows.map((r) => ({
                 user_id: r.user_id, display_name: r.display_name, avatar_url: r.avatar_url, height_cm: r.height_cm, has_video: r.has_video, verified_stats: r.verified_stats, fit: r.fit,
                 meta: [r.primary_position_id && posName.get(r.primary_position_id), r.graduation_year && `Clase ${r.graduation_year}`, r.country].filter(Boolean).join(' · '),
               }))}>

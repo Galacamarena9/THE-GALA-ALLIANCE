@@ -391,3 +391,30 @@ export async function assignWithTask(input: { list: string; athlete: string; ass
   refresh(`/app/recruit/shortlists/${p.data.list}`, '/app/recruit/tasks');
   return { ok: true, message: p.data.assignee ? 'Asignado' : 'Asignación quitada' };
 }
+
+/* ------------------------------------------------------------------ Modo scout (móvil): nota y asignación sin salir de Discovery */
+/** Nota interna rápida desde la Vista rápida. Solo la ven miembros autorizados (RLS de org_notes). */
+export async function quickNote(input: { org: string; athlete: string; body: string }): Promise<{ ok: boolean; message: string }> {
+  const session = await requireSession();
+  const p = z.object({ org: uuid, athlete: uuid, body: z.string().trim().min(1).max(2000) }).safeParse(input);
+  if (!p.success) return { ok: false, message: 'Escribe la nota (máx. 2000 caracteres).' };
+  const supabase = await createClient();
+  const { error } = await supabase.from('org_notes').insert({ organization_id: p.data.org, athlete_id: p.data.athlete, author_id: session.userId, body: p.data.body });
+  if (error) return { ok: false, message: error.message.includes('unsafe_content') ? 'La nota no puede contener código ni enlaces ejecutables.' : friendly(error.message) };
+  await logEvent('scout_note_added');
+  refresh(`/app/recruit/candidates/${p.data.athlete}`);
+  return { ok: true, message: 'Nota guardada' };
+}
+
+/** Asignar un atleta a un miembro del staff con una tarea (p. ej. «Revisar partido completo» para el viernes). */
+export async function quickAssign(input: { org: string; athlete: string; assignee: string; task: string; due?: string }): Promise<{ ok: boolean; message: string }> {
+  await requireSession();
+  const p = z.object({ org: uuid, athlete: uuid, assignee: uuid, task: z.string().trim().min(2).max(160), due: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().or(z.literal('')) }).safeParse(input);
+  if (!p.success) return { ok: false, message: 'Elige a quién y escribe la tarea.' };
+  const supabase = await createClient();
+  const { error } = await supabase.from('org_tasks').insert({ organization_id: p.data.org, athlete_id: p.data.athlete, title: p.data.task, due_date: p.data.due || null, assignee_id: p.data.assignee });
+  if (error) return { ok: false, message: friendly(error.message) };
+  await logEvent('candidate_assigned');
+  refresh('/app/recruit/tasks', `/app/recruit/candidates/${p.data.athlete}`);
+  return { ok: true, message: 'Asignado' };
+}

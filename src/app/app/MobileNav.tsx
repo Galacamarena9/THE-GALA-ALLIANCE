@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Compass, GitBranch, Home, LayoutGrid, ListChecks, Menu, MessageSquare, Trophy, X } from 'lucide-react';
+import { CalendarCheck, Compass, GitBranch, Home, LayoutGrid, ListChecks, Menu, MessageSquare, Trophy, X } from 'lucide-react';
 import type { NavSection } from '@/lib/domain/navigation';
 import { cx } from '@/components/ui';
 import { Sidebar } from './Sidebar';
@@ -21,10 +21,17 @@ const STAFF_TABS = [
   { href: '/app/recruit/shortlists', label: 'Shortlists', Icon: ListChecks },
   { href: '/app/recruit/candidates', label: 'Pipeline', Icon: GitBranch },
 ];
+/** Clubes y academias: el día a día es Descubrir ↔ Shortlists ↔ Trials (el pipeline queda en «Más»). */
+const CLUB_TABS = [
+  { href: '/app/recruit', label: 'Inicio', Icon: Home, exact: true },
+  { href: '/app/recruit/discover', label: 'Descubrir', Icon: Compass },
+  { href: '/app/recruit/shortlists', label: 'Shortlists', Icon: ListChecks },
+  { href: '/app/recruit/trials', label: 'Trials', Icon: CalendarCheck },
+];
 
 /** Móvil: barra inferior tipo app (como LinkedIn) + menú completo en panel lateral. */
-export function MobileNav({ sections, staff = false }: { sections: NavSection[]; staff?: boolean }) {
-  const tabs = staff ? STAFF_TABS : TABS;
+export function MobileNav({ sections, staff = false }: { sections: NavSection[]; staff?: false | 'club' | 'university' }) {
+  const tabs = staff === 'club' ? CLUB_TABS : staff ? STAFF_TABS : TABS;
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const [lastPath, setLastPath] = useState(pathname);

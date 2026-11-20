@@ -6,6 +6,7 @@ import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { loadQuickView, type QuickView as QV } from '@/app/actions/recruit';
 import { MediaSwitcher } from './MediaSwitcher';
 import { AddToShortlist } from './RecruitForms';
+import { ScoutSheets } from './ScoutSheets';
 import type { NeedFit } from '@/lib/domain/recruit';
 
 export type QVRow = {
@@ -21,7 +22,7 @@ const CONF = { high: 'Confianza alta', medium: 'Confianza media', low: 'Confianz
  * vídeo a un toque, 3–5 datos, encaje explicado y «+ Shortlist». Anterior/siguiente con botones (sin gestos obligatorios,
  * sin decisiones sí/no). Al cerrar, la búsqueda y el scroll siguen donde estaban.
  */
-export function QuickViewProvider({ rows, org, lists, children }: { rows: QVRow[]; org: string; lists: { id: string; name: string }[]; children: ReactNode }) {
+export function QuickViewProvider({ rows, org, lists, members = [], children }: { rows: QVRow[]; org: string; lists: { id: string; name: string }[]; members?: { id: string; name: string }[]; children: ReactNode }) {
   const [index, setIndex] = useState<number | null>(null);
   const [data, setData] = useState<Record<string, QV>>({});
   const [loading, setLoading] = useState(false);
@@ -99,6 +100,8 @@ export function QuickViewProvider({ rows, org, lists, children }: { rows: QVRow[
                 )}
               </>
             )}
+
+            {d?.ok && <ScoutSheets key={row.user_id} org={org} athlete={row.user_id} members={members} />}
 
             {/* Acciones frecuentes abajo, al alcance del pulgar. */}
             <div className="sticky bottom-0 mt-4 flex items-center gap-2 bg-ink pt-2">

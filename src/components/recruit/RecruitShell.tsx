@@ -7,6 +7,7 @@ import { ROLE_LABEL } from '@/lib/domain/recruit';
 const TABS = [
   { href: '/app/recruit', label: 'Inicio', cap: null },
   { href: '/app/recruit/discover', label: 'Descubrir', cap: 'discover' },
+  { href: '/app/recruit/trials', label: 'Trials', cap: 'candidates', clubOnly: true },
   { href: '/app/recruit/shortlists', label: 'Listas', cap: 'shortlist' },
   { href: '/app/recruit/candidates', label: 'Procesos', cap: 'candidates' },
   { href: '/app/recruit/needs', label: 'Necesidades', cap: 'needs' },
@@ -32,7 +33,7 @@ export function RecruitShell({ org, orgs, active, children }: { org: RecruitOrg 
       </div>
       <nav aria-label="Portal de recruiting" className="-mx-4 overflow-x-auto px-4">
         <ul className="flex min-w-max gap-1 border-b border-line">
-          {TABS.filter((t) => !t.cap || org.caps.has(t.cap)).map((t) => (
+          {TABS.filter((t) => (!t.cap || org.caps.has(t.cap)) && (!('clubOnly' in t) || ['club', 'academy'].includes(org.type))).map((t) => (
             <li key={t.href}><Link href={t.href} aria-current={active === t.href ? 'page' : undefined} className={`inline-flex min-h-11 items-center border-b-2 px-3 text-sm font-semibold ${active === t.href ? 'border-brass text-brass' : 'border-transparent text-muted hover:text-paper'}`}>{t.label}</Link></li>
           ))}
         </ul>
