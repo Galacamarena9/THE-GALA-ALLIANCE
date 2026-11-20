@@ -131,6 +131,13 @@ export const TABLES = {
   // 10 · Agencias y clubes
   agent_representations: { domain: '10-agencias-clubes', cls: 'sensitive', minors: true, decision: 'KEEP', export: true },
   agency_contacts: { domain: '10-agencias-clubes', cls: 'internal', decision: 'KEEP' },
+  representation_coverage: { domain: '10-agencias-clubes', cls: 'sensitive', minors: true, decision: 'KEEP', export: false, noExport: 'Se identifica por la representación, no por la persona; el alcance va en representations.', note: 'Alcance de la representación.' },
+  representation_permissions: { domain: '10-agencias-clubes', cls: 'sensitive', minors: true, decision: 'KEEP', export: false, noExport: 'Hija de la representación; sin columna de persona.', note: 'Permisos concedidos por el atleta; historial conservado.' },
+  representation_assignments: { domain: '10-agencias-clubes', cls: 'sensitive', minors: true, decision: 'KEEP', export: true },
+  representation_agreements: { domain: '10-agencias-clubes', cls: 'sensitive', minors: true, decision: 'KEEP', export: false, noExport: 'El documento del acuerdo ya se exporta con los documentos del atleta.', note: 'Versiones del acuerdo.' },
+  representation_conflicts: { domain: '10-agencias-clubes', cls: 'internal', decision: 'KEEP', export: false, note: 'Revisión operativa de Gala, no jurídica.' },
+  representation_invitations: { domain: '10-agencias-clubes', cls: 'sensitive', minors: true, decision: 'KEEP', export: true },
+  territory_regions: { domain: '10-agencias-clubes', cls: 'public', decision: 'KEEP', export: false, note: 'Catálogo de regiones (Europa, Norteamérica, Latam).' },
   professional_credentials: { domain: '10-agencias-clubes', cls: 'sensitive', decision: 'KEEP', export: true, note: 'Licencias del agente; el número nunca es público.' },
   agency_athlete_notes: { domain: '10-agencias-clubes', cls: 'internal', decision: 'KEEP', noExport: 'Nota interna de la agencia sobre el atleta' },
   recruiting_cases: { domain: '10-agencias-clubes', cls: 'internal', minors: true, decision: 'KEEP', noExport: 'Caso interno de la agencia' },

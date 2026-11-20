@@ -84,34 +84,65 @@ export async function moveCampaignApplication(formData: FormData) {
 
 // ---------- Representación de agentes ----------
 export async function requestRepresentation(_prev: FormState, formData: FormData): Promise<FormState> {
-  const session = await requireSession(['agent']);
+  await requireSession(['agent']);
   const parsed = z
     .object({ agency_id: z.string().uuid(), athlete_id: z.string().uuid(), message: z.string().trim().max(1000).optional() })
     .safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: 'Solicitud no válida.' };
   const supabase = await createClient();
-  const { error } = await supabase.from('agent_representations').insert({ ...parsed.data, agent_id: session.userId, message: parsed.data.message || null });
+  // Propuesta por defecto, prudente: el deporte del atleta, sin exclusividad, 12 meses y solo lo necesario para
+  // trabajar su proceso. El atleta (o su familia) ve el alcance exacto y puede recortarlo antes y después de aceptar.
+  const { data: dir } = await supabase.from('athlete_directory').select('sport_id').eq('user_id', parsed.data.athlete_id).maybeSingle();
+  const end = new Date(Date.now() + 365 * 864e5).toISOString().slice(0, 10);
+  const { error } = await supabase.rpc('representation_request', {
+    p_agency: parsed.data.agency_id,
+    p_athlete: parsed.data.athlete_id,
+    p_type: 'non_exclusive',
+    p_sports: [dir?.sport_id ?? 'basketball'],
+    p_territories: ['WORLD'],
+    p_categories: ['university', 'club', 'academy'],
+    p_permissions: ['passport.view', 'opportunities.manage', 'pipeline.view', 'pipeline.manage', 'tasks.manage', 'deadlines.manage', 'messages.participate'],
+    p_end: end,
+    p_message: parsed.data.message || null,
+  });
   if (error) {
-    if (error.code === '23505') return { error: 'Ya hay una solicitud o representación activa con este atleta.' };
-    if (error.message.includes('adults_only')) return { error: 'La representación solo está disponible con atletas mayores de edad.' };
+    if (error.message.includes('agency_not_verified')) return { error: 'Tu agencia tiene que estar verificada para proponer representaciones.' };
+    if (error.message.includes('not_found')) return { error: 'Este perfil no está disponible para agencias.' };
+    if (error.message.includes('blocked')) return { error: 'No es posible contactar con este atleta.' };
     return { error: 'No se ha podido enviar la solicitud.' };
   }
   revalidatePath('/app/portfolio');
-  return { ok: true, message: 'Solicitud enviada. El atleta decide si acepta.' };
+  return { ok: true, message: 'Propuesta enviada: no exclusiva, 12 meses. El atleta ve el alcance y decide.' };
 }
 
+/** Lado del atleta (o de su familia si es menor): aceptar, rechazar o revocar. Todo pasa por funciones de la base de datos. */
 export async function respondRepresentation(formData: FormData) {
-  const session = await requireSession(['athlete', 'agent']);
-  const parsed = z.object({ id: z.string().uuid(), status: z.enum(['active', 'declined', 'ended']) }).safeParse(Object.fromEntries(formData));
+  await requireSession(['athlete', 'agent', 'parent']);
+  const parsed = z.object({ id: z.string().uuid(), status: z.enum(['active', 'declined', 'ended', 'guardian_approve', 'guardian_decline']) })
+    .safeParse(Object.fromEntries(formData));
   if (!parsed.success) return;
   const supabase = await createClient();
-  // Defensa en profundidad (además del trigger y la RLS): aceptar o rechazar solo lo hace el propio
-  // atleta sobre una propuesta pendiente; terminar solo aplica a una representación activa.
-  let q = supabase.from('agent_representations').update({ status: parsed.data.status }).eq('id', parsed.data.id);
-  q = parsed.data.status === 'ended' ? q.eq('status', 'active') : q.eq('athlete_id', session.userId).eq('status', 'requested');
-  await q;
+  const { id, status } = parsed.data;
+  if (status === 'active' || status === 'declined') await supabase.rpc('representation_respond', { p_id: id, p_accept: status === 'active' });
+  else if (status === 'guardian_approve' || status === 'guardian_decline') await supabase.rpc('representation_guardian_decide', { p_id: id, p_approve: status === 'guardian_approve' });
+  else await supabase.rpc('representation_end', { p_id: id });
   revalidatePath('/app/agents');
   revalidatePath('/app/portfolio');
+  revalidatePath('/app/family/safety');
+}
+
+/** El atleta (o su familia) decide qué puede hacer la agencia. Quitar un permiso tiene efecto inmediato. */
+export async function setRepresentationPermissions(_prev: FormState, formData: FormData): Promise<FormState> {
+  await requireSession(['athlete', 'parent']);
+  const id = z.string().uuid().safeParse(formData.get('id'));
+  if (!id.success) return { error: 'Solicitud no válida.' };
+  const perms = formData.getAll('permission').map(String).filter((p) => /^[a-z_]+\.[a-z_]+$/.test(p));
+  const supabase = await createClient();
+  const { error } = await supabase.rpc('representation_set_permissions', { p_id: id.data, p_permissions: perms });
+  if (error) return { error: 'No se han podido guardar los permisos.' };
+  revalidatePath('/app/agents');
+  revalidatePath('/app/family/safety');
+  return { ok: true, message: 'Permisos actualizados. Se aplican ya.' };
 }
 
 // ---------- Enlaces verificables del atleta ----------

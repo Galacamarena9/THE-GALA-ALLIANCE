@@ -74,6 +74,8 @@ export const EXPORT_SOURCES: ExportSource[] = [
   { key: 'saved_searches', table: 'saved_searches', column: 'owner_id' },
   // Agencias y clubes
   { key: 'representations', table: 'agent_representations', column: 'athlete_id' },
+  { key: 'representation_invitations', table: 'representation_invitations', column: 'athlete_id' },
+  { key: 'representation_assignments', table: 'representation_assignments', column: 'user_id' },
   { key: 'club_rosters', table: 'club_roster', column: 'athlete_id' },
   { key: 'club_recommendations', table: 'club_recommendations', column: 'athlete_id' },
   // Comunicación
