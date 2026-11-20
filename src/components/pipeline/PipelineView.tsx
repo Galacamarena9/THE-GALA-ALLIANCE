@@ -4,6 +4,7 @@ import { Badge, Card } from '@/components/ui';
 import { quickMove, setArchived } from '@/app/actions/pipeline';
 import { BOARD_STAGES, STAGE_INFO, URGENCY_INFO, URGENCY_RANK, summarize, type Stage } from '@/lib/domain/pipeline';
 import type { ProcessRow } from '@/lib/data/pipeline';
+import { BoardDnD, BoardStatus, DraggableCard, DropColumn } from './BoardDnD';
 
 const fmt = new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short' });
 const d = (s: string) => fmt.format(new Date(`${s.slice(0, 10)}T12:00:00`));
@@ -114,23 +115,29 @@ export function PipelineView({ rows, f, athlete, params, editable }: { rows: Pro
       )}
 
       {f.view === 'board' && !f.archived ? (
+        <BoardDnD athlete={athlete}>
         <div className="min-w-0 max-w-full pb-2 lg:overflow-x-auto">
+          {editable && <p className="mb-2 hidden text-xs text-faint lg:block">Arrastra una tarjeta a otra columna para cambiar su etapa, o usa «Mover».</p>}
+          <BoardStatus />
           <ol className="grid gap-3 lg:auto-cols-[minmax(230px,1fr)] lg:grid-flow-col" aria-label="Tablero por etapas">
             {BOARD_STAGES.map((s) => {
               const items = list.filter((r) => r.status === s);
               return (
                 <li key={s} className={`rounded-2xl border border-line bg-ink/30 p-2.5 ${items.length ? "" : "hidden lg:block"}`}>
                   <h3 className="mb-2 flex items-center justify-between px-1 text-xs font-bold uppercase tracking-wide text-faint">{STAGE_INFO[s].label}<span className="rounded-full bg-surface px-2 py-0.5 text-paper">{items.length}</span></h3>
-                  <div className="space-y-2">
-                    {items.map((r) => <ProcessCard key={r.id} r={r} athlete={athlete} editable={editable} />)}
-                    {!items.length && <p className="px-1 py-2 text-xs text-faint">Vacío</p>}
-                  </div>
+                  <DropColumn stage={s}>
+                    <div className="space-y-2">
+                      {items.map((r) => <DraggableCard key={r.id} id={r.id} stage={r.status} disabled={!editable}><ProcessCard r={r} athlete={athlete} editable={editable} /></DraggableCard>)}
+                      {!items.length && <p className="px-1 py-2 text-xs text-faint">Vacío</p>}
+                    </div>
+                  </DropColumn>
                 </li>
               );
             })}
           </ol>
           {closed.length > 0 && <p className="mt-2 text-xs text-muted">{closed.length} proceso{closed.length > 1 ? 's' : ''} cerrado{closed.length > 1 ? 's' : ''}. <Link href={href(params, { view: 'list', stage: 'closed' })} className="text-brass underline underline-offset-2">Ver</Link></p>}
         </div>
+        </BoardDnD>
       ) : (
         <Card className="p-0">
           {list.length ? (

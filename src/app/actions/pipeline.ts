@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/server';
 import { stampMatchAtSave } from '@/lib/data/gala-match';
 import { managedAthletes } from '@/lib/data/family';
 import { logEvent } from '@/lib/events';
-import { STAGES } from '@/lib/domain/pipeline';
+import { STAGES, STAGE_INFO } from '@/lib/domain/pipeline';
 import type { FormState } from './auth';
 
 const uuid = z.string().uuid();
@@ -64,6 +64,23 @@ export async function quickMove(formData: FormData) {
   await supabase.from('saved_items').update({ status: t.status }).eq('id', t.id).eq('athlete_id', athlete);
   await logEvent('pipeline_stage_changed', { stage: t.status });
   refresh(t.id);
+}
+
+/** Arrastrar y soltar en el tablero: mismas reglas que quickMove, pero devuelve el resultado real para la interfaz. */
+export async function dragMove(input: { id: string; status: string; athlete: string }): Promise<{ ok: boolean; message: string }> {
+  const fd = new FormData();
+  fd.set('athlete', input.athlete);
+  let athlete: string;
+  try { athlete = await editableAthlete(fd); } catch { return { ok: false, message: 'No puedes editar este pipeline.' }; }
+  const t = z.object({ id: uuid, status: z.enum(['discovered', 'saved', 'applied', 'contacted', 'call', 'offer', 'decision']) }).safeParse(input);
+  if (!t.success) return { ok: false, message: 'Esa etapa no se puede elegir arrastrando. Abre el proceso para comprometerte o cerrarlo.' };
+  const supabase = await createClient();
+  const { data, error } = await supabase.from('saved_items').update({ status: t.data.status })
+    .eq('id', t.data.id).eq('athlete_id', athlete).is('archived_at', null).not('status', 'in', '(committed,closed)').select('id');
+  if (error || !data?.length) return { ok: false, message: 'No se ha podido mover el proceso.' };
+  await logEvent('pipeline_stage_changed', { stage: t.data.status, via: 'drag' });
+  refresh(t.data.id);
+  return { ok: true, message: `Movido a ${STAGE_INFO[t.data.status].label}` };
 }
 
 export async function setNextAction(_prev: FormState, formData: FormData): Promise<FormState> {
