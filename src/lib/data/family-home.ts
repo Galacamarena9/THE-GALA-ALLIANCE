@@ -13,10 +13,10 @@ export interface GuardianLink {
   status: 'approved' | 'restricted';
   /** false = vínculo vigente pero sin acceso (pausado o revisión de mayoría de edad vencida). */
   active: boolean;
-  scopes: { profile: boolean; applications: boolean; academics: boolean; edit: boolean; costs: boolean; documents: boolean; contacts: boolean; messages: boolean };
+  scopes: { profile: boolean; applications: boolean; academics: boolean; edit: boolean; costs: boolean; budget: boolean; documents: boolean; contacts: boolean; messages: boolean };
 }
 
-const LINK_COLS = 'id, athlete_id, status, relationship, verification_status, can_view_profile, can_view_applications, can_view_academics, can_edit_profile, can_view_costs, can_view_documents, can_view_contacts, can_view_messages';
+const LINK_COLS = 'id, athlete_id, status, relationship, verification_status, can_view_profile, can_view_applications, can_view_academics, can_edit_profile, can_view_costs, can_view_budget, can_view_documents, can_view_contacts, can_view_messages';
 
 /** Relaciones del tutor (una por hijo/a, con permisos independientes). */
 export async function guardianLinks(session: SessionContext): Promise<GuardianLink[]> {
@@ -40,7 +40,7 @@ export async function guardianLinks(session: SessionContext): Promise<GuardianLi
     active: l.status === 'approved' && activeOf.get(l.athlete_id as string) === true,
     scopes: {
       profile: !!l.can_view_profile, applications: !!l.can_view_applications, academics: !!l.can_view_academics, edit: !!l.can_edit_profile,
-      costs: !!l.can_view_costs, documents: !!l.can_view_documents, contacts: !!l.can_view_contacts, messages: !!l.can_view_messages,
+      costs: !!l.can_view_costs, budget: !!l.can_view_budget, documents: !!l.can_view_documents, contacts: !!l.can_view_contacts, messages: !!l.can_view_messages,
     },
   }));
 }
@@ -134,15 +134,15 @@ export async function loadFamilyChild(session: SessionContext, link: GuardianLin
 }
 
 /** Opciones de coste y presupuesto de un hijo/a (RLS: atleta o tutor con permiso de costes). Para Gala AI. */
-export async function familyCostOverview(athleteId: string) {
+export async function familyCostOverview(athleteId: string, canSeeBudget = true) {
   const supabase = await createClient();
   const [{ data: sc }, { data: fin }] = await Promise.all([
     supabase.from('family_cost_scenarios').select('label, currency, tuition, fees, housing, meals, insurance, travel, other_costs, athletic_aid, academic_aid, other_aid, housing_included').eq('athlete_id', athleteId).limit(8),
-    supabase.from('athlete_finances').select('annual_budget_usd, budget_mode').eq('athlete_id', athleteId).maybeSingle(),
+    canSeeBudget ? supabase.from('athlete_finances').select('annual_budget_usd, budget_mode').eq('athlete_id', athleteId).maybeSingle() : Promise.resolve({ data: null }),
   ]);
   const budget = { amount: (fin?.annual_budget_usd as number | null) ?? null, currency: 'USD' as const };
   return {
-    budget: budget.amount == null ? 'sin presupuesto definido' : { amount_usd: budget.amount, mode: fin?.budget_mode === 'hard_limit' ? 'límite estricto' : 'preferencia', private: true },
+    budget: !canSeeBudget ? 'no compartido con este familiar' : budget.amount == null ? 'sin presupuesto definido' : { amount_usd: budget.amount, mode: fin?.budget_mode === 'hard_limit' ? 'límite estricto' : 'preferencia', private: true },
     options: (sc ?? []).map((x) => {
       const r = familyCost(x as unknown as CostScenario);
       return { option: x.label as string, status: r.status, summary: r.headline, missing: r.missing, budget_fit: budgetFit(r, budget) };

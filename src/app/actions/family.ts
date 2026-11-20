@@ -65,6 +65,7 @@ export async function updateFamilyPermissions(formData: FormData) {
       can_view_academics: on('can_view_academics'),
       can_edit_profile: on('can_edit_profile'),
       can_view_costs: on('can_view_costs'),
+      can_view_budget: on('can_view_budget'),
       can_view_documents: on('can_view_documents'),
       can_view_contacts: on('can_view_contacts'),
       can_view_messages: on('can_view_messages'),

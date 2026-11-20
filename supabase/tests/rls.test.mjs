@@ -2187,7 +2187,7 @@ try {
 
   await check('P10 varios tutores · permisos independientes por relación (papá sin costes, mamá con costes)', async () => {
     eq(await n(fam.mom, `select count(*)::int n from athlete_finances where athlete_id = $1`, [fam.kid]), 1, 'mamá');
-    eq(await n(fam.dad, `select count(*)::int n from athlete_finances where athlete_id = $1`, [fam.kid]), 0, 'papá sin permiso de costes');
+    eq(await n(fam.dad, `select count(*)::int n from athlete_finances where athlete_id = $1`, [fam.kid]), 1, 'papá: el presupuesto es un permiso propio (10A)');
     await as(fam.mom, `insert into family_cost_scenarios (athlete_id, created_by, label, tuition, housing) values ($1, $2, 'Universidad X', 30000, null)`, [fam.kid, fam.mom]);
     eq(await n(fam.dad, `select count(*)::int n from family_cost_scenarios where athlete_id = $1`, [fam.kid]), 0, 'escenarios: papá no');
     eq(await n(fam.kid, `select count(*)::int n from family_cost_scenarios where athlete_id = $1`, [fam.kid]), 1, 'el atleta sí');
@@ -2271,6 +2271,80 @@ try {
     eq((await db.query(`select verification_status v from parent_athlete_links where invitation_token = $1`, [t2])).rows[0].v, 'athlete_confirmed');
     await expectError(() => as(fam.grown, `select accept_family_invitation($1)`, [t2]), /invitation_invalid/);
     await expectError(() => as(null, `select is_active_guardian($1)`, [fam.kid]), /permission denied/);
+  });
+
+  // ---------------------------------------------------------------- Prompt 10A · Matriz RLS de familia
+  results.push('\nPrompt 10A: matriz RLS de familia (actor × recurso)');
+  {
+    const stranger = randomUUID(); fam.stranger = stranger;
+    await db.query(`insert into auth.users (id, email, raw_user_meta_data) values ($1, 'stranger@fam.test', '{"display_name":"stranger"}')`, [stranger]);
+    await db.query(`insert into user_roles (user_id, role) values ($1, 'parent')`, [stranger]);
+    await db.query(`insert into private_profile_data (user_id, date_of_birth) values ($1, current_date - interval '50 years')`, [stranger]);
+  }
+  await check('P10A matriz · atleta, tutor completo, tutor sin costes, otra familia, club y anónimo sobre Passport, documentos, presupuesto, ofertas, notas familiares y notas del club', async () => {
+    await db.query(`update athlete_profiles set profile_visibility = 'members' where user_id = $1`, [fam.kid]);
+    await db.query(`insert into athlete_documents (athlete_id, kind, title) values ($1, 'transcript', 'Expediente')`, [fam.kid]);
+    await db.query(`insert into athlete_offers (athlete_id, university_name, annual_cost_usd, aid_amount_usd) values ($1, 'Universidad X', 40000, 20000)`, [fam.kid]);
+    await db.query(`insert into org_notes (organization_id, athlete_id, author_id, body) values ($1, $2, $3, 'Revisar partido completo')`, [clubA, fam.kid, u.coach2]);
+    const count = async (who, table) => as(who, `select count(*)::int n from ${table} where ${table === 'athlete_profiles' ? 'user_id' : 'athlete_id'} = $1`, [fam.kid])
+      .then((r) => r.rows[0].n, (e) => (/permission denied/.test(e.message) ? 0 : Promise.reject(e)));
+    const expected = {
+      // recurso:            atleta, mamá, papá(sin costes), otra familia, club A, anónimo
+      athlete_documents:   [1, 1, 1, 0, 0, 0],
+      athlete_finances:    [1, 1, 1, 0, 0, 0],   // papá: presupuesto es un permiso propio (por defecto sí)
+      athlete_offers:      [1, 1, 1, 0, 0, 0],   // papá ve ofertas por «proceso»
+      family_notes:        [1, 2, 2, 0, 0, 0],   // el atleta solo ve las compartidas
+      org_notes:           [0, 0, 0, 0, 1, 0],   // notas del club: nunca para atleta ni familia
+      family_cost_scenarios: [1, 1, 0, 0, 0, 0],
+    };
+    const actors = [fam.kid, fam.mom, fam.dad, fam.stranger, u.coach2, null];
+    for (const [table, row] of Object.entries(expected)) {
+      for (let i = 0; i < actors.length; i++) eq(await count(actors[i], table), row[i], `${table} · actor ${i}`);
+    }
+  });
+
+  await check('P10A presupuesto · permiso propio: sin él, el tutor sigue viendo costes pero no el presupuesto', async () => {
+    await as(fam.kid, `update parent_athlete_links set can_view_budget = false where id = $1`, [fam.momKid]);
+    eq(await n(fam.mom, `select count(*)::int n from athlete_finances where athlete_id = $1`, [fam.kid]), 0, 'presupuesto');
+    eq(await n(fam.mom, `select count(*)::int n from family_cost_scenarios where athlete_id = $1`, [fam.kid]), 1, 'escenarios siguen');
+    eq((await as(fam.mom, `select guardian_has_scope($1, 'athlete.family_budget.view') v`, [fam.kid])).rows[0].v, false);
+    eq((await as(fam.mom, `select guardian_has_scope($1, 'athlete.*') v`, [fam.kid])).rows[0].v, false, 'scope inventado');
+    await as(fam.kid, `update parent_athlete_links set can_view_budget = true where id = $1`, [fam.momKid]);
+    eq((await as(fam.mom, `update parent_athlete_links set can_view_budget = true where id = $1`, [fam.dadKid])).rowCount, 0, 'un tutor no toca la relación de otro');
+    await expectError(() => as(fam.dad, `update parent_athlete_links set can_view_costs = true where id = $1`, [fam.dadKid]), /only_athlete_sets_family_permissions/);
+  });
+
+  await check('P10A contactos de un menor · tutor activo ve y aprueba; pausado no ve ni aprueba', async () => {
+    const req = (await as(u.coach2, `insert into contact_requests (organization_id, athlete_id, message) values ($1, $2, 'Nos gustaría invitarte a nuestro trial U18.') returning id, status`, [clubA, fam.kid])).rows[0];
+    eq(req.status, 'pending_guardian');
+    eq(await n(fam.mom, `select count(*)::int n from contact_requests where id = $1`, [req.id]), 1, 'mamá activa');
+    await as(fam.kid, `select family_link_restrict($1, true, 'pausa')`, [fam.momKid]);
+    eq(await n(fam.mom, `select count(*)::int n from contact_requests where id = $1`, [req.id]), 0, 'pausada: no ve');
+    eq((await as(fam.mom, `update contact_requests set status = 'pending' where id = $1`, [req.id])).rowCount, 0, 'pausada: no aprueba');
+    await as(fam.kid, `select family_link_restrict($1, false)`, [fam.momKid]);
+    await as(fam.mom, `update contact_requests set status = 'pending' where id = $1`, [req.id]);
+    eq((await db.query(`select guardian_approved_by g from contact_requests where id = $1`, [req.id])).rows[0].g, fam.mom, 'aprobado por mamá');
+    eq(await n(fam.stranger, `select count(*)::int n from contact_requests where id = $1`, [req.id]), 0, 'otra familia');
+  });
+
+  await check('P10A mensajes de un atleta adulto · la familia solo los lee con permiso explícito y nunca escribe', async () => {
+    const adultK = randomUUID();
+    await db.query(`insert into auth.users (id, email, raw_user_meta_data) values ($1, 'adultk@fam.test', '{"display_name":"adultK"}')`, [adultK]);
+    await db.query(`insert into user_roles (user_id, role) values ($1, 'athlete')`, [adultK]);
+    await db.query(`insert into private_profile_data (user_id, date_of_birth) values ($1, current_date - interval '21 years')`, [adultK]);
+    await db.query(`insert into athlete_profiles (user_id, sport_id, graduation_year, profile_visibility) values ($1, 'basketball', 2025, 'members')`, [adultK]);
+    const l = (await db.query(`insert into parent_athlete_links (parent_id, athlete_id, invited_by, status, approved_at, relationship, guardian_consent_given, can_view_contacts)
+      values ($1, $2, $2, 'approved', now(), 'father', false, false) returning id`, [fam.dad, adultK])).rows[0].id;
+    const req = (await as(u.coach2, `insert into contact_requests (organization_id, athlete_id, message) values ($1, $2, 'Hola, queremos hablar sobre la temporada 2027.') returning id`, [clubA, adultK])).rows[0].id;
+    await as(adultK, `update contact_requests set status = 'accepted' where id = $1`, [req]);
+    await as(u.coach2, `insert into contact_messages (request_id, sender_id, body) values ($1, $2, 'Primer mensaje')`, [req, u.coach2]);
+    eq(await n(fam.dad, `select count(*)::int n from contact_requests where id = $1`, [req]), 0, 'sin «quién me contacta»');
+    eq(await n(fam.dad, `select count(*)::int n from contact_messages where request_id = $1`, [req]), 0, 'sin «mensajes»');
+    await as(adultK, `update parent_athlete_links set can_view_contacts = true, can_view_messages = true where id = $1`, [l]);
+    eq(await n(fam.dad, `select count(*)::int n from contact_requests where id = $1`, [req]), 1, 'con permiso');
+    eq(await n(fam.dad, `select count(*)::int n from contact_messages where request_id = $1`, [req]), 1, 'lee mensajes');
+    await expectError(() => as(fam.dad, `insert into contact_messages (request_id, sender_id, body) values ($1, $2, 'Soy su padre')`, [req, fam.dad]), /row-level security/);
+    eq((await as(fam.dad, `update contact_requests set status = 'blocked' where id = $1`, [req])).rowCount, 0, 'no decide por el adulto');
   });
 
   // ---------------------------------------------------------------- Prompt 9 · Supabase & PostgreSQL

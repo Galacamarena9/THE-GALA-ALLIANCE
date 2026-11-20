@@ -17,7 +17,7 @@ const RELATIONSHIP: Record<string, string> = {
   parent: 'Familiar', mother: 'Madre', father: 'Padre', legal_guardian: 'Tutor legal', other_guardian: 'Tutor autorizado', other_family: 'Familiar',
 };
 const SCOPES: [keyof GuardianLink['scopes'], string][] = [
-  ['profile', 'Passport y shortlist'], ['applications', 'Candidaturas y proceso'], ['academics', 'Académico'], ['costs', 'Costes y presupuesto'],
+  ['profile', 'Passport y shortlist'], ['applications', 'Candidaturas y proceso'], ['academics', 'Académico'], ['costs', 'Costes y ofertas'], ['budget', 'Presupuesto familiar'],
   ['documents', 'Documentos'], ['contacts', 'Quién contacta'], ['messages', 'Mensajes'], ['edit', 'Editar su perfil'],
 ];
 
