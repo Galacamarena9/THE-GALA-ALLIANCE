@@ -2144,6 +2144,67 @@ try {
     await as(v.ownerB, `insert into organizations (name, type, created_by, country) values ('Valencia Basket', 'club', $1, 'IT')`, [v.ownerB]); // otro país
   });
 
+  // ---------------------------------------------------------------- Prompt 9 · Supabase & PostgreSQL
+  results.push('\nPrompt 9: integridad, documentos, concurrencia y catálogo');
+  await check('P9 S9-01 · un documento, la foto o una evidencia no pueden apuntar a la carpeta de otra persona', async () => {
+    await expectError(() => as(u.adult, `update athlete_documents set storage_path = $2 where id = $1`, [docT, `${u.privateAth}/exp.pdf`]), /path_belongs_to_athlete/);
+    await expectError(() => as(u.adult, `update athlete_profiles set photo_path = $2 where user_id = $1`, [u.adult, `${u.privateAth}/foto.jpg`]), /photo_belongs_to_athlete/);
+    const vr = (await db.query(`insert into verification_requests (subject_user, verification_type, status) values ($1, 'role', 'submitted') returning id`, [u.coach])).rows[0].id;
+    await expectError(() => as(u.coach, `insert into verification_evidence (request_id, evidence_type, storage_path, submitted_by) values ($1, 'official_letter', $2, $3)`, [vr, `${u.coach2}/carta.pdf`, u.coach]), /verification_evidence_path_owner/);
+    await as(u.coach, `insert into verification_evidence (request_id, evidence_type, storage_path, submitted_by) values ($1, 'official_letter', $2, $3)`, [vr, `${u.coach}/carta.pdf`, u.coach]);
+    await expectError(() => as(u.adult, `update athlete_documents set content_sha256 = 'nohash' where id = $1`, [docT]), /check constraint/);
+  });
+
+  await check('P9 S9-02 · abrir un documento: dueño sin registro; organización con concesión → registrado; otra organización → no', async () => {
+    await as(u.adult, `insert into document_access_grants (document_id, athlete_id, organization_id, purpose, expires_at) values ($1, $2, $3, 'application_review', now() + interval '5 days')`, [docT, u.adult, clubA]);
+    const before = (await db.query(`select count(*)::int n from audit_logs where action = 'document_opened' and entity_id = $1`, [docT])).rows[0].n;
+    eq((await as(u.adult, `select document_open($1) p`, [docT])).rows[0].p, `${u.adult}/exp.pdf`, 'dueño');
+    eq((await as(u.coach2, `select document_open($1) p`, [docT])).rows[0].p, `${u.adult}/exp.pdf`, 'club con concesión');
+    const logs = (await db.query(`select actor_id, organization_id, classification from audit_logs where action = 'document_opened' and entity_id = $1`, [docT])).rows;
+    eq(logs.length, before + 1, 'solo el acceso de terceros queda registrado');
+    eq(logs.at(-1).actor_id, u.coach2); eq(logs.at(-1).organization_id, clubA); eq(logs.at(-1).classification, 'sensitive');
+    await expectError(() => as(v.ownerB, `select document_open($1)`, [docT]), /not_allowed/);
+    await expectError(() => as(null, `select document_open($1)`, [docT]), /permission denied|not_allowed/);
+  });
+
+  await check('P9 concurrencia · dos candidaturas simultáneas a la misma oportunidad → exactamente una', async () => {
+    const opp = (await db.query(`select o.id from opportunities o where o.status = 'published'
+      and not exists (select 1 from applications a where a.opportunity_id = o.id and a.athlete_id = $1) limit 1`, [u.adult])).rows[0]?.id;
+    if (!opp) throw new Error('no hay oportunidad libre para la prueba');
+    const c1 = new pg.Client({ connectionString: url.toString() }); const c2 = new pg.Client({ connectionString: url.toString() });
+    await c1.connect(); await c2.connect();
+    const start = async (c) => { await c.query('begin'); await c.query('set local role authenticated'); await c.query(`select set_config('request.jwt.claims', $1, true)`, [JSON.stringify({ sub: u.adult, role: 'authenticated' })]); };
+    try {
+      await start(c1); await start(c2);
+      await c1.query(`insert into applications (opportunity_id, athlete_id) values ($1, $2)`, [opp, u.adult]);
+      const second = c2.query(`insert into applications (opportunity_id, athlete_id) values ($1, $2)`, [opp, u.adult]).then(() => 'ok', (e) => e.message);
+      await new Promise((r) => setTimeout(r, 150)); // c2 queda bloqueada por el índice único
+      await c1.query('commit');
+      const r2 = await second; await c2.query('rollback');
+      if (r2 === 'ok') throw new Error('la segunda candidatura simultánea se aceptó');
+      if (!/duplicate key|unique/.test(r2)) throw new Error(`error inesperado: ${r2}`);
+    } finally { await c1.end(); await c2.end(); }
+    eq((await db.query(`select count(*)::int n from applications where opportunity_id = $1 and athlete_id = $2`, [opp, u.adult])).rows[0].n, 1);
+  });
+
+  await check('P9 catálogo · RLS en todas las tablas, FKs indexadas, search_path fijo y triggers fuera de la API', async () => {
+    const one = async (sql) => (await db.query(sql)).rows.map((r) => Object.values(r)[0]);
+    const noRls = await one(`select relname from pg_class where relnamespace = 'public'::regnamespace and relkind = 'r' and not relrowsecurity`);
+    eq(noRls.join(','), '', 'tablas sin RLS');
+    const fk = await one(`select conrelid::regclass::text from pg_constraint c where contype = 'f' and connamespace = 'public'::regnamespace
+      and not exists (select 1 from pg_index i where i.indrelid = c.conrelid and i.indkey[0] = c.conkey[1])`);
+    eq(fk.join(','), '', 'FKs sin índice');
+    const sp = await one(`select proname from pg_proc p where pronamespace = 'public'::regnamespace and prokind = 'f'
+      and (proconfig is null or not exists (select 1 from unnest(proconfig) x where x like 'search_path=%'))`);
+    eq(sp.join(','), '', 'funciones sin search_path');
+    const trg = await one(`select proname from pg_proc where pronamespace = 'public'::regnamespace and prorettype = 'trigger'::regtype
+      and (has_function_privilege('anon', oid, 'execute') or has_function_privilege('authenticated', oid, 'execute'))`);
+    eq(trg.join(','), '', 'funciones trigger ejecutables por la API');
+    const views = await one(`select relname from pg_class c where relnamespace = 'public'::regnamespace and relkind = 'v'
+      and not coalesce((select bool_or(o in ('security_invoker=true', 'security_invoker=on')) from unnest(c.reloptions) o), false)`);
+    eq(views.join(','), '', 'vistas sin security_invoker');
+  });
+
   if (!process.env.SKIP_ERASURE) await check('RGPD: toda cuenta y toda organización se puede borrar (anonimiza auditoría, no bloquea)', async () => {
     await db.query(`select set_config('request.jwt.claims', '{}', false)`);
     const fails = [];
