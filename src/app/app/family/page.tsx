@@ -9,7 +9,7 @@ import { InviteLink } from '@/components/InviteLink';
 import { revokeFamilyLink } from '@/app/actions/family';
 import { guardianLinks, loadFamilyChild } from '@/lib/data/family-home';
 import { familyNextAction, type FamilyAction } from '@/lib/domain/family';
-import { FamilyHome, FamilyWelcome } from '@/components/family/FamilyHome';
+import { FamilyHome, FamilyOnboarding, FamilyWelcome } from '@/components/family/FamilyHome';
 import { FamilyTrialCenter, type FamilyTrialItem } from '@/components/trials/FamilyTrialCenter';
 
 export const metadata: Metadata = { title: 'Familia' };
@@ -18,7 +18,7 @@ function todayIso() {
   return new Date().toISOString().slice(0, 10);
 }
 
-export default async function FamilyPage({ searchParams }: { searchParams: Promise<{ child?: string }> }) {
+export default async function FamilyPage({ searchParams }: { searchParams: Promise<{ child?: string; bienvenida?: string }> }) {
   const session = await requireSession(['parent']);
   const sp = await searchParams;
   const supabase = await createClient();
@@ -31,9 +31,9 @@ export default async function FamilyPage({ searchParams }: { searchParams: Promi
 
   const header = (
     <PageHeader
-      kicker="Family Command Center"
-      title="El proceso, de un vistazo"
-      description="Seguridad, plazos, documentos y coste real de cada opción. Solo ves lo que tu hijo o hija ha decidido compartir contigo."
+      kicker="Familia"
+      title="Lo que necesita vuestra atención"
+      description="Solo ves lo que tu hijo o hija decide compartir contigo."
     />
   );
 
@@ -90,53 +90,53 @@ export default async function FamilyPage({ searchParams }: { searchParams: Promi
   return (
     <>
       {header}
+      {sp.bienvenida && <FamilyOnboarding name={current.name} scopes={current.scopes} />}
       <FamilyHome links={links} current={current} home={home} action={action} today={today} switchHref={(id) => `/app/family?child=${id}`} />
       {trialItems.length > 0 && <div className="mt-5"><FamilyTrialCenter items={trialItems} /></div>}
       {apps !== null && (
-        <div className="mt-5">
-              <Card>
-                <CardTitle kicker="Candidaturas">Coste publicado por cada oportunidad</CardTitle>
-                {apps === null ? (
-                  <p className="text-sm text-faint">Tu hijo o hija no comparte sus candidaturas contigo.</p>
-                ) : apps.length ? (
-                  <div className="overflow-x-auto">
-                    <table className="w-full min-w-[560px] text-sm">
-                      <thead className="text-left text-xs text-faint">
-                        <tr><th className="py-2 font-normal">Oportunidad</th><th className="font-normal">Estado</th><th className="text-right font-normal">Coste anual</th><th className="text-right font-normal">Ayuda</th><th className="text-right font-normal">Neto familia</th></tr>
-                      </thead>
-                      <tbody className="divide-y divide-line">
-                        {apps.map((a) => {
-                          const o = a.opportunities as unknown as { title: string; annual_cost_usd: number | null; aid_amount_usd: number | null; organizations: { name: string } | null } | null;
-                          const net = o?.annual_cost_usd != null && o.aid_amount_usd != null ? o.annual_cost_usd - o.aid_amount_usd : null;
-                          return (
-                            <tr key={a.id}>
-                              <td className="py-2.5 text-paper">{o?.title}<span className="block text-xs text-faint">{o?.organizations?.name}</span></td>
-                              <td><Badge tone="brass">{ATHLETE_STATUS_LABEL[a.status as ApplicationStatus]}</Badge></td>
-                              <td className="text-right tabular-nums">{usd(o?.annual_cost_usd)}</td>
-                              <td className="text-right tabular-nums">{usd(o?.aid_amount_usd)}</td>
-                              <td className="text-right tabular-nums text-paper">{net == null ? <span className="text-warn">Incompleto</span> : usd(net)}</td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                    <p className="mt-3 text-xs text-faint">&quot;Incompleto&quot; significa que la universidad no ha publicado coste y ayuda completos. Nunca estimamos cifras que no existen.</p>
-                  </div>
-                ) : (
-                  <EmptyState title="Aún no hay candidaturas" />
-                )}
-              </Card>
-
-        </div>
+        <Card className="mt-5">
+          <CardTitle kicker="Candidaturas">Coste publicado de cada oportunidad</CardTitle>
+          {apps.length ? (
+            <>
+              <ul className="divide-y divide-line">
+                {apps.map((a) => {
+                  const o = a.opportunities as unknown as { title: string; annual_cost_usd: number | null; aid_amount_usd: number | null; organizations: { name: string } | null } | null;
+                  const net = o?.annual_cost_usd != null && o.aid_amount_usd != null ? o.annual_cost_usd - o.aid_amount_usd : null;
+                  return (
+                    <li key={a.id} className="grid gap-2 py-3 sm:grid-cols-[1fr_auto] sm:items-center">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-paper">{o?.title}</p>
+                        <p className="text-xs text-faint">{o?.organizations?.name}</p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
+                        <Badge tone="brass">{ATHLETE_STATUS_LABEL[a.status as ApplicationStatus]}</Badge>
+                        <span>Coste <span className="tabular-nums text-paper">{usd(o?.annual_cost_usd)}</span></span>
+                        <span>Ayuda <span className="tabular-nums text-paper">{usd(o?.aid_amount_usd)}</span></span>
+                        <span>Neto {net == null ? <span className="text-warn">sin datos suficientes</span> : <span className="tabular-nums font-semibold text-paper">{usd(net)}</span>}</span>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+              <p className="mt-3 text-xs text-faint">«Sin datos suficientes»: la universidad no ha publicado coste y ayuda completos. Nunca estimamos cifras que no existen.</p>
+            </>
+          ) : (
+            <EmptyState title="Aún no hay candidaturas">Cuando presente una, verás aquí su coste publicado y la ayuda.</EmptyState>
+          )}
+        </Card>
       )}
       <Card className="mt-5" id="vincular">
         <CardTitle kicker="Otro hijo o hija">Vincular a otro atleta</CardTitle>
         <p className="mb-4 max-w-xl text-sm text-muted">Cada hijo o hija decide por separado qué puedes ver. Sus datos nunca se mezclan.</p>
         <InviteLink siteUrl={siteUrl()} label="Crear otro enlace" />
-        <form action={revokeFamilyLink} className="mt-5 border-t border-line pt-4">
-          <input type="hidden" name="id" value={current.id} />
-          <button className="text-xs text-faint hover:text-danger">Dejar de seguir a {current.name}</button>
-        </form>
+        <details className="mt-5 border-t border-line pt-4">
+          <summary className="cursor-pointer text-xs text-faint hover:text-danger">Dejar de seguir a {current.name}</summary>
+          <form action={revokeFamilyLink} className="mt-3 rounded-xl border border-line p-4 text-sm text-muted">
+            <input type="hidden" name="id" value={current.id} /><input type="hidden" name="confirm" value="yes" />
+            <p>Dejarás de ver su información desde ahora. Su proceso, documentos y ofertas no cambian. Para volver, necesitaréis una invitación nueva.</p>
+            <button className="mt-3 min-h-11 rounded-full border border-danger/40 px-5 text-sm font-semibold text-danger">Sí, dejar de seguir</button>
+          </form>
+        </details>
       </Card>
     </>
   );

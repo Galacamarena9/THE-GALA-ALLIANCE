@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { CalendarCheck, Compass, FileText, GitBranch, Home, LayoutGrid, ListChecks, Menu, MessageSquare, Trophy, Wallet, X } from 'lucide-react';
+import { CalendarCheck, Compass, FileText, GitBranch, Home, LayoutGrid, ListChecks, Menu, MessageSquare, ShieldCheck, Trophy, Wallet, X } from 'lucide-react';
 import type { NavSection } from '@/lib/domain/navigation';
 import { cx } from '@/components/ui';
 import { Sidebar } from './Sidebar';
@@ -34,7 +34,7 @@ const FAMILY_TABS = [
   { href: '/app/family', label: 'Hoy', Icon: Home, exact: true },
   { href: '/app/family/costs', label: 'Costes', Icon: Wallet },
   { href: '/app/requests', label: 'Documentos', Icon: FileText },
-  { href: '/app/inbox', label: 'Seguridad', Icon: MessageSquare },
+  { href: '/app/family/safety', label: 'Seguridad', Icon: ShieldCheck },
 ];
 
 /** Móvil: barra inferior tipo app (como LinkedIn) + menú completo en panel lateral. */

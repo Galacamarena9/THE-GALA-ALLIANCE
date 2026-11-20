@@ -33,7 +33,7 @@ export default async function InvitePage({ params, searchParams }: { params: Pro
           ) : !session ? (
             <>
               <h1 className="mt-2 text-2xl text-paper">Te han invitado a vincular vuestras cuentas</h1>
-              <p className="mt-3 text-sm text-muted">Entra o crea tu cuenta para aceptar. La familia solo verá lo que el atleta decida compartir.</p>
+              <p className="mt-3 text-sm text-muted">Entra o crea tu cuenta para aceptar. Si la creas ahora, vuelve a abrir este mismo enlace después. La familia solo verá lo que el atleta decida compartir.</p>
               <div className="mt-6 flex flex-wrap gap-2">
                 <ButtonLink href={`/login?next=/invite/${token}`}>Entrar</ButtonLink>
                 <ButtonLink href={`/signup`} variant="secondary">Crear cuenta</ButtonLink>
@@ -53,7 +53,7 @@ export default async function InvitePage({ params, searchParams }: { params: Pro
                   ? 'Si aceptas, tu familia verá tu Passport, tus candidaturas y tu académico. Podrás cambiar estos permisos o desvincularla cuando quieras desde Privacidad.'
                   : 'Si aceptas, verás el progreso que tu hijo o hija decida compartir contigo.'}
               </p>
-              {error && <div className="mt-4"><Notice tone="danger">No se ha podido aceptar la invitación.</Notice></div>}
+              {error && <div className="mt-4"><Notice tone={error === 'linked' ? 'warn' : 'danger'}>{error === 'linked' ? 'Ya estáis vinculados. No hace falta aceptar de nuevo.' : 'No se ha podido aceptar la invitación. Pide un enlace nuevo.'}</Notice></div>}
               <form action={acceptFamilyInvitation} className="mt-6">
                 <input type="hidden" name="token" value={token} />
                 <SubmitButton pendingText="Vinculando…">Aceptar y vincular</SubmitButton>

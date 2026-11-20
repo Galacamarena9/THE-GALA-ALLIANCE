@@ -28,6 +28,14 @@ for (const width of [375, 1280]) {
       await expect(page.getByRole('button', { name: 'Guardar nota' })).toBeVisible();
     });
 
+    test('bienvenida: con quién, qué puede ver, qué aprueba y cómo se protege, en una sola tarjeta', async ({ page }) => {
+      await page.goto('/preview/family-welcome', { waitUntil: 'networkidle' });
+      if (width < 400) await noOverflow(page);
+      await expect(page.getByRole('heading', { name: 'Ya estáis vinculados' })).toBeVisible();
+      await expect(page.getByText(/el presupuesto familiar nunca se enseña a nadie/)).toBeVisible();
+      await expect(page.getByRole('link', { name: 'Elegir qué avisos recibir' })).toBeVisible();
+    });
+
     test('costes: lo que falta se ve; la opción incompleta no es «la más barata»', async ({ page }) => {
       await page.goto('/preview/family-costs', { waitUntil: 'networkidle' });
       await expect(page.getByText(/Coste estimado para la familia: 24\.200/)).toBeVisible();
