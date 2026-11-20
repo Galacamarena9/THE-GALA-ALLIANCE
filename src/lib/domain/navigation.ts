@@ -98,10 +98,11 @@ export const PERSONAL_SERVICES: Record<AppRole, NavItem[]> = {
   ],
   agent: [
     { href: '/app/portfolio', label: 'Cartera', icon: 'handshake', desc: 'Tu cartera: representados, propuestas, notas internas y seguimientos.' },
+    { href: '/app/portfolio/trials', label: 'Trials y programas', icon: 'trophy', desc: 'Trials de clubes y academias para tus representados: inscripciones, costes y seguimiento en un solo sitio.' },
     { href: '/app/pipeline', label: 'Procesos', icon: 'pipeline', desc: 'Cada atleta con cada universidad: fase, responsable, tareas e historial.' },
     { href: '/app/contacts', label: 'Universidades y coaches', icon: 'campus', desc: 'Contactos de programas, privados de tu agencia.', more: true },
     { href: '/app/lists', label: 'Listas', icon: 'list', desc: 'Atletas guardados y búsquedas con alertas.' },
-    { href: '/app/organization', label: 'Agencia', icon: 'building', desc: 'Datos de la agencia, verificación y equipo.' },
+    { href: '/app/organization', label: 'Agencia', icon: 'building', desc: 'Datos de la agencia, verificación y equipo.', more: true },
   ],
   brand: [
     { href: '/app/campaigns?view=mine', label: 'Mis campañas', icon: 'megaphone', desc: 'Campañas con atletas mayores de edad y sus candidaturas.' },

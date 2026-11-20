@@ -6,6 +6,7 @@ import { SubmitButton } from '@/components/SubmitButton';
 import { Card, CardTitle, Field, inputClass } from '@/components/ui';
 import { createOpportunity } from '@/app/actions/opportunities';
 import { DIVISION_LABEL, OPPORTUNITY_TYPE_LABEL } from '@/lib/domain/labels';
+import { TRIAL_TYPES } from '@/lib/domain/trials';
 import { CONTACT_METHOD_LABEL, INTERNATIONAL_LABEL, REQUIRED_MATERIAL_LABEL, SCHOLARSHIP_LABEL } from '@/lib/domain/recruit';
 
 interface Props {
@@ -17,6 +18,9 @@ interface Props {
 
 export function OpportunityForm({ orgs, catalog, needs = [] }: Props) {
   const [org, setOrg] = useState(orgs[0]?.id ?? '');
+  const [type, setType] = useState(Object.keys(OPPORTUNITY_TYPE_LABEL)[0]);
+  const [fee, setFee] = useState<'free' | 'paid' | 'unknown'>('unknown');
+  const isTrial = (TRIAL_TYPES as readonly string[]).includes(type);
   const orgNeeds = needs.filter((n) => n.organization_id === org);
   const [sport, setSport] = useState(catalog.sports[0]?.id ?? '');
   const positions = useMemo(() => catalog.positions.filter((p) => p.sport_id === sport), [catalog.positions, sport]);
@@ -35,7 +39,7 @@ export function OpportunityForm({ orgs, catalog, needs = [] }: Props) {
                 </select>
               </Field>
               <Field label="Tipo" htmlFor="type">
-                <select id="type" name="type" className={inputClass}>
+                <select id="type" name="type" value={type} onChange={(e) => setType(e.target.value)} className={inputClass}>
                   {Object.entries(OPPORTUNITY_TYPE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                 </select>
               </Field>
@@ -128,6 +132,55 @@ export function OpportunityForm({ orgs, catalog, needs = [] }: Props) {
               <Field label="Plazo de candidatura" htmlFor="deadline"><input id="deadline" name="deadline" type="date" className={inputClass} /></Field>
             </div>
           </Card>
+
+          {isTrial && (
+            <Card>
+              <CardTitle kicker="Trial / programa">Fecha, lugar y coste</CardTitle>
+              <p className="-mt-2 mb-5 text-sm text-muted">Las familias y los agentes deciden con esta información. El coste se muestra siempre antes de inscribirse; no anunciéis plazas limitadas si no tenéis una capacidad confirmada.</p>
+              <div className="grid gap-5 sm:grid-cols-4">
+                <Field label="Fecha de inicio" htmlFor="ev_start"><input id="ev_start" name="ev_start" type="date" className={inputClass} /></Field>
+                <Field label="Fecha de fin" htmlFor="ev_end" error={fe.ev_end}><input id="ev_end" name="ev_end" type="date" className={inputClass} /></Field>
+                <Field label="Hora local" htmlFor="ev_time"><input id="ev_time" name="ev_time" type="time" className={inputClass} /></Field>
+                <Field label="Zona horaria" htmlFor="ev_tz" hint="Ej.: Europe/Madrid" error={fe.ev_tz}><input id="ev_tz" name="ev_tz" defaultValue="Europe/Madrid" maxLength={60} className={inputClass} /></Field>
+              </div>
+              <div className="mt-5 grid gap-5 sm:grid-cols-4">
+                <Field label="País (ISO)" htmlFor="ev_country" hint="ES, FR, US…" error={fe.ev_country}><input id="ev_country" name="ev_country" maxLength={2} className={`${inputClass} uppercase`} /></Field>
+                <Field label="Ciudad" htmlFor="ev_city"><input id="ev_city" name="ev_city" maxLength={80} className={inputClass} /></Field>
+                <Field label="Instalación" htmlFor="ev_venue"><input id="ev_venue" name="ev_venue" maxLength={120} className={inputClass} /></Field>
+                <Field label="Categoría" htmlFor="ev_cat" hint="U16, U18, Senior…"><input id="ev_cat" name="ev_cat" maxLength={40} className={inputClass} /></Field>
+              </div>
+              <div className="mt-5 grid gap-5 sm:grid-cols-4">
+                <Field label="Coste" htmlFor="ev_fee">
+                  <select id="ev_fee" name="ev_fee" value={fee} onChange={(e) => setFee(e.target.value as typeof fee)} className={inputClass}>
+                    <option value="unknown">Sin indicar</option><option value="free">Gratis</option><option value="paid">De pago</option>
+                  </select>
+                </Field>
+                {fee === 'paid' && <>
+                  <Field label="Importe" htmlFor="ev_amount" error={fe.ev_amount}><input id="ev_amount" name="ev_amount" type="number" min={0} step="0.01" required className={inputClass} /></Field>
+                  <Field label="Moneda" htmlFor="ev_currency" error={fe.ev_currency}><input id="ev_currency" name="ev_currency" defaultValue="EUR" maxLength={3} required className={`${inputClass} uppercase`} /></Field>
+                  <Field label="Reembolso" htmlFor="ev_refund">
+                    <select id="ev_refund" name="ev_refund" defaultValue="unknown" className={inputClass}>
+                      <option value="unknown">Sin indicar</option><option value="yes">Reembolsable</option><option value="partial">Parcial</option><option value="no">No reembolsable</option>
+                    </select>
+                  </Field>
+                </>}
+              </div>
+              <div className="mt-5 grid gap-5 sm:grid-cols-4">
+                {([['ev_acc', 'Alojamiento', ['unknown', 'included', 'available_paid', 'not_included']], ['ev_meals', 'Comidas', ['unknown', 'included', 'not_included']], ['ev_travel', 'Viaje', ['unknown', 'included', 'not_included']]] as const).map(([n, l, opts]) => (
+                  <Field key={n} label={l} htmlFor={n}>
+                    <select id={n} name={n} defaultValue="unknown" className={inputClass}>
+                      {opts.map((o) => <option key={o} value={o}>{{ unknown: 'Sin información', included: 'Incluido', available_paid: 'Disponible (de pago)', not_included: 'No incluido' }[o]}</option>)}
+                    </select>
+                  </Field>
+                ))}
+                <Field label="Menores" htmlFor="ev_minor">
+                  <select id="ev_minor" name="ev_minor" defaultValue="guardian_consent_required" className={inputClass}>
+                    <option value="guardian_consent_required">Con aprobación familiar</option><option value="adults_only">Solo mayores de edad</option>
+                  </select>
+                </Field>
+              </div>
+            </Card>
+          )}
 
           <Card>
             <CardTitle kicker="4">Requisitos y proceso</CardTitle>

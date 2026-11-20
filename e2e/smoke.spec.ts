@@ -12,6 +12,7 @@ const PROTECTED = [
   '/app', '/app/pipeline', '/app/pipeline/team', '/app/contacts', '/app/portfolio', '/app/athlete/passport',
   '/app/discover', '/app/lists', '/app/inbox', '/app/agents', '/app/admin/panel', '/app/plan', '/onboarding',
   '/app/match', '/app/shortlist', '/app/process', '/app/recruit', '/app/recruit/discover', '/app/requests', '/app/universities',
+  '/app/portfolio/trials', '/app/ia',
 ];
 
 async function dismissConsent(page: Page) {
