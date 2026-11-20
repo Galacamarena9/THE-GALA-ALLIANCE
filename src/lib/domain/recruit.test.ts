@@ -38,3 +38,13 @@ test('recruit: embudo acumulativo', () => {
   const f = funnel(['new', 'review', 'contact', 'offer', 'committed']);
   assert.deepEqual(f.map((x) => x.value), [5, 4, 3, 2, 1]);
 });
+
+test('publicar: no se anuncia ayuda sin estado de beca y la caducidad es coherente', async () => {
+  const { validatePublish } = await import('./recruit.ts');
+  const base = { scholarship_status: 'not_provided' as const, aid_amount_usd: null, aid_kind: 'unknown' as const, deadline: '2027-01-10', expires_at: null };
+  assert.deepEqual(validatePublish(base, '2026-11-20'), {});
+  assert.ok(validatePublish({ ...base, aid_kind: 'full' }, '2026-11-20').scholarship_status);
+  assert.ok(validatePublish({ ...base, scholarship_status: 'amount_stated' }, '2026-11-20').aid_amount_usd);
+  assert.ok(validatePublish({ ...base, expires_at: '2027-01-01' }, '2026-11-20').expires_at);
+  assert.ok(validatePublish({ ...base, expires_at: '2026-10-01', deadline: null }, '2026-11-20').expires_at);
+});

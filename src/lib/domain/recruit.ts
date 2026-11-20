@@ -133,3 +133,36 @@ export function funnel(stages: string[]) {
     { key: 'committed', label: 'Comprometidos', value: at(['committed']) },
   ];
 }
+
+/* ------------------------------------------------------------------ Publicar oportunidad (Fase 07 · 14-17) */
+/** Materiales que una oportunidad puede pedir. Se muestran al atleta antes de aplicar y en la vista previa. */
+export const REQUIRED_MATERIAL_LABEL: Record<string, string> = {
+  passport: 'Opportunity Passport', highlight_video: 'Highlight reel', full_game_video: 'Partido completo',
+  transcript: 'Expediente académico', english_certificate: 'Certificado de inglés', test_scores: 'SAT / ACT', application_form: 'Formulario de candidatura',
+};
+export const INTERNATIONAL_LABEL: Record<string, string> = { yes: 'Aceptan atletas internacionales', no: 'No aceptan atletas internacionales', unknown: 'No indicado si aceptan internacionales' };
+export const CONTACT_METHOD_LABEL: Record<string, string> = { gala: 'Contacto y preguntas a través de Gala', application_only: 'Solo mediante candidatura' };
+
+export interface PublishFields {
+  scholarship_status: 'not_provided' | 'potentially_available' | 'amount_stated';
+  aid_amount_usd: number | null;
+  aid_kind: 'full' | 'partial' | 'unknown';
+  deadline: string | null;
+  expires_at: string | null;
+}
+/**
+ * Reglas de honestidad antes de guardar (la base de datos también las aplica):
+ * - Sin información de beca no se puede anunciar ayuda ni «beca completa».
+ * - «Importe indicado» exige un importe.
+ * - La oportunidad no puede caducar antes de su plazo ni en el pasado.
+ */
+export function validatePublish(f: PublishFields, today = new Date().toISOString().slice(0, 10)): Record<string, string> {
+  const e: Record<string, string> = {};
+  if (f.scholarship_status === 'not_provided' && (f.aid_amount_usd != null || f.aid_kind !== 'unknown')) {
+    e.scholarship_status = 'Has indicado ayuda: elige el estado de la beca.';
+  }
+  if (f.scholarship_status === 'amount_stated' && f.aid_amount_usd == null) e.aid_amount_usd = 'Indica el importe o elige otro estado de beca.';
+  if (f.expires_at && f.expires_at < today) e.expires_at = 'La caducidad no puede estar en el pasado.';
+  if (f.expires_at && f.deadline && f.expires_at < f.deadline) e.expires_at = 'La caducidad no puede ser anterior al plazo de candidatura.';
+  return e;
+}

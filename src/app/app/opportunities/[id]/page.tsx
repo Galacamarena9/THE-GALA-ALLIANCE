@@ -17,11 +17,12 @@ import { Badge, Card, CardTitle, EmptyState, Notice, PageHeader } from '@/compon
 import { ApplyOpportunityForm, ReportButton } from '@/components/forms';
 import { deleteOpportunity, submitForReview } from '@/app/actions/opportunities';
 import { AnswerQuestionForm, AskQuestionForm } from '@/components/QuestionForms';
+import { CONTACT_METHOD_LABEL, INTERNATIONAL_LABEL, REQUIRED_MATERIAL_LABEL, ROLE_CAPS, ROLE_LABEL, SCHOLARSHIP_LABEL, type OrgRole } from '@/lib/domain/recruit';
 
 export const metadata: Metadata = { title: 'Oportunidad' };
 
-export default async function OpportunityPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+export default async function OpportunityPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ view?: string }> }) {
+  const [{ id }, sp] = await Promise.all([params, searchParams]);
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const session = await requireSession();
   const supabase = await createClient();
@@ -38,8 +39,15 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
   const sport = catalog.sports.find((s) => s.id === opp.sport_id)?.name_es;
 
   const { data: membership } = await supabase.from('organization_members').select('member_role').eq('organization_id', opp.organization_id).eq('user_id', session.userId).maybeSingle();
-  const isMember = Boolean(membership);
+  const member = Boolean(membership);
+  // «Ver como atleta»: el staff revisa exactamente lo que verá un atleta antes de publicar (sin controles internos).
+  const preview = member && sp.view === 'athlete';
+  const isMember = member && !preview;
   const isAthlete = session.roles.includes('athlete');
+  const extra = raw as unknown as { scholarship_status?: string; required_materials?: string[]; international_eligible?: string; contact_method?: string; expires_at?: string | null };
+  // Quién verá las candidaturas: roles del equipo con permiso sobre candidatos (espejo de org_role_caps).
+  const { data: staff } = preview ? await supabase.from('organization_members').select('member_role').eq('organization_id', opp.organization_id) : { data: null };
+  const reviewers = [...new Set((staff ?? []).map((m) => m.member_role as OrgRole).filter((r) => ROLE_CAPS[r]?.includes('candidates')))];
   if (isAthlete && !isMember) await logEvent('opportunity_viewed');
   const { data: questions } = await supabase.from('opportunity_questions').select('id, body, answer, answered_at, created_at').eq('opportunity_id', id).order('created_at', { ascending: false }).limit(50);
   const answered = (questions ?? []).filter((q) => q.answered_at);
@@ -93,8 +101,19 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
         }
       />
 
+      {preview && (
+        <div className="mb-5">
+          <Notice tone="brass">
+            <strong>Vista previa como atleta.</strong> Así verá esta oportunidad un atleta: requisitos, información económica y materiales que pedís.
+            {' '}Las candidaturas las podrán ver: {reviewers.length ? reviewers.map((r) => ROLE_LABEL[r] ?? r).join(', ') : 'los miembros con permiso sobre candidatos'} de vuestra organización. Las notas internas y la necesidad vinculada nunca se muestran.
+            {' '}<Link href={`/app/opportunities/${opp.id}`} className="font-semibold underline">Salir de la vista previa</Link>
+          </Notice>
+        </div>
+      )}
+
       {isMember && (
         <div className="mb-5 flex flex-wrap items-center gap-3">
+          <Link href={`/app/opportunities/${opp.id}?view=athlete`} className="rounded-lg border border-line-strong px-3 py-1.5 text-sm text-paper hover:border-brass">Ver como atleta</Link>
           <Badge tone={opp.status === 'published' ? 'ok' : opp.status === 'rejected' ? 'danger' : 'warn'}>{OPPORTUNITY_STATUS_LABEL[opp.status]}</Badge>
           {opp.review_note && <span className="text-sm text-muted">Nota de revisión: {opp.review_note}</span>}
           {opp.status === 'published' && (
@@ -141,6 +160,23 @@ export default async function OpportunityPage({ params }: { params: Promise<{ id
               Origen de las cifras: {opp.financial_source === 'platform_verified' ? 'verificadas por la plataforma' : opp.financial_source === 'organization_provided' ? 'aportadas por la organización (sin verificar)' : 'sin cifras publicadas'}.
               Una ayuda solo cuenta cuando está por escrito en la oferta. <Link href="/app/calculator" className="text-brass hover:underline">Calcular a 4 años →</Link>
             </p>
+          </Card>
+
+          <Card>
+            <CardTitle kicker="Antes de aplicar">Requisitos y proceso</CardTitle>
+            <dl className="grid gap-4 text-sm sm:grid-cols-2">
+              <div><dt className="text-faint">Beca</dt><dd className="text-paper">{SCHOLARSHIP_LABEL[extra.scholarship_status ?? 'not_provided']}</dd></div>
+              <div><dt className="text-faint">Atletas internacionales</dt><dd className="text-paper">{INTERNATIONAL_LABEL[extra.international_eligible ?? 'unknown']}</dd></div>
+              <div><dt className="text-faint">Contacto</dt><dd className="text-paper">{CONTACT_METHOD_LABEL[extra.contact_method ?? 'gala']}</dd></div>
+              <div><dt className="text-faint">Activa hasta</dt><dd className="text-paper">{extra.expires_at ?? opp.deadline ?? 'No indicado'}</dd></div>
+            </dl>
+            <div className="mt-4">
+              <p className="text-sm text-faint">Qué te pedirán</p>
+              {extra.required_materials?.length ? (
+                <ul className="mt-1 flex flex-wrap gap-2">{extra.required_materials.map((m) => <li key={m} className="rounded-full border border-line px-3 py-1 text-xs text-paper">{REQUIRED_MATERIAL_LABEL[m] ?? m}</li>)}</ul>
+              ) : <p className="text-sm text-muted">La organización no ha indicado materiales concretos.</p>}
+              <p className="mt-2 text-[11px] text-faint">Aplicar no comparte tus documentos privados: cada documento se comparte solo si tú (o tu familia, si eres menor) lo autorizas.</p>
+            </div>
           </Card>
 
           <TrustSeal {...assessOpportunity(opp)} />

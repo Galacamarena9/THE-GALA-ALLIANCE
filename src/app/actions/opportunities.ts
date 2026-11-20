@@ -4,6 +4,7 @@ import { logEvent } from '@/lib/events';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
+import { REQUIRED_MATERIAL_LABEL, validatePublish } from '@/lib/domain/recruit';
 import { createClient } from '@/lib/supabase/server';
 import { requireSession } from '@/lib/session';
 import type { FormState } from './auth';
@@ -29,6 +30,12 @@ const oppSchema = z
     annual_cost_usd: optInt(0, 200000),
     aid_amount_usd: optInt(0, 200000),
     aid_kind: z.enum(['full', 'partial', 'unknown']).default('unknown'),
+    // Fase 07: beca honesta, requisitos visibles y caducidad.
+    scholarship_status: z.enum(['not_provided', 'potentially_available', 'amount_stated']).default('not_provided'),
+    international_eligible: z.enum(['yes', 'no', 'unknown']).default('unknown'),
+    contact_method: z.enum(['gala', 'application_only']).default('gala'),
+    expires_at: z.union([z.literal(''), z.string().regex(/^\d{4}-\d{2}-\d{2}$/)]).optional().transform((v) => v || null),
+    need_id: z.union([z.literal(''), z.string().uuid()]).optional().transform((v) => v || null),
     submit: z.enum(['draft', 'review']),
   })
   .refine((d) => d.aid_amount_usd == null || d.annual_cost_usd == null || d.aid_amount_usd <= d.annual_cost_usd, {
@@ -48,6 +55,11 @@ export async function createOpportunity(_prev: FormState, formData: FormData): P
   const gradYears = z.coerce.number().int().min(2024).max(2040).array().safeParse(formData.getAll('graduation_years'));
   if (!positionIds.success || !gradYears.success) return { error: 'Posiciones o años no válidos.' };
 
+  const materials = z.enum(Object.keys(REQUIRED_MATERIAL_LABEL) as [string, ...string[]]).array().max(10).safeParse(formData.getAll('required_materials'));
+  if (!materials.success) return { error: 'Materiales no válidos.' };
+  const honesty = validatePublish(parsed.data);
+  if (Object.keys(honesty).length) return { fieldErrors: honesty, error: 'Revisa los campos marcados.' };
+
   const { submit, ...data } = parsed.data;
   const supabase = await createClient();
   const { data: created, error } = await supabase
@@ -56,6 +68,7 @@ export async function createOpportunity(_prev: FormState, formData: FormData): P
       ...data,
       position_ids: positionIds.data,
       graduation_years: gradYears.data,
+      required_materials: materials.data,
       created_by: session.userId,
       // Las cifras las aporta la organización: se etiquetan así hasta que el equipo las verifique.
       financial_source: data.annual_cost_usd != null || data.aid_amount_usd != null ? 'organization_provided' : null,
@@ -63,7 +76,10 @@ export async function createOpportunity(_prev: FormState, formData: FormData): P
     })
     .select('id')
     .single();
-  if (error || !created) return { error: 'No se ha podido crear la oportunidad. Comprueba que perteneces a la organización.' };
+  if (error || !created) {
+    if (error?.message?.includes('scholarship_claim_consistent')) return { fieldErrors: { scholarship_status: 'Elige el estado de la beca.' }, error: 'Revisa la información de beca.' };
+    return { error: 'No se ha podido crear la oportunidad. Comprueba que perteneces a la organización.' };
+  }
   revalidatePath('/app/opportunities');
   redirect(`/app/opportunities/${created.id}`);
 }
