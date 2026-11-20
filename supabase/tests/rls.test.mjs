@@ -1695,6 +1695,137 @@ try {
     eq((await as(u.adult, `select count(*)::int n from opportunity_registrations where athlete_id <> $1`, [u.adult])).rows[0].n, 0, 'un atleta no ve quién más participa');
   });
 
+  // ---------------------------------------------------------------- 11B · RLS & seguridad de Clubs & Academies
+  results.push('\nPrompt 11B: RLS & seguridad de Clubs & Academies');
+  const v = { scoutU18: randomUUID(), directorA: randomUUID(), viewerA: randomUUID(), ownerB: randomUUID(), unverified: randomUUID(), exParent: randomUUID() };
+  for (const [name, id] of Object.entries(v)) {
+    await db.query(`insert into auth.users (id, email, raw_user_meta_data) values ($1, $2, $3)`, [id, `${name}@test.dev`, { display_name: name }]);
+    await as(id, `insert into user_roles (user_id, role) values ($1, $2)`, [id, name === 'exParent' ? 'parent' : 'coach']);
+  }
+  let progFem; let teamU18; let teamFirst; let trialU18; let trialFirst; let clubB; let docT; let docMed;
+  await check('11B equipos: el scout del U18 no ve el First Team; el director deportivo ve ambos', async () => {
+    progFem = (await db.query(`select id from org_programs where organization_id = $1 and sport_id = 'basketball' and gender = 'women'`, [clubA])).rows[0]?.id
+      ?? (await as(u.coach2, `insert into org_programs (organization_id, sport_id, gender, name) values ($1, 'basketball', 'women', 'Femenino base') returning id`, [clubA])).rows[0].id;
+    teamU18 = (await as(u.coach2, `insert into org_teams (organization_id, program_id, name, age_category_code, created_by) values ($1, $2, 'U18 Femenino', 'U18', $3) returning id`, [clubA, progFem, u.coach2])).rows[0].id;
+    teamFirst = (await as(u.coach2, `insert into org_teams (organization_id, program_id, name, age_category_code, created_by) values ($1, $2, 'Primer equipo', 'FIRST_TEAM', $3) returning id`, [clubA, progFem, u.coach2])).rows[0].id;
+    await as(u.coach2, `insert into organization_members (organization_id, user_id, member_role, team_scope, team_ids) values ($1, $2, 'recruiter', 'selected', $3)`, [clubA, v.scoutU18, [teamU18]]);
+    await as(u.coach2, `insert into organization_members (organization_id, user_id, member_role) values ($1, $2, 'athletic_director')`, [clubA, v.directorA]);
+    await as(u.coach2, `insert into organization_members (organization_id, user_id, member_role) values ($1, $2, 'viewer')`, [clubA, v.viewerA]);
+    // Un equipo de otra organización no se puede asignar a un miembro.
+    await expectError(() => as(u.coach2, `update organization_members set team_scope = 'selected', team_ids = $1 where organization_id = $2 and user_id = $3`, [[randomUUID()], clubA, v.viewerA]), /team_not_in_org/);
+    trialU18 = await makeOpp(u.coach2, clubA, { title: 'Trial U18 femenino' });
+    trialFirst = await makeOpp(u.coach2, clubA, { title: 'Trial primer equipo' });
+    await as(u.admin, `update opportunities set team_id = $1 where id = $2`, [teamU18, trialU18]);
+    await as(u.admin, `update opportunities set team_id = $1 where id = $2`, [teamFirst, trialFirst]);
+    for (const t of [trialU18, trialFirst]) await as(u.adult, `select trial_register($1, $2)`, [t, u.adult]);
+    const sees = async (who, t) => (await as(who, `select count(*)::int n from opportunity_registrations where opportunity_id = $1`, [t])).rows[0].n;
+    eq(await sees(v.scoutU18, trialU18), 1, 'scout U18 → su equipo');
+    eq(await sees(v.scoutU18, trialFirst), 0, 'scout U18 → First Team');
+    eq(await sees(v.directorA, trialFirst), 1, 'director → First Team');
+    eq(await sees(v.viewerA, trialU18), 0, 'viewer sin permisos');
+    const regFirst = (await db.query(`select id from opportunity_registrations where opportunity_id = $1`, [trialFirst])).rows[0].id;
+    await expectError(() => as(v.scoutU18, `select trial_org_action($1, 'confirm')`, [regFirst]), /not_allowed/);
+    await expectError(() => as(v.scoutU18, `select trial_org_invite($1, $2)`, [trialFirst, u.adult]), /not_allowed/);
+    eq((await as(v.directorA, `select trial_org_action($1, 'confirm') s`, [regFirst])).rows[0].s, 'confirmed');
+    // Borrador de otro equipo: invisible para el scout; visible para el director.
+    await as(u.admin, `update opportunities set status = 'draft' where id = $1`, [trialFirst]).catch(() => null);
+    const draft = (await as(u.coach2, `insert into opportunities (organization_id, created_by, type, title, description, sport_id, team_id, program_id) values ($1, $2, 'tryout', 'Borrador First Team', 'Trial interno todavía en preparación.', 'basketball', $3, $4) returning id`, [clubA, u.coach2, teamFirst, progFem])).rows[0].id;
+    eq((await as(v.scoutU18, `select count(*)::int n from opportunities where id = $1`, [draft])).rows[0].n, 0, 'scout no ve borrador de otro equipo');
+    eq((await as(v.directorA, `select count(*)::int n from opportunities where id = $1`, [draft])).rows[0].n, 1, 'director sí');
+    for (const who of [u.adult, u.parent, u.uni, null]) eq((await as(who, `select count(*)::int n from opportunities where id = $1`, [draft])).rows[0].n, 0, `borrador oculto a ${who}`);
+  });
+
+  await check('11B aislamiento: el Club B no accede a nada privado del Club A (cambiar organization_id no ayuda)', async () => {
+    clubB = await verifiedOrg(v.ownerB, 'Club B Basket', 'club');
+    const tables = ['applications', 'opportunity_registrations', 'opportunity_invitations', 'opportunity_attendance', 'opportunity_outcomes',
+      'program_enrollments', 'payment_requirements', 'org_candidates', 'recruiting_needs', 'org_shortlists', 'org_notes', 'document_access_grants'];
+    for (const t of tables) eq((await as(v.ownerB, `select count(*)::int n from ${t} where organization_id = $1`, [clubA])).rows[0].n, 0, t);
+    const reg = (await db.query(`select id from opportunity_registrations where opportunity_id = $1`, [trialU18])).rows[0].id;
+    for (const sql of [`select trial_org_action($1, 'confirm')`, `select attendance_record($1, 'attended')`, `select outcome_record($1, 'closed')`, `select start_recruiting_from_trial($1)`]) {
+      await expectError(() => as(v.ownerB, sql, [reg]), /not_allowed/);
+    }
+    // Insertar con el organization_id de otro club tampoco sirve.
+    await expectError(() => as(v.ownerB, `insert into recruiting_needs (organization_id, sport_id, title) values ($1, 'basketball', 'Base U18')`, [clubA]), /row-level security|violates/);
+    await expectError(() => as(v.ownerB, `insert into org_shortlists (organization_id, name, owner_id) values ($1, 'Robada', $2)`, [clubA, v.ownerB]), /row-level security|violates/);
+    eq((await as(v.ownerB, `update opportunities set title = 'hackeado' where id = $1`, [trialU18])).rowCount, 0, 'no edita trials ajenos');
+    // Presupuesto familiar: ningún club lo ve.
+    for (const who of [u.coach2, v.directorA, v.ownerB]) eq((await as(who, `select count(*)::int n from athlete_finances`)).rows[0].n, 0, 'family budget');
+  });
+
+  await check('11B candidaturas: el staff no cambia el estado de un trial por UPDATE directo; el atleta no se acepta ni aplica por otro', async () => {
+    const t = await makeOpp(u.coach2, clubA, { mode: 'application_required', title: 'Trial con candidatura' });
+    const app = (await as(u.adult, `insert into applications (opportunity_id, athlete_id) values ($1, $2) returning id`, [t, u.adult])).rows[0].id;
+    await expectError(() => as(u.coach2, `update applications set status = 'accepted' where id = $1`, [app]), /use_application_org_decide/);
+    await expectError(() => as(u.adult, `update applications set status = 'accepted' where id = $1`, [app]), /athlete_can_only_withdraw|use_application/);
+    await expectError(() => as(u.adult, `insert into applications (opportunity_id, athlete_id) values ($1, $2)`, [t, u.privateAth]), /row-level security/);
+    eq((await as(v.viewerA, `select count(*)::int n from applications where id = $1`, [app])).rows[0].n, 0, 'viewer no ve candidaturas');
+    await expectError(() => as(v.ownerB, `select application_org_decide($1, 'accepted')`, [app]), /not_allowed/);
+    eq((await as(u.coach2, `select application_org_decide($1, 'waitlisted') s`, [app])).rows[0].s, 'waitlisted');
+  });
+
+  await check('11B documentos: concesión con finalidad y caducidad; otro club, caducada o revocada → nada; los muy sensibles, solo nominales', async () => {
+    docT = (await as(u.adult, `insert into athlete_documents (athlete_id, kind, title, storage_path, uploaded_at) values ($1, 'transcript', 'Expediente 2026', $2, now()) returning id`, [u.adult, `${u.adult}/exp.pdf`])).rows[0].id;
+    docMed = (await as(u.adult, `insert into athlete_documents (athlete_id, kind, title, storage_path, uploaded_at) values ($1, 'medical', 'Reconocimiento médico', $2, now()) returning id`, [u.adult, `${u.adult}/med.pdf`])).rows[0].id;
+    const sees = async (who, d) => (await as(who, `select count(*)::int n from athlete_documents where id = $1`, [d])).rows[0].n;
+    eq(await sees(u.coach2, docT), 0, 'sin concesión');
+    // La organización no puede concederse acceso a sí misma.
+    await expectError(() => as(u.coach2, `insert into document_access_grants (document_id, athlete_id, organization_id, purpose, expires_at) values ($1, $2, $3, 'application_review', now() + interval '10 days')`, [docT, u.adult, clubA]), /row-level security|not_allowed/);
+    const g = (await as(u.adult, `insert into document_access_grants (document_id, athlete_id, organization_id, purpose, context_type, context_id, expires_at) values ($1, $2, $3, 'trial_registration', 'opportunity', $4, now() + interval '10 days') returning id`, [docT, u.adult, clubA, trialU18])).rows[0].id;
+    eq(await sees(u.coach2, docT), 1, 'Club A con concesión');
+    eq(await sees(v.ownerB, docT), 0, 'Club B con el id');
+    eq(await sees(v.viewerA, docT), 0, 'viewer del Club A sin permiso de candidatos');
+    // Documento médico: exige destinatario y máximo 30 días; solo lo ve esa persona.
+    await expectError(() => as(u.adult, `insert into document_access_grants (document_id, athlete_id, organization_id, purpose, expires_at) values ($1, $2, $3, 'trial_registration', now() + interval '10 days')`, [docMed, u.adult, clubA]), /grantee_required/);
+    await expectError(() => as(u.adult, `insert into document_access_grants (document_id, athlete_id, organization_id, purpose, expires_at, grantee_user_id) values ($1, $2, $3, 'trial_registration', now() + interval '90 days', $4)`, [docMed, u.adult, clubA, v.directorA]), /sensitive_grant_too_long/);
+    await expectError(() => as(u.adult, `insert into document_access_grants (document_id, athlete_id, organization_id, purpose, expires_at, grantee_user_id) values ($1, $2, $3, 'trial_registration', now() + interval '7 days', $4)`, [docMed, u.adult, clubA, v.ownerB]), /grantee_not_in_org/);
+    await as(u.adult, `insert into document_access_grants (document_id, athlete_id, organization_id, purpose, expires_at, grantee_user_id) values ($1, $2, $3, 'trial_registration', now() + interval '7 days', $4)`, [docMed, u.adult, clubA, v.directorA]);
+    eq(await sees(v.directorA, docMed), 1, 'destinatario nominal');
+    eq(await sees(u.coach2, docMed), 0, 'resto del staff no');
+    // Revocada / caducada → sin acceso. Una concesión revocada no se «desrevoca» ni se alarga.
+    await as(u.adult, `update document_access_grants set revoked_at = now() where id = $1`, [g]);
+    eq(await sees(u.coach2, docT), 0, 'revocada');
+    await expectError(() => as(u.adult, `update document_access_grants set revoked_at = null where id = $1`, [g]), /grant_immutable/);
+    const g2 = (await as(u.adult, `insert into document_access_grants (document_id, athlete_id, organization_id, purpose, expires_at) values ($1, $2, $3, 'application_review', now() + interval '5 days') returning id`, [docT, u.adult, clubA])).rows[0].id;
+    eq(await sees(u.coach2, docT), 1);
+    await as(u.adult, `update document_access_grants set expires_at = now() - interval '1 minute' where id = $1`, [g2]);
+    eq(await sees(u.coach2, docT), 0, 'caducada');
+    await expectError(() => as(u.coach2, `update document_access_grants set expires_at = now() + interval '300 days' where id = $1`, [g2]), /grant_immutable|permission denied|row-level/).catch(async () => {
+      eq((await as(u.coach2, `update document_access_grants set expires_at = now() + interval '300 days' where id = $1`, [g2])).rowCount, 0, 'el club no alarga');
+    });
+  });
+
+  await check('11B suspensión y verificación: organización suspendida o sin verificar → sin trial público, invitaciones ni contacto', async () => {
+    const unv = (await as(v.unverified, `insert into organizations (name, type, created_by) values ('Club Sin Verificar', 'club', $1) returning id`, [v.unverified])).rows[0].id;
+    const oppU = (await as(v.unverified, `insert into opportunities (organization_id, created_by, type, title, description, sport_id) values ($1, $2, 'tryout', 'Trial falso', 'Trial de un club que aún no está verificado.', 'basketball') returning id`, [unv, v.unverified])).rows[0].id;
+    await expectError(() => as(v.unverified, `select trial_org_invite($1, $2)`, [oppU, u.minor]), /not_allowed/);
+    await expectError(() => as(v.unverified, `insert into contact_requests (organization_id, requested_by, athlete_id, message) values ($1, $2, $3, 'Hola, ven a probar con nosotros.')`, [unv, v.unverified, u.minor]), /row-level security|verified_organization_required/);
+    eq((await as(v.unverified, `select minor_contact_mode($1, $2) m`, [u.minor, unv])).rows[0].m, 'contact_blocked');
+    eq((await as(u.coach2, `select minor_contact_mode($1, $2) m`, [u.minor, clubA])).rows[0].m, 'guardian_approval_required');
+    eq((await as(u.coach2, `select minor_contact_mode($1, $2) m`, [u.adult, clubA])).rows[0].m, 'contact_allowed');
+    // Suspender el Club B: su trial publicado deja de ser público y su staff pierde capacidades.
+    const tB = await makeOpp(v.ownerB, clubB, { title: 'Trial Club B' });
+    eq((await as(null, `select count(*)::int n from opportunities where id = $1`, [tB])).rows[0].n, 1, 'público antes');
+    await as(u.admin, `update organizations set org_status = 'suspended' where id = $1`, [clubB]);
+    eq((await as(null, `select count(*)::int n from opportunities where id = $1`, [tB])).rows[0].n, 0, 'anónimo tras suspensión');
+    eq((await as(u.adult, `select count(*)::int n from opportunities where id = $1`, [tB])).rows[0].n, 0, 'atleta tras suspensión');
+    await expectError(() => as(v.ownerB, `select trial_org_invite($1, $2)`, [tB, u.adult]), /not_allowed/);
+    eq((await db.query(`select count(*)::int n from opportunities where id = $1`, [tB])).rows[0].n, 1, 'los datos no se borran');
+    await as(u.admin, `update organizations set org_status = 'active' where id = $1`, [clubB]);
+  });
+
+  await check('11B familia: un tutor revocado deja de ver y de aprobar; nunca ve resultados internos ni notas', async () => {
+    await db.query(`insert into private_profile_data (user_id, date_of_birth) values ($1, $2)`, [v.exParent, yearsAgo(44)]);
+    await db.query(`insert into parent_athlete_links (parent_id, athlete_id, invited_by, status, approved_at, relationship) values ($1, $2, $1, 'approved', now(), 'parent')`, [v.exParent, u.minor]);
+    const t = await makeOpp(u.coach2, clubA, { title: 'Trial menores' });
+    const inv = (await as(u.coach2, `select trial_org_invite($1, $2) id`, [t, u.minor])).rows[0].id;
+    eq((await as(v.exParent, `select count(*)::int n from opportunity_invitations where id = $1`, [inv])).rows[0].n, 1, 'tutor activo ve la invitación');
+    await db.query(`update parent_athlete_links set status = 'revoked' where parent_id = $1`, [v.exParent]);
+    eq((await as(v.exParent, `select count(*)::int n from opportunity_invitations where id = $1`, [inv])).rows[0].n, 0, 'revocado no la ve');
+    await expectError(() => as(v.exParent, `select invitation_respond($1, 'guardian_approve')`, [inv]), /not_allowed/);
+    eq((await as(u.parent, `select count(*)::int n from org_notes`)).rows[0].n, 0, 'notas internas');
+    eq((await as(u.minor, `select count(*)::int n from org_shortlists`)).rows[0].n, 0, 'shortlists');
+  });
+
   // ================================================================ 7B · verificación, Discovery y shortlists
   results.push('\nPrompt 7B: verificación, Discovery y shortlists');
   await check('7B dominios: coincidencia exacta o subdominio, nunca por texto parcial', async () => {

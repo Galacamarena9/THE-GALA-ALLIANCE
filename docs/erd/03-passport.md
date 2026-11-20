@@ -31,6 +31,7 @@ erDiagram
   ATHLETE_PROFILES ||--o{ DOCUMENT_ACCESS_GRANTS : "athlete_id"
   ATHLETE_DOCUMENTS ||--o{ DOCUMENT_ACCESS_GRANTS : "document_id"
   PROFILES |o--o{ DOCUMENT_ACCESS_GRANTS : "granted_by"
+  PROFILES |o--o{ DOCUMENT_ACCESS_GRANTS : "grantee_user_id"
   ORGANIZATIONS ||--o{ DOCUMENT_ACCESS_GRANTS : "organization_id"
   ATHLETE_PROFILES ||--o{ PASSPORT_FIELD_POLICIES : "athlete_id"
   ATHLETE_PROFILES ||--o{ PASSPORT_VIEWS : "athlete_id"
@@ -216,6 +217,7 @@ erDiagram
     timestamptz expires_at
     timestamptz revoked_at
     timestamptz created_at
+    uuid grantee_user_id FK
   }
   PASSPORT_FIELD_POLICIES {
     uuid athlete_id PK,FK
@@ -269,7 +271,7 @@ erDiagram
 | `athlete_statistics` | Personal | Sí | atleta (athlete_id) → se borra<br>organización (verified_by_org) → se anonimiza | Mientras exista la cuenta | Sí | KEEP |
 | `athlete_updates` | Personal | Sí | atleta (athlete_id) → se borra | 30 días tras caducar | Sí | KEEP |
 | `athlete_videos` | Personal | Sí | atleta (athlete_id) → se borra | Mientras exista la cuenta | Sí | KEEP |
-| `document_access_grants` | Sensible | Sí | atleta (athlete_id) → se borra<br>persona (granted_by) → se anonimiza<br>organización (organization_id) → se borra | Mientras exista la cuenta | No: Concesiones del atleta a organizaciones: visibles en Documentos; se exportarán con 11B | KEEP |
+| `document_access_grants` | Sensible | Sí | atleta (athlete_id) → se borra<br>persona (granted_by) → se anonimiza<br>persona (grantee_user_id) → se borra<br>organización (organization_id) → se borra | Mientras exista la cuenta | No: Concesiones del atleta a organizaciones: visibles en Documentos; se exportarán con 11B | KEEP |
 | `passport_field_policies` | Personal | Sí | atleta (athlete_id) → se borra | Mientras exista la cuenta | Sí | KEEP |
 | `passport_views` | Personal | Sí | atleta (athlete_id) → se borra<br>persona (viewer_id) → se anonimiza<br>organización (viewer_org_id) → se anonimiza | Mientras exista la cuenta | No: Sin acceso directo (RLS): el atleta ve el resumen agregado en su Passport | KEEP |
 | `recruiting_link_views` | Interna | — | En cascada con `recruiting_links` | Mientras exista la organización | No: Contador técnico de visitas al enlace, sin datos del visitante | KEEP |

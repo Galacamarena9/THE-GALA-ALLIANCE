@@ -136,6 +136,8 @@ erDiagram
     text invitation_source
     text program_scope
     timestamptz updated_at
+    text team_scope
+    uuid_array team_ids
   }
   ORGANIZATION_MEMBERSHIP_RECORDS {
     uuid id PK
