@@ -1500,6 +1500,66 @@ try {
     eq((await as(u.adult, `select count(*)::int n from ai_conversations`)).rows[0].n, 0, 'al desactivar se borra');
   });
 
+  // ---------------------------------------------------------------- 11A · Trials (club ↔ atleta ↔ agente)
+  let clubT; let trialOpp; let agencyT; let regAdult; let regMinor;
+  await check('trials: club verificado publica un trial de pago con coste transparente', async () => {
+    clubT = (await as(u.coach2, `insert into organizations (name, type, created_by) values ('Club Trials CF', 'club', $1) returning id`, [u.coach2])).rows[0].id;
+    await as(u.coach2, `update organizations set verification_status = 'submitted' where id = $1`, [clubT]);
+    await as(u.admin, `update organizations set verification_status = 'verified' where id = $1`, [clubT]);
+    trialOpp = (await as(u.coach2, `insert into opportunities (organization_id, created_by, type, title, description, sport_id)
+      values ($1, $2, 'tryout', 'Trial U18 base', 'Prueba para bases U18 durante dos días en Valencia.', 'basketball') returning id`, [clubT, u.coach2])).rows[0].id;
+    await expectError(() => as(u.coach2, `insert into opportunity_event_details (opportunity_id, fee_type) values ($1, 'paid')`, [trialOpp]), /paid_has_price/);
+    await as(u.coach2, `insert into opportunity_event_details (opportunity_id, fee_type, fee_amount, currency, event_start_date, timezone, age_category)
+      values ($1, 'paid', 50, 'EUR', current_date + 30, 'Europe/Madrid', 'U18')`, [trialOpp]);
+    await as(u.admin, `update opportunities set status = 'published' where id = $1`, [trialOpp]);
+    await expectError(() => as(u.brand, `update opportunity_event_details set fee_amount = 0 where opportunity_id = $1 returning 1`, [trialOpp]).then((r) => { if (!r.rowCount) throw new Error('sin filas'); }));
+  });
+  await check('trials: el agente con representación activa inscribe; si cuesta dinero queda en «interesado» hasta que el atleta acepte', async () => {
+    agencyT = (await as(u.agent, `insert into organizations (name, type, created_by) values ('Agency Trials', 'agency', $1) returning id`, [u.agent])).rows[0].id;
+    const rep = (await as(u.agent, `insert into agent_representations (agency_id, agent_id, athlete_id) values ($1, $2, $3) returning id`, [agencyT, u.agent, u.adult])).rows[0].id;
+    await expectError(() => as(u.agent, `select trial_register($1, $2, $3)`, [trialOpp, u.adult, agencyT]), /not_allowed/);
+    await as(u.adult, `update agent_representations set status = 'active' where id = $1`, [rep]);
+    regAdult = (await as(u.agent, `select trial_register($1, $2, $3) id`, [trialOpp, u.adult, agencyT])).rows[0].id;
+    const r = (await as(u.agent, `select status, needs_athlete_ok, origin from trial_registrations where id = $1`, [regAdult])).rows[0];
+    eq(r.status, 'interested'); eq(r.needs_athlete_ok, true); eq(r.origin, 'agent');
+    eq((await as(u.agent, `select trial_register($1, $2, $3) id`, [trialOpp, u.adult, agencyT])).rows[0].id, regAdult, 'idempotente');
+    eq((await as(u.adult, `select count(*)::int n from saved_items where target_id = $1`, [trialOpp])).rows[0].n, 1, 'entra en su pipeline una vez');
+  });
+  await check('trials: el agente no puede aceptar el coste ni inscribir a quien no representa', async () => {
+    await expectError(() => as(u.agent, `select trial_respond($1, 'confirm_cost')`, [regAdult]), /invalid_transition/);
+    await expectError(() => as(u.agent, `select trial_register($1, $2, $3)`, [trialOpp, u.privateAth, agencyT]), /not_allowed/);
+    await expectError(() => as(u.adult, `insert into trial_registrations (opportunity_id, organization_id, athlete_id, status, origin) values ($1, $2, $3, 'confirmed', 'athlete')`, [trialOpp, clubT, u.adult]));
+  });
+  await check('trials: el atleta acepta el coste → inscrito; el club confirma; la asistencia no se marca antes del evento', async () => {
+    eq((await as(u.adult, `select trial_respond($1, 'confirm_cost') s`, [regAdult])).rows[0].s, 'registered');
+    eq((await as(u.coach2, `select trial_org_action($1, 'confirm') s`, [regAdult])).rows[0].s, 'confirmed');
+    await expectError(() => as(u.coach2, `select trial_org_action($1, 'attended')`, [regAdult]), /event_not_started/);
+    eq((await as(u.agent, `select count(*)::int n from notifications where user_id = $1 and kind = 'application.trial'`, [u.agent])).rows[0].n >= 1, true, 'el agente recibe avisos del club');
+    eq((await as(u.agent, `select count(*)::int n from trial_registration_events where registration_id = $1`, [regAdult])).rows[0].n >= 3, true, 'historial completo');
+  });
+  await check('trials: aislamiento — otras organizaciones, marcas y otros atletas no ven la inscripción', async () => {
+    eq((await as(u.brand, `select count(*)::int n from trial_registrations`)).rows[0].n, 0);
+    eq((await as(u.uni, `select count(*)::int n from trial_registrations where organization_id = $1`, [clubT])).rows[0].n, 0);
+    eq((await as(u.privateAth, `select count(*)::int n from trial_registrations`)).rows[0].n, 0);
+  });
+  await check('trials: un menor necesita la aprobación de su familia antes de quedar inscrito', async () => {
+    const upd = await db.query(`update parent_athlete_links set can_edit_profile = true where parent_id = $1 and athlete_id = $2 and status = 'approved'`, [u.parent, u.minor]);
+    if (!upd.rowCount) await db.query(`update parent_athlete_links set status = 'approved', can_edit_profile = true where id = (select id from parent_athlete_links where parent_id = $1 and athlete_id = $2 limit 1)`, [u.parent, u.minor]);
+    regMinor = (await as(u.minor, `select trial_register($1, $2) id`, [trialOpp, u.minor])).rows[0].id;
+    const r = (await as(u.minor, `select status, guardian_status from trial_registrations where id = $1`, [regMinor])).rows[0];
+    eq(r.status, 'interested'); eq(r.guardian_status, 'pending');
+    await expectError(() => as(u.minor, `select trial_respond($1, 'guardian_approve')`, [regMinor]), /invalid_transition/);
+    eq((await as(u.parent, `select trial_respond($1, 'guardian_approve') s`, [regMinor])).rows[0].s, 'registered');
+  });
+  await check('trials: invitar no duplica y del trial al recruiting no crea ofertas', async () => {
+    eq((await as(u.coach2, `select trial_org_invite($1, $2) id`, [trialOpp, u.adult])).rows[0].id, regAdult);
+    await db.query(`update opportunity_event_details set event_start_date = current_date - 1 where opportunity_id = $1`, [trialOpp]);
+    eq((await as(u.coach2, `select trial_org_action($1, 'attended') s`, [regAdult])).rows[0].s, 'attended');
+    await as(u.coach2, `select trial_org_action($1, 'outcome', 'continue_recruiting')`, [regAdult]);
+    eq((await as(u.coach2, `select internal_stage, source from org_candidates where organization_id = $1 and athlete_id = $2`, [clubT, u.adult])).rows[0].source, 'trial');
+    eq((await as(u.adult, `select count(*)::int n from athlete_offers o join org_candidates c on c.athlete_id = o.athlete_id and c.organization_id = $2 where o.athlete_id = $1 and o.process_id is not null and o.created_at > c.created_at`, [u.adult, clubT])).rows[0].n, 0, 'sin oferta automática');
+  });
+
 } finally {
   console.log(results.join('\n'));
   console.log(`\n${passed} pruebas OK · ${failed} fallidas`);

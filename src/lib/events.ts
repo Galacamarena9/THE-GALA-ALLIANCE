@@ -10,7 +10,8 @@ export type FunnelEvent =
   | 'match_viewed' | 'opportunity_saved' | 'comparison_created' | 'task_completed' | 'dashboard_viewed'
   | 'pipeline_stage_changed' | 'interaction_logged' | 'offer_recorded' | 'pipeline_decision'
   | 'recruiting_need_created' | 'athlete_discovered' | 'athlete_shortlisted' | 'candidate_assigned' | 'candidate_stage_changed'
-  | 'document_requested' | 'document_shared' | 'offer_created' | 'coach_dashboard_viewed' | 'candidates_exported';
+  | 'document_requested' | 'document_shared' | 'offer_created' | 'coach_dashboard_viewed' | 'candidates_exported'
+  | 'trial_applied' | 'trial_viewed' | 'agent_trials_viewed';
 
 export async function logEvent(event: FunnelEvent, props: Record<string, string | number | boolean> = {}) {
   try {

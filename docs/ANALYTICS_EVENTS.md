@@ -51,3 +51,6 @@ Medición propia, sin herramientas de terceros ni cookies de analítica: los eve
 1. Nueva migración que sustituya la restricción `check` de `product_events.event`.
 2. Añadir el nombre al tipo `FunnelEvent` en `src/lib/events.ts`.
 3. Documentarlo en esta tabla con su propósito. Si no hay una decisión que dependa de él, no se añade.
+| `trial_applied` | `registerForTrial` | `by` (athlete/agent) | Inscripciones a trials (11A) |
+| `trial_viewed` | ficha de un trial (atleta) | — | Interés en trials |
+| `agent_trials_viewed` | `/app/portfolio/trials` | — | Uso del módulo de trials por agentes |

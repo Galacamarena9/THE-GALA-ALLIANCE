@@ -5,6 +5,30 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { REQUIRED_MATERIAL_LABEL, validatePublish } from '@/lib/domain/recruit';
+import { TRIAL_TYPES } from '@/lib/domain/trials';
+
+const optDate = z.union([z.literal(''), z.string().regex(/^\d{4}-\d{2}-\d{2}$/)]).optional().transform((v) => v || null);
+const optStr = (max: number) => z.string().trim().max(max).optional().transform((v) => (v ? v : null));
+/** Trial / programa: coste explícito y fechas coherentes (la base de datos repite estas reglas). */
+const eventSchema = z.object({
+  ev_start: optDate, ev_end: optDate,
+  ev_time: z.union([z.literal(''), z.string().regex(/^\d{2}:\d{2}$/)]).optional().transform((v) => v || null),
+  ev_tz: z.string().trim().regex(/^([A-Za-z_]+(\/[A-Za-z0-9_+-]+){1,2}|UTC)$/, 'Zona horaria no válida (ej.: Europe/Madrid)').optional().or(z.literal('')).transform((v) => v || null),
+  ev_country: z.string().trim().toUpperCase().regex(/^[A-Z]{2}$/, 'Código de país de 2 letras').optional().or(z.literal('')).transform((v) => v || null),
+  ev_city: optStr(80), ev_venue: optStr(120), ev_cat: optStr(40),
+  ev_fee: z.enum(['free', 'paid', 'unknown']).default('unknown'),
+  ev_amount: z.union([z.literal(''), z.coerce.number().min(0).max(1000000)]).optional().transform((v) => (v === '' || v == null ? null : v)),
+  ev_currency: z.string().trim().toUpperCase().regex(/^[A-Z]{3}$/, 'Moneda ISO (EUR, USD…)').optional().or(z.literal('')).transform((v) => v || null),
+  ev_refund: z.enum(['yes', 'no', 'partial', 'unknown']).default('unknown'),
+  ev_acc: z.enum(['included', 'available_paid', 'not_included', 'unknown']).default('unknown'),
+  ev_meals: z.enum(['included', 'not_included', 'unknown']).default('unknown'),
+  ev_travel: z.enum(['included', 'not_included', 'unknown']).default('unknown'),
+  ev_minor: z.enum(['guardian_consent_required', 'adults_only']).default('guardian_consent_required'),
+}).superRefine((e, ctx) => {
+  if (e.ev_fee === 'paid' && e.ev_amount == null) ctx.addIssue({ code: 'custom', path: ['ev_amount'], message: 'Indica el importe: un trial de pago siempre muestra su coste.' });
+  if (e.ev_fee === 'paid' && !e.ev_currency) ctx.addIssue({ code: 'custom', path: ['ev_currency'], message: 'Indica la moneda.' });
+  if (e.ev_start && e.ev_end && e.ev_end < e.ev_start) ctx.addIssue({ code: 'custom', path: ['ev_end'], message: 'La fecha de fin es anterior al inicio.' });
+});
 import { createClient } from '@/lib/supabase/server';
 import { requireSession } from '@/lib/session';
 import type { FormState } from './auth';
@@ -60,6 +84,15 @@ export async function createOpportunity(_prev: FormState, formData: FormData): P
   const honesty = validatePublish(parsed.data);
   if (Object.keys(honesty).length) return { fieldErrors: honesty, error: 'Revisa los campos marcados.' };
 
+  // Detalles de trial / programa (tabla 1:1). Se validan antes de crear nada.
+  const isTrial = (TRIAL_TYPES as readonly string[]).includes(parsed.data.type);
+  const ev = isTrial ? eventSchema.safeParse(Object.fromEntries(formData)) : null;
+  if (ev && !ev.success) {
+    const fe: Record<string, string> = {};
+    for (const i of ev.error.issues) fe[String(i.path[0])] = i.message;
+    return { fieldErrors: fe, error: 'Revisa la fecha, el lugar o el coste del trial.' };
+  }
+
   const { submit, ...data } = parsed.data;
   const supabase = await createClient();
   const { data: created, error } = await supabase
@@ -79,6 +112,17 @@ export async function createOpportunity(_prev: FormState, formData: FormData): P
   if (error || !created) {
     if (error?.message?.includes('scholarship_claim_consistent')) return { fieldErrors: { scholarship_status: 'Elige el estado de la beca.' }, error: 'Revisa la información de beca.' };
     return { error: 'No se ha podido crear la oportunidad. Comprueba que perteneces a la organización.' };
+  }
+  if (ev?.success) {
+    const e = ev.data;
+    const { error: detErr } = await supabase.from('opportunity_event_details').insert({
+      opportunity_id: created.id, event_start_date: e.ev_start, event_end_date: e.ev_end, start_time_local: e.ev_time, timezone: e.ev_tz,
+      country: e.ev_country, city: e.ev_city, venue: e.ev_venue, age_category: e.ev_cat,
+      fee_type: e.ev_fee, fee_amount: e.ev_fee === 'paid' ? e.ev_amount : null, currency: e.ev_fee === 'paid' ? e.ev_currency : null,
+      refundable: e.ev_fee === 'paid' ? e.ev_refund : 'unknown', accommodation: e.ev_acc, meals: e.ev_meals, travel: e.ev_travel, minor_policy: e.ev_minor,
+    });
+    // La oportunidad queda en borrador: si los detalles fallan, se ven como «sin completar» y se pueden añadir después.
+    if (detErr) console.error('[opportunities] detalles de trial', detErr.message);
   }
   revalidatePath('/app/opportunities');
   redirect(`/app/opportunities/${created.id}`);

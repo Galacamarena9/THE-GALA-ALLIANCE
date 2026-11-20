@@ -17,6 +17,8 @@ import { Badge, Card, CardTitle, EmptyState, Notice, PageHeader } from '@/compon
 import { ApplyOpportunityForm, ReportButton } from '@/components/forms';
 import { deleteOpportunity, submitForReview } from '@/app/actions/opportunities';
 import { AnswerQuestionForm, AskQuestionForm } from '@/components/QuestionForms';
+import { TrialPanel } from '@/components/trials/TrialPanel';
+import { isTrialType } from '@/lib/domain/trials';
 import { CONTACT_METHOD_LABEL, INTERNATIONAL_LABEL, REQUIRED_MATERIAL_LABEL, ROLE_CAPS, ROLE_LABEL, SCHOLARSHIP_LABEL, type OrgRole } from '@/lib/domain/recruit';
 
 export const metadata: Metadata = { title: 'Oportunidad' };
@@ -58,6 +60,19 @@ export default async function OpportunityPage({ params, searchParams }: { params
   const { data: myApp } = isAthlete
     ? await supabase.from('applications').select('id, status').eq('opportunity_id', id).eq('athlete_id', session.userId).maybeSingle()
     : { data: null };
+
+  // Trials y programas: detalles, inscripción del atleta, aprobaciones de la familia y gestión del club.
+  const trial = isTrialType(opp.type);
+  const [{ data: eventDetails }, { data: trialRegs }] = trial
+    ? await Promise.all([
+        supabase.from('opportunity_event_details').select('*').eq('opportunity_id', id).maybeSingle(),
+        supabase.from('trial_registrations').select('id, athlete_id, status, outcome, origin, needs_athlete_ok, guardian_status, updated_at').eq('opportunity_id', id).order('updated_at', { ascending: false }).limit(300),
+      ])
+    : [{ data: null }, { data: [] }];
+  const regAthleteIds = (trialRegs ?? []).map((r) => r.athlete_id as string);
+  const { data: regNames } = regAthleteIds.length ? await supabase.from('athlete_directory').select('user_id, display_name').in('user_id', regAthleteIds) : { data: [] };
+  const nameOf = Object.fromEntries((regNames ?? []).map((n) => [n.user_id, n.display_name ?? 'Atleta']));
+  if (trial && isAthlete && !member) void logEvent('trial_viewed');
 
   const net = opp.annual_cost_usd != null && opp.aid_amount_usd != null ? opp.annual_cost_usd - opp.aid_amount_usd : null;
   const closed = opp.deadline ? new Date(`${opp.deadline}T23:59:59`) < new Date() : false;
@@ -190,7 +205,20 @@ export default async function OpportunityPage({ params, searchParams }: { params
             </Card>
           )}
 
-          {isAthlete && opp.status === 'published' && (
+          {trial && (
+            <TrialPanel
+              opportunityId={opp.id}
+              open={opp.status === 'published' && !closed}
+              details={eventDetails ?? null}
+              me={isAthlete && !member ? session.userId : null}
+              registrations={(trialRegs ?? []).map((r) => ({ ...r, name: r.athlete_id === session.userId ? 'Tú' : nameOf[r.athlete_id as string] ?? 'Atleta' }))}
+              asClub={isMember}
+              asFamily={session.roles.includes('parent')}
+              preview={preview}
+            />
+          )}
+
+          {!trial && isAthlete && opp.status === 'published' && (
             <Card>
               <CardTitle kicker="Candidatura">{myApp ? 'Ya has aplicado' : closed ? 'Plazo cerrado' : 'Aplicar'}</CardTitle>
               {myApp ? (
