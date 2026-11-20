@@ -2347,6 +2347,48 @@ try {
     eq((await as(fam.dad, `update contact_requests set status = 'blocked' where id = $1`, [req])).rowCount, 0, 'no decide por el adulto');
   });
 
+  // ---------------------------------------------------------------- Prompt 10B · Policies de familia
+  results.push('\nPrompt 10B: policies de familia (proceso, concesiones, consentimientos)');
+  await check('P10B proceso · eventos del pipeline con permiso «proceso»; la shortlist con «Passport»', async () => {
+    const proc = (await db.query(`insert into saved_items (athlete_id, target_kind, target_id) select $1, 'institution', id from institutions limit 1 returning id`, [fam.kid])).rows[0].id;
+    await db.query(`insert into pipeline_events (athlete_id, process_id, kind, source, title) values ($1, $2, 'note', 'user', 'Llamada con el coach')`, [fam.kid, proc]);
+    await as(fam.kid, `update parent_athlete_links set can_view_applications = false where id = $1`, [fam.momKid]);
+    eq(await n(fam.mom, `select count(*)::int n from pipeline_events where athlete_id = $1`, [fam.kid]), 0, 'sin «proceso»');
+    eq(await n(fam.mom, `select count(*)::int n from saved_items where athlete_id = $1`, [fam.kid]), 1, 'shortlist con «Passport»');
+    await as(fam.kid, `update parent_athlete_links set can_view_applications = true where id = $1`, [fam.momKid]);
+    eq((await n(fam.mom, `select count(*)::int n from pipeline_events where athlete_id = $1`, [fam.kid])) >= 1, true, 'con «proceso» (incluye el evento automático de guardar)');
+    for (const who of [fam.stranger, u.coach2]) eq(await n(who, `select count(*)::int n from pipeline_events where athlete_id = $1`, [fam.kid]), 0, `eventos para ${who}`);
+  });
+
+  await check('P10B concesiones · verlas exige «documentos»; el tutor activo de un menor puede revocarlas; otro club no', async () => {
+    const doc = (await db.query(`insert into athlete_documents (athlete_id, kind, title, storage_path, uploaded_at) values ($1, 'transcript', 'Notas 2026', $2, now()) returning id`, [fam.kid, `${fam.kid}/notas.pdf`])).rows[0].id;
+    const g = (await db.query(`insert into document_access_grants (document_id, athlete_id, organization_id, purpose, expires_at) values ($1, $2, $3, 'application_review', now() + interval '10 days') returning id`, [doc, fam.kid, clubA])).rows[0].id;
+    await as(fam.kid, `update parent_athlete_links set can_view_documents = false where id = $1`, [fam.dadKid]);
+    eq(await n(fam.dad, `select count(*)::int n from document_access_grants where id = $1`, [g]), 0, 'papá sin documentos');
+    eq(await n(fam.mom, `select count(*)::int n from document_access_grants where id = $1`, [g]), 1, 'mamá');
+    eq(await n(u.coach2, `select count(*)::int n from athlete_documents where id = $1`, [doc]), 1, 'club con concesión');
+    eq((await as(v.ownerB, `update document_access_grants set revoked_at = now() where id = $1`, [g])).rowCount, 0, 'otro club no revoca');
+    await as(fam.mom, `update document_access_grants set revoked_at = now() where id = $1`, [g]);
+    eq(await n(u.coach2, `select count(*)::int n from athlete_documents where id = $1`, [doc]), 0, 'revocada por la madre');
+    await as(fam.kid, `update parent_athlete_links set can_view_documents = true where id = $1`, [fam.dadKid]);
+  });
+
+  await check('P10B consentimientos · RPC transaccional: atleta o tutor activo de un menor; idempotente; caducado no vale; nunca otro', async () => {
+    const doc = (await db.query(`select id from athlete_documents where athlete_id = $1 and title = 'Notas 2026'`, [fam.kid])).rows[0].id;
+    const c1 = (await as(fam.mom, `select consent_record($1, 'document_sharing', 'document', $2, $3, true, 'v2026-11') id`, [fam.kid, doc, clubA])).rows[0].id;
+    const c2 = (await as(fam.mom, `select consent_record($1, 'document_sharing', 'document', $2, $3, true, 'v2026-11') id`, [fam.kid, doc, clubA])).rows[0].id;
+    eq(c1, c2, 'doble toque → un solo consentimiento');
+    eq((await db.query(`select guardian_id g from consents where id = $1`, [c1])).rows[0].g, fam.mom, 'quién lo dio');
+    await expectError(() => as(fam.stranger, `select consent_record($1, 'document_sharing', 'document', $2, $3, true, 'v1')`, [fam.kid, doc, clubA]), /not_allowed/);
+    await expectError(() => as(fam.dad, `select consent_record($1, 'contact', 'organization', $2, $2, true, 'v1')`, [fam.grown, clubA]), /not_allowed/); // adulto: nadie consiente por él
+    await expectError(() => as(fam.mom, `select consent_record($1, 'document_sharing', 'document', $2, $3, true, 'v1')`, [fam.kid, docT, clubA]), /document_mismatch/);
+    await expectError(() => as(fam.mom, `select consent_record($1, 'contact', 'organization', $2, $2, true, 'v1', now() - interval '1 day')`, [fam.kid, clubA]), /consent_already_expired/);
+    await as(fam.kid, `select family_link_restrict($1, true, null)`, [fam.momKid]);
+    await expectError(() => as(fam.mom, `select consent_record($1, 'contact', 'organization', $2, $2, true, 'v1')`, [fam.kid, clubA]), /not_allowed/);
+    await as(fam.kid, `select family_link_restrict($1, false)`, [fam.momKid]);
+    await expectError(() => as(fam.mom, `update consents set granted = false where id = $1`, [c1]), /permission denied|immutable|row-level/);
+  });
+
   // ---------------------------------------------------------------- Prompt 9 · Supabase & PostgreSQL
   results.push('\nPrompt 9: integridad, documentos, concurrencia y catálogo');
   await check('P9 S9-01 · un documento, la foto o una evidencia no pueden apuntar a la carpeta de otra persona', async () => {
