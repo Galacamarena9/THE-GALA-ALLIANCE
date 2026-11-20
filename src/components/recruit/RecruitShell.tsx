@@ -17,7 +17,7 @@ const TABS = [
 export function RecruitShell({ org, orgs, active, children }: { org: RecruitOrg | null; orgs: RecruitOrg[]; active: string; children: ReactNode }) {
   if (!org) {
     return (
-      <EmptyState title="Empieza tu espacio de recruiting" action={<ButtonLink href="/app/organization">Crear o reclamar tu universidad</ButtonLink>}>
+      <EmptyState title="Empieza tu espacio de recruiting" action={<ButtonLink href="/app/verify/start">Verificar mi afiliación</ButtonLink>}>
         1 · Crea o reclama tu universidad · 2 · Verifica tu identidad institucional · 3 · Crea tu programa · 4 · Invita a tu staff · 5 · Define una necesidad · 6 · Descubre atletas o publica una oportunidad.
       </EmptyState>
     );
@@ -39,7 +39,7 @@ export function RecruitShell({ org, orgs, active, children }: { org: RecruitOrg 
       </nav>
       {!org.verified && (
         <p className="rounded-xl border border-warn/40 bg-warn/5 px-4 py-3 text-sm text-paper" role="status">
-          Acceso limitado mientras verificamos tu organización: puedes configurar programas, necesidades y oportunidades, pero no descubrir atletas, ver datos restringidos, contactar menores ni pedir documentación. <Link href="/app/organization" className="font-semibold text-brass underline">Ver verificación</Link>
+          Acceso limitado mientras verificamos tu organización: puedes configurar programas, necesidades y oportunidades, pero no descubrir atletas, ver datos restringidos, contactar menores ni pedir documentación. <Link href="/app/verify" className="font-semibold text-brass underline">Ver mi verificación</Link>
         </p>
       )}
       {children}

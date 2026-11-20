@@ -10,6 +10,7 @@ import { logEvent } from '@/lib/events';
 import { Card, EmptyState, Notice, PageHeader, inputClass } from '@/components/ui';
 import { RecruitShell } from '@/components/recruit/RecruitShell';
 import { AddToShortlist } from '@/components/recruit/RecruitForms';
+import { QuickViewButton, QuickViewProvider, ScrollMemory } from '@/components/recruit/QuickView';
 import { addCandidate } from '@/app/actions/recruit';
 
 export const metadata: Metadata = { title: 'Descubrir atletas' };
@@ -114,8 +115,13 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
             : result?.needsSport ? <EmptyState title="Elige un deporte para buscar">Para proteger a los atletas, Discovery no lista toda la base: empieza por un deporte (o una necesidad de recruiting).</EmptyState>
             : !rows.length ? <EmptyState title="Sin resultados">Prueba a quitar algún filtro. Solo aparecen atletas abiertos a oportunidades que comparten su perfil contigo.</EmptyState>
             : (
+              <QuickViewProvider org={org.id} lists={listOpts} rows={rows.map((r) => ({
+                user_id: r.user_id, display_name: r.display_name, avatar_url: r.avatar_url, height_cm: r.height_cm, has_video: r.has_video, verified_stats: r.verified_stats, fit: r.fit,
+                meta: [r.primary_position_id && posName.get(r.primary_position_id), r.graduation_year && `Clase ${r.graduation_year}`, r.country].filter(Boolean).join(' · '),
+              }))}>
+              <ScrollMemory storageKey={qs({})} />
               <ul className="grid gap-3 lg:grid-cols-2">
-                {rows.map((r) => (
+                {rows.map((r, i) => (
                   <li key={r.user_id}>
                     <Card className="h-full">
                       <div className="flex items-start gap-3">
@@ -151,6 +157,7 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
                         </details>
                       )}
                       <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <QuickViewButton index={i} label={r.display_name} />
                         <AddToShortlist athlete={r.user_id} lists={listOpts} fit={r.fit?.score ?? null} />
                         <Link href={`/app/recruit/candidates/${r.user_id}`} className="inline-flex min-h-11 items-center rounded-full border border-line px-4 text-xs font-semibold text-paper hover:border-brass">Ver ficha</Link>
                         {org.caps.has('pipeline') && <form action={addCandidate}><input type="hidden" name="org" value={org.id} /><input type="hidden" name="athlete" value={r.user_id} /><button className="min-h-11 px-2 text-xs text-muted hover:text-paper">Añadir al pipeline</button></form>}
@@ -159,6 +166,7 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
                   </li>
                 ))}
               </ul>
+              </QuickViewProvider>
             )}
             {totalPages > 1 && (
               <nav aria-label="Paginación" className="flex items-center justify-center gap-4 text-sm">

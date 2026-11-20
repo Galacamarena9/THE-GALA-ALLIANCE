@@ -29,7 +29,7 @@ export default async function ShortlistsPage({ searchParams }: { searchParams: P
   ]) : [{ data: [] }, { data: [] }, { data: [] }, { data: [] }, { data: [] }];
   const active = new Set((cands ?? []).filter((c) => ['contact', 'call', 'active', 'offer'].includes(c.internal_stage)).map((c) => c.athlete_id));
   const filter = sp.f === 'mine' || sp.f === 'shared' || sp.f === 'archived' ? sp.f : 'all';
-  const shown = (lists ?? []).filter((l) => (filter === 'archived' ? l.archived_at : !l.archived_at) && (filter === 'mine' ? l.owner_id === session.userId : filter === 'shared' ? l.visibility === 'team' : true));
+  const shown = (lists ?? []).filter((l) => (filter === 'archived' ? l.archived_at : !l.archived_at) && (filter === 'mine' ? l.owner_id === session.userId : filter === 'shared' ? l.owner_id !== session.userId || l.visibility !== 'private' : true));
 
   return (
     <>
@@ -50,7 +50,7 @@ export default async function ShortlistsPage({ searchParams }: { searchParams: P
                     <li key={l.id}>
                       <Card className="h-full">
                         <Link href={`/app/recruit/shortlists/${l.id}`} className="font-display text-lg font-bold uppercase text-paper hover:text-brass">{l.name}</Link>
-                        <p className="text-xs text-muted">{l.visibility === 'private' ? '🔒 Privada' : 'Equipo'} · {ago(l.updated_at)}</p>
+                        <p className="text-xs text-muted">{{ private: '🔒 Privada', shared: 'Compartida', program: 'Programa', team: 'Equipo' }[l.visibility as string] ?? 'Equipo'} · {ago(l.updated_at)}</p>
                         <p className="mt-2 text-sm text-paper">{m.length} atleta{m.length === 1 ? '' : 's'} · {m.filter((x) => x.review_status === 'to_review').length} por revisar · {m.filter((x) => active.has(x.athlete_id)).length} en recruiting activo</p>
                         <form action={archiveShortlist} className="mt-2"><input type="hidden" name="list" value={l.id} /><input type="hidden" name="archive" value={l.archived_at ? '0' : '1'} /><button className="text-xs text-muted hover:text-paper">{l.archived_at ? 'Recuperar' : 'Archivar'}</button></form>
                       </Card>

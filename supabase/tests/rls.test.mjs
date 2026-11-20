@@ -1725,6 +1725,17 @@ try {
     eq((await as(u.coach, `select status from org_shortlists where id = $1`, [sl7])).rows[0].status, 'archived');
   });
 
+  await check('7C verificación móvil: aprobar la afiliación pedida para un programa concede solo ese programa', async () => {
+    const coachX = randomUUID();
+    await db.query(`insert into auth.users (id, email, raw_user_meta_data) values ($1, 'coachx@test.dev', $2)`, [coachX, { display_name: 'Coach X' }]);
+    await as(coachX, `insert into user_roles (user_id, role) values ($1, 'coach')`, [coachX]);
+    const req = (await as(coachX, `select verification_submit('organization_affiliation', $1, $2, 'Assistant Coach') id`, [uniId, progW])).rows[0].id;
+    eq((await as(coachX, `select count(*)::int n from organization_members where organization_id = $1 and user_id = $2`, [uniId, coachX])).rows[0].n, 0, 'pedir no da acceso');
+    await as(u.admin, `select verification_decide($1, 'approved', 'Directorio oficial', 'assistant_coach')`, [req]);
+    const r = (await as(coachX, `select org_can($1, 'shortlist', $2) w, org_can($1, 'shortlist', $3) m`, [uniId, progW, progM])).rows[0];
+    eq(r.w, true); eq(r.m, false, 'no accede a otro programa');
+  });
+
 } finally {
   console.log(results.join('\n'));
   console.log(`\n${passed} pruebas OK · ${failed} fallidas`);

@@ -57,7 +57,7 @@ export function ShortlistCreateForm({ org, programs, needs }: { org: string; pro
         <>
           <input type="hidden" name="org" value={org} />
           <Field label="Nombre" htmlFor="sl_name"><input id="sl_name" name="name" required minLength={2} maxLength={80} placeholder="2027 Point Guards" className={inputClass} /></Field>
-          <Field label="Visibilidad" htmlFor="sl_vis"><select id="sl_vis" name="visibility" className={inputClass}><option value="team">Equipo de recruiting</option><option value="private">Privada (solo yo)</option></select></Field>
+          <Field label="Visibilidad" htmlFor="sl_vis"><select id="sl_vis" name="visibility" className={inputClass}><option value="team">Toda la organización</option><option value="program">Staff del programa</option><option value="shared">Personas concretas (las eliges después)</option><option value="private">Privada (solo yo)</option></select></Field>
           {programs.length > 0 && <Field label="Programa" htmlFor="sl_prog"><select id="sl_prog" name="program_id" className={inputClass}><option value="">—</option>{programs.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>}
           {needs.length > 0 && <Field label="Necesidad" htmlFor="sl_need"><select id="sl_need" name="need_id" className={inputClass}><option value="">—</option>{needs.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>}
           <div className="sm:col-span-2"><SubmitButton>Crear shortlist</SubmitButton></div>

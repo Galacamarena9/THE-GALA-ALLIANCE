@@ -65,7 +65,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <div className="mx-auto max-w-6xl">{children}</div>
         </main>
       </div>
-      <Suspense><MobileNav sections={sections} /></Suspense>
+      <Suspense><MobileNav sections={sections} staff={session.roles.some((r) => r === 'coach' || r === 'university') && !session.roles.includes('athlete')} /></Suspense>
     </div>
   );
 }
