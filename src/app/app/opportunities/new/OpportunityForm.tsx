@@ -6,13 +6,18 @@ import { SubmitButton } from '@/components/SubmitButton';
 import { Card, CardTitle, Field, inputClass } from '@/components/ui';
 import { createOpportunity } from '@/app/actions/opportunities';
 import { DIVISION_LABEL, OPPORTUNITY_TYPE_LABEL } from '@/lib/domain/labels';
+import { CONTACT_METHOD_LABEL, INTERNATIONAL_LABEL, REQUIRED_MATERIAL_LABEL, SCHOLARSHIP_LABEL } from '@/lib/domain/recruit';
 
 interface Props {
   orgs: { id: string; name: string; verification_status: string }[];
+  /** Necesidades internas activas por organización (nunca se publican solas). */
+  needs?: { id: string; organization_id: string; title: string }[];
   catalog: { sports: { id: string; name_es: string }[]; positions: { id: number; sport_id: string; name_es: string }[] };
 }
 
-export function OpportunityForm({ orgs, catalog }: Props) {
+export function OpportunityForm({ orgs, catalog, needs = [] }: Props) {
+  const [org, setOrg] = useState(orgs[0]?.id ?? '');
+  const orgNeeds = needs.filter((n) => n.organization_id === org);
   const [sport, setSport] = useState(catalog.sports[0]?.id ?? '');
   const positions = useMemo(() => catalog.positions.filter((p) => p.sport_id === sport), [catalog.positions, sport]);
   const year = new Date().getFullYear();
@@ -25,7 +30,7 @@ export function OpportunityForm({ orgs, catalog }: Props) {
             <CardTitle kicker="1">Qué ofrecéis</CardTitle>
             <div className="grid gap-5 sm:grid-cols-2">
               <Field label="Organización" htmlFor="organization_id">
-                <select id="organization_id" name="organization_id" className={inputClass}>
+                <select id="organization_id" name="organization_id" value={org} onChange={(e) => setOrg(e.target.value)} className={inputClass}>
                   {orgs.map((o) => <option key={o.id} value={o.id}>{o.name}{o.verification_status !== 'verified' ? ' (pendiente de verificar)' : ''}</option>)}
                 </select>
               </Field>
@@ -111,6 +116,12 @@ export function OpportunityForm({ orgs, catalog }: Props) {
                 </select>
               </Field>
             </div>
+            <Field label="Información de beca" htmlFor="scholarship_status" error={fe.scholarship_status}
+              hint="Así lo verá el atleta. «Confirmada» solo existe dentro de una oferta real, nunca en un anuncio.">
+              <select id="scholarship_status" name="scholarship_status" defaultValue="not_provided" className={inputClass}>
+                {(['not_provided', 'potentially_available', 'amount_stated'] as const).map((k) => <option key={k} value={k}>{SCHOLARSHIP_LABEL[k]}</option>)}
+              </select>
+            </Field>
             <div className="mt-5 grid gap-5 sm:grid-cols-3">
               <Field label="Ubicación" htmlFor="location"><input id="location" name="location" className={inputClass} /></Field>
               <Field label="Inicio" htmlFor="start_term" hint="Ej.: Otoño 2027"><input id="start_term" name="start_term" className={inputClass} /></Field>
@@ -118,6 +129,45 @@ export function OpportunityForm({ orgs, catalog }: Props) {
             </div>
           </Card>
 
+          <Card>
+            <CardTitle kicker="4">Requisitos y proceso</CardTitle>
+            <fieldset>
+              <legend className="mb-2 text-sm font-medium text-paper">Qué tendrá que aportar el atleta</legend>
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(REQUIRED_MATERIAL_LABEL).map(([k, v]) => (
+                  <label key={k} className="flex cursor-pointer items-center gap-2 rounded-full border border-line-strong px-3 py-1.5 text-sm text-paper has-[:checked]:border-brass has-[:checked]:text-brass">
+                    <input type="checkbox" name="required_materials" value={k} className="accent-[var(--color-brass)]" />{v}
+                  </label>
+                ))}
+              </div>
+              <p className="mt-2 text-xs text-muted">Pide solo lo necesario. Un documento subido al Passport no se comparte con vosotros salvo que el atleta (o su familia, si es menor) lo autorice.</p>
+            </fieldset>
+            <div className="mt-5 grid gap-5 sm:grid-cols-3">
+              <Field label="Atletas internacionales" htmlFor="international_eligible">
+                <select id="international_eligible" name="international_eligible" defaultValue="unknown" className={inputClass}>
+                  {Object.entries(INTERNATIONAL_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+              </Field>
+              <Field label="Contacto" htmlFor="contact_method">
+                <select id="contact_method" name="contact_method" defaultValue="gala" className={inputClass}>
+                  {Object.entries(CONTACT_METHOD_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+              </Field>
+              <Field label="Caduca el" htmlFor="expires_at" hint="Después deja de mostrarse como activa. No se renueva sola." error={fe.expires_at}>
+                <input id="expires_at" name="expires_at" type="date" className={inputClass} />
+              </Field>
+            </div>
+            {orgNeeds.length > 0 && (
+              <Field label="Necesidad interna vinculada (opcional)" htmlFor="need_id" hint="Solo para vuestro equipo: el atleta no ve la necesidad interna.">
+                <select id="need_id" name="need_id" defaultValue="" className={inputClass}>
+                  <option value="">—</option>
+                  {orgNeeds.map((n) => <option key={n.id} value={n.id}>{n.title}</option>)}
+                </select>
+              </Field>
+            )}
+          </Card>
+
+          <p className="text-sm text-muted">Después de guardar podrás ver la oportunidad <strong className="text-paper">tal como la verá un atleta</strong> antes de enviarla a revisión.</p>
           <div className="flex flex-wrap gap-3">
             <SubmitButton name="submit" value="review">Enviar a revisión</SubmitButton>
             <SubmitButton name="submit" value="draft" variant="secondary">Guardar borrador</SubmitButton>

@@ -28,3 +28,12 @@ Al dar de baja a un miembro pierde el acceso al instante (RLS por membresía); s
 
 ## Encaje inverso
 `needFit()` mide compatibilidad con los criterios de una necesidad usando solo datos visibles. Datos no compartidos bajan la confianza, no penalizan. No es una valoración del talento ni un ranking.
+
+## Publicar una oportunidad (formulario y vista previa)
+- El formulario recoge ya los campos de la Fase 07: estado de beca (`scholarship_status`), materiales que se pedirán (`required_materials`), atletas internacionales, método de contacto, caducidad y necesidad interna vinculada (solo visible para el staff).
+- `validatePublish()` (`src/lib/domain/recruit.ts`) aplica antes de guardar las mismas reglas que la base de datos: sin estado de beca no se anuncia ayuda, «importe indicado» exige importe, y la caducidad no puede ser pasada ni anterior al plazo.
+- **Ver como atleta** (`/app/opportunities/[id]?view=athlete`): el staff ve la ficha exactamente como un atleta, con aviso de qué roles verán las candidaturas. Nunca muestra notas internas ni la necesidad vinculada.
+- La ficha pública muestra al atleta «Requisitos y proceso» antes de aplicar y recuerda que aplicar no comparte documentos privados.
+
+## Revisión de vídeo
+`MediaSwitcher`: highlight, partido completo y clips en la misma ficha del candidato (pestañas accesibles, carga bajo demanda). Velocidad y calidad desde el reproductor de YouTube/Vimeo.

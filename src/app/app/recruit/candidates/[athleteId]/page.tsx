@@ -8,7 +8,7 @@ import { currentRecruitOrg, loadCandidate } from '@/lib/data/recruit';
 import { INFO_KIND_LABEL, INTERNAL_STAGES, INTERNAL_STAGE_LABEL, needFit, type InternalStage, type NeedCriteria } from '@/lib/domain/recruit';
 import { PROVENANCE_LABEL } from '@/lib/domain/passport';
 import { Badge, Card, CardTitle, Notice, PageHeader } from '@/components/ui';
-import { VideoFacade } from '@/components/passport/VideoFacade';
+import { MediaSwitcher } from '@/components/recruit/MediaSwitcher';
 import { RecruitShell } from '@/components/recruit/RecruitShell';
 import { AddToShortlist, InfoRequestForm, OrgNoteForm, OrgOfferForm, OrgTaskForm } from '@/components/recruit/RecruitForms';
 import { ContactRequestForm, ReportButton } from '@/components/forms';
@@ -66,8 +66,7 @@ export default async function CandidatePage({ params, searchParams }: { params: 
               <CardTitle kicker="Vídeo">{highlight ? highlight.title || 'Highlight reel' : 'Vídeo'}</CardTitle>
               {highlight ? (
                 <>
-                  <VideoFacade url={highlight.url} title={`${d.dir.display_name} · ${highlight.title ?? highlight.kind}`} />
-                  {d.videos.length > 1 && <ul className="mt-3 flex flex-wrap gap-2">{d.videos.slice(1).map((v) => <li key={v.id}><a href={v.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded-full border border-line px-3 text-xs text-paper">{v.kind === 'full_game' ? 'Partido completo' : v.title ?? v.kind} ↗</a></li>)}</ul>}
+                  <MediaSwitcher videos={d.videos} athlete={d.dir.display_name ?? 'Atleta'} />
                   {!d.videos.some((v) => v.kind === 'full_game') && <p className="mt-2 text-xs text-warn">⚠ Sin partido completo compartido. Puedes solicitarlo abajo.</p>}
                 </>
               ) : d.dir.has_video ? <p className="text-sm text-muted">Vídeo disponible en el Passport.</p> : <Locked what="Vídeo" />}
