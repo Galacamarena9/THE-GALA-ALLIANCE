@@ -5,6 +5,7 @@ import { OPPORTUNITY_SOURCE_LABEL, OPPORTUNITY_STATE_LABEL, opportunitySource, o
 import { TrustSeal } from '@/components/TrustSeal';
 import { assessOpportunity } from '@/lib/domain/trust';
 import { logEvent } from '@/lib/events';
+import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { requireSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
@@ -17,14 +18,14 @@ import { Badge, Card, CardTitle, EmptyState, Notice, PageHeader } from '@/compon
 import { ApplyOpportunityForm, ReportButton } from '@/components/forms';
 import { deleteOpportunity, submitForReview } from '@/app/actions/opportunities';
 import { AnswerQuestionForm, AskQuestionForm } from '@/components/QuestionForms';
-import { TrialPanel, type PanelDetails, type PanelMaterial, type PanelRequirement } from '@/components/trials/TrialPanel';
+import { PARTICIPANT_FILTERS, TrialPanel, type PanelDetails, type PanelMaterial, type PanelRequirement, type ParticipantFilter } from '@/components/trials/TrialPanel';
 import { CLUB_TYPES, PUBLISH_GAP_LABEL, isTrialType, type AttendanceStatus, type CostComponent, type InvitationStatus, type Outcome, type RegistrationStatus } from '@/lib/domain/trials';
 import { CONTACT_METHOD_LABEL, INTERNATIONAL_LABEL, REQUIRED_MATERIAL_LABEL, ROLE_CAPS, ROLE_LABEL, SCHOLARSHIP_LABEL, type OrgRole } from '@/lib/domain/recruit';
 
 export const metadata: Metadata = { title: 'Oportunidad' };
 const CLUB_TYPES_LIST: readonly string[] = CLUB_TYPES;
 
-export default async function OpportunityPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ view?: string; publish?: string }> }) {
+export default async function OpportunityPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ view?: string; publish?: string; pf?: string }> }) {
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const session = await requireSession();
@@ -70,9 +71,9 @@ export default async function OpportunityPage({ params, searchParams }: { params
         supabase.from('opportunity_cost_components').select('component_type, label, amount, currency, required, included, period').eq('opportunity_id', id).order('sort'),
         supabase.from('opportunity_requirements').select('kind, strength, label, params').eq('opportunity_id', id).order('sort'),
         supabase.from('opportunity_required_materials').select('material, label, required, sensitivity').eq('opportunity_id', id),
-        supabase.from('opportunity_registrations').select('id, athlete_id, status, origin, needs_athlete_ok, guardian_status, athlete_update, updated_at, opportunity_attendance(status, check_in_at)').eq('opportunity_id', id).order('updated_at', { ascending: false }).limit(300),
+        supabase.from('opportunity_registrations').select('id, athlete_id, status, origin, needs_athlete_ok, guardian_status, materials_status, athlete_update, updated_at, opportunity_attendance(status, check_in_at)').eq('opportunity_id', id).order('updated_at', { ascending: false }).limit(300),
         supabase.from('opportunity_invitations').select('id, athlete_id, status, guardian_required').eq('opportunity_id', id).limit(300),
-        supabase.from('applications').select('id, athlete_id, status, guardian_consent_status').eq('opportunity_id', id).limit(300),
+        supabase.from('applications').select('id, athlete_id, status, guardian_consent_status, materials_complete').eq('opportunity_id', id).limit(300),
         supabase.rpc('opportunity_confirmed_count', { p_opp: id }),
       ])
     : [{ data: null }, { data: [] }, { data: [] }, { data: [] }, { data: [] }, { data: [] }, { data: [] }, { data: 0 }];
@@ -87,7 +88,10 @@ export default async function OpportunityPage({ params, searchParams }: { params
   const { data: gaps } = isMember && CLUB_TYPES_LIST.includes(opp.type) && ['draft', 'rejected'].includes(opp.status) ? await supabase.rpc('opportunity_publish_gaps', { p_opp: id }) : { data: null };
   const publishGaps = ((gaps as string[] | null) ?? []).map((g) => PUBLISH_GAP_LABEL[g] ?? g);
   const oppCore = raw as unknown as { start_at: string | null; end_at: string | null; timezone: string | null; city: string | null; region: string | null; country: string | null; venue_name: string | null; age_category_code: string | null; age_category_custom: string | null };
-  if (trial && isAthlete && !member) void logEvent('trial_viewed');
+  if (trial && isAthlete && !member) {
+    void logEvent('trial_viewed');
+    if (/Mobi|Android/i.test((await headers()).get('user-agent') ?? '')) void logEvent('trial_mobile_viewed');
+  }
 
   const net = opp.annual_cost_usd != null && opp.aid_amount_usd != null ? opp.annual_cost_usd - opp.aid_amount_usd : null;
   const closed = opp.deadline ? new Date(`${opp.deadline}T23:59:59`) < new Date() : false;
@@ -246,13 +250,16 @@ export default async function OpportunityPage({ params, searchParams }: { params
                   id: r.id as string, athlete_id: r.athlete_id as string, status: r.status as RegistrationStatus, origin: r.origin as string, needs_athlete_ok: r.needs_athlete_ok as boolean,
                   guardian_status: r.guardian_status as string, name: who(r.athlete_id as string), athlete_update: r.athlete_update as string | null,
                   attendance: att?.status ?? null, check_in_at: att?.check_in_at ?? null, outcome: (outcomeOf.get(r.id as string) as Outcome | undefined) ?? null,
+                  materials_status: r.materials_status as 'not_required' | 'pending' | 'complete',
                 };
               })}
               invitations={(trialInvs ?? []).map((i) => ({ id: i.id as string, athlete_id: i.athlete_id as string, status: i.status as InvitationStatus, guardian_required: i.guardian_required as boolean, name: who(i.athlete_id as string) }))}
-              applications={isMember ? (trialApps ?? []).map((a) => ({ id: a.id as string, athlete_id: a.athlete_id as string, status: a.status as string, guardian_consent_status: a.guardian_consent_status as string, name: who(a.athlete_id as string) })) : (trialApps ?? []).filter((a) => a.athlete_id === session.userId).map((a) => ({ id: a.id as string, athlete_id: a.athlete_id as string, status: a.status as string, guardian_consent_status: a.guardian_consent_status as string, name: 'Tú' }))}
+              applications={isMember ? (trialApps ?? []).map((a) => ({ id: a.id as string, athlete_id: a.athlete_id as string, status: a.status as string, guardian_consent_status: a.guardian_consent_status as string, materials_complete: a.materials_complete as boolean, name: who(a.athlete_id as string) })) : (trialApps ?? []).filter((a) => a.athlete_id === session.userId).map((a) => ({ id: a.id as string, athlete_id: a.athlete_id as string, status: a.status as string, guardian_consent_status: a.guardian_consent_status as string, name: 'Tú' }))}
               asClub={isMember}
               asFamily={session.roles.includes('parent')}
               preview={preview}
+              participantFilter={sp.pf && sp.pf in PARTICIPANT_FILTERS ? (sp.pf as ParticipantFilter) : 'all'}
+              filterHref={(f) => `/app/opportunities/${opp.id}?pf=${f}#participantes`}
             />
           )}
 

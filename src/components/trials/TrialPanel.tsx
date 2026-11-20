@@ -10,9 +10,22 @@ import { REQUIRED_MATERIAL_LABEL } from '@/lib/domain/recruit';
 export type PanelRegistration = {
   id: string; athlete_id: string; status: RegistrationStatus; origin: string; needs_athlete_ok: boolean; guardian_status: string; name: string;
   athlete_update: string | null; attendance: AttendanceStatus | null; check_in_at: string | null; outcome: Outcome | null;
+  materials_status?: 'not_required' | 'pending' | 'complete';
 };
 export type PanelInvitation = { id: string; athlete_id: string; status: InvitationStatus; name: string; guardian_required: boolean };
-export type PanelApplication = { id: string; athlete_id: string; status: string; name: string; guardian_consent_status: string };
+export type PanelApplication = { id: string; athlete_id: string; status: string; name: string; guardian_consent_status: string; materials_complete?: boolean };
+
+/** Filtros de participantes (móvil): uno a la vez, por URL (?pf=), para volver al mismo sitio tras actuar. */
+export const PARTICIPANT_FILTERS = { all: 'Todos', confirmed: 'Confirmados', pending: 'Pendientes', docs: 'Docs. pendientes', waitlisted: 'Espera', cancelled: 'Cancelados' } as const;
+export type ParticipantFilter = keyof typeof PARTICIPANT_FILTERS;
+function matchesFilter(r: PanelRegistration, f: ParticipantFilter) {
+  if (f === 'confirmed') return r.status === 'confirmed';
+  if (f === 'pending') return r.status === 'pending' || r.status === 'registered';
+  if (f === 'docs') return r.materials_status === 'pending' && !['cancelled', 'withdrawn'].includes(r.status);
+  if (f === 'waitlisted') return r.status === 'waitlisted';
+  if (f === 'cancelled') return r.status === 'cancelled' || r.status === 'withdrawn';
+  return true;
+}
 export type PanelDetails = {
   trial_type?: string; registration_mode: 'direct' | 'application_required' | 'invitation_only'; capacity: number | null; price_status: PriceStatus;
   refundable: string; refund_policy: string | null; accommodation: string; meals: string; travel: string; minor_policy: string;
@@ -37,10 +50,10 @@ function requirementText(r: PanelRequirement) {
  * Trial: transparencia antes del botón (quién, cuándo, dónde, cuánto —obligatorio vs opcional—, requisitos, qué pasa después)
  * y, según quién mira, inscribirse / responder a la invitación (atleta), aprobar (familia) o gestionar (club).
  */
-export function TrialPanel({ opportunityId, open, details, core, costs, requirements, materials, confirmed, me, registrations, invitations, applications, asClub, asFamily, preview }: {
+export function TrialPanel({ opportunityId, open, details, core, costs, requirements, materials, confirmed, me, registrations, invitations, applications, asClub, asFamily, preview, participantFilter = 'all', filterHref }: {
   opportunityId: string; open: boolean; details: PanelDetails | null; core: PanelCore; costs: CostComponent[]; requirements: PanelRequirement[]; materials: PanelMaterial[];
   confirmed: number; me: string | null; registrations: PanelRegistration[]; invitations: PanelInvitation[]; applications: PanelApplication[];
-  asClub: boolean; asFamily: boolean; preview: boolean;
+  asClub: boolean; asFamily: boolean; preview: boolean; participantFilter?: ParticipantFilter; filterHref?: (f: ParticipantFilter) => string;
 }) {
   const d = details;
   const price = d?.price_status ?? 'price_not_provided';
@@ -166,15 +179,21 @@ export function TrialPanel({ opportunityId, open, details, core, costs, requirem
       {asClub && !preview && (
         <>
           {applications.length > 0 && (
-            <Card>
+            <Card id="candidaturas">
               <CardTitle kicker="Club">Candidaturas ({applications.length})</CardTitle>
               <ul className="divide-y divide-line">
                 {applications.map((a) => (
                   <li key={a.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-sm">
-                    <span className="text-paper">{a.name}{a.guardian_consent_status === 'pending' ? <span className="ml-2 text-[11px] text-warn">aprobación familiar pendiente</span> : null}</span>
+                    <span className="min-w-0">
+                      <span className="block text-paper">{a.name}</span>
+                      <span className="block text-[11px] text-muted">
+                        {a.guardian_consent_status === 'pending' ? 'Familia: pendiente' : a.guardian_consent_status === 'approved' ? 'Familia ✓' : 'Sin tutor requerido'}
+                        {a.materials_complete != null ? ` · Documentos ${a.materials_complete ? '✓' : 'pendientes'}` : ''}
+                      </span>
+                    </span>
                     {['applied', 'reviewed', 'information_requested', 'waitlisted'].includes(a.status) ? (
                       <span className="flex flex-wrap gap-2">
-                        <TrialButton call={{ kind: 'decide', application: a.id, decision: 'accepted', opportunity: opportunityId }} label="Aceptar" variant="primary" confirm={`¿Aceptar a ${a.name} en el trial?`} />
+                        <TrialButton call={{ kind: 'decide', application: a.id, decision: 'accepted', opportunity: opportunityId }} label="Aceptar" variant="primary" confirm={`¿Aceptar a ${a.name}? Familia: ${a.guardian_consent_status === 'pending' ? 'pendiente (no se confirmará la plaza hasta que apruebe)' : a.guardian_consent_status === 'approved' ? 'aprobada' : 'no requerida'}${a.materials_complete === false ? ' · Documentos pendientes' : ''}.`} />
                         {a.status !== 'waitlisted' && <TrialButton call={{ kind: 'decide', application: a.id, decision: 'waitlisted', opportunity: opportunityId }} label="Lista de espera" />}
                         <TrialButton call={{ kind: 'decide', application: a.id, decision: 'declined', opportunity: opportunityId }} label="No continuar" variant="danger" confirm="Se avisará al atleta." />
                       </span>
@@ -184,12 +203,21 @@ export function TrialPanel({ opportunityId, open, details, core, costs, requirem
               </ul>
             </Card>
           )}
-          <Card>
+          <Card id="participantes">
             <CardTitle kicker="Club">Participantes ({registrations.length}) · {capacityLabel(d?.capacity, confirmed)}</CardTitle>
+            {filterHref && registrations.length > 0 && (
+              <nav aria-label="Filtrar participantes" className="-mx-1 mb-2 flex gap-1.5 overflow-x-auto px-1 pb-1">
+                {(Object.keys(PARTICIPANT_FILTERS) as ParticipantFilter[]).map((f) => {
+                  const n = registrations.filter((r) => matchesFilter(r, f)).length;
+                  return <a key={f} href={filterHref(f)} aria-current={participantFilter === f ? 'true' : undefined}
+                    className={`inline-flex min-h-9 shrink-0 items-center rounded-full border px-3 text-xs ${participantFilter === f ? 'border-brass bg-brass/10 text-brass' : 'border-line text-muted'}`}>{PARTICIPANT_FILTERS[f]} · {n}</a>;
+                })}
+              </nav>
+            )}
             {invitations.length > 0 && <p className="mb-2 text-xs text-muted">Invitaciones: {invitations.filter((i) => ['sent', 'viewed'].includes(i.status)).length} sin respuesta · {invitations.filter((i) => i.status === 'interested').length} interesados · {invitations.filter((i) => i.status === 'declined').length} rechazadas</p>}
             {registrations.length ? (
               <ul className="divide-y divide-line">
-                {registrations.map((r) => (
+                {registrations.filter((r) => matchesFilter(r, participantFilter)).map((r) => (
                   <li key={r.id} className="py-2.5">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <span className="text-sm text-paper">{r.name}<span className="ml-2 text-[11px] text-faint">{r.origin === 'agent' ? 'vía agente' : r.origin === 'club_invite' ? 'invitado' : r.origin === 'application' ? 'por candidatura' : ''}</span></span>
@@ -197,6 +225,7 @@ export function TrialPanel({ opportunityId, open, details, core, costs, requirem
                     </div>
                     <p className="mt-1 text-[11px] text-muted">
                       {r.guardian_status === 'pending' ? 'Aprobación familiar pendiente · ' : r.guardian_status === 'approved' ? 'Familia ✓ · ' : ''}
+                      {r.materials_status === 'pending' ? 'Documentos pendientes · ' : r.materials_status === 'complete' ? 'Documentos ✓ · ' : ''}
                       {r.attendance ? `${ATTENDANCE_LABEL[r.attendance]}${r.check_in_at ? ` · ${new Date(r.check_in_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}` : ''}` : ''}
                       {r.outcome ? ` · ${OUTCOME_LABEL[r.outcome]} (interno)` : ''}
                     </p>

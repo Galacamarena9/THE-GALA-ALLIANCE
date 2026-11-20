@@ -204,6 +204,11 @@ export const TRIAL_ERROR: Record<string, string> = {
   rate_limited: 'Has alcanzado el límite diario. Inténtalo mañana.',
   not_publishable: 'Faltan datos para publicar.',
   payment_status_server_only: 'El estado del pago solo lo actualiza el sistema de pagos.',
+  use_application_org_decide: 'Las candidaturas a trials se deciden desde el propio trial (Aceptar, Lista de espera o No continuar).',
+  'row-level security': 'No tienes permiso para hacer esto.',
+  'permission denied': 'No tienes permiso para hacer esto.',
+  team_not_in_org: 'Ese equipo no pertenece a tu organización.',
+  duplicate: 'Ya existe: no se ha duplicado.',
 };
 export function trialErrorMessage(message: string | undefined) {
   const key = Object.keys(TRIAL_ERROR).find((k) => message?.includes(k));

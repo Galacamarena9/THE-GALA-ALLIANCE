@@ -26,6 +26,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   await enforceMfaChallenge('/app');
   const sections = sidebarFor(session.roles);
   const supabase = await createClient();
+  // Staff de clubes y academias: su barra inferior lleva «Trials» en lugar de «Pipeline» (sigue en «Más»).
+  const staff = session.roles.some((r) => r === 'coach' || r === 'university') && !session.roles.includes('athlete');
+  const clubStaff = staff && ((await supabase.from('organization_members').select('organizations(type)').eq('user_id', session.userId).limit(10)).data ?? [])
+    .some((m) => ['club', 'academy'].includes((m.organizations as unknown as { type: string } | null)?.type ?? ''));
   const { count: unread } = await supabase
     .from('notifications')
     .select('id', { count: 'exact', head: true })
@@ -65,7 +69,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <div className="mx-auto max-w-6xl">{children}</div>
         </main>
       </div>
-      <Suspense><MobileNav sections={sections} staff={session.roles.some((r) => r === 'coach' || r === 'university') && !session.roles.includes('athlete')} /></Suspense>
+      <Suspense><MobileNav sections={sections} staff={staff ? (clubStaff ? 'club' : 'university') : false} /></Suspense>
     </div>
   );
 }
