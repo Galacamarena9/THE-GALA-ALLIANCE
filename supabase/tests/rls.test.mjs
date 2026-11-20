@@ -3167,6 +3167,84 @@ try {
     await expectError(() => as(agent2, `insert into brand_application_notes (application_id, brand_org_id, author_id, body) values ($1, $2, $3, 'x')`, [app3, brand3, agent2]), /row-level/);
   });
 
+  // ---------------------------------------------------------------- Prompt 14 · Trust & Safety
+  results.push('\nPrompt 14: casos, sanciones proporcionales, apelaciones, roles internos, break glass y límites');
+  const mkAdmin = async (name, role) => {
+    const id = randomUUID();
+    await db.query(`insert into auth.users (id, email, raw_user_meta_data) values ($1, $2, $3)`, [id, `${name}-${id.slice(0, 6)}@gala.dev`, { display_name: name }]);
+    await db.query(`insert into user_roles (user_id, role) values ($1, 'admin')`, [id]);
+    await db.query(`insert into private_profile_data (user_id, date_of_birth) values ($1, $2)`, [id, yearsAgo(35)]);
+    if (role) await db.query(`insert into admin_roles (user_id, role) values ($1, $2)`, [id, role]);
+    return id;
+  };
+  const support = await mkAdmin('support', 'support'); const ts = await mkAdmin('ts', 'trust_safety'); const ts2 = await mkAdmin('ts2', 'trust_safety'); const sa = await mkAdmin('sa', 'super_admin');
+  const T = await mkUser('t-athlete', 'athlete', 24);
+  let tsCase; let actT;
+  await check('P14 §48 mínimo privilegio: soporte no abre casos ni ve la cola; Trust & Safety sí', async () => {
+    await expectError(() => as(support, `select safety_case_open('Spam', 'messaging', 'low')`), /admin_only/);
+    const rep = (await as(u.brand, `insert into content_reports (entity_type, entity_id, reason, details) values ('athlete_profile', $1, 'fake_or_misleading', 'Perfil sospechoso') returning id`, [T])).rows[0].id;
+    tsCase = (await as(ts, `select safety_case_open('Perfil sospechoso', 'impersonation', 'high', $1, null, array[$2]::uuid[]) id`, [T, rep])).rows[0].id;
+    eq((await as(support, `select count(*)::int n from safety_cases where id = $1`, [tsCase])).rows[0].n, 0, 'soporte no ve casos');
+    eq((await as(ts, `select count(*)::int n from safety_case_events where case_id = $1`, [tsCase])).rows[0].n, 2);
+    eq((await db.query(`select status from content_reports where id = $1`, [rep])).rows[0].status, 'reviewing');
+    eq((await as(T, `select count(*)::int n from safety_cases`)).rows[0].n, 0, 'el afectado no ve el caso interno');
+  });
+  await check('P14 §31-32 sanción proporcional: restringir solo «candidaturas» 7 días; el resto sigue funcionando', async () => {
+    await expectError(() => as(ts, `select moderation_act('user_restricted', 'Candidaturas masivas sin leer las condiciones', $1, null, '{}', 7)`, [T]), /moderation_restriction_scoped/);
+    await expectError(() => as(ts, `select moderation_act('warning', 'Corto', $1)`, [T]), /check constraint|reason/);
+    actT = (await as(ts, `select moderation_act('user_restricted', 'Candidaturas masivas sin leer las condiciones', $1, null, array['applications'], 7, $2) id`, [T, tsCase])).rows[0].id;
+    await expectError(() => as(T, `insert into campaign_applications (campaign_id, athlete_id, rules_acknowledged) values ($1, $2, true)`, [camp3, T]), /account_restricted/);
+    eq((await as(T, `update athlete_profiles set headline = 'Sigo pudiendo editar mi perfil' where user_id = $1`, [T])).rowCount, 1, 'lo demás funciona');
+    eq((await as(T, `select count(*)::int n from moderation_actions where id = $1`, [actT])).rows[0].n, 1, 'el afectado ve su sanción');
+    eq((await as(u.coach, `select count(*)::int n from moderation_actions where id = $1`, [actT])).rows[0].n, 0);
+    eq((await as(T, `select count(*)::int n from notifications where kind = 'moderation.action'`)).rows[0].n, 1, 'avisado');
+    await expectError(() => as(ts, `select moderation_act('warning', 'Me sanciono a mí mismo', $1)`, [ts]), /cannot_moderate_self/);
+  });
+  await check('P14 §92 apelación: solo el afectado, una abierta; quien sancionó no la resuelve si hay otro revisor', async () => {
+    await expectError(() => as(u.coach, `select moderation_appeal($1, 'No estoy de acuerdo con esta sanción porque…')`, [actT]), /not_found/);
+    const ap = (await as(T, `select moderation_appeal($1, 'Envié varias candidaturas porque todas encajaban con mi deporte.') id`, [actT])).rows[0].id;
+    eq((await as(T, `select moderation_appeal($1, 'Otra vez la misma apelación con el mismo motivo.') id`, [actT])).rows[0].id, ap, 'idempotente');
+    await expectError(() => as(ts, `select moderation_appeal_decide($1, true, 'Revisado')`, [ap]), /second_reviewer_required/);
+    await as(ts2, `select moderation_appeal_decide($1, true, 'Las candidaturas eran pertinentes')`, [ap]);
+    eq((await db.query(`select reverted_at is not null r from moderation_actions where id = $1`, [actT])).rows[0].r, true, 'sanción retirada');
+    await as(T, `insert into campaign_applications (campaign_id, athlete_id, rules_acknowledged) values ($1, $2, true)`, [camp3, T]);
+  });
+  await check('P14 §31 organización restringida para representar; suspendida → sin acceso de sus agentes; revertir lo devuelve', async () => {
+    const r1 = (await as(ts, `select moderation_act('organization_restricted', 'Propuestas de representación engañosas', null, $1, array['representation'], 30) id`, [agency2])).rows[0].id;
+    const V = await mkUser('t-v', 'athlete', 22);
+    await expectError(() => repRequest(agent2, agency2, V), /account_restricted/);
+    await as(ts, `select moderation_revert($1, 'Revisado con la agencia')`, [r1]);
+    const rv = await repRequest(agent2, agency2, V);
+    await as(V, `select representation_respond($1, true)`, [rv]);
+    eq(await can(agent2, V, 'pipeline.view'), true);
+    const s1 = (await as(ts, `select moderation_act('suspended', 'Suplantación de una agencia real', null, $1) id`, [agency2])).rows[0].id;
+    eq((await db.query(`select org_status from organizations where id = $1`, [agency2])).rows[0].org_status, 'suspended');
+    eq(await can(agent2, V, 'pipeline.view'), false, 'suspendida: sin acceso');
+    await as(ts, `select moderation_revert($1, 'Identidad confirmada')`, [s1]);
+    eq(await can(agent2, V, 'pipeline.view'), true);
+  });
+  await check('P14 §49 break glass: motivo, máximo 4 horas, auditado y revisado por otra persona', async () => {
+    const doc = (await as(T, `insert into athlete_documents (athlete_id, kind, title, due_date) values ($1, 'other', 'Documento privado', current_date + 10) returning id`, [T])).rows[0].id;
+    eq((await as(ts, `select count(*)::int n from athlete_documents where id = $1`, [doc])).rows[0].n, 0, 'sin break glass no');
+    await expectError(() => as(support, `select break_glass_open($1, 'Necesito revisar la documentación por una denuncia grave', 1)`, [T]), /admin_only/);
+    await expectError(() => as(ts, `select break_glass_open($1, 'Revisión urgente de una denuncia grave de suplantación', 5)`, [T]), /invalid_duration/);
+    const g = (await as(ts, `select break_glass_open($1, 'Revisión urgente de una denuncia grave de suplantación', 1, $2) id`, [T, tsCase])).rows[0].id;
+    eq((await as(ts, `select count(*)::int n from athlete_documents where id = $1`, [doc])).rows[0].n, 1, 'con break glass sí');
+    eq((await as(ts2, `select count(*)::int n from athlete_documents where id = $1`, [doc])).rows[0].n, 0, 'solo quien lo abrió');
+    eq((await db.query(`select count(*)::int n from audit_logs where action = 'break_glass_opened' and entity_id = $1`, [g])).rows[0].n, 1);
+    await expectError(() => as(ts, `select break_glass_review($1)`, [g]), /admin_only/);
+    await as(sa, `select break_glass_review($1)`, [g]);
+    await db.query(`update break_glass_grants set expires_at = now() - interval '1 second' where id = $1`, [g]).catch(() => null);
+  });
+  await check('P14 §56-57 límites anti-spam en la base de datos (denuncias)', async () => {
+    const spam = await mkUser('t-spam', 'athlete', 25);
+    for (let i = 0; i < 20; i++) await as(spam, `insert into content_reports (entity_type, entity_id, reason) values ('athlete_profile', $1, 'spam')`, [randomUUID()]);
+    await expectError(() => as(spam, `insert into content_reports (entity_type, entity_id, reason) values ('athlete_profile', $1, 'spam')`, [randomUUID()]), /rate_limited/);
+    await expectError(() => as(spam, `select count(*) from rate_limit_events`), /permission denied|row-level/).catch(async () => {
+      eq((await as(spam, `select count(*)::int n from rate_limit_events`)).rows[0].n, 0);
+    });
+  });
+
   // ---------------------------------------------------------------- Prompt 9 · Supabase & PostgreSQL
   results.push('\nPrompt 9: integridad, documentos, concurrencia y catálogo');
   await check('P9 S9-01 · un documento, la foto o una evidencia no pueden apuntar a la carpeta de otra persona', async () => {

@@ -62,6 +62,7 @@ export default async function AdminPage() {
         )}
         <Card>
           <CardTitle kicker="Denuncias (DSA)" action={queue(reports.data?.length ?? 0)}>Cola por prioridad</CardTitle>
+          <p className="mb-2 text-xs text-muted">Para casos complejos (varias denuncias, sanciones, apelaciones): <Link href="/app/admin/safety" className="text-brass hover:underline">Trust &amp; Safety →</Link></p>
           <ul className="divide-y divide-line">
             {(reports.data ?? []).map((r) => (
               <li key={r.id} className="py-3">

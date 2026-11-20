@@ -153,6 +153,13 @@ export const TABLES = {
   contact_messages: { domain: '11-comunicacion', cls: 'personal', minors: true, decision: 'KEEP', export: true, retention: 'Inmutable; se borra con la conversación o la cuenta' },
   info_requests: { domain: '11-comunicacion', cls: 'personal', minors: true, decision: 'KEEP', export: true },
   notifications: { domain: '11-comunicacion', cls: 'personal', decision: 'KEEP', export: true, retention: 'Leídas: 6 meses · todas: 12 meses' },
+  safety_cases: { domain: '11-comunicacion', cls: 'sensitive', decision: 'KEEP', noExport: 'Investigación interna de Trust & Safety', note: 'Caso que agrupa denuncias, pruebas y medidas.' },
+  safety_case_events: { domain: '11-comunicacion', cls: 'sensitive', decision: 'KEEP', noExport: 'Línea de tiempo interna del caso' },
+  moderation_actions: { domain: '11-comunicacion', cls: 'sensitive', decision: 'KEEP', export: true, note: 'Medidas proporcionales con ámbito y duración; la persona afectada las ve.' },
+  moderation_appeals: { domain: '11-comunicacion', cls: 'sensitive', decision: 'KEEP', export: true },
+  break_glass_grants: { domain: '13-ia-analitica', cls: 'internal', decision: 'KEEP', noExport: 'Acceso de emergencia de Gala: auditoría interna' },
+  admin_roles: { domain: '13-ia-analitica', cls: 'internal', decision: 'KEEP', noExport: 'Roles internos de Gala' },
+  rate_limit_events: { domain: '13-ia-analitica', cls: 'internal', decision: 'KEEP', noExport: 'Contadores técnicos anti-spam (7 días)', retention: '7 días' },
   content_reports: { domain: '11-comunicacion', cls: 'sensitive', decision: 'KEEP', noExport: 'Denuncias: protegen a quien denuncia y a quien es denunciado' },
   user_feedback: { domain: '11-comunicacion', cls: 'personal', decision: 'KEEP', export: true, retention: '24 meses' },
 

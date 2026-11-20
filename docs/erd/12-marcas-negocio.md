@@ -154,7 +154,7 @@ erDiagram
 | `campaign_applications` | Personal | Sí | atleta (athlete_id) → se borra | Mientras exista la cuenta | Sí | KEEP |
 | `campaign_deliverable_submissions` | Personal | — | persona (athlete_id) → se borra | Mientras exista la cuenta | Sí | KEEP |
 | `campaign_deliverables` | Personal | — | En cascada con `campaign_offers` | Mientras exista la cuenta | No: Lo define la marca; lo del atleta (sus entregas) se exporta en campaign_deliverable_submissions. | KEEP |
-| `campaign_offer_components` | Sensible | — | En cascada con `campaign_offers` | Mientras exista la cuenta | No: Hija de la oferta; se exporta dentro de campaign_offers. | KEEP |
+| `campaign_offer_components` | Sensible | — | En cascada con `campaign_offers` | Mientras exista la cuenta | No: Hija de la oferta (sin columna de persona); el titular la ve junto a su oferta en la app. | KEEP |
 | `campaign_offers` | Sensible | — | persona (athlete_id) → se borra<br>organización (brand_org_id) → se borra<br>persona (sent_by) → se anonimiza | Mientras exista la cuenta | Sí | KEEP |
 | `service_requests` | Personal | — | organización (organization_id) → se anonimiza<br>persona (user_id) → se borra | Mientras exista la cuenta | Sí | KEEP |
 
