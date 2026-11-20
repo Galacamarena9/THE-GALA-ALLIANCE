@@ -30,7 +30,7 @@ export default async function SharePage() {
     athleteIds.length
       ? supabase.from('recruiting_links').select('id, athlete_id, label, token, expires_at, revoked_at, created_at, recruiting_link_views(count)').in('athlete_id', athleteIds).order('created_at', { ascending: false })
       : Promise.resolve({ data: [] }),
-    Promise.all(athleteIds.map(async (id) => [id, (await supabase.rpc('is_minor', { p_user: id })).data === true] as const)),
+    Promise.all(athleteIds.map(async (id) => [id, (await supabase.rpc('viewer_is_minor', { p_user: id })).data === true] as const)),
   ]);
   const sportIds = [...new Set((aps ?? []).map((a) => a.sport_id).filter(Boolean))] as string[];
   const posIds = [...new Set((aps ?? []).map((a) => a.primary_position_id).filter((p) => p != null))] as number[];

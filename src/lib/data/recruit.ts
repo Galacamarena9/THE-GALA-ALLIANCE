@@ -91,8 +91,6 @@ export async function discoverAthletes(f: DiscoverFilters, need: NeedCriteria | 
   const sport = f.sport ?? need?.sport_id;
   // Sin deporte no se busca: impide listar toda la base de atletas (anti-enumeración).
   if (!sport || !orgId) return { rows: [] as DiscoverRow[], total: 0, needsSport: !sport };
-  const { data: ok } = await supabase.rpc('discovery_consume');
-  if (ok === false) throw new Error('discover_quota');
   // La búsqueda se hace en la base de datos con la política de cada atleta: Discovery activado, bloques filtrables
   // y organización verificada con permiso. Aquí solo llegan identificadores autorizados.
   const filters: Record<string, string | number | boolean> = { sport };
@@ -105,7 +103,8 @@ export async function discoverAthletes(f: DiscoverFilters, need: NeedCriteria | 
   if (f.verifiedStats) filters.verified_stats = true;
   if (f.q) filters.q = f.q.slice(0, 60);
   const { data: hits, error: hitErr } = await supabase.rpc('discover_athlete_ids', { p_org: orgId, p_filters: filters, p_page: Math.min(f.page, 20), p_page_size: PAGE_SIZE });
-  if (hitErr) throw new Error('discover_unavailable');
+  // La cuota diaria la aplica la propia RPC (no se puede saltar llamándola directamente).
+  if (hitErr) throw new Error(hitErr.message.includes('rate_limited') ? 'discover_quota' : 'discover_unavailable');
   const hitRows = (hits ?? []) as { user_id: string; total: number; match_blocked: string[] }[];
   const blocked = new Map(hitRows.map((h) => [h.user_id, new Set(h.match_blocked ?? [])]));
   const order = new Map(hitRows.map((h, i) => [h.user_id, i]));

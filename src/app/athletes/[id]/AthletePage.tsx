@@ -65,7 +65,7 @@ export async function AthletePassportPage({ id }: { id: string }) {
   const ncaaBlocked = verifiedAll.map((o) => ({ name: o.name, w: ncaaFor(o) })).filter((x) => !x.w.open);
   const agencies = orgs.filter((o) => o.type === 'agency' && o.verification_status === 'verified').map((o) => ({ id: o.id, name: o.name }));
   const canSave = session?.roles.some((r) => ['university', 'coach', 'agent', 'brand'].includes(r));
-  const { data: minorFlag } = session ? await supabase.rpc('is_minor', { p_user: id }) : { data: true };
+  const { data: minorFlag } = session ? await supabase.rpc('viewer_is_minor', { p_user: id }) : { data: true };
   const isMinor = Boolean(minorFlag);
 
   const actions = (
