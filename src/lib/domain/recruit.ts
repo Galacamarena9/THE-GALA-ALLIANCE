@@ -5,15 +5,15 @@
  *   NO talento: nunca se usa para ordenar personas como "mejores" o "peores".
  * - Siguiente mejor acción del staff.
  */
-export const ORG_ROLES = ['owner', 'admin', 'head_coach', 'assistant_coach', 'recruiting_coordinator', 'admissions', 'compliance', 'staff', 'coach', 'recruiter'] as const;
+export const ORG_ROLES = ['owner', 'admin', 'athletic_director', 'head_coach', 'assistant_coach', 'recruiting_coordinator', 'analyst', 'admissions', 'compliance', 'staff', 'viewer', 'coach', 'recruiter'] as const;
 export type OrgRole = (typeof ORG_ROLES)[number];
 export const ROLE_LABEL: Record<OrgRole, string> = {
   owner: 'Propietario', admin: 'Administrador', head_coach: 'Head coach', assistant_coach: 'Assistant coach',
   recruiting_coordinator: 'Recruiting coordinator', admissions: 'Admisiones', compliance: 'Compliance', staff: 'Staff',
-  coach: 'Coach', recruiter: 'Reclutador',
+  coach: 'Coach', recruiter: 'Reclutador', athletic_director: 'Athletic director', analyst: 'Analista', viewer: 'Solo lectura',
 };
 /** Roles que un admin puede asignar desde la interfaz (coach/recruiter quedan como heredados). */
-export const ASSIGNABLE_ROLES: OrgRole[] = ['admin', 'head_coach', 'assistant_coach', 'recruiting_coordinator', 'admissions', 'compliance', 'staff'];
+export const ASSIGNABLE_ROLES: OrgRole[] = ['admin', 'athletic_director', 'head_coach', 'assistant_coach', 'recruiting_coordinator', 'analyst', 'admissions', 'compliance', 'staff', 'viewer'];
 
 export type Cap = 'manage_org' | 'manage_members' | 'manage_programs' | 'opportunities' | 'needs' | 'discover' | 'shortlist' | 'notes'
   | 'pipeline' | 'tasks' | 'candidates' | 'academic' | 'request_info' | 'contact' | 'offers' | 'export' | 'audit';
@@ -29,6 +29,9 @@ export const ROLE_CAPS: Record<OrgRole, Cap[]> = {
   admissions: ['candidates', 'academic', 'notes', 'tasks'],
   compliance: ['candidates', 'audit'],
   staff: ['candidates', 'tasks'],
+  athletic_director: ['manage_programs', 'opportunities', 'needs', ...COACHING, 'offers', 'export', 'audit'],
+  analyst: ['discover', 'shortlist', 'candidates'],
+  viewer: [],
 };
 /** Lo que se puede hacer antes de que la organización esté verificada. */
 export const UNVERIFIED_CAPS: Cap[] = ['manage_org', 'manage_members', 'manage_programs', 'needs', 'opportunities', 'tasks'];

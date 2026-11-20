@@ -1560,6 +1560,171 @@ try {
     eq((await as(u.adult, `select count(*)::int n from athlete_offers o join org_candidates c on c.athlete_id = o.athlete_id and c.organization_id = $2 where o.athlete_id = $1 and o.process_id is not null and o.created_at > c.created_at`, [u.adult, clubT])).rows[0].n, 0, 'sin oferta automática');
   });
 
+  // ================================================================ 7B · verificación, Discovery y shortlists
+  results.push('\nPrompt 7B: verificación, Discovery y shortlists');
+  await check('7B dominios: coincidencia exacta o subdominio, nunca por texto parcial', async () => {
+    const r = (await db.query(`select domain_matches('university.edu', 'university.edu') a, domain_matches('athletics.university.edu', 'university.edu') b,
+      domain_matches('fake-university.edu', 'university.edu') c, domain_matches('university.edu.evil.com', 'university.edu') d, domain_matches('mail.notuniversity.edu', 'university.edu') e`)).rows[0];
+    eq(r.a, true); eq(r.b, true); eq(r.c, false); eq(r.d, false); eq(r.e, false);
+  });
+  let domId;
+  await check('7B dominios: la organización propone, solo Gala verifica, y un dominio verificado no se duplica', async () => {
+    domId = (await as(u.uni, `insert into organization_domains (organization_id, domain, is_primary, created_by) values ($1, 'teststate.edu', true, $2) returning id`, [uniId, u.uni])).rows[0].id;
+    eq((await as(u.uni, `update organization_domains set status = 'verified' where id = $1`, [domId])).rowCount, 0, 'la organización no se autoverifica');
+    await as(u.admin, `update organization_domains set status = 'verified', verification_method = 'admin_review' where id = $1`, [domId]);
+    await expectError(() => as(u.admin, `insert into organization_domains (organization_id, domain, status, created_by) values ($1, 'teststate.edu', 'verified', $2)`, [uniB, u.admin]));
+  });
+  await check('7B email institucional: token con hash, solo el servidor lo emite, un solo uso e intentos limitados', async () => {
+    const id = (await as(u.coach, `select email_verification_start($1, 'coach@athletics.teststate.edu') id`, [uniId])).rows[0].id;
+    await expectError(() => as(u.coach, `select email_verification_issue($1)`, [id]), /permission denied/);
+    await db.query('begin'); await db.query('set local role service_role');
+    const token = (await db.query(`select email_verification_issue($1) t`, [id])).rows[0].t; await db.query('commit');
+    await expectError(() => as(u.coach, `select token_hash from email_verifications where id = $1`, [id]), /permission denied/);
+    eq((await as(u.coach, `select email_verification_confirm($1, 'mal') ok`, [id])).rows[0].ok, false);
+    eq((await as(u.coach, `select attempts from email_verifications where id = $1`, [id])).rows[0].attempts, 1);
+    eq((await as(otherUni, `select email_verification_confirm($1, $2) ok`, [id, token])).rows[0].ok, false, 'otra persona no puede usar el token');
+    eq((await as(u.coach, `select email_verification_confirm($1, $2) ok`, [id, token])).rows[0].ok, true);
+    eq((await as(u.coach, `select email_verification_confirm($1, $2) ok`, [id, token])).rows[0].ok, false, 'un solo uso');
+    eq((await as(u.coach, `select affiliation_verification a from organization_members where organization_id = $1 and user_id = $2`, [uniId, u.coach])).rows[0].a, 'email_verified');
+    const sum = (await as(u.coach, `select verification_summary($1) s`, [uniId])).rows[0].s;
+    eq(sum.email_verified, true); eq(sum.organization_verified, true); eq(sum.role_verified, false); eq(sum.access_active, true);
+    eq((await as(otherUni, `select verification_summary($1, $2) s`, [uniId, u.coach])).rows[0].s, null, 'nadie de fuera consulta el estado de otro');
+    await expectError(() => as(u.uni, `update organization_members set role_verification = 'verified' where organization_id = $1 and user_id = $2`, [uniId, u.coach]), /verification_admin_only/);
+  });
+  let claimOrg; let claimReq;
+  await check('7B reclamación: importada ≠ reclamada ≠ verificada; solo Gala decide; la decisión queda y es inmutable', async () => {
+    await db.query(`select set_config('request.jwt.claims', '{}', false)`);
+    claimOrg = (await db.query(`insert into organizations (name, type, created_by, source, external_id) values ('Imported State', 'university', $1, 'imported', 'SC-1') returning id`, [u.admin])).rows[0].id;
+    eq((await db.query(`select claim_status, verification_status from organizations where id = $1`, [claimOrg])).rows[0].claim_status, 'unclaimed');
+    claimReq = (await as(u.coach2, `select verification_submit('organization_claim', $1, null, 'Head Coach') id`, [claimOrg])).rows[0].id;
+    eq((await db.query(`select claim_status from organizations where id = $1`, [claimOrg])).rows[0].claim_status, 'claim_pending');
+    await expectError(() => as(u.coach2, `select verification_submit('organization_claim', $1, null, 'Head Coach')`, [claimOrg]), /duplicate key/);
+    await expectError(() => as(u.coach2, `select verification_decide($1, 'approved', 'ok')`, [claimReq]), /reviewer_only/);
+    await as(u.admin, `select verification_decide($1, 'approved', 'Directorio oficial', 'head_coach')`, [claimReq]);
+    const m = (await as(u.coach2, `select member_role, affiliation_verification, role_verification from organization_members where organization_id = $1 and user_id = $2`, [claimOrg, u.coach2])).rows[0];
+    eq(m.member_role, 'head_coach'); eq(m.affiliation_verification, 'verified'); eq(m.role_verification, 'verified');
+    eq((await db.query(`select claim_status, verification_status from organizations where id = $1`, [claimOrg])).rows[0].claim_status, 'claimed');
+    eq((await db.query(`select verification_status from organizations where id = $1`, [claimOrg])).rows[0].verification_status, 'unverified', 'reclamada no implica verificada');
+    eq((await as(u.coach2, `select count(*)::int n from verification_decisions where request_id = $1`, [claimReq])).rows[0].n, 1);
+    await expectError(() => db.query(`update verification_decisions set reason = 'x' where request_id = $1`, [claimReq]));
+  });
+  await check('7B revocación: retira el acceso al instante, deja registro y no borra la historia', async () => {
+    await expectError(() => as(u.admin, `select verification_decide($1, 'revoked', '')`, [claimReq]), /reason_required/);
+    await as(u.admin, `select verification_decide($1, 'revoked', 'Ya no trabaja en la institución')`, [claimReq]);
+    eq((await as(u.coach2, `select count(*)::int n from organization_members where organization_id = $1 and user_id = $2`, [claimOrg, u.coach2])).rows[0].n, 0);
+    eq((await as(u.coach2, `select status from organization_membership_records where organization_id = $1 and user_id = $2 order by created_at desc limit 1`, [claimOrg, u.coach2])).rows[0].status, 'revoked');
+    eq((await db.query(`select count(*)::int n from verification_decisions where request_id = $1`, [claimReq])).rows[0].n, 2);
+    eq((await db.query(`select count(*)::int n from audit_logs where entity_id = $1 and action = 'verification_revoked'`, [claimReq])).rows[0].n, 1);
+  });
+  await check('7B suspensión: el miembro pierde el acceso al instante y se puede reactivar con su rol', async () => {
+    await expectError(() => as(u.uni, `select org_suspend_member($1, $2, '')`, [uniId, u.coach]), /reason_required/);
+    await as(u.uni, `select org_suspend_member($1, $2, 'Revisión de cuenta')`, [uniId, u.coach]);
+    eq((await as(u.coach, `select org_can($1, 'candidates') ok`, [uniId])).rows[0].ok, false);
+    eq((await as(u.coach, `select count(*)::int n from org_candidates where organization_id = $1`, [uniId])).rows[0].n, 0);
+    await as(u.uni, `select org_reinstate_member($1, $2)`, [uniId, u.coach]);
+    eq((await as(u.coach, `select org_can($1, 'candidates') ok`, [uniId])).rows[0].ok, true);
+  });
+  let progW; let progM;
+  await check('7B programas: acceso solo al programa concedido; revocar nunca abre todos los programas', async () => {
+    progW = (await as(u.uni, `insert into org_programs (organization_id, sport_id, gender, name) values ($1, 'tennis', 'women', 'Women''s Tennis') returning id`, [uniId])).rows[0].id;
+    progM = (await as(u.uni, `insert into org_programs (organization_id, sport_id, gender, name) values ($1, 'soccer', 'men', 'Men''s Soccer') returning id`, [uniId])).rows[0].id;
+    const pm = (await as(u.uni, `insert into program_memberships (organization_id, user_id, program_id, granted_by) values ($1, $2, $3, $4) returning id`, [uniId, u.coach, progW, u.uni])).rows[0].id;
+    eq((await as(u.coach, `select org_can($1, 'shortlist', $2) w, org_can($1, 'shortlist', $3) m`, [uniId, progW, progM])).rows[0].m, false);
+    eq((await as(u.coach, `select org_can($1, 'shortlist', $2) w`, [uniId, progW])).rows[0].w, true);
+    await expectError(() => as(u.uni, `insert into program_memberships (organization_id, user_id, program_id, granted_by) values ($1, $2, $3, $4)`, [uniId, u.coach, progW, u.uni]), /duplicate key/);
+    await expectError(() => as(u.uni, `insert into program_memberships (organization_id, user_id, program_id, granted_by) values ($1, $2, $3, $4)`, [uniId, u.brand, progW, u.uni]), /not_an_active_member/);
+    await as(u.uni, `update program_memberships set status = 'revoked' where id = $1`, [pm]);
+    eq((await as(u.coach, `select org_can($1, 'shortlist', $2) w, org_can($1, 'shortlist', $3) m`, [uniId, progW, progM])).rows[0].w, false, 'sin programas no significa todos');
+    // Restablecer el acceso a todos los programas es una decisión explícita del admin.
+    await as(u.uni, `update organization_members set program_scope = 'all' where organization_id = $1 and user_id = $2`, [uniId, u.coach]);
+    eq((await as(u.coach, `select org_can($1, 'shortlist', $2) m`, [uniId, progM])).rows[0].m, true);
+  });
+  await check('7B Discovery: solo organizaciones verificadas con permiso; deporte obligatorio; páginas y filtros acotados', async () => {
+    const ids = (await as(u.coach, `select user_id from discover_athlete_ids($1, '{"sport":"basketball"}')`, [uniId])).rows.map((r) => r.user_id);
+    eq(ids.includes(u.adult), true);
+    eq(ids.includes(u.privateAth), false, 'atleta privado');
+    await expectError(() => as(u.coach, `select * from discover_athlete_ids($1, '{}')`, [uniId]), /sport_required/);
+    await expectError(() => as(u.coach, `select * from discover_athlete_ids($1, '{"sport":"basketball"}', 21)`, [uniId]), /page_limit/);
+    await expectError(() => as(u.coach, `select * from discover_athlete_ids($1, '{"sport":"basketball","gpa_raw":"4"}')`, [uniId]), /invalid_filter/);
+    const unv = (await as(u.uni, `insert into organizations (name, type, created_by) values ('Unverified U', 'university', $1) returning id`, [u.uni])).rows[0].id;
+    await expectError(() => as(u.uni, `select * from discover_athlete_ids($1, '{"sport":"basketball"}')`, [unv]), /not_allowed/);
+    await as(u.uni, `insert into organization_members (organization_id, user_id, member_role) values ($1, $2, 'viewer')`, [uniId, u.brand]);
+    await expectError(() => as(u.brand, `select * from discover_athlete_ids($1, '{"sport":"basketball"}')`, [uniId]), /not_allowed/, 'verificada pero sin permiso de búsqueda');
+    eq((await as(u.coach, `select discovery_consume() ok`)).rows[0].ok, true);
+  });
+  await check('7B Discovery: un campo visible pero no filtrable no sirve para filtrar; para Match se respeta su permiso', async () => {
+    await as(u.adult, `update athlete_profiles set height_cm = 185 where user_id = $1`, [u.adult]);
+    let ids = (await as(u.coach, `select user_id from discover_athlete_ids($1, '{"sport":"basketball","min_height":180}')`, [uniId])).rows.map((r) => r.user_id);
+    eq(ids.includes(u.adult), true);
+    await as(u.adult, `insert into passport_field_policies (athlete_id, field_group, allow_filter, allow_match, allow_compare, allow_export) values ($1, 'physical', false, false, true, false)`, [u.adult]);
+    ids = (await as(u.coach, `select user_id from discover_athlete_ids($1, '{"sport":"basketball","min_height":180}')`, [uniId])).rows.map((r) => r.user_id);
+    eq(ids.includes(u.adult), false, 'no filtrable');
+    eq((await as(u.coach, `select height_cm from athlete_directory where user_id = $1`, [u.adult])).rows[0].height_cm, 185, 'sigue visible');
+    const row = (await as(u.coach, `select match_blocked from discover_athlete_ids($1, '{"sport":"basketball"}') where user_id = $2`, [uniId, u.adult])).rows[0];
+    eq(row.match_blocked.includes('physical'), true);
+    eq((await as(u.coach, `select athlete_field_allows($1, 'physical', 'export') ok`, [u.adult])).rows[0].ok, false, 'exportar requiere permiso explícito');
+    await expectError(() => as(u.coach, `insert into passport_field_policies (athlete_id, field_group, allow_filter, allow_match, allow_compare, allow_export) values ($1, 'stats', true, true, true, true)`, [u.adult]));
+    await as(u.adult, `delete from passport_field_policies where athlete_id = $1`, [u.adult]);
+  });
+  await check('7B Discovery: desactivar Discovery o limitar el periodo saca al atleta de los resultados', async () => {
+    await as(u.adult, `insert into athlete_discovery_settings (athlete_id, mode) values ($1, 'off')`, [u.adult]);
+    let ids = (await as(u.coach, `select user_id from discover_athlete_ids($1, '{"sport":"basketball"}')`, [uniId])).rows.map((r) => r.user_id);
+    eq(ids.includes(u.adult), false);
+    await as(u.adult, `update athlete_discovery_settings set mode = 'selected_organization_types', organization_types = '{club}' where athlete_id = $1`, [u.adult]);
+    ids = (await as(u.coach, `select user_id from discover_athlete_ids($1, '{"sport":"basketball"}')`, [uniId])).rows.map((r) => r.user_id);
+    eq(ids.includes(u.adult), false, 'solo clubes');
+    await as(u.adult, `delete from athlete_discovery_settings where athlete_id = $1`, [u.adult]);
+  });
+  await check('7B Discovery: un menor no es filtrable por académico por defecto', async () => {
+    eq((await as(u.coach, `select athlete_field_allows($1, 'academics', 'filter') ok`, [u.minor])).rows[0].ok, false);
+  });
+  await check('7B búsquedas guardadas: filtros validados y privadas por defecto', async () => {
+    await expectError(() => as(u.coach, `insert into org_saved_searches (organization_id, created_by, name, filters) values ($1, $2, 'PG', '{"position":1}')`, [uniId, u.coach]));
+    await expectError(() => as(u.coach, `insert into org_saved_searches (organization_id, created_by, name, filters) values ($1, $2, 'PG', '{"sport":"basketball","url":"x"}')`, [uniId, u.coach]));
+    await as(u.coach, `insert into org_saved_searches (organization_id, created_by, name, filters) values ($1, $2, 'PG 2027', '{"sport":"basketball","grad":2027}')`, [uniId, u.coach]);
+    eq((await as(u.uni, `select count(*)::int n from org_saved_searches where name = 'PG 2027'`)).rows[0].n, 0, 'privada');
+    eq((await as(otherUni, `select count(*)::int n from org_saved_searches`)).rows[0].n, 0);
+  });
+  let sl7;
+  await check('7B shortlists: compartida con personas concretas; «viewer» lee pero no añade; revocar quita el acceso', async () => {
+    sl7 = (await as(u.coach, `insert into org_shortlists (organization_id, name, visibility, owner_id, sport_id, recruiting_class) values ($1, 'Bases 2027', 'shared', $2, 'basketball', 2027) returning id`, [uniId, u.coach])).rows[0].id;
+    eq((await as(u.coach2, `select count(*)::int n from org_shortlists where id = $1`, [sl7])).rows[0].n, 0, 'sin acceso');
+    await as(u.coach, `insert into shortlist_access (shortlist_id, organization_id, user_id, access_role, granted_by) values ($1, $2, $3, 'viewer', $4)`, [sl7, uniId, u.coach2, u.coach]);
+    eq((await as(u.coach2, `select count(*)::int n from org_shortlists where id = $1`, [sl7])).rows[0].n, 1);
+    await expectError(() => as(u.coach2, `insert into org_shortlist_members (shortlist_id, organization_id, athlete_id, added_by) values ($1, $2, $3, $4)`, [sl7, uniId, u.adult, u.coach2]));
+    await as(u.coach, `insert into org_shortlist_members (shortlist_id, organization_id, athlete_id, added_by, source) values ($1, $2, $3, $4, 'gala_match')`, [sl7, uniId, u.adult, u.coach]);
+    await expectError(() => as(u.coach, `insert into org_shortlist_members (shortlist_id, organization_id, athlete_id, added_by) values ($1, $2, $3, $4)`, [sl7, uniId, u.adult, u.coach]), /duplicate key/);
+    await expectError(() => as(u.coach, `update org_shortlist_members set review_status = 'offer' where shortlist_id = $1`, [sl7]));
+    await expectError(() => as(u.coach, `insert into shortlist_access (shortlist_id, organization_id, user_id, access_role, granted_by) values ($1, $2, $3, 'viewer', $4)`, [sl7, uniId, otherUni, u.coach]), /not_an_authorized_member/);
+    await as(u.coach, `update shortlist_access set revoked_at = now() where shortlist_id = $1 and user_id = $2`, [sl7, u.coach2]);
+    eq((await as(u.coach2, `select count(*)::int n from org_shortlists where id = $1`, [sl7])).rows[0].n, 0);
+    eq((await as(otherUni, `select count(*)::int n from org_shortlist_members where shortlist_id = $1`, [sl7])).rows[0].n, 0, 'otra universidad');
+  });
+  await check('7B etiquetas, notas y asignaciones: internas, seguras y solo a miembros autorizados', async () => {
+    const lab = (await as(u.coach, `insert into org_labels (organization_id, name, created_by) values ($1, 'Video pending', $2) returning id`, [uniId, u.coach])).rows[0].id;
+    await as(u.coach, `insert into org_shortlist_member_labels (shortlist_id, athlete_id, label_id, added_by) values ($1, $2, $3, $4)`, [sl7, u.adult, lab, u.coach]);
+    eq((await as(u.adult, `select count(*)::int n from org_labels`)).rows[0].n, 0, 'el atleta no ve etiquetas');
+    await expectError(() => as(u.coach, `insert into org_notes (organization_id, athlete_id, author_id, body, shortlist_id) values ($1, $2, $3, '<script>alert(1)</script>', $4)`, [uniId, u.adult, u.coach, sl7]), /unsafe_content/);
+    const note = (await as(u.coach, `insert into org_notes (organization_id, athlete_id, author_id, body, shortlist_id) values ($1, $2, $3, 'Revisar partido completo', $4) returning id`, [uniId, u.adult, u.coach, sl7])).rows[0].id;
+    await as(u.coach, `update org_notes set body = 'Revisar partido completo (pedido)' where id = $1`, [note]);
+    eq((await as(u.coach, `select updated_at is not null e from org_notes where id = $1`, [note])).rows[0].e, true, 'marca de editada');
+    await expectError(() => as(u.coach, `update org_shortlist_members set assigned_to = $3 where shortlist_id = $1 and athlete_id = $2`, [sl7, u.adult, u.brand]), /assignee_not_authorized/);
+    await as(u.coach, `update org_shortlist_members set assigned_to = $3 where shortlist_id = $1 and athlete_id = $2`, [sl7, u.adult, u.uni]);
+    eq((await as(u.uni, `select count(*)::int n from org_assignment_log where shortlist_id = $1 and status = 'assigned'`, [sl7])).rows[0].n, 1);
+  });
+  await check('7B promoción al pipeline: explícita, sin duplicados y conserva el vínculo con la shortlist', async () => {
+    await expectError(() => as(u.brand, `select shortlist_promote($1, $2)`, [sl7, u.adult]), /not_allowed/);
+    const c1 = (await as(u.coach, `select shortlist_promote($1, $2) id`, [sl7, u.adult])).rows[0].id;
+    const c2 = (await as(u.coach, `select shortlist_promote($1, $2) id`, [sl7, u.adult])).rows[0].id;
+    eq(c1, c2, 'sin proceso duplicado');
+    const m = (await as(u.coach, `select promoted_candidate_id, review_status from org_shortlist_members where shortlist_id = $1 and athlete_id = $2`, [sl7, u.adult])).rows[0];
+    eq(m.promoted_candidate_id, c1);
+    eq((await as(u.coach, `select count(*)::int n from org_candidates where organization_id = $1 and athlete_id = $2`, [uniId, u.adult])).rows[0].n, 1);
+    eq((await as(u.uni, `select count(*)::int n from audit_logs where action = 'athlete_promoted_to_pipeline' and organization_id = $1`, [uniId])).rows[0].n >= 1, true, 'auditado y visible para el admin');
+    await as(u.coach, `update org_shortlists set status = 'archived', archived_at = now() where id = $1`, [sl7]);
+    eq((await as(u.coach, `select status from org_shortlists where id = $1`, [sl7])).rows[0].status, 'archived');
+  });
+
 } finally {
   console.log(results.join('\n'));
   console.log(`\n${passed} pruebas OK · ${failed} fallidas`);
