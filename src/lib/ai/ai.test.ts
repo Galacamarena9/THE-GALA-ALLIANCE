@@ -49,3 +49,12 @@ test('gala ai: idioma', () => {
   assert.equal(detectLang('How do I compare two offers?'), 'en');
   assert.equal(detectLang('¿Cómo comparo dos ofertas?'), 'es');
 });
+
+test('conocimiento: cada resultado dice a qué sistema aplica y un capítulo pendiente de revisión se marca', async () => {
+  const { searchKnowledge } = await import('./knowledge.ts');
+  const hits = searchKnowledge('NIL marcas visado F-1', 3, new Date('2026-11-20'));
+  assert.ok(hits.length > 0);
+  for (const h of hits) assert.ok(h.systems.length > 0 && h.version >= 1);
+  const nil = hits.find((h) => h.slug === 'nil-y-marcas');
+  if (nil) assert.equal(nil.stale, true);
+});
