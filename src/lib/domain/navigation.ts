@@ -124,6 +124,7 @@ export const ACCOUNT_SERVICES: NavItem[] = [
   { href: '/precios', label: 'Planes y servicios', icon: 'tag', desc: 'Gratis para atletas; Core, Elite y Signature para familias.' },
   { href: '/app/settings', label: 'Privacidad y datos', icon: 'shield', desc: 'Visibilidad, descarga de datos y baja de la cuenta.' },
   { href: '/app/support', label: 'Ayuda', icon: 'book', desc: 'Escríbenos y te respondemos aquí.' },
+  { href: '/app/invitar', label: 'Invitar', icon: 'spark', desc: 'Comparte The Gala Alliance con tu equipo.' },
   { href: '/app/trust', label: 'Confianza y seguridad', icon: 'shield', desc: 'Quién ve tus datos ahora, medidas que te afecten y cómo apelar.' },
 ];
 

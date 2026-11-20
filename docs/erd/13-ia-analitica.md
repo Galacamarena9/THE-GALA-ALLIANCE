@@ -1,7 +1,7 @@
 <!-- Generado por scripts/erd/generate.mjs a partir de las migraciones. No editar a mano: `npm run erd`. -->
 # 13 · IA, academia, analítica y auditoría
 
-Tablas: **16** · RLS activada en 16/16.
+Tablas: **18** · RLS activada en 18/18.
 Se relaciona con: `auth_users`, `organizations` (05), `profiles` (01), `safety_cases` (11).
 
 ## AS-IS · Modelo actual
@@ -31,6 +31,9 @@ erDiagram
   AUTH_USERS |o--o{ FEATURE_FLAGS : "updated_by"
   PROFILES |o--o{ PRODUCT_EVENTS : "user_id"
   AUTH_USERS ||--o{ RATE_LIMIT_EVENTS : "user_id"
+  AUTH_USERS ||--o{ REFERRAL_CODES : "user_id"
+  AUTH_USERS ||--o{ REFERRALS : "referred_user"
+  AUTH_USERS ||--o{ REFERRALS : "referrer_id"
   ACADEMY_ATTEMPTS {
     uuid id PK
     uuid user_id FK
@@ -170,6 +173,17 @@ erDiagram
     text bucket
     timestamptz created_at
   }
+  REFERRAL_CODES {
+    uuid user_id PK,FK
+    text code
+    timestamptz created_at
+  }
+  REFERRALS {
+    uuid referred_user PK,FK
+    uuid referrer_id FK
+    text code
+    timestamptz created_at
+  }
 ```
 
 ## Inventario
@@ -192,9 +206,13 @@ erDiagram
 | `metric_definitions` | Interna | — | No depende de personas | Mientras exista la organización | — | KEEP |
 | `product_events` | Personal | — | persona (user_id) → se borra | 13 meses | Sí | KEEP |
 | `rate_limit_events` | Interna | — | persona (user_id) → se borra | 7 días | No: Contadores técnicos anti-spam (7 días) | KEEP |
+| `referral_codes` | Personal | — | persona (user_id) → se borra | Mientras exista la cuenta | Sí | KEEP |
+| `referrals` | Personal | — | persona (referred_user) → se borra<br>persona (referrer_id) → se borra | Mientras exista la cuenta | Sí | KEEP |
 
 - `feature_flags`: Interruptores de funcionalidad; no sustituyen permisos.
 - `metric_definitions`: Definición escrita y versionada de cada métrica.
+- `referral_codes`: Código de invitación (no para menores).
+- `referrals`: Una atribución por persona; quien invita solo ve el número.
 
 ## TO-BE · Modelo objetivo
 

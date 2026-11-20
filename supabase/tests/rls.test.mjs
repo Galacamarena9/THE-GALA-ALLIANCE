@@ -3432,6 +3432,24 @@ try {
     eq(JSON.stringify(h).match(/[0-9a-f]{8}-[0-9a-f]{4}-/), null, 'sin identificadores');
   });
 
+  // ---------------------------------------------------------------- Prompt 20 · Crecimiento
+  results.push('\nPrompt 20: invitaciones con atribución honesta');
+  await check('P20 invitar: código propio; una atribución por persona, nunca a uno mismo; sin bucles para menores; quién se unió no se expone', async () => {
+    const inviter = await mkUser('g-inviter', 'coach', 40);
+    const code = (await as(inviter, `select my_referral_code() c`)).rows[0].c;
+    eq(/^[a-z0-9]{8}$/.test(code), true);
+    eq((await as(inviter, `select my_referral_code() c`)).rows[0].c, code, 'estable');
+    eq((await as(u.minor, `select my_referral_code() c`)).rows[0].c, null, 'menores sin código');
+    eq((await as(inviter, `select referral_claim($1) ok`, [code])).rows[0].ok, false, 'a uno mismo no');
+    const n1 = await mkUser('g-new', 'athlete', 20);
+    eq((await as(n1, `select referral_claim($1) ok`, [code])).rows[0].ok, true);
+    eq((await as(n1, `select referral_claim($1) ok`, [code])).rows[0].ok, false, 'una sola vez');
+    eq((await as(inviter, `select my_referral_count() n`)).rows[0].n, 1);
+    eq((await as(inviter, `select count(*)::int n from referrals`)).rows[0].n, 0, 'no ve quién');
+    await db.query(`update profiles set created_at = now() - interval '30 days' where id = $1`, [u.adult]);
+    eq((await as(u.adult, `select referral_claim($1) ok`, [code])).rows[0].ok, false, 'solo recién registrados');
+  });
+
   // ---------------------------------------------------------------- Prompt 9 · Supabase & PostgreSQL
   results.push('\nPrompt 9: integridad, documentos, concurrencia y catálogo');
   await check('P9 S9-01 · un documento, la foto o una evidencia no pueden apuntar a la carpeta de otra persona', async () => {

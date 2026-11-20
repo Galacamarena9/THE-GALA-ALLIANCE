@@ -1,8 +1,8 @@
 <!-- Generado por scripts/erd/generate.mjs a partir de las migraciones. No editar a mano: `npm run erd`. -->
 # 00 · MASTER · Mapa de datos de The Gala Alliance
 
-**155 tablas** en 14 dominios, todas con RLS (155/155).
-Clasificación: Pública 19 · Interna 42 · Personal 65 · Sensible 29 · con posibles datos de menores: 49.
+**157 tablas** en 14 dominios, todas con RLS (157/157).
+Clasificación: Pública 19 · Interna 42 · Personal 67 · Sensible 29 · con posibles datos de menores: 49.
 
 Cómo leerlo: cada dominio tiene su fichero con el diagrama AS-IS (columnas reales), el inventario y el TO-BE. La arquitectura, las reglas y el plan están en [`docs/DATA_ARCHITECTURE.md`](../DATA_ARCHITECTURE.md).
 
@@ -24,7 +24,7 @@ flowchart LR
   D10["10 · Agencias y clubes<br>18 tablas"]
   D11["11 · Comunicación, avisos y seguridad<br>12 tablas"]
   D12["12 · Marcas y negocio<br>15 tablas"]
-  D13["13 · IA, academia, analítica y auditoría<br>16 tablas"]
+  D13["13 · IA, academia, analítica y auditoría<br>18 tablas"]
   D14["14 · Clubs & Academies: trials, programas y participación<br>13 tablas"]
   D12 --> D01
   D12 --> D03
@@ -167,5 +167,5 @@ erDiagram
 | [10 · Agencias y clubes](./10-agencias-clubes.md) | 18 | `club_roster_invites` |
 | [11 · Comunicación, avisos y seguridad](./11-comunicacion.md) | 12 | — |
 | [12 · Marcas y negocio](./12-marcas-negocio.md) | 15 | — |
-| [13 · IA, academia, analítica y auditoría](./13-ia-analitica.md) | 16 | — |
+| [13 · IA, academia, analítica y auditoría](./13-ia-analitica.md) | 18 | — |
 | [14 · Clubs & Academies: trials, programas y participación](./14-clubs-academias.md) | 13 | — |

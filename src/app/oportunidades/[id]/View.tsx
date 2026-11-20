@@ -25,7 +25,7 @@ export function PublicOpportunityView({ o, sport, positions }: { o: PublicOpport
 
       <header className="mt-6 max-w-3xl">
         <p className="flex flex-wrap items-center gap-x-2 text-sm text-muted">
-          <span className="font-semibold text-paper">{o.organizations.name}</span>
+          {o.organization_id ? <Link href={`/organizaciones/${o.organization_id}`} className="font-semibold text-paper hover:text-brass">{o.organizations.name}</Link> : <span className="font-semibold text-paper">{o.organizations.name}</span>}
           <span className="inline-flex items-center gap-1 text-ok"><BadgeCheck className="h-4 w-4" aria-hidden />Organización verificada</span>
           {o.organizations.website && <span>· {domainOf(o.organizations.website)}</span>}
         </p>

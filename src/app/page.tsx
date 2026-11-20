@@ -1,3 +1,5 @@
+import { JsonLd } from '@/components/seo/JsonLd';
+import { siteUrl } from '@/lib/env';
 import Link from 'next/link';
 import {
   ArrowRight, ArrowUpRight, BookOpen, Calculator, ChevronDown, Eye, FileLock2, IdCard, Lock, MessagesSquare, Scale, ShieldCheck, Sparkles, Target, UserCheck,
@@ -68,6 +70,8 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
 export default function Home() {
   return (
     <div className="carbon relative">
+      <JsonLd data={{ '@context': 'https://schema.org', '@type': 'Organization', name: BRAND.name, url: siteUrl(), description: BRAND.secondary, slogan: BRAND.claim }} />
+      <JsonLd data={{ '@context': 'https://schema.org', '@type': 'WebSite', name: BRAND.name, url: siteUrl(), inLanguage: 'es' }} />
       <PublicHeader />
 
       <main id="main-content">

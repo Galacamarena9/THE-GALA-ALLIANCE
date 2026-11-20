@@ -23,6 +23,8 @@ export const EXPORT_SOURCES: ExportSource[] = [
   { key: 'blocked_users', table: 'user_blocks', column: 'blocker_id' },
   { key: 'notification_preferences', table: 'notification_preferences' },
   { key: 'plans', table: 'entitlements' },
+  { key: 'referral_code', table: 'referral_codes' },
+  { key: 'referred_by', table: 'referrals', column: 'referred_user', select: 'code, created_at' },
   { key: 'billing_account', table: 'billing_accounts', select: 'id, billing_email, country, tax_id, created_at' },
   { key: 'seats', table: 'seat_assignments' },
   { key: 'usage', table: 'usage_counters', column: 'subject_id' },
