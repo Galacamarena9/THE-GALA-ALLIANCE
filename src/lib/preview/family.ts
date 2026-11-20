@@ -2,7 +2,7 @@
 import type { FamilyChildHome, GuardianLink } from '@/lib/data/family-home';
 import type { ScenarioRow } from '@/components/family/CostComparison';
 
-const scopes = { profile: true, applications: true, academics: true, edit: false, costs: true, documents: true, contacts: true, messages: false };
+const scopes = { profile: true, applications: true, academics: true, edit: false, costs: true, budget: true, documents: true, contacts: true, messages: false };
 export const previewFamilyLinks: GuardianLink[] = [
   { id: 'l1', athleteId: '00000000-0000-0000-0000-00000000f001', name: 'Lucía', relationship: 'mother', verification: 'athlete_confirmed', status: 'approved', active: true, scopes },
   { id: 'l2', athleteId: '00000000-0000-0000-0000-00000000f002', name: 'Carlos', relationship: 'mother', verification: 'athlete_confirmed', status: 'approved', active: true, scopes: { ...scopes, costs: false } },

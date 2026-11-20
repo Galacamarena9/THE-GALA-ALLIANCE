@@ -125,6 +125,7 @@ erDiagram
     bool can_view_documents
     bool can_view_contacts
     bool can_view_messages
+    bool can_view_budget
   }
 ```
 

@@ -1,0 +1,89 @@
+# Family RLS (Prompt 10A)
+
+Rule: **deny by default**. Being logged in grants nothing. Each read or write requires this chain:
+auth → identity → guardian relationship → status (active, not paused, review at 18 not overdue) → permission → (consent where applicable) → RLS.
+
+Prueba de cada fila: `supabase/tests/rls.test.mjs`, bloques **P10** y **P10A** (más P9 para documentos).
+
+## Actores probados
+
+Atleta dueño · atleta menor · tutor activo (mamá) · tutor con permisos limitados (papá sin costes) · tutor pausado · tutor revocado · tutor con revisión de los 18 vencida · usuario sin relación · coach verificado del club · otro club · anónimo · admin de Gala. El *service role* no se usa nunca como identidad de usuario (lo prohíbe `check:secrets` y solo existe en el webhook de Stripe y el correo de verificación, ver `SUPABASE_ARCHITECTURE.md`).
+
+## Helpers (PostgreSQL)
+
+| Función | Qué responde |
+|---|---|
+| `has_family_link(atleta, permiso)` | Tutor con relación `approved`, no vencida a los 18, y con ese permiso |
+| `is_active_guardian(atleta)` | Tutor activo con cualquier permiso |
+| `guardian_has_scope(atleta, 'athlete.x.y')` | Scope legible → permiso real. Desconocido = **false** |
+| `guardian_can_view_resource(atleta, recurso)` | Igual, por nombre de recurso (notas privadas del atleta: siempre false) |
+| `requires_guardian_consent(atleta, acción)` | Menor + acción sensible |
+| `family_link_lapsed(…)` | La revisión al cumplir 18 venció sin confirmación |
+
+## Scopes → permisos
+
+| Scope | Columna en la relación | Por defecto |
+|---|---|---|
+| `athlete.profile.view`, `.passport.view`, `.shortlist.view`, `.tasks.view` | `can_view_profile` | Sí |
+| `athlete.pipeline.view`, `.deadlines.view` | `can_view_applications` | Sí |
+| `athlete.offers.view` | `can_view_applications` **o** `can_view_costs` | Sí |
+| `athlete.costs.view` | `can_view_costs` | Sí |
+| `athlete.family_budget.view` | `can_view_budget` | Sí |
+| `athlete.documents.view` | `can_view_documents` | Sí |
+| `athlete.contacts.view`, `.safety.view` | `can_view_contacts` | Sí |
+| `athlete.messages.view` | `can_view_messages` | **No** |
+| `athlete.contacts.approve`, `.documents.approve_share`, `.consents.manage` | Tutor activo **y** atleta menor | — |
+
+Solo el atleta cambia permisos (`guard_family_link`). Todo cambio queda en `audit_logs` (`family_link.scope_changed`).
+
+## Matriz por recurso
+
+| Recurso | Clasif. | Atleta | Tutor | Club relacionado | Otro club / otra familia / anónimo | Política (SELECT) | Escritura |
+|---|---|---|---|---|---|---|---|
+| Relación familiar `parent_athlete_links` | Sensible | Las suyas | Las suyas | No | No | `links_select` | Solo revocar; permisos solo el atleta; estados por RPC |
+| Passport / perfil | Personal | Sí | `profile.view` | Según visibilidad del atleta | Según visibilidad | `athlete_select` | Atleta; tutor con `edit_profile` |
+| Documentos `athlete_documents` | Confidencial | Sí | `documents.view` | Solo con concesión vigente | No | `docs_select`, `docs_select_org_grant` | Atleta / tutor con `edit_profile`; ruta en su carpeta |
+| Concesiones de documento | Confidencial | Sí | `view_profile` | Las suyas | No | `doc_grants_select` | Conceder: atleta o tutor con edición; revocar no se deshace |
+| Presupuesto `athlete_finances` | **Sensible** | Sí | `family_budget.view` | **Nunca** | **Nunca** | `athlete_or_guardian_view_family_budget` | Atleta / tutor con edición |
+| Escenarios de coste | Sensible | Sí | `costs.view` | **Nunca** | **Nunca** | `fcs_select` | Atleta / tutor con costes; dueño inmutable |
+| Ofertas `athlete_offers` | Personal | Sí | `offers.view` | Las que hizo esa organización | No | `athlete_or_guardian_view_offers`, `offers_select_org` | Atleta / tutor con edición |
+| Notas familiares | Sensible | Solo las «compartidas» | Todas las de ese atleta | **Nunca** | **Nunca** | `family_notes_select` | Autor; el atleta solo puede compartir |
+| Notas del club `org_notes`, `application_notes` | Interna org. | **Nunca** | **Nunca** | Con permiso `notes` | No | `org_notes_select`, `notes_org_only` | Staff con permiso |
+| Estado interno del club `org_candidates` | Interna org. | No | No | Con alcance de programa/equipo | No | `candidates_select` | Staff con `pipeline` |
+| Estado visible del proceso `applications` | Personal | Sí | `pipeline.view` | Su oportunidad | No | `apps_select` (sin columnas internas) | Transiciones por RPC |
+| Tareas `pipeline_tasks` | Personal | Sí | `tasks.view` | **Nunca** | No | `pipeline_tasks_select` | Familia: solo tareas `guardian`/`both` |
+| Solicitudes de contacto | Menores | Sí | Menor: tutor activo siempre · Adulto: `contacts.view` | La suya | No | `parties_and_guardians_view_contact_requests` | Aprobar: tutor **activo** de un menor |
+| Mensajes | Menores | Sí | Menor: tutor activo (política «visible») · Adulto: `messages.view`, solo lectura | Su conversación | No | `cmsg_select`, `guardians_with_scope_view_adult_messages` | Partes; bloqueos aplicados |
+| Consentimientos | Menores | Los suyos | Los que dio | No | No | `consents_select`, `consents_select_guardian` | Inmutables; revocar = nueva fila; cascada a concesiones |
+| Bloqueos `user_blocks` | Seguridad | Los suyos | — | No | No | propia | Bloquear corta mensajes, contactos y Discovery |
+| Denuncias `content_reports` | Seguridad | Las suyas | Las suyas | No | No | `reports_select` | Moderación solo admin |
+| Evidencias de verificación | Sensible | Las suyas | **No** (no por ser tutor) | No | No | `ve_select` | Bucket privado, carpeta del remitente |
+| Auditoría `audit_logs` | Interna | No | No | No | No | Solo admin | Solo funciones del sistema |
+
+## Comportamiento por estado de la relación
+
+| Estado | Lectura | Escritura | Notas |
+|---|---|---|---|
+| `approved` (activa) | Según permisos | Según permisos | — |
+| `restricted` (pausada por el atleta) | **Nada** | **Nada** | Reanudar solo el atleta |
+| Revisión de mayoría vencida | **Nada** | **Nada** | Vuelve solo si el atleta confirma |
+| `revoked` / `expired` | **Nada** | **Nada** | Inmediato: se evalúa en cada consulta (sin caché de sesión) |
+
+## Fugas indirectas revisadas
+
+- **Presupuesto:** ninguna función, vista, RPC ni filtro de Discovery lee `athlete_finances` (comprobado en SQL y en el código). Gala Match lo usa solo con la sesión del atleta/familia; para un club la RLS lo devuelve vacío. Gala AI lo lee solo con la sesión del tutor y su permiso.
+- **Notas familiares:** ninguna vista de coach las incluye; Gala AI de club no tiene herramienta que las lea.
+- **Notas del club → familia:** no existe política que las exponga al atleta ni al tutor.
+- **Fecha de nacimiento:** solo `is_minor` / `viewer_is_minor` (no invocables para terceros).
+
+## Tiempo real
+
+Solo `contact_messages` está en la publicación de Realtime; Supabase aplica la RLS a cada evento, así que un tutor pausado, revocado o vencido deja de recibirlos.
+
+## Gala AI
+
+`get_family_overview` usa la sesión del tutor (misma RLS), respeta cada permiso (sin `costs.view` no lee escenarios; sin `family_budget.view` no lee presupuesto) y nunca usa clave de servicio (prueba unitaria en `ai.test.ts`).
+
+## Migración
+
+Inventario → huecos (F-01…F-05) → local → pruebas → (proyecto de pruebas Supabase) → producción. Solo se añaden columnas con valores por defecto que mantienen el acceso actual y se endurecen políticas; cada migración tiene su bloque ROLLBACK.

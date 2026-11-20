@@ -20,11 +20,12 @@ export default async function FamilyCostsPage({ searchParams }: { searchParams: 
   let athleteId: string | null = null;
   let name = 'tu hijo/a';
   let canEditBudget = false;
+  let canSeeBudget = true;
   let links: Awaited<ReturnType<typeof guardianLinks>> = [];
   if (session.roles.includes('parent')) {
     links = (await guardianLinks(session)).filter((l) => l.active && l.scopes.costs);
     const current = links.find((l) => l.athleteId === sp.child) ?? links[0];
-    if (current) { athleteId = current.athleteId; name = current.name; canEditBudget = current.scopes.edit; }
+    if (current) { athleteId = current.athleteId; name = current.name; canEditBudget = current.scopes.edit && current.scopes.budget; canSeeBudget = current.scopes.budget; }
   } else {
     athleteId = session.userId; name = 'ti'; canEditBudget = true;
   }
@@ -81,7 +82,9 @@ export default async function FamilyCostsPage({ searchParams }: { searchParams: 
           <CardTitle kicker="Privado">Presupuesto familiar</CardTitle>
           <Notice tone="neutral">Solo lo ven el atleta y la familia con permiso de costes. Ninguna universidad, club ni agente lo ve; Gala lo usa solo para comparar y para el encaje económico.</Notice>
           <div className="mt-4">
-            <BudgetForm athleteId={athleteId} amount={budget.amount} mode={(fin?.budget_mode as 'preference' | 'hard_limit' | undefined) ?? 'preference'} canEdit={canEditBudget} />
+            {canSeeBudget
+              ? <BudgetForm athleteId={athleteId} amount={budget.amount} mode={(fin?.budget_mode as 'preference' | 'hard_limit' | undefined) ?? 'preference'} canEdit={canEditBudget} />
+              : <p className="text-sm text-muted">{name} no comparte el presupuesto familiar contigo. La comparación de costes sigue disponible, sin el encaje con el presupuesto.</p>}
           </div>
         </Card>
 

@@ -165,7 +165,7 @@ export async function runTool(name: string, input: Record<string, unknown>, ctx:
         const h = await loadFamilyChild(s, l);
         const next = familyNextAction({ today, approvals: h.approvals, deadlines: h.deadlines, offers: h.offers, incompleteCosts: h.scenarios.incomplete, missingDocuments: h.missingDocuments, hasAthlete: true });
         // Costes y presupuesto privado de SU familia, con la RLS del tutor (permiso «costes»).
-        const costs: unknown = l.scopes.costs ? await familyCostOverview(l.athleteId) : 'sin permiso de costes';
+        const costs: unknown = l.scopes.costs ? await familyCostOverview(l.athleteId, l.scopes.budget) : 'sin permiso de costes';
         return {
           name: l.name, permissions: l.scopes, family_next_action: { title: next.title, why: next.why, href: next.href },
           approvals_pending: h.approvals.length,

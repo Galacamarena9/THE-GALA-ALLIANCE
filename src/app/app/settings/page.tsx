@@ -32,7 +32,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
     isAthlete
       ? supabase
           .from('parent_athlete_links')
-          .select('id, parent_id, status, relationship, guardian_consent_given, last_reviewed_at, can_view_profile, can_view_applications, can_view_academics, can_edit_profile, can_view_costs, can_view_documents, can_view_contacts, can_view_messages, profiles!parent_athlete_links_parent_id_fkey(display_name)')
+          .select('id, parent_id, status, relationship, guardian_consent_given, last_reviewed_at, can_view_profile, can_view_applications, can_view_academics, can_edit_profile, can_view_costs, can_view_budget, can_view_documents, can_view_contacts, can_view_messages, profiles!parent_athlete_links_parent_id_fkey(display_name)')
           .eq('athlete_id', session.userId)
           .in('status', ['approved', 'restricted'])
       : Promise.resolve({ data: [] }),
@@ -111,7 +111,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                           ['can_view_profile', 'Ver mi Passport y shortlist', l.can_view_profile],
                           ['can_view_applications', 'Ver mis candidaturas y proceso', l.can_view_applications],
                           ['can_view_academics', 'Ver mi académico', l.can_view_academics],
-                          ['can_view_costs', 'Ver costes y presupuesto', l.can_view_costs],
+                          ['can_view_costs', 'Ver costes y ofertas', l.can_view_costs],
+                          ['can_view_budget', 'Ver el presupuesto familiar', l.can_view_budget],
                           ['can_view_documents', 'Ver mis documentos', l.can_view_documents],
                           ['can_view_contacts', 'Ver quién me contacta', l.can_view_contacts],
                           ['can_view_messages', 'Ver mis mensajes', l.can_view_messages],
