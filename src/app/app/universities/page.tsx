@@ -9,7 +9,7 @@ import { ASSOCIATION_LABEL, CIP_FAMILY } from '@/lib/domain/university';
 import { STATE_NAME, estimatedIntlCost, usdFmt } from '@/lib/domain/gala-match/engine';
 import { InstitutionCard } from '@/components/match/InstitutionCard';
 import { RecentSearches } from '@/components/RecentSearches';
-import { ButtonLink, EmptyState, Notice, PageHeader, inputClass } from '@/components/ui';
+import { ButtonLink, EmptyState, Notice, PageHeader, inputClass, buttonClass } from '@/components/ui';
 
 export const metadata: Metadata = { title: 'Universidades' };
 
@@ -107,7 +107,7 @@ export default async function UniversitiesPage({ searchParams }: { searchParams:
         {loaded && (withPrograms ?? 0) > 0 && <select name="family" defaultValue={sp.family ?? ''} aria-label="Área de estudios" className={inputClass}><option value="">Cualquier área de estudios</option>{Object.entries(CIP_FAMILY).sort((a, b) => a[1].localeCompare(b[1])).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>}
         {loaded && <select name="sort" defaultValue={f.sort} aria-label="Ordenar" className={inputClass}><option value="match">Mejor Gala Match</option><option value="name">Nombre</option>{(withCost ?? 0) > 0 && <option value="cost">Menor coste</option>}{(withSize ?? 0) > 0 && <option value="enrollment">Más estudiantes</option>}</select>}
         {loaded && <label className="flex items-center gap-2 px-2 text-sm text-paper"><input type="checkbox" name="active" value="1" defaultChecked={sp.active === '1'} className="h-4 w-4 accent-[var(--color-brass)]" />Con oportunidades activas</label>}
-        <button className="min-h-11 rounded-full bg-brass px-5 text-sm font-semibold text-ink">Buscar</button>
+        <button className={buttonClass('primary', 'md')}>Buscar</button>
       </form>
       <RecentSearches current={sp.q} />
       {content}

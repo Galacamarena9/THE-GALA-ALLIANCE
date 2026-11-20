@@ -7,7 +7,7 @@ import { usdFmt } from '@/lib/domain/gala-match/engine';
 import { DIVISION_LABEL } from '@/lib/domain/labels';
 import { ConfidenceBadge, DimensionChips, HideButton, MatchScore, SaveButton } from '@/components/match/MatchParts';
 import { InstitutionCard } from '@/components/match/InstitutionCard';
-import { EmptyState, Notice, PageHeader, cx, inputClass } from '@/components/ui';
+import { EmptyState, Notice, PageHeader, cx, inputClass, buttonClass } from '@/components/ui';
 
 export const metadata: Metadata = { title: 'Gala Match' };
 
@@ -67,7 +67,7 @@ async function Universities({ userId, ctx, sp, qs }: { userId: string; ctx: NonN
         <select name="min" defaultValue={sp.min ?? ''} aria-label="Encaje mínimo" className={inputClass}><option value="">Cualquier encaje</option>{[60, 75, 90].map((c) => <option key={c} value={c}>{c}% o más</option>)}</select>
         <select name="conf" defaultValue={sp.conf ?? ''} aria-label="Confianza" className={inputClass}><option value="">Cualquier confianza</option><option value="high">Confianza alta</option><option value="medium">Confianza media</option></select>
         <label className="flex items-center gap-2 px-2 text-sm text-paper"><input type="checkbox" name="program" value="1" defaultChecked={Boolean(sp.program)} className="h-4 w-4 accent-[var(--color-brass)]" />Con mis estudios</label>
-        <button className="min-h-11 rounded-full bg-brass px-5 text-sm font-semibold text-ink">Aplicar</button>
+        <button className={buttonClass('primary', 'md')}>Aplicar</button>
       </form>
 
       {lowConf && (

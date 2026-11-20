@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { requireSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
 import { siteUrl } from '@/lib/env';
-import { Badge, Card, CardTitle, PageHeader } from '@/components/ui';
+import { Badge, Card, CardTitle, PageHeader, buttonClass } from '@/components/ui';
 import { InviteLink } from '@/components/InviteLink';
 import { restrictFamilyLink, revokeFamilyLink, reviewFamilyLink, updateFamilyPermissions } from '@/app/actions/family';
 import { guardianReview } from '@/lib/domain/family';
@@ -66,7 +66,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                   <span className="text-xs text-faint">desde {new Date(b.created_at).toLocaleDateString('es-ES')}</span>
                   <form action={unblockUser} className="ml-auto">
                     <input type="hidden" name="blocked_id" value={b.blocked_id} />
-                    <button className="rounded-lg border border-line-strong px-3 py-1.5 text-xs font-medium text-paper hover:border-brass/50">Desbloquear</button>
+                    <button className={buttonClass('secondary', 'sm')}>Desbloquear</button>
                   </form>
                 </li>
               ))}
@@ -99,9 +99,9 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                           </p>
                           <div className="mt-2 flex flex-wrap gap-2">
                             <form action={reviewFamilyLink}><input type="hidden" name="id" value={l.id} /><input type="hidden" name="keep" value="yes" />
-                              <button className="min-h-11 rounded-full bg-brass px-4 text-sm font-semibold text-ink">Sí, que siga</button></form>
+                              <button className={buttonClass('primary', 'md')}>Sí, que siga</button></form>
                             <form action={reviewFamilyLink}><input type="hidden" name="id" value={l.id} /><input type="hidden" name="keep" value="no" />
-                              <button className="min-h-11 rounded-full border border-line px-4 text-sm text-paper">No, quitar acceso</button></form>
+                              <button className={buttonClass('secondary', 'md')}>No, quitar acceso</button></form>
                           </div>
                         </div>
                       )}
@@ -136,7 +136,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                         <form action={revokeFamilyLink} className="mt-2 rounded-lg border border-line p-3 text-xs text-muted">
                           <input type="hidden" name="id" value={l.id} /><input type="hidden" name="confirm" value="yes" />
                           <p>Dejará de ver tu información desde ahora. Tus candidaturas, documentos y ofertas no cambian.</p>
-                          <button className="mt-2 min-h-11 rounded-full border border-danger/40 px-4 font-semibold text-danger">Sí, desvincular</button>
+                          <button className={buttonClass('danger', 'md', 'mt-2')}>Sí, desvincular</button>
                         </form>
                       </details>
                     </li>

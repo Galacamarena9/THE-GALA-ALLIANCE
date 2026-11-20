@@ -5,7 +5,7 @@ import { requireSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
 import { loadCatalog } from '@/lib/data/athlete';
 import { currentRecruitOrg, loadMembers } from '@/lib/data/recruit';
-import { Badge, Card, EmptyState, PageHeader } from '@/components/ui';
+import { Badge, Card, EmptyState, PageHeader, buttonClass } from '@/components/ui';
 import { RecruitShell } from '@/components/recruit/RecruitShell';
 import { OrgNoteForm } from '@/components/recruit/RecruitForms';
 import { AssignSheet, PromoteSheet } from '@/components/recruit/ShortlistActions';
@@ -91,9 +91,9 @@ export default async function ShortlistDetail({ params, searchParams }: { params
                         <div className="mt-2 space-y-3 rounded-2xl border border-line bg-surface p-3 sm:w-96">
                           <AssignSheet list={id} athlete={r.athlete_id} current={r.assigned_to} members={members.filter((m) => !['viewer', 'admissions', 'compliance'].includes(m.role)).map((m) => ({ id: m.id, name: m.name }))} />
                           <div className="flex flex-wrap gap-2">
-                            <form action={updateShortlistMember}>{hiddenFields(r.priority ? 'unpriority' : 'priority')}<button className="min-h-11 rounded-lg border border-line px-3 text-xs text-paper">{r.priority ? 'Quitar prioridad' : 'Prioridad'}</button></form>
-                            {i > 0 && <form action={updateShortlistMember}>{hiddenFields('up')}<button className="min-h-11 rounded-lg border border-line px-3 text-xs text-paper" aria-label="Subir">↑</button></form>}
-                            {i < shown.length - 1 && <form action={updateShortlistMember}>{hiddenFields('down')}<button className="min-h-11 rounded-lg border border-line px-3 text-xs text-paper" aria-label="Bajar">↓</button></form>}
+                            <form action={updateShortlistMember}>{hiddenFields(r.priority ? 'unpriority' : 'priority')}<button className={buttonClass('secondary', 'sm')}>{r.priority ? 'Quitar prioridad' : 'Prioridad'}</button></form>
+                            {i > 0 && <form action={updateShortlistMember}>{hiddenFields('up')}<button className={buttonClass('secondary', 'sm')} aria-label="Subir">↑</button></form>}
+                            {i < shown.length - 1 && <form action={updateShortlistMember}>{hiddenFields('down')}<button className={buttonClass('secondary', 'sm')} aria-label="Bajar">↓</button></form>}
                             <form action={updateShortlistMember}>{hiddenFields('remove')}<button className="min-h-11 rounded-lg px-3 text-xs text-danger">Quitar de la lista</button></form>
                           </div>
                           {org.caps.has('notes') && <OrgNoteForm org={org.id} athlete={r.athlete_id} />}

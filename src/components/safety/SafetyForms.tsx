@@ -2,7 +2,7 @@
 
 import { ActionForm } from '@/components/ActionForm';
 import { SubmitButton } from '@/components/SubmitButton';
-import { inputClass } from '@/components/ui';
+import { inputClass, buttonClass } from '@/components/ui';
 import { appealModeration, decideAppeal, moderate, openSafetyCase } from '@/app/actions/safety';
 
 const label = 'block text-xs text-muted';
@@ -67,7 +67,7 @@ export function DecideAppealForm({ id }: { id: string }) {
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
           <input type="hidden" name="id" value={id} />
           <label className={`${label} flex-1`}>Decisión razonada<input name="reason" required minLength={10} className={field} /></label>
-          <button name="decision" value="uphold" className="min-h-10 rounded-full border border-line-strong px-4 text-xs text-paper">Mantener</button>
+          <button name="decision" value="uphold" className={buttonClass('secondary', 'sm')}>Mantener</button>
           <SubmitButton name="decision" value="overturn" pendingText="Guardando…">Retirar medida</SubmitButton>
         </div>
       )}

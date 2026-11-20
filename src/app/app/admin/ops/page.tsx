@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { requireSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
-import { Badge, Card, CardTitle, Notice, PageHeader, inputClass } from '@/components/ui';
+import { Badge, Card, CardTitle, Notice, PageHeader, inputClass, buttonClass } from '@/components/ui';
 import { FlagForm } from '@/components/admin/OpsForms';
 import { decideApproval, resolveConflict, updateSupportCase } from '@/app/actions/admin-ops';
 
@@ -95,7 +95,7 @@ export default async function AdminOpsPage({ searchParams }: { searchParams: Pro
                   <select name="status" defaultValue={c.status} aria-label="Estado" className={`${inputClass} w-auto py-1.5`}>{Object.entries(SUPPORT_STATUS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
                   <input name="note" placeholder="Nota" aria-label="Nota" className={`${inputClass} flex-1 py-1.5`} />
                   <label className="flex items-center gap-1.5 text-xs text-muted"><input type="checkbox" name="public" /> Respuesta visible para la persona</label>
-                  <button className="rounded-lg bg-brass px-3 py-1.5 text-xs text-ink">Guardar</button>
+                  <button className={buttonClass('primary', 'sm')}>Guardar</button>
                 </form>
               </li>
             ))}
@@ -112,8 +112,8 @@ export default async function AdminOpsPage({ searchParams }: { searchParams: Pro
               <li key={a.id} className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm">
                 <span><span className="text-paper">{a.action === 'entitlement_grant' ? `Conceder ${(a.payload as { plan_code?: string }).plan_code}` : 'Borrar organización'}</span> <span className="text-faint">· {a.reason}</span></span>
                 <span className="flex gap-2">
-                  <form action={decideApproval}><input type="hidden" name="id" value={a.id} /><input type="hidden" name="decision" value="approve" /><button className="rounded-lg bg-brass px-3 py-1.5 text-xs text-ink">Aprobar</button></form>
-                  <form action={decideApproval}><input type="hidden" name="id" value={a.id} /><input type="hidden" name="decision" value="reject" /><button className="rounded-lg border border-line-strong px-3 py-1.5 text-xs text-paper">Rechazar</button></form>
+                  <form action={decideApproval}><input type="hidden" name="id" value={a.id} /><input type="hidden" name="decision" value="approve" /><button className={buttonClass('primary', 'sm')}>Aprobar</button></form>
+                  <form action={decideApproval}><input type="hidden" name="id" value={a.id} /><input type="hidden" name="decision" value="reject" /><button className={buttonClass('secondary', 'sm')}>Rechazar</button></form>
                 </span>
               </li>
             ))}
@@ -139,7 +139,7 @@ export default async function AdminOpsPage({ searchParams }: { searchParams: Pro
                     {c.status_a === 'pending_review' && <option value={c.representation_a}>Activar A</option>}
                     {c.status_b === 'pending_review' && <option value={c.representation_b}>Activar B</option>}
                   </select>
-                  <button className="rounded-lg bg-brass px-3 py-1.5 text-xs text-ink">Resolver</button>
+                  <button className={buttonClass('primary', 'sm')}>Resolver</button>
                 </form>
               </li>
             ))}

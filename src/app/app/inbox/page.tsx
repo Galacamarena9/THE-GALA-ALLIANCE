@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { requireSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
-import { Badge, Card, EmptyState, PageHeader } from '@/components/ui';
+import { Badge, Card, EmptyState, PageHeader, buttonClass } from '@/components/ui';
 import { respondContact } from '@/app/actions/connect';
 
 export const metadata: Metadata = { title: 'Mensajes' };
@@ -61,14 +61,14 @@ export default async function InboxPage() {
                     {r.status === 'accepted' && <Link href={`/app/inbox/${r.id}`} className="rounded-lg bg-brass px-3 py-1.5 text-sm text-ink">Abrir conversación</Link>}
                     {r.status === 'pending_guardian' && iAmGuardian && (
                       <>
-                        <form action={respondContact}><input type="hidden" name="id" value={r.id} /><input type="hidden" name="status" value="pending" /><button className="rounded-lg bg-brass px-3 py-1.5 text-sm text-ink">Aprobar (pasa a mi hijo/a)</button></form>
-                        <form action={respondContact}><input type="hidden" name="id" value={r.id} /><input type="hidden" name="status" value="declined" /><button className="rounded-lg border border-line-strong px-3 py-1.5 text-sm text-paper">Rechazar</button></form>
+                        <form action={respondContact}><input type="hidden" name="id" value={r.id} /><input type="hidden" name="status" value="pending" /><button className={buttonClass('primary', 'sm')}>Aprobar (pasa a mi hijo/a)</button></form>
+                        <form action={respondContact}><input type="hidden" name="id" value={r.id} /><input type="hidden" name="status" value="declined" /><button className={buttonClass('secondary', 'sm')}>Rechazar</button></form>
                       </>
                     )}
                     {r.status === 'pending' && iAmAthlete && (
                       <>
-                        <form action={respondContact}><input type="hidden" name="id" value={r.id} /><input type="hidden" name="status" value="accepted" /><button className="rounded-lg bg-brass px-3 py-1.5 text-sm text-ink">Aceptar</button></form>
-                        <form action={respondContact}><input type="hidden" name="id" value={r.id} /><input type="hidden" name="status" value="declined" /><button className="rounded-lg border border-line-strong px-3 py-1.5 text-sm text-paper">Rechazar</button></form>
+                        <form action={respondContact}><input type="hidden" name="id" value={r.id} /><input type="hidden" name="status" value="accepted" /><button className={buttonClass('primary', 'sm')}>Aceptar</button></form>
+                        <form action={respondContact}><input type="hidden" name="id" value={r.id} /><input type="hidden" name="status" value="declined" /><button className={buttonClass('secondary', 'sm')}>Rechazar</button></form>
                       </>
                     )}
                     {(iAmAthlete || iAmGuardian) && r.status !== 'blocked' && r.status !== 'declined' && (

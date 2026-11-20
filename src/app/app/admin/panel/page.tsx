@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import { runRetentionNow } from '@/app/actions/autonomy';
 import { requireSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
-import { Badge, Card, CardTitle, PageHeader, inputClass } from '@/components/ui';
+import { Badge, Card, CardTitle, PageHeader, inputClass, buttonClass } from '@/components/ui';
 import { growthPct, isoDaysAgo, weeklyBuckets } from '@/lib/domain/funnel';
 import { CASE_STAGES } from '@/lib/domain/agency-cases';
 import { CountUp } from '@/components/CountUp';
@@ -243,7 +243,7 @@ export default async function AdminPanelPage({ searchParams }: { searchParams: P
                         {Object.entries(STATUS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                       </select>
                       <input name="admin_note" defaultValue={r.admin_note ?? ''} placeholder="Nota interna" aria-label="Nota interna" className={`${inputClass} max-w-xs py-1.5`} />
-                      <button className="rounded-lg border border-line px-3 py-1.5 text-xs text-paper hover:border-brass/60">Guardar</button>
+                      <button className={buttonClass('secondary', 'sm')}>Guardar</button>
                     </form>
                   </li>
                 );
@@ -273,7 +273,7 @@ export default async function AdminPanelPage({ searchParams }: { searchParams: P
             <li>• <span className="text-paper">Retención</span>: borrado diario automático (pg_cron, 03:17).{lastRetention?.[0] ? ` Última ejecución: ${lastRetention[0].created_at.slice(0, 10)}.` : ' Aún no se ha ejecutado.'}</li>
           </ul>
           <form action={runRetentionNow} className="mt-4">
-            <button className="rounded-lg border border-line px-3 py-1.5 text-xs text-paper hover:border-brass/60">Ejecutar retención ahora</button>
+            <button className={buttonClass('secondary', 'sm')}>Ejecutar retención ahora</button>
           </form>
         </Card>
         <Card>

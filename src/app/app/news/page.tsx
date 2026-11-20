@@ -3,7 +3,7 @@ import { requireSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
 import { myOrganizations } from '@/lib/data/orgs';
 import { NEWS_KIND_LABEL, domainOf } from '@/lib/domain/labels';
-import { Badge, Card, CardTitle, EmptyState, PageHeader } from '@/components/ui';
+import { Badge, Card, CardTitle, EmptyState, PageHeader, buttonClass } from '@/components/ui';
 import { NewsForm, ReportButton } from '@/components/forms';
 import { respondNewsTag } from '@/app/actions/organization';
 
@@ -35,8 +35,8 @@ export default async function NewsPage() {
                 <p className="text-paper">{p.title} <span className="text-faint">· {(p.organizations as unknown as { name: string } | null)?.name}</span></p>
                 <p className="text-sm text-muted">{p.body}</p>
                 <div className="mt-2 flex gap-2">
-                  <form action={respondNewsTag}><input type="hidden" name="id" value={p.id} /><input type="hidden" name="status" value="published" /><button className="rounded-lg bg-brass px-3 py-1.5 text-sm text-ink">Permitir publicación</button></form>
-                  <form action={respondNewsTag}><input type="hidden" name="id" value={p.id} /><input type="hidden" name="status" value="hidden" /><button className="rounded-lg border border-line-strong px-3 py-1.5 text-sm text-paper">No permitir</button></form>
+                  <form action={respondNewsTag}><input type="hidden" name="id" value={p.id} /><input type="hidden" name="status" value="published" /><button className={buttonClass('primary', 'sm')}>Permitir publicación</button></form>
+                  <form action={respondNewsTag}><input type="hidden" name="id" value={p.id} /><input type="hidden" name="status" value="hidden" /><button className={buttonClass('secondary', 'sm')}>No permitir</button></form>
                 </div>
               </li>
             ))}

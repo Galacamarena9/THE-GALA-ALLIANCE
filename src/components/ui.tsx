@@ -11,14 +11,26 @@ const variantClass: Record<Variant, string> = {
   danger: 'border border-danger/40 text-danger hover:bg-danger/10',
 };
 const base =
-  'inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.97] disabled:cursor-not-allowed disabled:hover:scale-100';
+  'inline-flex items-center justify-center gap-2 font-medium transition-all duration-200 hover:scale-[1.02] active:scale-[0.97] disabled:cursor-not-allowed disabled:hover:scale-100';
 
-export function Button({ variant = 'primary', className, ...props }: ComponentProps<'button'> & { variant?: Variant }) {
-  return <button className={cx(base, variantClass[variant], className)} {...props} />;
+type Size = 'sm' | 'md';
+/** sm: acciones dentro de listas y tarjetas (mín. 36 px de alto); md: acción principal (mín. 44 px, táctil). */
+const sizeClass: Record<Size, string> = {
+  sm: 'min-h-9 rounded-lg px-3 py-1.5 text-xs',
+  md: 'min-h-11 rounded-xl px-4 py-2.5 text-sm',
+};
+
+/** Clase única de botón para formularios de servidor y enlaces: toda la app usa la misma línea visual. */
+export function buttonClass(variant: Variant = 'primary', size: Size = 'md', className?: string) {
+  return cx(base, variantClass[variant], sizeClass[size], className);
 }
 
-export function ButtonLink({ variant = 'primary', className, ...props }: ComponentProps<typeof Link> & { variant?: Variant }) {
-  return <Link className={cx(base, variantClass[variant], className)} {...props} />;
+export function Button({ variant = 'primary', size = 'md', className, ...props }: ComponentProps<'button'> & { variant?: Variant; size?: Size }) {
+  return <button className={buttonClass(variant, size, className)} {...props} />;
+}
+
+export function ButtonLink({ variant = 'primary', size = 'md', className, ...props }: ComponentProps<typeof Link> & { variant?: Variant; size?: Size }) {
+  return <Link className={buttonClass(variant, size, className)} {...props} />;
 }
 
 export function Card({ className, children, ...props }: ComponentProps<'section'>) {

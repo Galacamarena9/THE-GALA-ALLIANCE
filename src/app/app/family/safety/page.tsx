@@ -8,7 +8,7 @@ import { respondRepresentation } from '@/app/actions/marketplace';
 import { RepPermissionsForm } from '@/components/agency/RepPermissionsForm';
 import { InviteAgencyForm } from '@/components/agency/InviteAgencyForm';
 import { REP_PERMISSIONS, REP_TYPE_LABEL, repStatusDetail } from '@/lib/domain/portfolio';
-import { Badge, Card, CardTitle, EmptyState, Notice, PageHeader } from '@/components/ui';
+import { Badge, Card, CardTitle, EmptyState, Notice, PageHeader, buttonClass } from '@/components/ui';
 
 export const metadata: Metadata = { title: 'Seguridad · Familia' };
 
@@ -100,7 +100,7 @@ export default async function FamilySafetyPage({ searchParams }: { searchParams:
                           <form action={revokeDocumentGrant} className="mt-2 max-w-xs rounded-xl border border-line p-3 text-xs text-muted">
                             <input type="hidden" name="id" value={g.id} /><input type="hidden" name="child" value={current.athleteId} /><input type="hidden" name="confirm" value="yes" />
                             <p>{g.organizations?.name ?? 'La organización'} no podrá volver a abrir este documento. Lo que ya descargó legítimamente no se puede borrar desde Gala.</p>
-                            <button className="mt-2 min-h-11 rounded-full border border-danger/40 px-4 font-semibold text-danger">Sí, retirar</button>
+                            <button className={buttonClass('danger', 'md', 'mt-2')}>Sí, retirar</button>
                           </form>
                         </details>
                       </div>
@@ -139,8 +139,8 @@ export default async function FamilySafetyPage({ searchParams }: { searchParams:
                               <p className="mt-2 text-xs text-muted">Podría: {REP_PERMISSIONS.filter((p) => perms.includes(p.id)).map((p) => p.label.toLowerCase()).join(' · ') || 'nada todavía'}. Quita lo que no quieras antes de aprobar.</p>
                               <details className="mt-2"><summary className="cursor-pointer text-xs text-brass">Ajustar permisos</summary><div className="mt-2"><RepPermissionsForm id={r.id} active={perms} /></div></details>
                               <div className="mt-3 flex flex-wrap gap-2">
-                                <form action={respondRepresentation}><input type="hidden" name="id" value={r.id} /><input type="hidden" name="status" value="guardian_approve" /><button className="min-h-11 rounded-full bg-brass px-4 text-sm font-semibold text-ink">Aprobar</button></form>
-                                <form action={respondRepresentation}><input type="hidden" name="id" value={r.id} /><input type="hidden" name="status" value="guardian_decline" /><button className="min-h-11 rounded-full border border-line-strong px-4 text-sm text-paper">No aprobar</button></form>
+                                <form action={respondRepresentation}><input type="hidden" name="id" value={r.id} /><input type="hidden" name="status" value="guardian_approve" /><button className={buttonClass('primary', 'md')}>Aprobar</button></form>
+                                <form action={respondRepresentation}><input type="hidden" name="id" value={r.id} /><input type="hidden" name="status" value="guardian_decline" /><button className={buttonClass('secondary', 'md')}>No aprobar</button></form>
                               </div>
                             </>
                           )}
@@ -152,7 +152,7 @@ export default async function FamilySafetyPage({ searchParams }: { searchParams:
                                 <form action={respondRepresentation} className="mt-2 max-w-xs rounded-xl border border-line p-3 text-xs text-muted">
                                   <input type="hidden" name="id" value={r.id} /><input type="hidden" name="status" value="ended" />
                                   <p>La agencia pierde el acceso al momento. Sus procesos, documentos y ofertas no se borran.</p>
-                                  <button className="mt-2 min-h-11 rounded-full border border-danger/40 px-4 font-semibold text-danger">Sí, revocar</button>
+                                  <button className={buttonClass('danger', 'md', 'mt-2')}>Sí, revocar</button>
                                 </form>
                               </details>
                             </div>

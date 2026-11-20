@@ -6,7 +6,7 @@ import { requireSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
 import { ORG_TYPE_LABEL, LINK_KIND_LABEL, daysSince, domainOf, usd } from '@/lib/domain/labels';
 import type { OrgType } from '@/lib/types';
-import { Badge, Card, CardTitle, PageHeader, inputClass } from '@/components/ui';
+import { Badge, Card, CardTitle, PageHeader, inputClass, buttonClass } from '@/components/ui';
 import { ScorecardImportForm } from '@/components/forms';
 import { ScorecardBulkImport } from '@/components/ScorecardBulkImport';
 import { reviewClaim } from '@/app/actions/universities';
@@ -75,8 +75,8 @@ export default async function AdminPage() {
                 <form action={decideReport} className="mt-2 flex flex-wrap gap-2">
                   <input type="hidden" name="id" value={r.id} />
                   <input name="decision_reason" placeholder="Motivo de la decisión (obligatorio para cerrar)" aria-label="Motivo" className={`${inputClass} max-w-md py-1.5`} />
-                  <button name="status" value="actioned" className="rounded-lg bg-brass px-3 text-xs text-ink">Actuar</button>
-                  <button name="status" value="dismissed" className="rounded-lg border border-line-strong px-3 text-xs text-paper">Desestimar</button>
+                  <button name="status" value="actioned" className={buttonClass('primary', 'sm')}>Actuar</button>
+                  <button name="status" value="dismissed" className={buttonClass('secondary', 'sm')}>Desestimar</button>
                   <button name="status" value="reviewing" className="text-xs text-muted">Marcar en revisión</button>
                 </form>
               </li>
@@ -105,8 +105,8 @@ export default async function AdminPage() {
                         {(insts.data ?? []).map((i) => <option key={i.id} value={i.id}>{i.name} ({i.state})</option>)}
                       </select>
                     )}
-                    <button name="status" value="verified" className="rounded-lg bg-brass px-3 text-xs text-ink">Verificar</button>
-                    <button name="status" value="rejected" className="rounded-lg border border-line-strong px-3 text-xs text-paper">Rechazar</button>
+                    <button name="status" value="verified" className={buttonClass('primary', 'sm')}>Verificar</button>
+                    <button name="status" value="rejected" className={buttonClass('secondary', 'sm')}>Rechazar</button>
                   </form>
                 </li>
               );
@@ -127,8 +127,8 @@ export default async function AdminPage() {
                     <form action={reviewOpportunity} className="mt-2 flex gap-2">
                       <input type="hidden" name="id" value={o.id} />
                       <input name="review_note" placeholder="Nota (si rechazas)" aria-label="Nota" className={`${inputClass} py-1.5`} />
-                      <button name="status" value="published" className="rounded-lg bg-brass px-3 text-xs text-ink">Publicar</button>
-                      <button name="status" value="rejected" className="rounded-lg border border-line-strong px-3 text-xs text-paper">Rechazar</button>
+                      <button name="status" value="published" className={buttonClass('primary', 'sm')}>Publicar</button>
+                      <button name="status" value="rejected" className={buttonClass('secondary', 'sm')}>Rechazar</button>
                     </form>
                   </li>
                 );
@@ -145,8 +145,8 @@ export default async function AdminPage() {
                   <form action={reviewCampaign} className="mt-2 flex gap-2">
                     <input type="hidden" name="id" value={c.id} />
                     <input name="review_note" placeholder="Nota (si rechazas)" aria-label="Nota" className={`${inputClass} py-1.5`} />
-                    <button name="status" value="published" className="rounded-lg bg-brass px-3 text-xs text-ink">Publicar</button>
-                    <button name="status" value="rejected" className="rounded-lg border border-line-strong px-3 text-xs text-paper">Rechazar</button>
+                    <button name="status" value="published" className={buttonClass('primary', 'sm')}>Publicar</button>
+                    <button name="status" value="rejected" className={buttonClass('secondary', 'sm')}>Rechazar</button>
                   </form>
                 </li>
               ))}

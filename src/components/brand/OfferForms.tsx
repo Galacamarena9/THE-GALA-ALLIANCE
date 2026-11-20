@@ -2,7 +2,7 @@
 
 import { ActionForm } from '@/components/ActionForm';
 import { SubmitButton } from '@/components/SubmitButton';
-import { inputClass } from '@/components/ui';
+import { inputClass, buttonClass } from '@/components/ui';
 import { reviewDeliverable, sendBrandOffer, submitDeliverable } from '@/app/actions/brand-offers';
 import { DELIVERABLE_LABEL } from '@/lib/domain/brand-offers';
 
@@ -74,7 +74,7 @@ export function ReviewDeliverableForm({ id, campaignId }: { id: string; campaign
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
           <input type="hidden" name="id" value={id} /><input type="hidden" name="campaign_id" value={campaignId} />
           <label className={`${label} flex-1`}>Comentario (obligatorio si pides cambios)<input name="feedback" maxLength={1000} className={field} /></label>
-          <button name="decision" value="changes" className="min-h-11 rounded-full border border-line-strong px-4 text-sm text-paper">Pedir cambios</button>
+          <button name="decision" value="changes" className={buttonClass('secondary', 'md')}>Pedir cambios</button>
           <SubmitButton name="decision" value="approve" pendingText="Guardando…">Aprobar</SubmitButton>
         </div>
       )}

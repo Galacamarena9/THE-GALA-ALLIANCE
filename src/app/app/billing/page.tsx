@@ -3,7 +3,7 @@ import { requireSession } from '@/lib/session';
 import { logEvent } from '@/lib/events';
 import { createClient } from '@/lib/supabase/server';
 import { myOrganizations } from '@/lib/data/orgs';
-import { Badge, Card, CardTitle, EmptyState, Notice, PageHeader } from '@/components/ui';
+import { Badge, Card, CardTitle, EmptyState, Notice, PageHeader, buttonClass } from '@/components/ui';
 import { assignSeat, openBillingPortal, startSubscription } from '@/app/actions/billing';
 
 export const metadata: Metadata = { title: 'Facturación' };
@@ -77,7 +77,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
                           <li key={m.user_id} className="flex items-center justify-between gap-2 py-2">
                             <span className="text-paper">{(m.profiles as unknown as { display_name?: string } | null)?.display_name ?? 'Miembro'}</span>
                             <form action={assignSeat}><input type="hidden" name="subscription_id" value={sub.id} /><input type="hidden" name="user_id" value={m.user_id} /><input type="hidden" name="assign" value={has ? 'no' : 'yes'} />
-                              <button className="min-h-10 rounded-full border border-line-strong px-3 text-xs text-paper">{has ? 'Quitar asiento' : 'Dar asiento'}</button></form>
+                              <button className={buttonClass('secondary', 'sm')}>{has ? 'Quitar asiento' : 'Dar asiento'}</button></form>
                           </li>
                         );
                       })}
@@ -91,7 +91,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
                       <p className="font-semibold text-paper">{p.name}</p>
                       <p className="text-sm text-muted">{p.price_cents ? `${eur(p.price_cents as number, p.currency as string)}/${p.billing_interval === 'year' ? 'año' : 'mes'}` : 'Precio a medida'} · {p.seats_included} asiento{p.seats_included === 1 ? '' : 's'}</p>
                       {p.stripe_price_id
-                        ? <form action={startSubscription} className="mt-2"><input type="hidden" name="org_id" value={o.id} /><input type="hidden" name="plan_code" value={p.code as string} /><button className="min-h-10 rounded-full bg-brass px-4 text-sm font-semibold text-ink">Contratar</button></form>
+                        ? <form action={startSubscription} className="mt-2"><input type="hidden" name="org_id" value={o.id} /><input type="hidden" name="plan_code" value={p.code as string} /><button className={buttonClass('primary', 'md')}>Contratar</button></form>
                         : <p className="mt-2 text-xs text-faint">Contratación online próximamente.</p>}
                     </li>
                   ))}

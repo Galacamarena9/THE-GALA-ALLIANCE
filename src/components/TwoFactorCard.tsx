@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { ShieldCheck } from 'lucide-react';
 import { createBrowserSupabase } from '@/lib/supabase/client';
-import { Notice, inputClass } from '@/components/ui';
+import { Notice, inputClass, buttonClass } from '@/components/ui';
 
 type Factor = { id: string; friendly_name?: string; created_at: string };
 
@@ -84,7 +84,7 @@ export function TwoFactorCard({ required }: { required: boolean }) {
             <label className="block text-muted" htmlFor="totp">2. Escribe el código de 6 cifras que te muestra</label>
             <input id="totp" inputMode="numeric" autoComplete="one-time-code" maxLength={7} required value={code} onChange={(e) => setCode(e.target.value)} className={`${inputClass} max-w-[200px] text-center text-lg tracking-[0.3em]`} />
             <div className="flex gap-2">
-              <button disabled={busy} className="rounded-lg bg-brass px-4 py-2 text-sm font-semibold text-ink disabled:opacity-60">Activar</button>
+              <button disabled={busy} className={buttonClass('primary', 'md')}>Activar</button>
               <button type="button" onClick={() => setEnroll(null)} className="rounded-lg border border-line-strong px-4 py-2 text-sm text-paper">Cancelar</button>
             </div>
           </div>
@@ -92,7 +92,7 @@ export function TwoFactorCard({ required }: { required: boolean }) {
       ) : (
         <div className="flex flex-wrap items-center gap-3">
           <p className="text-sm text-muted">Añade un código de tu móvil al iniciar sesión: aunque alguien sepa tu contraseña, no podrá entrar.</p>
-          <button type="button" disabled={busy} onClick={start} className="rounded-lg bg-brass px-4 py-2 text-sm font-semibold text-ink disabled:opacity-60">Activar verificación en dos pasos</button>
+          <button type="button" disabled={busy} onClick={start} className={buttonClass('primary', 'md')}>Activar verificación en dos pasos</button>
         </div>
       )}
     </div>
