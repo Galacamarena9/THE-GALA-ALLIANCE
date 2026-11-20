@@ -16,12 +16,17 @@ export type FunnelEvent =
   | 'athlete_quick_view' | 'highlight_played' | 'note_added'
   | 'trial_saved' | 'trial_invitation_viewed' | 'trial_invitation_sent' | 'trial_registered' | 'trial_checked_in'
   | 'academy_program_viewed' | 'academy_program_applied' | 'recruiting_process_started'
-  | 'trial_mobile_viewed' | 'trial_invitation_opened' | 'trial_consent_reviewed' | 'trial_consent_approved' | 'mobile_discovery_search' | 'scout_note_added';
+  | 'trial_mobile_viewed' | 'trial_invitation_opened' | 'trial_consent_reviewed' | 'trial_consent_approved' | 'mobile_discovery_search' | 'scout_note_added'
+  // 17 · flujos de 12-16
+  | 'representation_requested' | 'representation_accepted' | 'representation_revoked' | 'agency_invited'
+  | 'brand_offer_sent' | 'brand_offer_accepted' | 'deliverable_submitted' | 'collaborations_viewed'
+  | 'trust_center_viewed' | 'support_case_opened' | 'subscription_started' | 'billing_viewed';
 
-export async function logEvent(event: FunnelEvent, props: Record<string, string | number | boolean> = {}) {
+export async function logEvent(event: FunnelEvent, props: Record<string, string | number | boolean> = {}, dedupeKey?: string) {
   try {
     const supabase = await createClient();
-    await supabase.rpc('log_event', { p_event: event, p_props: props });
+    // Los eventos de menores se guardan sin propiedades (lo decide la base de datos). dedupeKey evita duplicados.
+    await supabase.rpc('log_event', { p_event: event, p_props: props, p_dedupe: dedupeKey ?? null });
   } catch {
     // La medición nunca bloquea al usuario.
   }

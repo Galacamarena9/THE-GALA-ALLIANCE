@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { requireSession } from '@/lib/session';
+import { logEvent } from '@/lib/events';
 import { createClient } from '@/lib/supabase/server';
 import { Badge, Card, CardTitle, Notice, PageHeader } from '@/components/ui';
 import { AppealForm } from '@/components/safety/SafetyForms';
@@ -20,6 +21,7 @@ const date = (d: string) => new Intl.DateTimeFormat('es-ES', { day: 'numeric', m
  */
 export default async function TrustCenterPage() {
   const session = await requireSession();
+  void logEvent('trust_center_viewed');
   const supabase = await createClient();
   const isAthlete = session.roles.includes('athlete');
   const now = new Date().toISOString();

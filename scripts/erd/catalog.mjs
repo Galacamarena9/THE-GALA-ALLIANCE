@@ -160,6 +160,7 @@ export const TABLES = {
   contact_messages: { domain: '11-comunicacion', cls: 'personal', minors: true, decision: 'KEEP', export: true, retention: 'Inmutable; se borra con la conversación o la cuenta' },
   info_requests: { domain: '11-comunicacion', cls: 'personal', minors: true, decision: 'KEEP', export: true },
   notifications: { domain: '11-comunicacion', cls: 'personal', decision: 'KEEP', export: true, retention: 'Leídas: 6 meses · todas: 12 meses' },
+  metric_definitions: { domain: '13-ia-analitica', cls: 'internal', decision: 'KEEP', note: 'Definición escrita y versionada de cada métrica.' },
   feature_flags: { domain: '13-ia-analitica', cls: 'public', decision: 'KEEP', note: 'Interruptores de funcionalidad; no sustituyen permisos.' },
   support_cases: { domain: '11-comunicacion', cls: 'personal', decision: 'KEEP', export: true, note: 'Casos de soporte.' },
   support_case_notes: { domain: '11-comunicacion', cls: 'personal', decision: 'KEEP', noExport: 'Notas del equipo de Gala; las públicas se ven en la app' },

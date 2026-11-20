@@ -1,7 +1,7 @@
 <!-- Generado por scripts/erd/generate.mjs a partir de las migraciones. No editar a mano: `npm run erd`. -->
 # 13 · IA, academia, analítica y auditoría
 
-Tablas: **15** · RLS activada en 15/15.
+Tablas: **16** · RLS activada en 16/16.
 Se relaciona con: `auth_users`, `organizations` (05), `profiles` (01), `safety_cases` (11).
 
 ## AS-IS · Modelo actual
@@ -148,12 +148,21 @@ erDiagram
     uuid updated_by FK
     timestamptz updated_at
   }
+  METRIC_DEFINITIONS {
+    text key PK
+    text name
+    text definition
+    text source
+    int4 version
+    timestamptz updated_at
+  }
   PRODUCT_EVENTS {
     int8 id PK
     uuid user_id FK
     text event
     jsonb props
     timestamptz created_at
+    text dedupe_key
   }
   RATE_LIMIT_EVENTS {
     int8 id PK
@@ -180,10 +189,12 @@ erDiagram
 | `audit_logs` | Interna | — | persona (actor_id) → se anonimiza<br>organización (organization_id) → se anonimiza | Inmutable; se anonimiza al borrar la cuenta | No: Registro de seguridad de Gala | KEEP |
 | `break_glass_grants` | Interna | — | persona (admin_id) → se borra<br>persona (reviewed_by) → se anonimiza<br>persona (subject_user) → se borra | Mientras exista la organización | No: Acceso de emergencia de Gala: auditoría interna | KEEP |
 | `feature_flags` | Pública | — | persona (updated_by) → se anonimiza | Mientras esté publicado o vigente | — | KEEP |
+| `metric_definitions` | Interna | — | No depende de personas | Mientras exista la organización | — | KEEP |
 | `product_events` | Personal | — | persona (user_id) → se borra | 13 meses | Sí | KEEP |
 | `rate_limit_events` | Interna | — | persona (user_id) → se borra | 7 días | No: Contadores técnicos anti-spam (7 días) | KEEP |
 
 - `feature_flags`: Interruptores de funcionalidad; no sustituyen permisos.
+- `metric_definitions`: Definición escrita y versionada de cada métrica.
 
 ## TO-BE · Modelo objetivo
 

@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
+import { logEvent } from '@/lib/events';
 import { createClient } from '@/lib/supabase/server';
 import { requireSession } from '@/lib/session';
 import type { FormState } from './auth';
@@ -120,6 +121,7 @@ export async function requestRepresentation(_prev: FormState, formData: FormData
     return { error: 'No se ha podido enviar la solicitud.' };
   }
   revalidatePath('/app/portfolio');
+  await logEvent('representation_requested', { type: 'non_exclusive' });
   return { ok: true, message: 'Propuesta enviada: no exclusiva, 12 meses. El atleta ve el alcance y decide.' };
 }
 
@@ -131,9 +133,15 @@ export async function respondRepresentation(formData: FormData) {
   if (!parsed.success) return;
   const supabase = await createClient();
   const { id, status } = parsed.data;
-  if (status === 'active' || status === 'declined') await supabase.rpc('representation_respond', { p_id: id, p_accept: status === 'active' });
+  if (status === 'active' || status === 'declined') {
+    await supabase.rpc('representation_respond', { p_id: id, p_accept: status === 'active' });
+    if (status === 'active') await logEvent('representation_accepted', {}, `rep:${id}`);
+  }
   else if (status === 'guardian_approve' || status === 'guardian_decline') await supabase.rpc('representation_guardian_decide', { p_id: id, p_approve: status === 'guardian_approve' });
-  else await supabase.rpc('representation_end', { p_id: id });
+  else {
+    await supabase.rpc('representation_end', { p_id: id });
+    await logEvent('representation_revoked', {}, `rep-end:${id}`);
+  }
   revalidatePath('/app/agents');
   revalidatePath('/app/portfolio');
   revalidatePath('/app/family/safety');
@@ -149,6 +157,7 @@ export async function inviteAgency(_prev: FormState, formData: FormData): Promis
   if (error) return { error: error.message.includes('agency_not_verified') ? 'Esa agencia no está verificada.' : 'No se ha podido enviar la invitación.' };
   revalidatePath('/app/agents');
   revalidatePath('/app/family/safety');
+  await logEvent('agency_invited');
   return { ok: true, message: 'Invitación enviada. La agencia tiene 30 días para mandaros su propuesta; nada se activa sin vuestra aprobación.' };
 }
 
