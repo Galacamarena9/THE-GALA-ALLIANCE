@@ -114,7 +114,7 @@ for (const [d, tables] of Object.entries(byDomain)) {
 // ------------------------------------------------------------------ 00 · MASTER
 const core = ['profiles', 'athlete_profiles', 'parent_athlete_links', 'institutions', 'organizations', 'organization_members', 'org_programs',
   'verification_requests', 'opportunities', 'applications', 'saved_items', 'org_candidates', 'org_shortlists', 'org_shortlist_members',
-  'recruiting_needs', 'recruiting_cases', 'agent_representations', 'trial_registrations', 'contact_requests', 'club_roster'];
+  'recruiting_needs', 'recruiting_cases', 'agent_representations', 'opportunity_registrations', 'program_enrollments', 'org_teams', 'contact_requests', 'club_roster'];
 const coreEr = erBlock(core, { attrs: false, core: true });
 const flow = ['```mermaid', 'flowchart LR'];
 for (const d of Object.keys(DOMAINS)) flow.push(`  D${d.slice(0, 2)}["${d.slice(0, 2)} · ${DOMAINS[d]}<br>${byDomain[d].length} tablas"]`);

@@ -2,7 +2,7 @@
 # 09 · Discovery, shortlists y pipeline del staff
 
 Tablas: **15** · RLS activada en 15/15.
-Se relaciona con: `applications` (07), `athlete_profiles` (03), `opportunities` (07), `org_programs` (05), `organizations` (05), `profiles` (01), `sports` (04).
+Se relaciona con: `age_categories` (04), `applications` (07), `athlete_profiles` (03), `opportunities` (07), `opportunity_invitations` (14), `opportunity_registrations` (14), `org_programs` (05), `org_teams` (14), `organizations` (05), `profiles` (01), `sports` (04), `sports_seasons` (04).
 
 ## AS-IS · Modelo actual
 
@@ -19,10 +19,13 @@ erDiagram
   PROFILES |o--o{ ORG_CANDIDATES : "assigned_to"
   ATHLETE_PROFILES ||--o{ ORG_CANDIDATES : "athlete_id"
   PROFILES |o--o{ ORG_CANDIDATES : "created_by"
+  OPPORTUNITY_INVITATIONS |o--o{ ORG_CANDIDATES : "invitation_id"
   RECRUITING_NEEDS |o--o{ ORG_CANDIDATES : "need_id"
   OPPORTUNITIES |o--o{ ORG_CANDIDATES : "opportunity_id"
   ORGANIZATIONS ||--o{ ORG_CANDIDATES : "organization_id"
   ORG_PROGRAMS |o--o{ ORG_CANDIDATES : "program_id"
+  OPPORTUNITY_REGISTRATIONS |o--o{ ORG_CANDIDATES : "registration_id"
+  ORG_TEAMS |o--o{ ORG_CANDIDATES : "team_id"
   PROFILES |o--o{ ORG_LABELS : "created_by"
   ORGANIZATIONS ||--o{ ORG_LABELS : "organization_id"
   ORG_PROGRAMS |o--o{ ORG_LABELS : "program_id"
@@ -57,11 +60,14 @@ erDiagram
   OPPORTUNITIES |o--o{ ORG_TASKS : "opportunity_id"
   ORGANIZATIONS ||--o{ ORG_TASKS : "organization_id"
   ORG_SHORTLISTS |o--o{ ORG_TASKS : "shortlist_id"
+  AGE_CATEGORIES |o--o{ RECRUITING_NEEDS : "age_category_code"
   PROFILES |o--o{ RECRUITING_NEEDS : "created_by"
   OPPORTUNITIES |o--o{ RECRUITING_NEEDS : "opportunity_id"
   ORGANIZATIONS ||--o{ RECRUITING_NEEDS : "organization_id"
   ORG_PROGRAMS |o--o{ RECRUITING_NEEDS : "program_id"
+  SPORTS_SEASONS |o--o{ RECRUITING_NEEDS : "season_id"
   SPORTS ||--o{ RECRUITING_NEEDS : "sport_id"
+  ORG_TEAMS |o--o{ RECRUITING_NEEDS : "team_id"
   ATHLETE_PROFILES ||--o{ SAVED_ATHLETES : "athlete_id"
   PROFILES ||--o{ SAVED_ATHLETES : "owner_id"
   PROFILES ||--o{ SAVED_SEARCHES : "owner_id"
@@ -112,6 +118,9 @@ erDiagram
     timestamptz created_at
     timestamptz updated_at
     timestamptz stage_changed_at
+    uuid team_id FK
+    uuid registration_id FK
+    uuid invitation_id FK
   }
   ORG_LABELS {
     uuid id PK
@@ -227,6 +236,9 @@ erDiagram
     uuid created_by FK
     timestamptz created_at
     timestamptz updated_at
+    uuid team_id FK
+    text season_id FK
+    text age_category_code FK
   }
   SAVED_ATHLETES {
     uuid owner_id PK,FK

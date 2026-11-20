@@ -1,17 +1,39 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { boardGroup, eventWhen, feeLabel, trialErrorMessage, trialFit } from './trials.ts';
+import { boardGroup, capacityLabel, eventWhen, knownRequiredCost, localToInstant, priceLabel, publishGapMessages, trialErrorMessage, trialFit, type CostComponent } from './trials.ts';
 
-test('trials: el coste siempre se muestra claro', () => {
-  assert.equal(feeLabel({ fee_type: 'free', fee_amount: null, currency: null }), 'Gratis');
-  assert.equal(feeLabel({ fee_type: 'unknown', fee_amount: null, currency: null }), 'Coste sin indicar');
-  assert.match(feeLabel({ fee_type: 'paid', fee_amount: 50, currency: 'EUR' }), /50/);
-  assert.equal(feeLabel(null), 'Coste sin indicar');
+const c = (o: Partial<CostComponent>): CostComponent => ({ component_type: 'registration', label: 'Inscripción', amount: null, currency: null, required: true, included: false, ...o });
+
+test('costes: «Gratis» solo si se declara; nunca 0 € ni gratis por omisión', () => {
+  assert.equal(priceLabel('free', []), 'Gratis');
+  assert.equal(priceLabel('price_not_provided', []), 'Coste sin indicar');
+  assert.equal(priceLabel(null, []), 'Coste sin indicar');
+  assert.equal(priceLabel('paid', []), 'De pago · importe incompleto');
+  assert.match(priceLabel('paid', [c({ amount: 150, currency: 'EUR' })]), /150/);
 });
 
-test('trials: la hora se muestra en la zona del evento, sin convertir', () => {
-  assert.equal(eventWhen({ event_start_date: '2027-06-12', start_time_local: '10:00:00', timezone: 'Europe/Madrid' }), '12 jun 2027 · 10:00 (Europe/Madrid)');
-  assert.equal(eventWhen(null), 'Fecha sin indicar');
+test('costes: el total obligatorio conocido excluye lo opcional y lo incluido; si falta algo, no se inventa', () => {
+  const academy = [c({ component_type: 'program_fee', amount: 8000, currency: 'EUR' }), c({ component_type: 'accommodation', amount: 4500, currency: 'EUR' }),
+    c({ amount: 250, currency: 'EUR' }), c({ component_type: 'meals', included: true }), c({ component_type: 'transport', required: false })];
+  assert.deepEqual(knownRequiredCost('paid', academy), { total: 12750, currency: 'EUR', reason: null });
+  const trial = [c({ amount: 150, currency: 'EUR' }), c({ component_type: 'accommodation', amount: 80, currency: 'EUR', required: false })];
+  assert.equal(knownRequiredCost('paid', trial).total, 150);
+  assert.equal(knownRequiredCost('paid', [c({ amount: 150, currency: 'EUR' }), c({ component_type: 'insurance' })]).total, null);
+  assert.equal(knownRequiredCost('paid', [c({ amount: 1, currency: 'EUR' }), c({ amount: 1, currency: 'USD' })]).reason, 'Los costes están en monedas distintas.');
+});
+
+test('plazas: libres derivadas de la capacidad confirmada; desconocida no es ilimitada', () => {
+  assert.equal(capacityLabel(20, 15), '15 confirmadas · 5 libres');
+  assert.equal(capacityLabel(null, 15), '15 confirmadas');
+  assert.equal(capacityLabel(10, 12), '12 confirmadas · 0 libres');
+});
+
+test('fechas: la hora se muestra en la zona del evento; la conversión local → instante respeta el horario de verano', () => {
+  const iso = localToInstant('2027-06-12', '10:00', 'Europe/Madrid');
+  assert.equal(iso, '2027-06-12T08:00:00.000Z');
+  assert.equal(eventWhen(iso, 'Europe/Madrid'), '12 jun 2027 · 10:00 (Europe/Madrid)');
+  assert.equal(localToInstant('2027-01-12', '10:00', 'Europe/Madrid'), '2027-01-12T09:00:00.000Z');
+  assert.equal(eventWhen(null, null), 'Fecha sin indicar');
 });
 
 test('trials: encaje para el agente — deporte obligatorio; posición y promoción solo si se piden', () => {
@@ -25,13 +47,15 @@ test('trials: encaje para el agente — deporte obligatorio; posición y promoci
 });
 
 test('trials: el tablero del agente pone primero lo que espera al atleta', () => {
-  assert.equal(boardGroup({ status: 'interested', needs_athlete_ok: true, guardian_status: 'not_required' }), 'needs_athlete');
-  assert.equal(boardGroup({ status: 'registered', needs_athlete_ok: false, guardian_status: 'not_required' }), 'waiting_club');
-  assert.equal(boardGroup({ status: 'attended', needs_athlete_ok: false, guardian_status: 'not_required' }), 'after_event');
-  assert.equal(boardGroup({ status: 'withdrawn', needs_athlete_ok: false, guardian_status: 'not_required' }), 'closed');
+  assert.equal(boardGroup({ status: 'sent' }), 'needs_athlete');
+  assert.equal(boardGroup({ status: 'pending', needs_athlete_ok: true }), 'needs_athlete');
+  assert.equal(boardGroup({ status: 'registered' }), 'waiting_club');
+  assert.equal(boardGroup({ status: 'completed' }), 'after_event');
+  assert.equal(boardGroup({ status: 'withdrawn' }), 'closed');
 });
 
-test('trials: los errores de la base de datos se traducen', () => {
+test('trials: errores y huecos de publicación se traducen a mensajes concretos', () => {
   assert.match(trialErrorMessage('organization_not_verified'), /verificadas/);
-  assert.equal(trialErrorMessage('xyz'), 'No se ha podido completar la acción.');
+  assert.match(trialErrorMessage('xyz'), /No se ha podido/);
+  assert.deepEqual(publishGapMessages('not_publishable:date,price'), ['Añade la fecha y la zona horaria antes de publicar.', 'Es de pago: indica el importe de la inscripción o de la cuota.']);
 });

@@ -2,12 +2,16 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { clubTrialAction, registerForTrial, respondTrial, type TrialResult } from '@/app/actions/trials';
+import { clubTrialAction, decideApplication, enrollmentAction, registerForTrial, respondInvitation, respondTrial, type TrialResult } from '@/app/actions/trials';
 
 type Call =
   | { kind: 'register'; opportunity: string; athlete: string; agency?: string }
-  | { kind: 'respond'; registration: string; action: 'interested' | 'confirm_cost' | 'guardian_approve' | 'guardian_decline' | 'withdraw'; opportunity?: string }
-  | { kind: 'club'; registration: string; action: 'confirm' | 'waitlist' | 'decline' | 'attended' | 'no_show' | 'outcome'; outcome?: 'follow_up' | 'continue_recruiting' | 'not_selected'; opportunity?: string };
+  | { kind: 'respond'; registration: string; action: 'confirm_cost' | 'guardian_approve' | 'guardian_decline' | 'withdraw'; opportunity?: string }
+  | { kind: 'invite'; invitation: string; action: 'viewed' | 'interested' | 'declined' | 'guardian_approve'; reason?: 'timing' | 'location' | 'cost' | 'not_interested' | 'other'; opportunity?: string }
+  | { kind: 'decide'; application: string; decision: 'reviewed' | 'information_requested' | 'accepted' | 'waitlisted' | 'declined'; message?: string; opportunity?: string }
+  | { kind: 'enrollment'; enrollment: string; action: 'accept' | 'decline' | 'guardian_approve' | 'guardian_decline' | 'withdraw' | 'enroll' | 'activate' | 'complete' | 'cancel'; opportunity?: string }
+  | { kind: 'club'; registration: string; action: 'confirm' | 'waitlist' | 'decline' | 'check_in' | 'attended' | 'no_show' | 'partial' | 'outcome';
+      outcome?: 'no_further_action' | 'follow_up' | 'invite_again' | 'start_recruiting_process' | 'closed'; athleteMessage?: string; opportunity?: string };
 
 /**
  * Botón de acción de trial con resultado real (nunca dice «hecho» si la base de datos lo rechazó).
@@ -19,8 +23,15 @@ export function TrialButton({ call, label, confirm, variant = 'secondary' }: { c
   const [ask, setAsk] = useState(false);
   const [res, setRes] = useState<TrialResult | null>(null);
   const run = () => start(async () => {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      setRes({ ok: false, message: 'Necesitas conexión para completar esta acción.' });
+      return;
+    }
     const r = call.kind === 'register' ? await registerForTrial(call)
       : call.kind === 'respond' ? await respondTrial(call)
+      : call.kind === 'invite' ? await respondInvitation(call)
+      : call.kind === 'decide' ? await decideApplication(call)
+      : call.kind === 'enrollment' ? await enrollmentAction(call)
       : await clubTrialAction(call);
     setRes(r); setAsk(false);
     if (r.ok) router.refresh();

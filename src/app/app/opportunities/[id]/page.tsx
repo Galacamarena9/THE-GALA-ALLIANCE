@@ -17,13 +17,14 @@ import { Badge, Card, CardTitle, EmptyState, Notice, PageHeader } from '@/compon
 import { ApplyOpportunityForm, ReportButton } from '@/components/forms';
 import { deleteOpportunity, submitForReview } from '@/app/actions/opportunities';
 import { AnswerQuestionForm, AskQuestionForm } from '@/components/QuestionForms';
-import { TrialPanel } from '@/components/trials/TrialPanel';
-import { isTrialType } from '@/lib/domain/trials';
+import { TrialPanel, type PanelDetails, type PanelMaterial, type PanelRequirement } from '@/components/trials/TrialPanel';
+import { CLUB_TYPES, PUBLISH_GAP_LABEL, isTrialType, type AttendanceStatus, type CostComponent, type InvitationStatus, type Outcome, type RegistrationStatus } from '@/lib/domain/trials';
 import { CONTACT_METHOD_LABEL, INTERNATIONAL_LABEL, REQUIRED_MATERIAL_LABEL, ROLE_CAPS, ROLE_LABEL, SCHOLARSHIP_LABEL, type OrgRole } from '@/lib/domain/recruit';
 
 export const metadata: Metadata = { title: 'Oportunidad' };
+const CLUB_TYPES_LIST: readonly string[] = CLUB_TYPES;
 
-export default async function OpportunityPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ view?: string }> }) {
+export default async function OpportunityPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ view?: string; publish?: string }> }) {
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const session = await requireSession();
@@ -61,17 +62,31 @@ export default async function OpportunityPage({ params, searchParams }: { params
     ? await supabase.from('applications').select('id, status').eq('opportunity_id', id).eq('athlete_id', session.userId).maybeSingle()
     : { data: null };
 
-  // Trials y programas: detalles, inscripción del atleta, aprobaciones de la familia y gestión del club.
+  // Trials: detalles, costes, requisitos y participación (inscripciones, invitaciones, candidaturas) en paralelo; la RLS filtra.
   const trial = isTrialType(opp.type);
-  const [{ data: eventDetails }, { data: trialRegs }] = trial
+  const [{ data: eventDetails }, { data: costRows }, { data: reqRows }, { data: matRows }, { data: trialRegs }, { data: trialInvs }, { data: trialApps }, { data: confirmedCount }] = trial
     ? await Promise.all([
-        supabase.from('opportunity_event_details').select('*').eq('opportunity_id', id).maybeSingle(),
-        supabase.from('trial_registrations').select('id, athlete_id, status, outcome, origin, needs_athlete_ok, guardian_status, updated_at').eq('opportunity_id', id).order('updated_at', { ascending: false }).limit(300),
+        supabase.from('trial_details').select('*').eq('opportunity_id', id).maybeSingle(),
+        supabase.from('opportunity_cost_components').select('component_type, label, amount, currency, required, included, period').eq('opportunity_id', id).order('sort'),
+        supabase.from('opportunity_requirements').select('kind, strength, label, params').eq('opportunity_id', id).order('sort'),
+        supabase.from('opportunity_required_materials').select('material, label, required, sensitivity').eq('opportunity_id', id),
+        supabase.from('opportunity_registrations').select('id, athlete_id, status, origin, needs_athlete_ok, guardian_status, athlete_update, updated_at, opportunity_attendance(status, check_in_at)').eq('opportunity_id', id).order('updated_at', { ascending: false }).limit(300),
+        supabase.from('opportunity_invitations').select('id, athlete_id, status, guardian_required').eq('opportunity_id', id).limit(300),
+        supabase.from('applications').select('id, athlete_id, status, guardian_consent_status').eq('opportunity_id', id).limit(300),
+        supabase.rpc('opportunity_confirmed_count', { p_opp: id }),
       ])
-    : [{ data: null }, { data: [] }];
-  const regAthleteIds = (trialRegs ?? []).map((r) => r.athlete_id as string);
+    : [{ data: null }, { data: [] }, { data: [] }, { data: [] }, { data: [] }, { data: [] }, { data: [] }, { data: 0 }];
+  // Resultados internos: solo los lee el staff con permiso (RLS); el atleta nunca los recibe.
+  const { data: outcomeRows } = trial && member ? await supabase.from('opportunity_outcomes').select('registration_id, outcome').eq('opportunity_id', id) : { data: [] };
+  const outcomeOf = new Map((outcomeRows ?? []).map((o) => [o.registration_id as string, o.outcome as string]));
+  const regAthleteIds = [...new Set([...(trialRegs ?? []), ...(trialInvs ?? []), ...(trialApps ?? [])].map((r) => r.athlete_id as string))];
   const { data: regNames } = regAthleteIds.length ? await supabase.from('athlete_directory').select('user_id, display_name').in('user_id', regAthleteIds) : { data: [] };
   const nameOf = Object.fromEntries((regNames ?? []).map((n) => [n.user_id, n.display_name ?? 'Atleta']));
+  const who = (athleteId: string) => (athleteId === session.userId ? 'Tú' : nameOf[athleteId] ?? 'Atleta');
+  // Qué falta para publicar (lo calcula la base de datos, la misma regla que bloquea la publicación).
+  const { data: gaps } = isMember && CLUB_TYPES_LIST.includes(opp.type) && ['draft', 'rejected'].includes(opp.status) ? await supabase.rpc('opportunity_publish_gaps', { p_opp: id }) : { data: null };
+  const publishGaps = ((gaps as string[] | null) ?? []).map((g) => PUBLISH_GAP_LABEL[g] ?? g);
+  const oppCore = raw as unknown as { start_at: string | null; end_at: string | null; timezone: string | null; city: string | null; region: string | null; country: string | null; venue_name: string | null; age_category_code: string | null; age_category_custom: string | null };
   if (trial && isAthlete && !member) void logEvent('trial_viewed');
 
   const net = opp.annual_cost_usd != null && opp.aid_amount_usd != null ? opp.annual_cost_usd - opp.aid_amount_usd : null;
@@ -115,6 +130,15 @@ export default async function OpportunityPage({ params, searchParams }: { params
           </span>
         }
       />
+
+      {publishGaps.length > 0 && (
+        <div className="mb-5">
+          <Notice tone={sp.publish === 'incomplete' ? 'danger' : 'warn'}>
+            <strong>{sp.publish === 'incomplete' ? 'No se ha enviado a revisión: faltan datos.' : 'Antes de publicar:'}</strong>
+            <ul className="mt-1 list-disc pl-5">{publishGaps.map((g) => <li key={g}>{g}</li>)}</ul>
+          </Notice>
+        </div>
+      )}
 
       {preview && (
         <div className="mb-5">
@@ -209,9 +233,23 @@ export default async function OpportunityPage({ params, searchParams }: { params
             <TrialPanel
               opportunityId={opp.id}
               open={opp.status === 'published' && !closed}
-              details={eventDetails ?? null}
+              details={(eventDetails as unknown as PanelDetails) ?? null}
+              core={{ start_at: oppCore.start_at, end_at: oppCore.end_at, timezone: oppCore.timezone, city: oppCore.city, region: oppCore.region, country: oppCore.country, venue_name: oppCore.venue_name, age_category: oppCore.age_category_code ?? oppCore.age_category_custom }}
+              costs={(costRows ?? []) as unknown as CostComponent[]}
+              requirements={(reqRows ?? []) as unknown as PanelRequirement[]}
+              materials={(matRows ?? []) as unknown as PanelMaterial[]}
+              confirmed={Number(confirmedCount ?? 0)}
               me={isAthlete && !member ? session.userId : null}
-              registrations={(trialRegs ?? []).map((r) => ({ ...r, name: r.athlete_id === session.userId ? 'Tú' : nameOf[r.athlete_id as string] ?? 'Atleta' }))}
+              registrations={(trialRegs ?? []).map((r) => {
+                const att = (r.opportunity_attendance as unknown as { status: AttendanceStatus; check_in_at: string | null } | null);
+                return {
+                  id: r.id as string, athlete_id: r.athlete_id as string, status: r.status as RegistrationStatus, origin: r.origin as string, needs_athlete_ok: r.needs_athlete_ok as boolean,
+                  guardian_status: r.guardian_status as string, name: who(r.athlete_id as string), athlete_update: r.athlete_update as string | null,
+                  attendance: att?.status ?? null, check_in_at: att?.check_in_at ?? null, outcome: (outcomeOf.get(r.id as string) as Outcome | undefined) ?? null,
+                };
+              })}
+              invitations={(trialInvs ?? []).map((i) => ({ id: i.id as string, athlete_id: i.athlete_id as string, status: i.status as InvitationStatus, guardian_required: i.guardian_required as boolean, name: who(i.athlete_id as string) }))}
+              applications={isMember ? (trialApps ?? []).map((a) => ({ id: a.id as string, athlete_id: a.athlete_id as string, status: a.status as string, guardian_consent_status: a.guardian_consent_status as string, name: who(a.athlete_id as string) })) : (trialApps ?? []).filter((a) => a.athlete_id === session.userId).map((a) => ({ id: a.id as string, athlete_id: a.athlete_id as string, status: a.status as string, guardian_consent_status: a.guardian_consent_status as string, name: 'Tú' }))}
               asClub={isMember}
               asFamily={session.roles.includes('parent')}
               preview={preview}

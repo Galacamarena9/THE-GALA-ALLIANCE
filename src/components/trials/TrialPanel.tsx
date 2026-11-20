@@ -1,125 +1,226 @@
 import { Badge, Card, CardTitle } from '@/components/ui';
 import { TrialButton } from './TrialButtons';
-import { AVAILABILITY_LABEL, OUTCOME_LABEL, TRIAL_STATUS_LABEL, eventWhen, feeLabel, type EventDetails, type TrialStatus } from '@/lib/domain/trials';
+import {
+  ATTENDANCE_LABEL, AVAILABILITY_LABEL, COST_TYPE_LABEL, INVITATION_STATUS_LABEL, OUTCOME_LABEL, REGISTRATION_STATUS_LABEL,
+  capacityLabel, costLine, eventWhen, knownRequiredCost, money, priceLabel,
+  type AttendanceStatus, type CostComponent, type InvitationStatus, type Outcome, type PriceStatus, type RegistrationStatus,
+} from '@/lib/domain/trials';
+import { REQUIRED_MATERIAL_LABEL } from '@/lib/domain/recruit';
 
-type Reg = { id: string; athlete_id: string; status: string; outcome: string | null; origin: string; needs_athlete_ok: boolean; guardian_status: string; name: string };
-type Details = EventDetails & {
-  venue?: string | null; region?: string | null; capacity?: number | null; fee_includes?: string[]; refundable?: string; refund_details?: string | null;
-  education_support?: string; program_schedule?: string | null; video_requirements?: string | null; age_min?: number | null; age_max?: number | null; event_end_date?: string | null;
-  extra_costs?: { label?: string; amount?: number; currency?: string; required?: boolean }[];
+export type PanelRegistration = {
+  id: string; athlete_id: string; status: RegistrationStatus; origin: string; needs_athlete_ok: boolean; guardian_status: string; name: string;
+  athlete_update: string | null; attendance: AttendanceStatus | null; check_in_at: string | null; outcome: Outcome | null;
 };
+export type PanelInvitation = { id: string; athlete_id: string; status: InvitationStatus; name: string; guardian_required: boolean };
+export type PanelApplication = { id: string; athlete_id: string; status: string; name: string; guardian_consent_status: string };
+export type PanelDetails = {
+  trial_type?: string; registration_mode: 'direct' | 'application_required' | 'invitation_only'; capacity: number | null; price_status: PriceStatus;
+  refundable: string; refund_policy: string | null; accommodation: string; meals: string; travel: string; minor_policy: string;
+  equipment_requirements: string | null; video_requirements: string | null; additional_conditions: string | null;
+};
+export type PanelCore = { start_at: string | null; end_at: string | null; timezone: string | null; city: string | null; region: string | null; country: string | null; venue_name: string | null; age_category: string | null };
+export type PanelRequirement = { kind: string; strength: 'required' | 'preferred' | 'informational'; label: string | null; params: Record<string, unknown> };
+export type PanelMaterial = { material: string; label: string | null; required: boolean; sensitivity: string };
 
 const REFUND: Record<string, string> = { yes: 'Reembolsable', no: 'No reembolsable', partial: 'Reembolso parcial', unknown: 'Reembolso sin indicar' };
+const STRENGTH: Record<string, string> = { required: 'Obligatorio', preferred: 'Preferible', informational: 'Información' };
+
+function requirementText(r: PanelRequirement) {
+  const p = r.params as { min?: number; max?: number; min_cm?: number };
+  if (r.kind === 'age') return `Edad ${p.min ?? '?'}–${p.max ?? '?'} años`;
+  if (r.kind === 'birth_year') return `Nacidos entre ${p.min ?? '?'} y ${p.max ?? '?'}`;
+  if (r.kind === 'height') return `Altura desde ${p.min_cm} cm`;
+  return r.label ?? r.kind;
+}
 
 /**
- * Trial o programa: transparencia antes del botón (quién, cuándo, cuánto, qué incluye, qué pasa después) y,
- * según quién mira, inscribirse / responder (atleta), aprobar (familia) o gestionar inscripciones (club).
+ * Trial: transparencia antes del botón (quién, cuándo, dónde, cuánto —obligatorio vs opcional—, requisitos, qué pasa después)
+ * y, según quién mira, inscribirse / responder a la invitación (atleta), aprobar (familia) o gestionar (club).
  */
-export function TrialPanel({ opportunityId, open, details, me, registrations, asClub, asFamily, preview }: {
-  opportunityId: string; open: boolean; details: Details | null; me: string | null; registrations: Reg[]; asClub: boolean; asFamily: boolean; preview: boolean;
+export function TrialPanel({ opportunityId, open, details, core, costs, requirements, materials, confirmed, me, registrations, invitations, applications, asClub, asFamily, preview }: {
+  opportunityId: string; open: boolean; details: PanelDetails | null; core: PanelCore; costs: CostComponent[]; requirements: PanelRequirement[]; materials: PanelMaterial[];
+  confirmed: number; me: string | null; registrations: PanelRegistration[]; invitations: PanelInvitation[]; applications: PanelApplication[];
+  asClub: boolean; asFamily: boolean; preview: boolean;
 }) {
   const d = details;
+  const price = d?.price_status ?? 'price_not_provided';
+  const fee = priceLabel(price, costs);
+  const known = knownRequiredCost(price, costs);
+  const required = costs.filter((c) => c.required);
+  const optional = costs.filter((c) => !c.required);
   const mine = me ? registrations.find((r) => r.athlete_id === me) : undefined;
-  const fee = feeLabel(d);
-  const active = (s: string) => ['invited', 'interested', 'registered', 'confirmed', 'waitlisted'].includes(s);
+  const myInvite = me ? invitations.find((i) => i.athlete_id === me && ['sent', 'viewed', 'interested'].includes(i.status)) : undefined;
+  const myApp = me ? applications.find((a) => a.athlete_id === me) : undefined;
+  const activeReg = (s: string) => ['pending', 'registered', 'confirmed', 'waitlisted'].includes(s);
   const guardianPending = asFamily ? registrations.filter((r) => r.guardian_status === 'pending') : [];
   const costPending = asFamily ? registrations.filter((r) => r.needs_athlete_ok) : [];
+  const invitePending = asFamily ? invitations.filter((i) => i.guardian_required && ['sent', 'viewed', 'interested'].includes(i.status) && !registrations.some((r) => r.athlete_id === i.athlete_id)) : [];
+  const canRegister = open && (d?.registration_mode === 'direct' || (d?.registration_mode === 'invitation_only' && !!myInvite) || (d?.registration_mode === 'application_required' && myApp?.status === 'accepted'));
+  const costConfirm = `Coste obligatorio: ${known.total != null && known.currency ? money(known.total, known.currency) : known.total === 0 ? 'Gratis' : fee}. ¿Enviar la inscripción?`;
 
   return (
     <>
       <Card>
-        <CardTitle kicker="Trial / programa">Lo que tienes que saber</CardTitle>
+        <CardTitle kicker="Trial">Lo que tienes que saber</CardTitle>
         <dl className="grid gap-3 text-sm sm:grid-cols-2">
-          <div><dt className="text-faint">Cuándo</dt><dd className="text-paper">{eventWhen(d)}{d?.event_end_date && d.event_end_date !== d.event_start_date ? ` → ${d.event_end_date}` : ''}</dd></div>
-          <div><dt className="text-faint">Dónde</dt><dd className="text-paper">{[d?.venue, d?.city, d?.region, d?.country].filter(Boolean).join(', ') || 'Sin indicar'}</dd></div>
-          <div><dt className="text-faint">Coste</dt><dd className={`font-semibold ${d?.fee_type === 'free' ? 'text-ok' : 'text-warn'}`}>{fee}{d?.fee_type === 'paid' && d.refundable ? <span className="block text-xs font-normal text-muted">{REFUND[d.refundable]}{d.refund_details ? ` · ${d.refund_details}` : ''}</span> : null}</dd></div>
-          <div><dt className="text-faint">Categoría</dt><dd className="text-paper">{d?.age_category ?? 'Sin indicar'}{d?.age_min || d?.age_max ? ` (${d?.age_min ?? '?'}–${d?.age_max ?? '?'} años)` : ''}</dd></div>
-          <div><dt className="text-faint">Alojamiento · Comidas · Viaje</dt><dd className="text-paper">{AVAILABILITY_LABEL[d?.accommodation ?? 'unknown']} · {AVAILABILITY_LABEL[d?.meals ?? 'unknown']} · {AVAILABILITY_LABEL[d?.travel ?? 'unknown']}</dd></div>
+          <div><dt className="text-faint">Cuándo</dt><dd className="text-paper">{eventWhen(core.start_at, core.timezone)}</dd></div>
+          <div><dt className="text-faint">Dónde</dt><dd className="text-paper">{[core.venue_name, core.city, core.region, core.country].filter(Boolean).join(', ') || 'Sin indicar'}</dd></div>
+          <div><dt className="text-faint">Categoría</dt><dd className="text-paper">{core.age_category ?? 'Sin indicar'}</dd></div>
+          <div><dt className="text-faint">Plazas</dt><dd className="text-paper">{d?.capacity != null ? capacityLabel(d.capacity, confirmed) : 'Capacidad no indicada'}</dd></div>
+          <div><dt className="text-faint">Inscripción</dt><dd className="text-paper">{d?.registration_mode === 'invitation_only' ? 'Solo por invitación del club' : d?.registration_mode === 'application_required' ? 'Primero candidatura; el club acepta' : 'Directa'}</dd></div>
           <div><dt className="text-faint">Menores</dt><dd className="text-paper">{d?.minor_policy === 'adults_only' ? 'Solo mayores de edad' : 'Con aprobación de la familia'}</dd></div>
         </dl>
-        {!!d?.fee_includes?.length && <p className="mt-3 text-xs text-muted">Incluye: {d.fee_includes.join(', ')}</p>}
-        {!!d?.extra_costs?.length && (
-          <ul className="mt-2 text-xs text-muted">{d.extra_costs.map((c, i) => <li key={i}>{c.required ? 'Obligatorio' : 'Opcional'}: {c.label} {c.amount != null ? `· ${c.amount} ${c.currency ?? ''}` : ''}</li>)}</ul>
+
+        <section aria-labelledby="costs" className="mt-4 rounded-xl border border-line p-3">
+          <h3 id="costs" className="mb-2 text-xs font-semibold uppercase tracking-wider text-faint">Coste</h3>
+          {price === 'free' ? <p className="text-sm font-semibold text-ok">Gratis</p>
+            : price === 'price_not_provided' ? <p className="text-sm text-warn">La organización no ha indicado el coste. Pregunta antes de comprometerte.</p>
+            : (
+              <>
+                <ul className="space-y-1 text-sm">
+                  {required.map((c, i) => <li key={`r${i}`} className="flex justify-between gap-2"><span className="text-paper">{c.label || COST_TYPE_LABEL[c.component_type]}</span><span className="text-paper">{costLine(c)}</span></li>)}
+                  {optional.map((c, i) => <li key={`o${i}`} className="flex justify-between gap-2"><span className="text-muted">{c.label || COST_TYPE_LABEL[c.component_type]} <span className="text-[11px]">(opcional)</span></span><span className="text-muted">{costLine(c)}</span></li>)}
+                </ul>
+                <p className="mt-2 border-t border-line pt-2 text-sm font-semibold text-paper">
+                  Coste obligatorio conocido: {known.total != null && known.currency ? money(known.total, known.currency) : <span className="font-normal text-warn">{known.reason}</span>}
+                </p>
+                <p className="mt-1 text-xs text-muted">{REFUND[d?.refundable ?? 'unknown']}{d?.refund_policy ? ` · ${d.refund_policy}` : ''}</p>
+              </>
+            )}
+          <p className="mt-2 text-xs text-muted">Alojamiento: {AVAILABILITY_LABEL[d?.accommodation ?? 'unknown']} · Comidas: {AVAILABILITY_LABEL[d?.meals ?? 'unknown']} · Viaje: {AVAILABILITY_LABEL[d?.travel ?? 'unknown']}{d?.travel === 'not_included' ? ' (coste no incluido en el total)' : ''}</p>
+        </section>
+
+        {(requirements.length > 0 || materials.length > 0) && (
+          <section aria-labelledby="reqs" className="mt-3">
+            <h3 id="reqs" className="mb-1 text-xs font-semibold uppercase tracking-wider text-faint">Requisitos</h3>
+            <ul className="space-y-1 text-sm">
+              {requirements.map((r, i) => <li key={i} className="text-paper">{requirementText(r)} <span className="text-[11px] text-muted">· {STRENGTH[r.strength]}</span></li>)}
+              {materials.map((m, i) => <li key={`m${i}`} className="text-paper">{m.label ?? REQUIRED_MATERIAL_LABEL[m.material] ?? m.material} <span className="text-[11px] text-muted">· {m.required ? 'Obligatorio' : 'Opcional'}{m.sensitivity === 'highly_restricted' ? ' · solo con tu permiso expreso' : ''}</span></li>)}
+            </ul>
+          </section>
         )}
         {d?.video_requirements && <p className="mt-2 text-xs text-muted">Vídeo: {d.video_requirements}</p>}
-        {d?.program_schedule && <p className="mt-2 text-xs text-muted">Horario: {d.program_schedule}</p>}
-        <p className="mt-3 text-[11px] text-faint">Después de inscribirte, el club revisa y confirma la plaza, te pone en lista de espera o no continúa. Inscribirse no garantiza plaza ni contrato, y no comparte tus documentos privados.</p>
-        {!d && <p className="mt-2 text-xs text-warn">La organización aún no ha completado los detalles (fecha, coste, lugar). Pregunta antes de comprometerte.</p>}
+        {d?.equipment_requirements && <p className="mt-1 text-xs text-muted">Material: {d.equipment_requirements}</p>}
+        {d?.additional_conditions && <p className="mt-1 text-xs text-muted">{d.additional_conditions}</p>}
+        <p className="mt-3 text-[11px] text-faint">Después de inscribirte, el club confirma la plaza, te pone en lista de espera o no continúa. Inscribirse no garantiza plaza ni contrato y no comparte tus documentos privados.</p>
+        {!d && <p className="mt-2 text-xs text-warn">La organización aún no ha completado los detalles. Pregunta antes de comprometerte.</p>}
       </Card>
 
       {/* Atleta */}
       {me && (
         <Card>
-          <CardTitle kicker="Tu participación">{mine ? TRIAL_STATUS_LABEL[mine.status as TrialStatus] : 'Inscripción'}</CardTitle>
-          {mine?.outcome && <p className="mb-2 text-sm text-paper">{OUTCOME_LABEL[mine.outcome]}</p>}
+          <CardTitle kicker="Tu participación">{mine ? REGISTRATION_STATUS_LABEL[mine.status] : myInvite ? INVITATION_STATUS_LABEL[myInvite.status] : 'Inscripción'}</CardTitle>
+          {myInvite && !mine && <p className="mb-2 text-sm text-paper">El club te ha invitado a valorar este trial. No es una oferta: revisa fecha, lugar y coste antes de responder.</p>}
+          {mine?.athlete_update && <p className="mb-2 rounded-lg bg-surface-2 p-2 text-sm text-paper">Mensaje del club: {mine.athlete_update}</p>}
+          {mine?.status === 'completed' && !mine.athlete_update && <p className="mb-2 text-sm text-muted">Trial completado. No tienes que hacer nada: si el club comparte novedades, las verás aquí.</p>}
+          {mine?.status === 'waitlisted' && <p className="mb-2 text-sm text-muted">El club ha puesto tu inscripción en su lista de espera.</p>}
           {mine?.guardian_status === 'pending' && <p className="mb-2 text-sm text-warn">Esperando la aprobación de tu familia.</p>}
           <div className="flex flex-wrap gap-2">
-            {!mine && open && <TrialButton call={{ kind: 'register', opportunity: opportunityId, athlete: me }} label="Inscribirme" variant="primary" confirm={`Coste: ${fee}. ¿Enviar tu inscripción?`} />}
-            {mine?.status === 'invited' && <TrialButton call={{ kind: 'respond', registration: mine.id, action: 'interested', opportunity: opportunityId }} label="Me interesa" variant="primary" />}
-            {mine?.status === 'interested' && !mine.needs_athlete_ok && mine.guardian_status !== 'pending' && open && <TrialButton call={{ kind: 'register', opportunity: opportunityId, athlete: me }} label="Inscribirme" variant="primary" confirm={`Coste: ${fee}. ¿Enviar tu inscripción?`} />}
-            {mine?.needs_athlete_ok && <TrialButton call={{ kind: 'respond', registration: mine.id, action: 'confirm_cost', opportunity: opportunityId }} label="Aceptar coste e inscribirme" variant="primary" confirm={`Tu agente te propone este trial. Coste: ${fee}. ¿Lo aceptas?`} />}
-            {mine && active(mine.status) && <TrialButton call={{ kind: 'respond', registration: mine.id, action: 'withdraw', opportunity: opportunityId }} label={mine.status === 'invited' ? 'No me interesa' : 'Retirarme'} variant="danger" confirm="¿Seguro? Se avisará al club." />}
+            {myInvite && !mine && myInvite.status !== 'interested' && <TrialButton call={{ kind: 'invite', invitation: myInvite.id, action: 'interested', opportunity: opportunityId }} label="Me interesa" variant="primary" />}
+            {myInvite && !mine && <TrialButton call={{ kind: 'invite', invitation: myInvite.id, action: 'declined', opportunity: opportunityId }} label="No me interesa" variant="danger" confirm="¿Rechazar la invitación? El club solo verá «rechazada»." />}
+            {(!mine || mine.status === 'withdrawn') && canRegister && (!myInvite || myInvite.status === 'interested') && <TrialButton call={{ kind: 'register', opportunity: opportunityId, athlete: me }} label="Inscribirme" variant="primary" confirm={costConfirm} />}
+            {mine?.needs_athlete_ok && <TrialButton call={{ kind: 'respond', registration: mine.id, action: 'confirm_cost', opportunity: opportunityId }} label="Aceptar coste e inscribirme" variant="primary" confirm={`Tu agente te propone este trial. ${costConfirm}`} />}
+            {mine && activeReg(mine.status) && <TrialButton call={{ kind: 'respond', registration: mine.id, action: 'withdraw', opportunity: opportunityId }} label="Retirarme" variant="danger" confirm="¿Seguro? Se avisará al club." />}
+            {!mine && !myInvite && open && d?.registration_mode === 'invitation_only' && <p className="text-sm text-muted">Este trial es solo por invitación del club.</p>}
+            {!mine && open && d?.registration_mode === 'application_required' && myApp?.status !== 'accepted' && <p className="text-sm text-muted">{myApp ? 'Tu candidatura está en revisión. Si el club la acepta, podrás inscribirte.' : 'Primero presenta tu candidatura; si el club la acepta, podrás inscribirte.'}</p>}
             {!mine && !open && <p className="text-sm text-muted">La inscripción está cerrada.</p>}
           </div>
         </Card>
       )}
 
-      {/* Familia: aprobaciones pendientes de sus hijos */}
-      {(guardianPending.length > 0 || costPending.length > 0) && (
+      {/* Familia */}
+      {(guardianPending.length > 0 || costPending.length > 0 || invitePending.length > 0) && (
         <Card>
           <CardTitle kicker="Familia">Necesita tu decisión</CardTitle>
+          <p className="mb-3 text-xs text-muted">Aprobar permite la participación en este trial concreto: el club verá el Opportunity Passport y el vídeo de tu hijo/a, no tus datos ni sus documentos privados. Coste obligatorio: {fee}.</p>
           <ul className="space-y-3">
+            {invitePending.map((i) => (
+              <li key={i.id} className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                <span className="text-paper">Invitación del club para {i.name}</span>
+                <span className="flex gap-2">
+                  <TrialButton call={{ kind: 'invite', invitation: i.id, action: 'guardian_approve', opportunity: opportunityId }} label="Aprobar e inscribir" variant="primary" confirm={`¿Apruebas la participación? ${costConfirm}`} />
+                  <TrialButton call={{ kind: 'invite', invitation: i.id, action: 'declined', opportunity: opportunityId }} label="No aprobar" variant="danger" />
+                </span>
+              </li>
+            ))}
             {guardianPending.map((r) => (
               <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 text-sm">
-                <span className="text-paper">{r.name} quiere inscribirse · {fee}</span>
+                <span className="text-paper">{r.name} quiere participar</span>
                 <span className="flex gap-2">
-                  <TrialButton call={{ kind: 'respond', registration: r.id, action: 'guardian_approve', opportunity: opportunityId }} label="Aprobar" variant="primary" confirm={`¿Apruebas la inscripción? Coste: ${fee}.`} />
+                  <TrialButton call={{ kind: 'respond', registration: r.id, action: 'guardian_approve', opportunity: opportunityId }} label="Aprobar" variant="primary" confirm={`¿Apruebas la participación? ${costConfirm}`} />
                   <TrialButton call={{ kind: 'respond', registration: r.id, action: 'guardian_decline', opportunity: opportunityId }} label="No aprobar" variant="danger" />
                 </span>
               </li>
             ))}
             {costPending.filter((r) => !guardianPending.includes(r)).map((r) => (
               <li key={r.id} className="flex flex-wrap items-center justify-between gap-2 text-sm">
-                <span className="text-paper">Propuesta del agente para {r.name} · {fee}</span>
-                <TrialButton call={{ kind: 'respond', registration: r.id, action: 'confirm_cost', opportunity: opportunityId }} label="Aceptar coste" variant="primary" confirm={`¿Aceptas el coste (${fee})?`} />
+                <span className="text-paper">Propuesta del agente para {r.name}</span>
+                <TrialButton call={{ kind: 'respond', registration: r.id, action: 'confirm_cost', opportunity: opportunityId }} label="Aceptar coste" variant="primary" confirm={costConfirm} />
               </li>
             ))}
           </ul>
         </Card>
       )}
 
-      {/* Club: gestión de inscripciones */}
+      {/* Club */}
       {asClub && !preview && (
-        <Card>
-          <CardTitle kicker="Club">Inscripciones ({registrations.length})</CardTitle>
-          {registrations.length ? (
-            <ul className="divide-y divide-line">
-              {registrations.map((r) => (
-                <li key={r.id} className="py-2.5">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-sm text-paper">{r.name}<span className="ml-2 text-[11px] text-faint">{r.origin === 'agent' ? 'vía agente' : r.origin === 'club_invite' ? 'invitado' : ''}</span></span>
-                    <Badge tone={r.status === 'confirmed' ? 'ok' : r.status === 'declined' || r.status === 'withdrawn' ? 'neutral' : 'brass'}>{TRIAL_STATUS_LABEL[r.status as TrialStatus]}</Badge>
-                  </div>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {['registered', 'waitlisted'].includes(r.status) && <TrialButton call={{ kind: 'club', registration: r.id, action: 'confirm', opportunity: opportunityId }} label="Confirmar plaza" variant="primary" />}
-                    {r.status === 'registered' && <TrialButton call={{ kind: 'club', registration: r.id, action: 'waitlist', opportunity: opportunityId }} label="Lista de espera" />}
-                    {['registered', 'waitlisted', 'interested', 'confirmed'].includes(r.status) && <TrialButton call={{ kind: 'club', registration: r.id, action: 'decline', opportunity: opportunityId }} label="No continuar" variant="danger" confirm="Se avisará al atleta (y a su agente si lo tiene)." />}
-                    {r.status === 'confirmed' && <>
-                      <TrialButton call={{ kind: 'club', registration: r.id, action: 'attended', opportunity: opportunityId }} label="Asistió" />
-                      <TrialButton call={{ kind: 'club', registration: r.id, action: 'no_show', opportunity: opportunityId }} label="No asistió" variant="danger" />
-                    </>}
-                    {r.status === 'attended' && !r.outcome && <>
-                      <TrialButton call={{ kind: 'club', registration: r.id, action: 'outcome', outcome: 'continue_recruiting', opportunity: opportunityId }} label="Continuar recruiting" variant="primary" confirm="Pasa a tu pipeline de candidatos. No crea ninguna oferta." />
-                      <TrialButton call={{ kind: 'club', registration: r.id, action: 'outcome', outcome: 'follow_up', opportunity: opportunityId }} label="Seguimiento" />
-                      <TrialButton call={{ kind: 'club', registration: r.id, action: 'outcome', outcome: 'not_selected', opportunity: opportunityId }} label="No seleccionado" variant="danger" />
-                    </>}
-                    {r.outcome && <span className="text-xs text-muted">{OUTCOME_LABEL[r.outcome]}</span>}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : <p className="text-sm text-muted">Aún no hay inscripciones.</p>}
-        </Card>
+        <>
+          {applications.length > 0 && (
+            <Card>
+              <CardTitle kicker="Club">Candidaturas ({applications.length})</CardTitle>
+              <ul className="divide-y divide-line">
+                {applications.map((a) => (
+                  <li key={a.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-sm">
+                    <span className="text-paper">{a.name}{a.guardian_consent_status === 'pending' ? <span className="ml-2 text-[11px] text-warn">aprobación familiar pendiente</span> : null}</span>
+                    {['applied', 'reviewed', 'information_requested', 'waitlisted'].includes(a.status) ? (
+                      <span className="flex flex-wrap gap-2">
+                        <TrialButton call={{ kind: 'decide', application: a.id, decision: 'accepted', opportunity: opportunityId }} label="Aceptar" variant="primary" confirm={`¿Aceptar a ${a.name} en el trial?`} />
+                        {a.status !== 'waitlisted' && <TrialButton call={{ kind: 'decide', application: a.id, decision: 'waitlisted', opportunity: opportunityId }} label="Lista de espera" />}
+                        <TrialButton call={{ kind: 'decide', application: a.id, decision: 'declined', opportunity: opportunityId }} label="No continuar" variant="danger" confirm="Se avisará al atleta." />
+                      </span>
+                    ) : <Badge tone="neutral">{a.status === 'accepted' ? 'Aceptada' : a.status === 'declined' ? 'No continúa' : a.status}</Badge>}
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
+          <Card>
+            <CardTitle kicker="Club">Participantes ({registrations.length}) · {capacityLabel(d?.capacity, confirmed)}</CardTitle>
+            {invitations.length > 0 && <p className="mb-2 text-xs text-muted">Invitaciones: {invitations.filter((i) => ['sent', 'viewed'].includes(i.status)).length} sin respuesta · {invitations.filter((i) => i.status === 'interested').length} interesados · {invitations.filter((i) => i.status === 'declined').length} rechazadas</p>}
+            {registrations.length ? (
+              <ul className="divide-y divide-line">
+                {registrations.map((r) => (
+                  <li key={r.id} className="py-2.5">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-sm text-paper">{r.name}<span className="ml-2 text-[11px] text-faint">{r.origin === 'agent' ? 'vía agente' : r.origin === 'club_invite' ? 'invitado' : r.origin === 'application' ? 'por candidatura' : ''}</span></span>
+                      <Badge tone={r.status === 'confirmed' ? 'ok' : r.status === 'cancelled' || r.status === 'withdrawn' ? 'neutral' : 'brass'}>{REGISTRATION_STATUS_LABEL[r.status]}</Badge>
+                    </div>
+                    <p className="mt-1 text-[11px] text-muted">
+                      {r.guardian_status === 'pending' ? 'Aprobación familiar pendiente · ' : r.guardian_status === 'approved' ? 'Familia ✓ · ' : ''}
+                      {r.attendance ? `${ATTENDANCE_LABEL[r.attendance]}${r.check_in_at ? ` · ${new Date(r.check_in_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}` : ''}` : ''}
+                      {r.outcome ? ` · ${OUTCOME_LABEL[r.outcome]} (interno)` : ''}
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {['registered', 'waitlisted'].includes(r.status) && <TrialButton call={{ kind: 'club', registration: r.id, action: 'confirm', opportunity: opportunityId }} label="Confirmar plaza" variant="primary" />}
+                      {r.status === 'registered' && <TrialButton call={{ kind: 'club', registration: r.id, action: 'waitlist', opportunity: opportunityId }} label="Lista de espera" />}
+                      {['pending', 'registered', 'waitlisted', 'confirmed'].includes(r.status) && <TrialButton call={{ kind: 'club', registration: r.id, action: 'decline', opportunity: opportunityId }} label="No continuar" variant="danger" confirm="Se avisará al atleta (y a su agente si lo tiene)." />}
+                      {r.status === 'confirmed' && <>
+                        <TrialButton call={{ kind: 'club', registration: r.id, action: 'check_in', opportunity: opportunityId }} label="Check-in" variant="primary" />
+                        <TrialButton call={{ kind: 'club', registration: r.id, action: 'no_show', opportunity: opportunityId }} label="No se presentó" variant="danger" confirm="Solo si el trial ya empezó y comprobaste la lista." />
+                      </>}
+                      {r.status === 'completed' && !r.outcome && <>
+                        <TrialButton call={{ kind: 'club', registration: r.id, action: 'outcome', outcome: 'start_recruiting_process', opportunity: opportunityId }} label="Iniciar recruiting" variant="primary" confirm="Crea o reutiliza el proceso en tu pipeline (origen: trial). No crea ninguna oferta." />
+                        <TrialButton call={{ kind: 'club', registration: r.id, action: 'outcome', outcome: 'follow_up', opportunity: opportunityId }} label="Seguimiento" />
+                        <TrialButton call={{ kind: 'club', registration: r.id, action: 'outcome', outcome: 'invite_again', opportunity: opportunityId }} label="Volver a invitar" />
+                        <TrialButton call={{ kind: 'club', registration: r.id, action: 'outcome', outcome: 'closed', opportunity: opportunityId }} label="Cerrar" variant="danger" />
+                      </>}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : <p className="text-sm text-muted">Aún no hay inscripciones.</p>}
+          </Card>
+        </>
       )}
     </>
   );

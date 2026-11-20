@@ -18,6 +18,9 @@ const dropped = new Set();
 for (const f of readdirSync(migDir).filter((f) => f.endsWith('.sql')).sort()) {
   const sql = readFileSync(join(migDir, f), 'utf8').replace(/--[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
   for (const m of sql.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?(?:public\.)?"?([a-z_][a-z0-9_]*)"?/gi)) { created.add(m[1].toLowerCase()); dropped.delete(m[1].toLowerCase()); }
+  for (const m of sql.matchAll(/alter\s+table\s+(?:if\s+exists\s+)?(?:public\.)?([a-z_][a-z0-9_]*)\s+rename\s+to\s+([a-z_][a-z0-9_]*)/gi)) {
+    if (created.delete(m[1].toLowerCase())) created.add(m[2].toLowerCase());
+  }
   for (const m of sql.matchAll(/drop\s+table\s+(?:if\s+exists\s+)?([^;]+);/gi)) {
     for (const t of m[1].split(',')) { const n = t.trim().replace(/^public\./, '').replace(/\s+cascade$/i, ''); created.delete(n); dropped.add(n); }
   }

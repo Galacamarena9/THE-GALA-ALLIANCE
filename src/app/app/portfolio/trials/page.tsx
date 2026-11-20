@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { requireSession } from '@/lib/session';
 import { loadAgentTrials, type AgentRegistration } from '@/lib/data/trials';
 import { logEvent } from '@/lib/events';
-import { AVAILABILITY_LABEL, BOARD_GROUP_LABEL, OUTCOME_LABEL, TRIAL_STATUS_LABEL, boardGroup, eventWhen, feeLabel, type BoardGroup } from '@/lib/domain/trials';
+import { BOARD_GROUP_LABEL, INVITATION_STATUS_LABEL, REGISTRATION_STATUS_LABEL, boardGroup, eventWhen, priceLabel, type BoardGroup, type InvitationStatus, type RegistrationStatus } from '@/lib/domain/trials';
 import { OPPORTUNITY_TYPE_LABEL } from '@/lib/domain/labels';
 import { Badge, ButtonLink, Card, CardTitle, EmptyState, Notice, PageHeader } from '@/components/ui';
 import { TrialButton } from '@/components/trials/TrialButtons';
@@ -14,17 +14,19 @@ const GROUPS: BoardGroup[] = ['needs_athlete', 'waiting_club', 'confirmed', 'aft
 const GROUP_TONE = { needs_athlete: 'warn', waiting_club: 'neutral', confirmed: 'ok', after_event: 'brass', closed: 'neutral' } as const;
 
 function RegCard({ r }: { r: AgentRegistration }) {
-  const d = r.opp?.details;
+  const o = r.opp;
+  const label = r.kind === 'invitation' ? INVITATION_STATUS_LABEL[r.status as InvitationStatus] : REGISTRATION_STATUS_LABEL[r.status as RegistrationStatus];
   return (
     <li className="rounded-xl border border-line bg-surface p-3">
       <p className="text-sm font-semibold text-paper">{r.athlete?.name ?? 'Atleta'}</p>
       {r.opp && <Link href={`/app/opportunities/${r.opp.id}`} className="block text-xs text-brass hover:underline">{r.opp.title} · {r.opp.org_name}</Link>}
-      <p className="mt-1 text-[11px] text-muted">{eventWhen(d)} · {feeLabel(d)}</p>
-      <p className="mt-1 text-xs text-paper">{TRIAL_STATUS_LABEL[r.status]}{r.outcome ? ` · ${OUTCOME_LABEL[r.outcome]}` : ''}</p>
+      <p className="mt-1 text-[11px] text-muted">{eventWhen(o?.start_at, o?.timezone)} · {priceLabel(o?.price_status, o?.costs)}</p>
+      <p className="mt-1 text-xs text-paper">{label}</p>
+      {r.athlete_update && <p className="mt-1 text-[11px] text-paper">Mensaje del club: {r.athlete_update}</p>}
       {r.needs_athlete_ok && <p className="mt-1 text-[11px] text-warn">El atleta debe aceptar el coste para que se envíe la inscripción.</p>}
       {r.guardian_status === 'pending' && <p className="mt-1 text-[11px] text-warn">Pendiente de aprobación familiar.</p>}
-      {r.status === 'invited' && <p className="mt-1 text-[11px] text-warn">Invitación del club: el atleta decide si le interesa.</p>}
-      {['invited', 'interested', 'registered', 'confirmed', 'waitlisted'].includes(r.status) && (
+      {r.kind === 'invitation' && <p className="mt-1 text-[11px] text-warn">Invitación del club: el atleta (o su familia) decide si le interesa.</p>}
+      {r.kind === 'registration' && ['pending', 'registered', 'confirmed', 'waitlisted'].includes(r.status) && (
         <div className="mt-2"><TrialButton call={{ kind: 'respond', registration: r.id, action: 'withdraw' }} label="Retirar" variant="danger" confirm={`¿Retirar a ${r.athlete?.name ?? 'el atleta'} de este trial? Se avisará al atleta.`} /></div>
       )}
     </li>
@@ -89,8 +91,7 @@ export default async function AgentTrialsPage() {
             {data.suggestions.length ? (
               <ul className="grid gap-4 lg:grid-cols-2">
                 {data.suggestions.map(({ opp, fits }) => {
-                  const d = opp.details;
-                  const paid = d?.fee_type !== 'free';
+                  const paid = opp.price_status !== 'free';
                   return (
                     <li key={opp.id}>
                       <Card>
@@ -99,12 +100,10 @@ export default async function AgentTrialsPage() {
                         </CardTitle>
                         {/* Transparencia antes de cualquier botón: cuándo, dónde, cuánto y qué incluye. */}
                         <dl className="grid grid-cols-2 gap-2 text-xs">
-                          <div><dt className="text-faint">Cuándo</dt><dd className="text-paper">{eventWhen(d)}</dd></div>
-                          <div><dt className="text-faint">Dónde</dt><dd className="text-paper">{[d?.city, d?.country].filter(Boolean).join(', ') || 'Sin indicar'}</dd></div>
-                          <div><dt className="text-faint">Coste</dt><dd className={`font-semibold ${paid ? 'text-warn' : 'text-ok'}`}>{feeLabel(d)}</dd></div>
+                          <div><dt className="text-faint">Cuándo</dt><dd className="text-paper">{eventWhen(opp.start_at, opp.timezone)}</dd></div>
+                          <div><dt className="text-faint">Dónde</dt><dd className="text-paper">{[opp.city, opp.country].filter(Boolean).join(', ') || 'Sin indicar'}</dd></div>
+                          <div><dt className="text-faint">Coste</dt><dd className={`font-semibold ${paid ? 'text-warn' : 'text-ok'}`}>{priceLabel(opp.price_status, opp.costs)}</dd></div>
                           <div><dt className="text-faint">Plazo</dt><dd className="text-paper">{opp.deadline ?? 'Abierto'}</dd></div>
-                          <div><dt className="text-faint">Alojamiento</dt><dd className="text-paper">{AVAILABILITY_LABEL[d?.accommodation ?? 'unknown']}</dd></div>
-                          <div><dt className="text-faint">Viaje</dt><dd className="text-paper">{AVAILABILITY_LABEL[d?.travel ?? 'unknown']}</dd></div>
                         </dl>
                         <ul className="mt-4 divide-y divide-line border-t border-line">
                           {fits.map(({ athlete, fit, registered }) => (
@@ -118,7 +117,7 @@ export default async function AgentTrialsPage() {
                                   label={paid ? 'Proponer al atleta' : 'Inscribir'}
                                   variant="primary"
                                   confirm={paid
-                                    ? `Tiene coste (${feeLabel(d)}). Se enviará como propuesta: ${athlete.name} debe aceptar el coste antes de que se inscriba.`
+                                    ? `Tiene coste (${priceLabel(opp.price_status, opp.costs)}). Se enviará como propuesta: ${athlete.name} debe aceptar el coste antes de que se inscriba.`
                                     : `¿Inscribir a ${athlete.name}? Se le avisará y podrá retirarse cuando quiera.`}
                                 />
                               )}

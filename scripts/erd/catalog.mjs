@@ -21,6 +21,7 @@ export const DOMAINS = {
   '11-comunicacion': 'Comunicación, avisos y seguridad',
   '12-marcas-negocio': 'Marcas y negocio',
   '13-ia-analitica': 'IA, academia, analítica y auditoría',
+  '14-clubs-academias': 'Clubs & Academies: trials, programas y participación',
 };
 
 const ACCOUNT = 'Mientras exista la cuenta';
@@ -58,6 +59,7 @@ export const TABLES = {
   athlete_discovery_settings: { domain: '03-passport', cls: 'personal', minors: true, decision: 'KEEP', export: true },
   passport_field_policies: { domain: '03-passport', cls: 'personal', minors: true, decision: 'KEEP', export: true },
   passport_views: { domain: '03-passport', cls: 'personal', minors: true, decision: 'KEEP', noExport: 'Sin acceso directo (RLS): el atleta ve el resumen agregado en su Passport' },
+  document_access_grants: { domain: '03-passport', cls: 'sensitive', minors: true, decision: 'KEEP', noExport: 'Concesiones del atleta a organizaciones: visibles en Documentos; se exportarán con 11B', note: 'Acceso a un documento concreto, con propósito, contexto y caducidad.' },
   recruiting_links: { domain: '03-passport', cls: 'personal', minors: true, decision: 'KEEP', export: true, note: 'El token no se exporta.' },
   recruiting_link_views: { domain: '03-passport', cls: 'internal', decision: 'KEEP', noExport: 'Contador técnico de visitas al enlace, sin datos del visitante' },
 
@@ -66,6 +68,8 @@ export const TABLES = {
   sport_positions: { domain: '04-catalogo', cls: 'public', decision: 'KEEP' },
   sport_stat_definitions: { domain: '04-catalogo', cls: 'public', decision: 'KEEP' },
   showcase_events: { domain: '04-catalogo', cls: 'public', decision: 'KEEP' },
+  sports_seasons: { domain: '04-catalogo', cls: 'public', decision: 'KEEP', note: 'Temporadas normalizadas («2027-28»).' },
+  age_categories: { domain: '04-catalogo', cls: 'public', decision: 'KEEP', note: 'Categorías U14…First Team con regla de edad cuando existe.' },
   showcase_entries: { domain: '04-catalogo', cls: 'personal', minors: true, decision: 'KEEP', export: true },
 
   // 05 · Organizaciones
@@ -90,12 +94,9 @@ export const TABLES = {
   // 07 · Oportunidades
   opportunities: { domain: '07-oportunidades', cls: 'public', decision: 'KEEP', note: 'Pública cuando está publicada; borrador interno.' },
   opportunity_questions: { domain: '07-oportunidades', cls: 'personal', decision: 'KEEP', noExport: 'Quién pregunta no es legible ni por el propio usuario (columnas restringidas)' },
-  opportunity_event_details: { domain: '07-oportunidades', cls: 'public', decision: 'KEEP' },
   applications: { domain: '07-oportunidades', cls: 'personal', minors: true, decision: 'KEEP', export: true },
   application_notes: { domain: '07-oportunidades', cls: 'internal', decision: 'KEEP', noExport: NO_ORG_DATA },
   application_status_history: { domain: '07-oportunidades', cls: 'personal', decision: 'KEEP', export: true, note: 'Se exporta dentro de applications.', retention: 'Inmutable; se borra con la candidatura' },
-  trial_registrations: { domain: '07-oportunidades', cls: 'personal', minors: true, decision: 'KEEP', export: true },
-  trial_registration_events: { domain: '07-oportunidades', cls: 'internal', decision: 'KEEP', noExport: 'Historial de la inscripción; el estado se exporta en trial_registrations' },
 
   // 08 · Pipeline del atleta
   saved_items: { domain: '08-pipeline-atleta', cls: 'personal', minors: true, decision: 'RENAME → athlete_processes (diferido)', export: true, note: 'Es el proceso del atleta, no un «guardado».' },
@@ -148,6 +149,21 @@ export const TABLES = {
   brand_campaigns: { domain: '12-marcas-negocio', cls: 'public', decision: 'KEEP' },
   campaign_applications: { domain: '12-marcas-negocio', cls: 'personal', minors: true, decision: 'KEEP', export: true },
   service_requests: { domain: '12-marcas-negocio', cls: 'personal', decision: 'KEEP', export: true },
+
+  // 14 · Clubs & Academies
+  org_teams: { domain: '14-clubs-academias', cls: 'internal', decision: 'KEEP', note: 'Equipo dentro de un programa de la misma organización.' },
+  trial_details: { domain: '14-clubs-academias', cls: 'public', decision: 'KEEP', note: 'Especialización 1:0..1 de una oportunidad de tipo trial (sustituye a opportunity_event_details).' },
+  academy_program_details: { domain: '14-clubs-academias', cls: 'public', decision: 'KEEP', note: 'Especialización 1:0..1 de un programa de academia.' },
+  opportunity_cost_components: { domain: '14-clubs-academias', cls: 'public', decision: 'KEEP', note: 'Todos los importes (obligatorios / opcionales / incluidos).' },
+  opportunity_requirements: { domain: '14-clubs-academias', cls: 'public', decision: 'KEEP', note: 'Requisitos estructurados para Gala Match.' },
+  opportunity_required_materials: { domain: '14-clubs-academias', cls: 'public', decision: 'KEEP', note: 'Sustituye progresivamente a opportunities.required_materials (array legado).' },
+  opportunity_invitations: { domain: '14-clubs-academias', cls: 'personal', minors: true, decision: 'KEEP', export: true },
+  opportunity_registrations: { domain: '14-clubs-academias', cls: 'personal', minors: true, decision: 'KEEP', export: true, note: 'Antes trial_registrations (renombrada en 11A).' },
+  opportunity_registration_events: { domain: '14-clubs-academias', cls: 'internal', decision: 'KEEP', noExport: 'Historial de la inscripción; el estado se exporta en opportunity_registrations' },
+  opportunity_attendance: { domain: '14-clubs-academias', cls: 'personal', minors: true, decision: 'KEEP', export: true },
+  opportunity_outcomes: { domain: '14-clubs-academias', cls: 'internal', decision: 'KEEP', noExport: 'Resultado INTERNO del club; el atleta solo recibe el mensaje que el club comparte (opportunity_registrations.athlete_update)' },
+  program_enrollments: { domain: '14-clubs-academias', cls: 'personal', minors: true, decision: 'KEEP', export: true },
+  payment_requirements: { domain: '14-clubs-academias', cls: 'personal', decision: 'KEEP', export: true, note: 'Preparado para Stripe; sin datos bancarios.' },
 
   // 13 · IA, academia, analítica y auditoría
   ai_conversations: { domain: '13-ia-analitica', cls: 'personal', decision: 'KEEP', export: true, retention: '90 días sin actividad; se borra al desactivar el historial' },

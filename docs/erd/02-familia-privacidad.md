@@ -2,13 +2,14 @@
 # 02 · Familia, consentimiento y privacidad
 
 Tablas: **4** · RLS activada en 4/4.
-Se relaciona con: `profiles` (01).
+Se relaciona con: `organizations` (05), `profiles` (01).
 
 ## AS-IS · Modelo actual
 
 ```mermaid
 erDiagram
   PROFILES |o--o{ CONSENTS : "guardian_id"
+  ORGANIZATIONS |o--o{ CONSENTS : "organization_id"
   PROFILES ||--o{ CONSENTS : "user_id"
   PROFILES |o--o{ COOKIE_CONSENT_LOGS : "user_id"
   PROFILES ||--o{ DATA_SUBJECT_REQUESTS : "user_id"
@@ -23,6 +24,10 @@ erDiagram
     bool granted
     uuid guardian_id FK
     timestamptz created_at
+    text target_type
+    uuid target_id
+    uuid organization_id FK
+    text scope
   }
   COOKIE_CONSENT_LOGS {
     uuid id PK
@@ -69,7 +74,7 @@ erDiagram
 
 | Tabla | Clasificación | Menores | Al borrar | Retención | Exportación RGPD | Decisión |
 |---|---|---|---|---|---|---|
-| `consents` | Sensible | Sí | persona (guardian_id) → se anonimiza<br>persona (user_id) → se borra | Inmutable; se borra con la persona, el tutor se anonimiza | Sí | KEEP |
+| `consents` | Sensible | Sí | persona (guardian_id) → se anonimiza<br>organización (organization_id) → se anonimiza<br>persona (user_id) → se borra | Inmutable; se borra con la persona, el tutor se anonimiza | Sí | KEEP |
 | `cookie_consent_logs` | Personal | — | persona (user_id) → se anonimiza | Inmutable; se anonimiza al borrar la cuenta | No: Registro técnico de cookies del navegador; solo lectura de Gala | KEEP |
 | `data_subject_requests` | Personal | — | persona (user_id) → se borra | Mientras exista la cuenta | Sí | KEEP |
 | `parent_athlete_links` | Sensible | Sí | persona (athlete_id) → se borra<br>persona (invited_by) → se borra<br>persona (parent_id) → se borra | Invitaciones pendientes: 90 días tras caducar | Sí | KEEP |

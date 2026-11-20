@@ -1,7 +1,7 @@
 <!-- Generado por scripts/erd/generate.mjs a partir de las migraciones. No editar a mano: `npm run erd`. -->
 # 03 · Passport del atleta
 
-Tablas: **17** · RLS activada en 17/17.
+Tablas: **18** · RLS activada en 18/18.
 Se relaciona con: `organizations` (05), `profiles` (01), `sport_positions` (04), `sport_stat_definitions` (04), `sports` (04).
 
 ## AS-IS · Modelo actual
@@ -28,6 +28,10 @@ erDiagram
   ORGANIZATIONS |o--o{ ATHLETE_STATISTICS : "verified_by_org"
   ATHLETE_PROFILES ||--o{ ATHLETE_UPDATES : "athlete_id"
   ATHLETE_PROFILES ||--o{ ATHLETE_VIDEOS : "athlete_id"
+  ATHLETE_PROFILES ||--o{ DOCUMENT_ACCESS_GRANTS : "athlete_id"
+  ATHLETE_DOCUMENTS ||--o{ DOCUMENT_ACCESS_GRANTS : "document_id"
+  PROFILES |o--o{ DOCUMENT_ACCESS_GRANTS : "granted_by"
+  ORGANIZATIONS ||--o{ DOCUMENT_ACCESS_GRANTS : "organization_id"
   ATHLETE_PROFILES ||--o{ PASSPORT_FIELD_POLICIES : "athlete_id"
   ATHLETE_PROFILES ||--o{ PASSPORT_VIEWS : "athlete_id"
   PROFILES |o--o{ PASSPORT_VIEWS : "viewer_id"
@@ -200,6 +204,19 @@ erDiagram
     bool is_featured
     timestamptz created_at
   }
+  DOCUMENT_ACCESS_GRANTS {
+    uuid id PK
+    uuid document_id FK
+    uuid athlete_id FK
+    uuid organization_id FK
+    uuid granted_by FK
+    text purpose
+    text context_type
+    uuid context_id
+    timestamptz expires_at
+    timestamptz revoked_at
+    timestamptz created_at
+  }
   PASSPORT_FIELD_POLICIES {
     uuid athlete_id PK,FK
     text field_group PK
@@ -252,12 +269,14 @@ erDiagram
 | `athlete_statistics` | Personal | Sí | atleta (athlete_id) → se borra<br>organización (verified_by_org) → se anonimiza | Mientras exista la cuenta | Sí | KEEP |
 | `athlete_updates` | Personal | Sí | atleta (athlete_id) → se borra | 30 días tras caducar | Sí | KEEP |
 | `athlete_videos` | Personal | Sí | atleta (athlete_id) → se borra | Mientras exista la cuenta | Sí | KEEP |
+| `document_access_grants` | Sensible | Sí | atleta (athlete_id) → se borra<br>persona (granted_by) → se anonimiza<br>organización (organization_id) → se borra | Mientras exista la cuenta | No: Concesiones del atleta a organizaciones: visibles en Documentos; se exportarán con 11B | KEEP |
 | `passport_field_policies` | Personal | Sí | atleta (athlete_id) → se borra | Mientras exista la cuenta | Sí | KEEP |
 | `passport_views` | Personal | Sí | atleta (athlete_id) → se borra<br>persona (viewer_id) → se anonimiza<br>organización (viewer_org_id) → se anonimiza | Mientras exista la cuenta | No: Sin acceso directo (RLS): el atleta ve el resumen agregado en su Passport | KEEP |
 | `recruiting_link_views` | Interna | — | En cascada con `recruiting_links` | Mientras exista la organización | No: Contador técnico de visitas al enlace, sin datos del visitante | KEEP |
 | `recruiting_links` | Personal | Sí | atleta (athlete_id) → se borra<br>persona (created_by) → se anonimiza | Mientras exista la cuenta | Sí | KEEP |
 
 - `athlete_documents`: Exporta metadatos; los ficheros se descargan desde Documentos.
+- `document_access_grants`: Acceso a un documento concreto, con propósito, contexto y caducidad.
 - `recruiting_links`: El token no se exporta.
 
 ## TO-BE · Modelo objetivo
