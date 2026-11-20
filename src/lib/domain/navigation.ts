@@ -67,7 +67,8 @@ export const PERSONAL_SERVICES: Record<AppRole, NavItem[]> = {
   ],
   parent: [
     { href: '/app/family', label: 'Panel familiar', icon: 'family', desc: 'El proceso de tu hijo o hija y lo que necesita tu aprobación.' },
-    { href: '/app/share', label: 'Compartir su perfil', icon: 'megaphone', desc: 'Crea enlaces privados de reclutamiento para tu hijo o hija y ve quién los abre.' },
+    { href: '/app/family/costs', label: 'Coste real', icon: 'list', desc: 'Coste publicado, ayuda confirmada y lo que falta, opción por opción.' },
+    { href: '/app/share', label: 'Compartir su perfil', icon: 'megaphone', desc: 'Crea enlaces privados de reclutamiento para tu hijo o hija y ve quién los abre.', more: true },
     { href: '/app/process', label: 'Su pipeline', icon: 'pipeline', desc: 'Los procesos de recruiting de tu hijo o hija y qué toca hacer en cada uno.' },
     { href: '/app/requests', label: 'Solicitudes de información', icon: 'shield', desc: 'Peticiones de universidades sobre tu hijo o hija: tú decides.', more: true },
     { href: '/app/plan', label: 'Plan familiar', icon: 'tag', desc: 'Informe, lista de universidades y calendario generados al momento.' },

@@ -112,6 +112,7 @@ erDiagram
     uuid athlete_id PK,FK
     int4 annual_budget_usd
     timestamptz updated_at
+    text budget_mode
   }
   ATHLETE_GOALS {
     uuid athlete_id PK,FK

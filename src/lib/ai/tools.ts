@@ -56,6 +56,7 @@ export const TOOL_DEFS = [
   { name: 'search_universities', description: 'Busca universidades del directorio con el encaje real del atleta. Solo devuelve universidades existentes.', input_schema: { type: 'object', properties: { state: { type: 'string', description: 'Código de estado de EE. UU. de 2 letras' }, division: { type: 'string', enum: ['ncaa_d1', 'ncaa_d2', 'ncaa_d3', 'naia', 'njcaa'] }, name: { type: 'string' }, max_cost_usd: { type: 'integer' }, active_only: { type: 'boolean' } } } },
   { name: 'compare_universities', description: 'Compara 2-4 universidades por datos objetivos y encaje. Nunca elige una ganadora.', input_schema: { type: 'object', properties: { universities: { type: 'array', items: { type: 'string' }, minItems: 2, maxItems: 4 } }, required: ['universities'] } },
   { name: 'search_knowledge', description: 'Busca en la guía de The Gala Alliance (fuentes oficiales y fecha de revisión).', input_schema: { type: 'object', properties: { query: { type: 'string' } }, required: ['query'] } },
+  { name: 'get_family_overview', description: 'Para familias/tutores: por cada hijo/a vinculado, la acción pendiente de la familia, plazos, ofertas y el coste real de cada opción (con lo que falta) frente al presupuesto privado. Solo lo que cada relación permite ver.', input_schema: { type: 'object', properties: {} } },
   { name: 'get_recruiting_overview', description: 'Para staff de universidades: resumen de su organización (necesidades activas, candidatos por etapa interna, por revisar, tareas que vencen). Solo datos de su organización.', input_schema: { type: 'object', properties: {} } },
   { name: 'propose_action', description: 'Propone al usuario una acción dentro de Gala. NO la ejecuta: el usuario debe confirmarla.', input_schema: { type: 'object', properties: { kind: { type: 'string', enum: ['add_to_pipeline', 'create_task', 'open_page'] }, label: { type: 'string' }, href: { type: 'string', description: 'Ruta interna /app/...' }, university: { type: 'string' }, title: { type: 'string', description: 'Título de la tarea' }, due_date: { type: 'string', description: 'AAAA-MM-DD' } }, required: ['kind', 'label'] } },
   { name: 'present_drafts', description: 'Entrega borradores de un mensaje en 3 tonos (formal, cercano, breve). El usuario los revisa y envía él mismo.', input_schema: { type: 'object', properties: { drafts: { type: 'array', minItems: 3, maxItems: 3, items: { type: 'object', properties: { tone: { type: 'string' }, subject: { type: 'string' }, body: { type: 'string' } }, required: ['tone', 'body'] } } }, required: ['drafts'] } },
@@ -150,6 +151,35 @@ export async function runTool(name: string, input: Record<string, unknown>, ctx:
       return {
         data: { results: hits.map((h) => ({ chapter: h.chapter, section: h.heading, text: h.text, applies_to: h.systems, version: h.version, reviewed: h.reviewed, review_pending: h.stale, guide_url: `/guia/${h.slug}` })) },
         sources: hits.flatMap((h) => h.sources.map((x) => ({ ...x, reviewed: h.reviewed, stale: h.stale }))).filter((x, i, a) => a.findIndex((y) => y.url === x.url) === i).slice(0, 4),
+      };
+    }
+    case 'get_family_overview': {
+      // Misma RLS que la interfaz: cada relación con sus propios permisos; nunca datos de otras familias.
+      if (!s.roles.includes('parent')) return { data: { available: false, reason: 'Solo para familias vinculadas.' } };
+      const { guardianLinks, loadFamilyChild, familyCostOverview } = await import('@/lib/data/family-home');
+      const { familyNextAction } = await import('@/lib/domain/family');
+      const today = new Date().toISOString().slice(0, 10);
+      const links = await guardianLinks(s);
+      const children = await Promise.all(links.map(async (l) => {
+        if (!l.active) return { name: l.name, access: l.status === 'restricted' ? 'pausado por el atleta' : 'suspendido hasta que el atleta (ya mayor de edad) lo confirme' };
+        const h = await loadFamilyChild(s, l);
+        const next = familyNextAction({ today, approvals: h.approvals, deadlines: h.deadlines, offers: h.offers, incompleteCosts: h.scenarios.incomplete, missingDocuments: h.missingDocuments, hasAthlete: true });
+        // Costes y presupuesto privado de SU familia, con la RLS del tutor (permiso «costes»).
+        const costs: unknown = l.scopes.costs ? await familyCostOverview(l.athleteId) : 'sin permiso de costes';
+        return {
+          name: l.name, permissions: l.scopes, family_next_action: { title: next.title, why: next.why, href: next.href },
+          approvals_pending: h.approvals.length,
+          deadlines: h.deadlines.slice(0, 6).map((d) => ({ date: d.date, title: d.label, type: d.kind })),
+          offers_pending: h.offers.map((o) => ({ organization: o.org, deadline: o.deadline })),
+          process: h.process, missing_documents: h.missingDocuments, costs,
+        };
+      }));
+      return {
+        data: {
+          children,
+          rules: 'La decisión es del atleta y su familia. «budget_fit: unknown» = falta información, no descartes la opción. El presupuesto es privado: nunca lo menciones como algo que vean universidades.',
+        },
+        sources: [{ label: 'Family Command Center', url: '/app/family', internal: true }, { label: 'Coste real', url: '/app/family/costs', internal: true }],
       };
     }
     case 'get_recruiting_overview': {

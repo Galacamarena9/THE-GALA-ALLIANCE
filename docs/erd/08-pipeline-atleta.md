@@ -95,6 +95,8 @@ erDiagram
     timestamptz done_at
     uuid created_by FK
     timestamptz created_at
+    text owner
+    text source
   }
   PROCESS_DOCUMENTS {
     uuid process_id PK,FK
