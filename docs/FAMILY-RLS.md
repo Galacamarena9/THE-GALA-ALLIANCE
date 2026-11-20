@@ -87,3 +87,30 @@ Solo `contact_messages` está en la publicación de Realtime; Supabase aplica la
 ## Migración
 
 Inventario → huecos (F-01…F-05) → local → pruebas → (proyecto de pruebas Supabase) → producción. Solo se añaden columnas con valores por defecto que mantienen el acceso actual y se endurecen políticas; cada migración tiene su bloque ROLLBACK.
+
+## 10B · Policies implementadas (resumen)
+
+| Tabla | Policy | Regla |
+|---|---|---|
+| `pipeline_events`, `pipeline_contacts`, `process_documents` | `athlete_or_guardian_view_*` | Atleta o `athlete.pipeline.view` (antes: «ver Passport») |
+| `document_access_grants` (SELECT) | `parties_view_document_grants` | Atleta, `athlete.documents.view`, admin o la organización destinataria (nominal si es sensible) |
+| `document_access_grants` (UPDATE = revocar) | `athlete_or_guardian_revoke_document_grants` | Atleta, tutor con edición o tutor activo de un menor; la revocación no se deshace (`guard_document_grant`) |
+| `storage.objects` (athlete-documents) | `docs_storage_select` | Dueño de la carpeta o `view_documents`; organizaciones solo con concesión vigente |
+| `consents` | RPC `consent_record` | Atleta para sí mismo o tutor activo de un menor; versión de política obligatoria; no caducado; documento del propio atleta; idempotente; revocar = nueva fila → cascada a concesiones + auditoría |
+
+Escrituras de datos del atleta (`edit_profile`) siguen siendo un permiso explícito que el atleta concede.
+
+## SECURITY DEFINER: por qué y con qué límites
+
+Las funciones de autorización (`has_family_link`, `is_active_guardian`, `guardian_has_scope`, `family_link_lapsed`, `family_review_due_at`, `is_contact_participant`) son `SECURITY DEFINER` porque las usan las políticas RLS de otras tablas y leen `parent_athlete_links` / `private_profile_data`: con `SECURITY INVOKER` provocarían recursión de RLS o exigirían abrir esas tablas al usuario. Límites:
+
+- Owner: el rol de migraciones (`postgres`), nunca un usuario.
+- `search_path = public` fijo y objetos con esquema; sin SQL dinámico.
+- Solo devuelven booleanos o una fecha, siempre sobre `auth.uid()`: no sirven de oráculo sobre terceros.
+- `family_link_lapsed` y `family_review_due_at` no son invocables por `anon` ni `authenticated`; las demás, solo por `authenticated`.
+- Las RPC con escritura (`consent_record`, `family_link_review`, `family_link_restrict`, `family_link_admin_verify`, `document_open`) validan identidad, relación, estado y permiso dentro de la transacción y auditan.
+- Pruebas: P10, P10A, P10B (incluida la invariante de catálogo de P9: todas con `search_path` y ninguna función trigger expuesta).
+
+## Pendiente para 10C
+
+Ataques directos (sustitución de IDs, scopes inventados, sesión antigua tras revocar, Storage, Gala AI) contra todo lo anterior.
