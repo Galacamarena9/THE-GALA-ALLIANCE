@@ -2389,6 +2389,182 @@ try {
     await expectError(() => as(fam.mom, `update consents set granted = false where id = $1`, [c1]), /permission denied|immutable|row-level/);
   });
 
+  // ---------------------------------------------------------------- Prompt 10C · Pentest de familia
+  // Cada prueba reproduce un ataque real (IDs manipulados, peticiones directas a PostgreSQL/Storage/RPC)
+  // con usuarios sintéticos. Los FAM-SEC-00x son los hallazgos corregidos en 20261125000100.
+  results.push('\nPrompt 10C: pentest de familia (ataques directos a PostgreSQL, Storage y RPC)');
+  const stor = async (who, sql, params) => as(who, sql, params).then((r) => r.rows[0]?.n ?? r.rowCount, (e) => (/row-level security|permission denied/.test(e.message) ? 'denied' : Promise.reject(e)));
+  {
+    // Datos de la familia B claramente diferenciados para detectar cualquier fuga cruzada.
+    await db.query(`insert into athlete_documents (athlete_id, kind, title, storage_path, uploaded_at) values ($1, 'transcript', 'Doc B', $2, now())`, [fam.other, `${fam.other}/b.pdf`]);
+    await db.query(`insert into athlete_offers (athlete_id, university_name, annual_cost_usd, aid_amount_usd) values ($1, 'Universidad B', 30000, 10000)`, [fam.other]);
+    await db.query(`insert into family_notes (athlete_id, author_id, body) values ($1, $2, 'Nota familia B')`, [fam.other, fam.otherMom]);
+    await db.query(`insert into family_cost_scenarios (athlete_id, created_by, label, tuition) values ($1, $2, 'Escenario B', 20000)`, [fam.other, fam.otherMom]);
+    await db.query(`insert into pipeline_tasks (athlete_id, title, owner, source, created_by) values ($1, 'Tarea B', 'both', 'family', $2)`, [fam.other, fam.otherMom]);
+    await db.query(`insert into storage.objects (bucket_id, name) values ('athlete-documents', $1), ('athlete-documents', $2), ('athlete-documents', $3)`, [`${fam.other}/b.pdf`, `${fam.kid}/notas.pdf`, `${u.adult}/exp.pdf`]);
+  }
+
+  await check('P10C IDOR · el tutor A cambia athlete_id por el de B en 9 recursos: siempre 0 filas (B sí tiene datos)', async () => {
+    for (const t of ['athlete_documents', 'athlete_offers', 'family_notes', 'family_cost_scenarios', 'pipeline_tasks', 'athlete_finances']) {
+      eq((await db.query(`select count(*)::int n from ${t} where athlete_id = $1`, [fam.other])).rows[0].n >= 1, true, `B tiene ${t}`);
+      eq(await n(fam.mom, `select count(*)::int n from ${t} where athlete_id = $1`, [fam.other]), 0, `${t} de B para el tutor A`);
+    }
+    eq(await n(fam.mom, `select count(*)::int n from consents where user_id = $1`, [fam.other]), 0, 'consentimientos de B');
+    eq(await n(fam.mom, `select count(*)::int n from storage.objects where name like $1`, [`${fam.other}/%`]), 0, 'archivos de B en Storage');
+    await expectError(() => as(fam.mom, `insert into family_notes (athlete_id, author_id, body) values ($1, $2, 'Intruso')`, [fam.other, fam.mom]), /row-level security/);
+    await expectError(() => as(fam.mom, `insert into athlete_finances (athlete_id, annual_budget_usd) values ($1, 1)`, [fam.other]), /row-level security|duplicate/);
+  });
+
+  await check('FAM-SEC-002 · una invitación no puede venir «verificada», con permisos ampliados ni revisión de mayoría falsa', async () => {
+    const r = (await as(fam.stranger, `insert into parent_athlete_links (parent_id, invited_by, status, verification_status, verified_at, last_reviewed_at, expires_at,
+        can_edit_profile, can_view_messages, guardian_consent_given, invitation_token)
+      values ($1, $1, 'pending', 'admin_verified', now(), now() + interval '20 years', now() + interval '50 years', true, true, true, 'abc')
+      returning verification_status, verified_at, last_reviewed_at, expires_at < now() + interval '15 days' as short, can_edit_profile, can_view_messages, guardian_consent_given, length(invitation_token) as tl`, [fam.stranger])).rows[0];
+    eq(r.verification_status, 'unverified'); eq(r.verified_at, null); eq(r.last_reviewed_at, null); eq(r.short, true, 'caducidad máx. 14 días');
+    eq(r.can_edit_profile, false); eq(r.can_view_messages, false); eq(r.guardian_consent_given, false); eq(r.tl, 64, 'token generado por el servidor');
+    await expectError(() => as(fam.stranger, `insert into parent_athlete_links (parent_id, athlete_id, invited_by, status) values ($1, $2, $1, 'approved')`, [fam.stranger, fam.other]), /row-level security/);
+  });
+
+  await check('P10C relación · el tutor no se reactiva, ni cambia de atleta, ni se amplía permisos, ni alarga nada', async () => {
+    for (const sql of [
+      `update parent_athlete_links set status = 'approved', revoked_at = null where id = $1`,
+      `update parent_athlete_links set athlete_id = '${fam.other}' where id = $1`,
+      `update parent_athlete_links set parent_id = '${fam.stranger}' where id = $1`,
+      `update parent_athlete_links set expires_at = now() + interval '10 years' where id = $1`,
+    ]) await expectError(() => as(fam.mom, sql, [sql.includes("'approved'") ? fam.momGrown : fam.momKid]), /family_link_|row-level/);
+    await expectError(() => as(fam.dad, `update parent_athlete_links set can_view_costs = true, can_view_budget = true where id = $1`, [fam.dadKid]), /only_athlete_sets_family_permissions/);
+  });
+
+  await check('FAM-SEC-003 · un menor no se da a sí mismo el consentimiento que corresponde a su tutor', async () => {
+    eq((await as(u.coach2, `select minor_contact_mode($1, $2) m`, [fam.kid, clubA])).rows[0].m, 'guardian_approval_required', 'antes');
+    for (const p of ['contact', 'document_sharing', 'trial_participation', 'organization_contact']) {
+      await expectError(() => as(fam.kid, `insert into consents (user_id, purpose, document_version, granted, target_type, target_id, organization_id) values ($1, $2, 'v1', true, 'organization', $3, $3)`, [fam.kid, p, clubA]), /row-level security/);
+    }
+    await db.query(`insert into consents (user_id, purpose, document_version, granted, target_type, target_id, organization_id) values ($1, 'contact', 'v1', true, 'organization', $2, $2)`, [fam.kid, clubA]); // fila heredada sin tutor
+    eq((await as(u.coach2, `select minor_contact_mode($1, $2) m`, [fam.kid, clubA])).rows[0].m, 'guardian_approval_required', 'una fila sin tutor no cuenta');
+    await as(fam.kid, `insert into consents (user_id, purpose, document_version, granted, target_type, target_id, organization_id) values ($1, 'contact', 'v1', false, 'organization', $2, $2)`, [fam.kid, clubA]); // retirar sí puede
+    await as(fam.mom, `select consent_record($1, 'contact', 'organization', $2, $2, true, 'v2026-11')`, [fam.kid, clubA]);
+    eq((await as(u.coach2, `select minor_contact_mode($1, $2) m`, [fam.kid, clubA])).rows[0].m, 'guardian_visible', 'con el tutor');
+    await as(u.adult, `insert into consents (user_id, purpose, document_version, granted, target_type, target_id, organization_id) values ($1, 'contact', 'v1', true, 'organization', $2, $2)`, [u.adult, clubA]); // un adulto sí
+  });
+
+  await check('FAM-SEC-004 · un consentimiento del tutor caducado ya no satisface el requisito', async () => {
+    const opp = randomUUID();
+    await db.query(`insert into consents (user_id, guardian_id, purpose, document_version, granted, target_type, target_id, organization_id, expires_at)
+      values ($1, $2, 'trial_participation', 'v1', true, 'opportunity', $3, $4, now() - interval '1 day')`, [fam.kid, fam.mom, opp, clubA]);
+    eq((await db.query(`select guardian_requirement_satisfied($1, 'trial_participation', 'opportunity', $2) s`, [fam.kid, opp])).rows[0].s, false);
+    await db.query(`insert into consents (user_id, guardian_id, purpose, document_version, granted, target_type, target_id, organization_id, expires_at)
+      values ($1, $2, 'trial_participation', 'v1', true, 'opportunity', $3, $4, now() + interval '30 days')`, [fam.kid, fam.mom, opp, clubA]);
+    eq((await db.query(`select guardian_requirement_satisfied($1, 'trial_participation', 'opportunity', $2) s`, [fam.kid, opp])).rows[0].s, true);
+  });
+
+  await check('FAM-SEC-005 · un menor no comparte documentos sin su tutor; el consentimiento vale solo para ese documento y esa organización', async () => {
+    const mk = async (t) => (await db.query(`insert into athlete_documents (athlete_id, kind, title, storage_path, uploaded_at) values ($1, 'transcript', $2, $3, now()) returning id`, [fam.kid, t, `${fam.kid}/${t}.pdf`])).rows[0].id;
+    const docX = await mk('boletin'); const docY = await mk('certificado');
+    const grant = (doc, org) => as(fam.kid, `insert into document_access_grants (document_id, athlete_id, organization_id, purpose, expires_at) values ($1, $2, $3, 'application_review', now() + interval '7 days')`, [doc, fam.kid, org]);
+    await expectError(() => grant(docX, clubA), /guardian_consent_required/);
+    await as(fam.mom, `select consent_record($1, 'document_sharing', 'document', $2, $3, true, 'v2026-11')`, [fam.kid, docX, clubA]);
+    await grant(docX, clubA);
+    await expectError(() => grant(docX, clubB), /guardian_consent_required/);   // Documento A → otra organización
+    await expectError(() => grant(docY, clubA), /guardian_consent_required/);   // otro documento → misma organización
+    await as(fam.mom, `select consent_record($1, 'document_sharing', 'document', $2, $3, false, 'v2026-11')`, [fam.kid, docX, clubA]);
+    await expectError(() => grant(docX, clubA), /guardian_consent_required/);   // revocado
+  });
+
+  await check('FAM-SEC-006 · «editar perfil» no abre presupuesto, ofertas ni proceso si el atleta quitó esos permisos', async () => {
+    await db.query(`update parent_athlete_links set can_edit_profile = true, can_view_budget = false, can_view_costs = false, can_view_applications = false where id = $1`, [fam.dadKid]);
+    try {
+      eq(await n(fam.dad, `select count(*)::int n from athlete_finances where athlete_id = $1`, [fam.kid]), 0, 'presupuesto');
+      eq(await n(fam.dad, `select count(*)::int n from athlete_offers where athlete_id = $1`, [fam.kid]), 0, 'ofertas');
+      eq(await n(fam.dad, `select count(*)::int n from pipeline_contacts where athlete_id = $1`, [fam.kid]), 0, 'contactos del proceso');
+      eq((await as(fam.dad, `update athlete_finances set annual_budget_usd = 1 where athlete_id = $1`, [fam.kid])).rowCount, 0, 'tampoco lo reescribe a ciegas');
+      await expectError(() => as(fam.dad, `insert into athlete_offers (athlete_id, university_name) values ($1, 'X')`, [fam.kid]), /row-level security/);
+    } finally {
+      await db.query(`update parent_athlete_links set can_edit_profile = false, can_view_budget = true, can_view_costs = false, can_view_applications = true where id = $1`, [fam.dadKid]);
+    }
+    const all = (await db.query(`select string_agg(polrelid::regclass::text, ',') s from pg_policy where polcmd = '*' and pg_get_expr(polqual, polrelid) ilike '%has_family_link%'
+      and polrelid::regclass::text in ('athlete_finances', 'athlete_offers', 'pipeline_contacts', 'process_documents')`)).rows[0].s;
+    eq(all, null, 'sin policies FOR ALL en tablas con permiso de lectura propio');
+  });
+
+  await check('FAM-SEC-007 · un menor no se «hace adulto» cambiando su fecha de nacimiento', async () => {
+    await expectError(() => as(fam.kid, `update private_profile_data set date_of_birth = '1990-01-01' where user_id = $1`, [fam.kid]), /date_of_birth_locked/);
+    eq((await db.query(`select is_minor($1) m`, [fam.kid])).rows[0].m, true);
+    await as(fam.kid, `update private_profile_data set phone = '+34600000000' where user_id = $1`, [fam.kid]); // el teléfono sí
+    // Sin fecha registrada y con tutor vinculado: declararla ahora exige revisión (no se usa para escapar del tutor).
+    await db.query(`delete from private_profile_data where user_id = $1`, [fam.other]);
+    try {
+      await expectError(() => as(fam.other, `insert into private_profile_data (user_id, date_of_birth) values ($1, '1990-01-01')`, [fam.other]), /date_of_birth_requires_review/);
+    } finally {
+      await db.query(`insert into private_profile_data (user_id, date_of_birth) values ($1, current_date - interval '17 years')`, [fam.other]);
+    }
+  });
+
+  await check('FAM-SEC-001 · nadie ajeno sabe si un id es menor preguntando a requires_guardian_consent', async () => {
+    const ask = async (who, ath) => (await as(who, `select requires_guardian_consent($1, 'organization_contact') r`, [ath])).rows[0].r;
+    // Perfiles no visibles para esa persona: la respuesta no puede depender de la edad.
+    await db.query(`update athlete_profiles set profile_visibility = 'private' where user_id = any($1)`, [[fam.kid, fam.grown]]);
+    try {
+      eq(await ask(fam.stranger, fam.kid), await ask(fam.stranger, fam.grown), 'misma respuesta para menor y adulto');
+    } finally {
+      await db.query(`update athlete_profiles set profile_visibility = 'members' where user_id = $1`, [fam.kid]);
+    }
+    eq(await ask(fam.mom, fam.kid), true, 'su tutor sí lo sabe');
+    eq(await ask(fam.grown, fam.grown), false, 'la propia persona');
+    await expectError(() => as(null, `select requires_guardian_consent($1, 'contact')`, [fam.kid]), /permission denied/);
+  });
+
+  await check('P10C Storage · ruta adivinada, otra familia, otro club, concesión caducada o revocada, subida a carpeta ajena', async () => {
+    const docA = (await db.query(`select id from athlete_documents where athlete_id = $1 and title = 'Notas 2026'`, [fam.kid])).rows[0].id;
+    eq(await stor(fam.mom, `select count(*)::int n from storage.objects where name = $1`, [`${fam.kid}/notas.pdf`]), 1, 'tutor A → archivo de A');
+    eq(await stor(fam.mom, `select count(*)::int n from storage.objects where name = $1`, [`${fam.other}/b.pdf`]), 0, 'tutor A → ruta de B');
+    eq(await stor(fam.stranger, `select count(*)::int n from storage.objects where bucket_id = 'athlete-documents'`), 0, 'sin relación');
+    eq(await stor(null, `select count(*)::int n from storage.objects`), 0, 'anónimo');
+    const g = (await db.query(`insert into document_access_grants (document_id, athlete_id, organization_id, purpose, expires_at) values ($1, $2, $3, 'application_review', now() + interval '5 days') returning id`, [docA, fam.kid, clubA])).rows[0].id;
+    eq(await stor(u.coach2, `select count(*)::int n from storage.objects where name = $1`, [`${fam.kid}/notas.pdf`]), 1, 'club A con concesión');
+    eq(await stor(v.ownerB, `select count(*)::int n from storage.objects where name = $1`, [`${fam.kid}/notas.pdf`]), 0, 'club B con la misma ruta');
+    await db.query(`update document_access_grants set expires_at = now() - interval '1 minute' where id = $1`, [g]);
+    eq(await stor(u.coach2, `select count(*)::int n from storage.objects where name = $1`, [`${fam.kid}/notas.pdf`]), 0, 'concesión caducada');
+    await expectError(() => as(u.coach2, `select document_open($1)`, [docA]), /not_found/);
+    const g2 = (await db.query(`insert into document_access_grants (document_id, athlete_id, organization_id, purpose, expires_at) values ($1, $2, $3, 'application_review', now() + interval '5 days') returning id`, [docA, fam.kid, clubA])).rows[0].id;
+    eq(await stor(u.coach2, `select count(*)::int n from storage.objects where name = $1`, [`${fam.kid}/notas.pdf`]), 1, 'nueva concesión');
+    await as(fam.kid, `update document_access_grants set revoked_at = now() where id = $1`, [g2]);
+    eq(await stor(u.coach2, `select count(*)::int n from storage.objects where name = $1`, [`${fam.kid}/notas.pdf`]), 0, 'concesión revocada');
+    await expectError(() => as(fam.mom, `insert into storage.objects (bucket_id, name) values ('athlete-documents', $1)`, [`${fam.other}/falso.pdf`]), /row-level security/);
+    await expectError(() => as(fam.mom, `insert into storage.objects (bucket_id, name) values ('athlete-documents', $1)`, [`../${fam.other}/x.pdf`]), /row-level security/);
+    eq((await db.query(`select count(*)::int n from storage.buckets where public`)).rows[0].n, 0, 'ningún bucket público');
+  });
+
+  await check('P10C sesión de un tutor revocado · ninguna vía (tablas, Storage, RPC) sigue abierta', async () => {
+    for (const t of ['athlete_finances', 'athlete_documents', 'athlete_offers', 'family_notes', 'pipeline_tasks', 'family_cost_scenarios']) {
+      eq(await n(fam.mom, `select count(*)::int n from ${t} where athlete_id = $1`, [fam.grown]), 0, `${t} tras revocar`);
+    }
+    eq(await stor(fam.mom, `select count(*)::int n from storage.objects where name like $1`, [`${fam.grown}/%`]), 0);
+    eq((await as(fam.mom, `select guardian_has_scope($1, 'athlete.passport.view') v`, [fam.grown])).rows[0].v, false);
+    await expectError(() => as(fam.mom, `select consent_record($1, 'contact', 'organization', $2, $2, true, 'v1')`, [fam.grown, clubA]), /not_allowed/);
+    await expectError(() => as(fam.mom, `select family_link_review($1, true)`, [fam.momGrown]), /not_allowed/);
+  });
+
+  await check('P10C enumeración · recurso inexistente y recurso ajeno responden igual', async () => {
+    const docB = (await db.query(`select id from athlete_documents where athlete_id = $1 limit 1`, [fam.other])).rows[0].id;
+    const msg = async (id) => as(fam.mom, `select document_open($1)`, [id]).then(() => 'ok', (e) => e.message);
+    eq(await msg(docB), await msg(randomUUID()), 'document_open');
+  });
+
+  await check('P10C carrera · dos consentimientos simultáneos del mismo tutor → uno solo', async () => {
+    const target = randomUUID();
+    const c1 = new pg.Client({ connectionString: url.toString() }); const c2 = new pg.Client({ connectionString: url.toString() });
+    await c1.connect(); await c2.connect();
+    const run = async (c) => { await c.query('begin'); await c.query('set local role authenticated');
+      await c.query(`select set_config('request.jwt.claims', $1, true)`, [JSON.stringify({ sub: fam.mom, role: 'authenticated' })]);
+      const r = await c.query(`select consent_record($1, 'trial_participation', 'opportunity', $2, $3, true, 'v1') id`, [fam.kid, target, clubA]); await c.query('commit'); return r.rows[0].id; };
+    try {
+      const [a, b] = await Promise.all([run(c1), run(c2)]);
+      eq(a, b, 'mismo id');
+    } finally { await c1.end(); await c2.end(); }
+    eq((await db.query(`select count(*)::int n from consents where target_id = $1`, [target])).rows[0].n, 1);
+  });
+
   // ---------------------------------------------------------------- Prompt 9 · Supabase & PostgreSQL
   results.push('\nPrompt 9: integridad, documentos, concurrencia y catálogo');
   await check('P9 S9-01 · un documento, la foto o una evidencia no pueden apuntar a la carpeta de otra persona', async () => {
@@ -2408,7 +2584,7 @@ try {
     const logs = (await db.query(`select actor_id, organization_id, classification from audit_logs where action = 'document_opened' and entity_id = $1`, [docT])).rows;
     eq(logs.length, before + 1, 'solo el acceso de terceros queda registrado');
     eq(logs.at(-1).actor_id, u.coach2); eq(logs.at(-1).organization_id, clubA); eq(logs.at(-1).classification, 'sensitive');
-    await expectError(() => as(v.ownerB, `select document_open($1)`, [docT]), /not_allowed/);
+    await expectError(() => as(v.ownerB, `select document_open($1)`, [docT]), /not_found/); // 10C: igual que si no existiera
     await expectError(() => as(null, `select document_open($1)`, [docT]), /permission denied|not_allowed/);
   });
 

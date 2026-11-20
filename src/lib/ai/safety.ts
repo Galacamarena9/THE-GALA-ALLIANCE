@@ -14,7 +14,8 @@ export function looksLikeInjection(text: string) { return INJECTION.test(text); 
 
 /** Peticiones de datos privados de otras personas: se rechazan antes de llamar al modelo. */
 /** 11D: datos que ningún usuario obtiene de otros por chat: presupuestos familiares, notas internas ajenas, «todos los atletas». */
-const OTHERS_SCOPE = /(presupuestos famil|presupuesto familiar de|family budgets|budget of (the |other |another )|notas (internas |de scouting )?del? (otro club|club b|otra organizaci)|scouting notes of|club b'?s notes|todos los atletas de la base|all athletes in the database|athletes hidden from discovery|atletas ocultos)/i;
+// 10C: también notas internas de una universidad/club sobre alguien, documentos de otro atleta y datos de sus padres.
+const OTHERS_SCOPE = /(presupuestos famil|presupuesto familiar de|family budgets?|budget of (the |other |another )|notas internas que .{0,40}(ha escrito|tiene)|internal notes (that |which )?.{0,40}(wrote|has)|(ens[eé][ñn]ame|mu[eé]strame|dame|show me|give me) (los |the )?(documentos|documents) (privados |private )?(de|of) (?!mi |mis |my )|(tel[eé]fono|email|correo|phone) de (su|sus) (madre|padre|padres|tutor|tutora|familia)|parents'? (emails?|phones?)|notas (internas |de scouting )?del? (otro club|club b|otra organizaci)|scouting notes of|club b'?s notes|todos los atletas de la base|all athletes in the database|athletes hidden from discovery|atletas ocultos)/i;
 const OTHERS_DATA = /(tel[eé]fono|m[oó]vil|email|correo|direcci[oó]n|d[oó]nde vive|n[uú]mero|dni|pasaporte|phone|address|where does .+ live).{0,40}(de (la |el )?(atleta|jugador|jugadora|chica|chico|menor|coach|entrenador)|of (the )?(athlete|player|girl|boy|minor|coach))/i;
 export function asksForOthersPrivateData(text: string) { return OTHERS_DATA.test(text) || OTHERS_SCOPE.test(text); }
 

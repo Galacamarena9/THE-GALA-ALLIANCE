@@ -114,3 +114,5 @@ Las funciones de autorización (`has_family_link`, `is_active_guardian`, `guardi
 ## Pendiente para 10C
 
 Ataques directos (sustitución de IDs, scopes inventados, sesión antigua tras revocar, Storage, Gala AI) contra todo lo anterior.
+
+> Pentest (10C): ver [FAMILY-PENTEST.md](FAMILY-PENTEST.md) — 8 hallazgos corregidos con pruebas de regresión.
