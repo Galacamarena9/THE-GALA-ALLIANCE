@@ -2595,6 +2595,28 @@ try {
     } finally { await as(fam.kid, `select family_link_restrict($1, false)`, [fam.momKid]); }
   });
 
+  // ---------------------------------------------------------------- Prompt 12 · Agentes: credenciales
+  results.push('\nPrompt 12: agencias y credenciales profesionales');
+  await check('P12 credenciales · el agente declara; nunca se autoverifica; la verificación es central y caduca', async () => {
+    const c = (await as(u.agent, `insert into professional_credentials (user_id, organization_id, issuing_body, credential_type, credential_number, country, status, verified_at, expires_on)
+      values ($1, $2, 'FIBA', 'federation_license', 'AG-123', 'ES', 'verified', now(), current_date + 400) returning id, status, verified_at`, [u.agent, agencyId])).rows[0];
+    eq(c.status, 'declared', 'estado forzado'); eq(c.verified_at, null);
+    await expectError(() => as(u.agent, `update professional_credentials set status = 'verified' where id = $1`, [c.id]), /credential_status_server_only/);
+    eq((await as(null, `select count(*)::int n from verified_credentials($1)`, [u.agent])).rows[0].n, 0, 'declarada no es pública');
+    const req = (await as(u.agent, `select credential_submit($1) r`, [c.id])).rows[0].r;
+    eq((await as(u.agent, `select credential_submit($1) r`, [c.id])).rows[0].r, req, 'idempotente');
+    await as(u.admin, `select verification_decide($1, 'approved', null)`, [req]);
+    const pub = (await as(null, `select * from verified_credentials($1)`, [u.agent])).rows;
+    eq(pub.length, 1, 'verificada y pública'); eq('credential_number' in pub[0], false, 'sin número');
+    await as(u.agent, `update professional_credentials set credential_number = 'AG-999' where id = $1`, [c.id]);
+    eq((await db.query(`select status from professional_credentials where id = $1`, [c.id])).rows[0].status, 'declared', 'editar la quita de verificada');
+    await db.query(`update professional_credentials set status = 'verified', expires_on = current_date - 1 where id = $1`, [c.id]);
+    eq((await db.query(`select expire_professional_credentials() n`)).rows[0].n >= 1, true);
+    eq((await db.query(`select status from professional_credentials where id = $1`, [c.id])).rows[0].status, 'expired');
+    eq((await as(agent2, `select count(*)::int n from professional_credentials where id = $1`, [c.id])).rows[0].n, 0, 'otra agencia no la ve');
+    await expectError(() => as(u.adult, `insert into professional_credentials (user_id, issuing_body, credential_type) values ($1, 'X', 'other')`, [u.adult]), /row-level security/);
+  });
+
   // ---------------------------------------------------------------- Prompt 9 · Supabase & PostgreSQL
   results.push('\nPrompt 9: integridad, documentos, concurrencia y catálogo');
   await check('P9 S9-01 · un documento, la foto o una evidencia no pueden apuntar a la carpeta de otra persona', async () => {

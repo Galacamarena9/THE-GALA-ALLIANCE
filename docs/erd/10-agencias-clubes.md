@@ -1,8 +1,8 @@
 <!-- Generado por scripts/erd/generate.mjs a partir de las migraciones. No editar a mano: `npm run erd`. -->
 # 10 · Agencias y clubes
 
-Tablas: **10** · RLS activada en 10/10.
-Se relaciona con: `athlete_profiles` (03), `institutions` (05), `organizations` (05), `profiles` (01), `sports` (04).
+Tablas: **11** · RLS activada en 11/11.
+Se relaciona con: `athlete_profiles` (03), `institutions` (05), `organizations` (05), `profiles` (01), `sports` (04), `verification_requests` (06).
 
 ## AS-IS · Modelo actual
 
@@ -28,6 +28,10 @@ erDiagram
   ATHLETE_PROFILES |o--o{ NEWS_POSTS : "athlete_id"
   PROFILES ||--o{ NEWS_POSTS : "author_id"
   ORGANIZATIONS |o--o{ NEWS_POSTS : "organization_id"
+  ORGANIZATIONS |o--o{ PROFESSIONAL_CREDENTIALS : "organization_id"
+  SPORTS |o--o{ PROFESSIONAL_CREDENTIALS : "sport_id"
+  PROFILES ||--o{ PROFESSIONAL_CREDENTIALS : "user_id"
+  VERIFICATION_REQUESTS |o--o{ PROFESSIONAL_CREDENTIALS : "verification_request_id"
   PROFILES |o--o{ RECRUITING_CASE_ACTIVITIES : "actor_id"
   RECRUITING_CASES ||--o{ RECRUITING_CASE_ACTIVITIES : "case_id"
   PROFILES |o--o{ RECRUITING_CASE_TASKS : "assignee_id"
@@ -123,6 +127,24 @@ erDiagram
     text hidden_reason
     timestamptz created_at
   }
+  PROFESSIONAL_CREDENTIALS {
+    uuid id PK
+    uuid user_id FK
+    uuid organization_id FK
+    text issuing_body
+    text credential_type
+    text credential_number
+    text country
+    text sport_id FK
+    date issued_on
+    date expires_on
+    text status
+    uuid verification_request_id FK
+    timestamptz verified_at
+    timestamptz last_checked_at
+    timestamptz created_at
+    timestamptz updated_at
+  }
   RECRUITING_CASE_ACTIVITIES {
     uuid id PK
     uuid case_id FK
@@ -176,9 +198,12 @@ erDiagram
 | `club_roster` | Personal | Sí | atleta (athlete_id) → se borra<br>organización (organization_id) → se borra | Mientras exista la cuenta | Sí | KEEP |
 | `club_roster_invites` | Interna | — | persona (created_by) → se borra<br>organización (organization_id) → se borra | 90 días tras caducar | — | MERGE → organization_invitations (tipo roster) |
 | `news_posts` | Pública | — | atleta (athlete_id) → se borra<br>persona (author_id) → se borra<br>organización (organization_id) → se borra | Mientras esté publicado o vigente | — | KEEP |
+| `professional_credentials` | Sensible | — | organización (organization_id) → se anonimiza<br>persona (user_id) → se borra | Mientras exista la cuenta | Sí | KEEP |
 | `recruiting_case_activities` | Interna | — | persona (actor_id) → se anonimiza | Mientras exista la organización | — | KEEP |
 | `recruiting_case_tasks` | Interna | — | persona (assignee_id) → se anonimiza<br>persona (created_by) → se anonimiza | Mientras exista la organización | — | KEEP |
 | `recruiting_cases` | Interna | Sí | organización (agency_id) → se borra<br>atleta (athlete_id) → se borra<br>persona (owner_id) → se anonimiza | Mientras exista la organización | No: Caso interno de la agencia | KEEP |
+
+- `professional_credentials`: Licencias del agente; el número nunca es público.
 
 ## TO-BE · Modelo objetivo
 
