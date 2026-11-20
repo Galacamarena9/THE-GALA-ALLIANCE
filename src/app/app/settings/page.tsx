@@ -4,7 +4,8 @@ import { createClient } from '@/lib/supabase/server';
 import { siteUrl } from '@/lib/env';
 import { Badge, Card, CardTitle, PageHeader } from '@/components/ui';
 import { InviteLink } from '@/components/InviteLink';
-import { revokeFamilyLink, updateFamilyPermissions } from '@/app/actions/family';
+import { restrictFamilyLink, revokeFamilyLink, reviewFamilyLink, updateFamilyPermissions } from '@/app/actions/family';
+import { guardianReview } from '@/lib/domain/family';
 import { DataRequestForm } from './DataRequestForm';
 import { DeleteAccountForm } from '@/components/autonomy';
 import { CookiePrefsButton } from './CookiePrefsButton';
@@ -17,6 +18,10 @@ const REQUEST_LABEL: Record<string, string> = {
   access: 'Acceso', rectification: 'Rectificación', erasure: 'Supresión', restriction: 'Limitación', objection: 'Oposición', portability: 'Portabilidad',
 };
 
+function todayIso() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ mfa?: string }> }) {
   const session = await requireSession();
   const { mfa } = await searchParams;
@@ -27,13 +32,15 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
     isAthlete
       ? supabase
           .from('parent_athlete_links')
-          .select('id, parent_id, status, can_view_profile, can_view_applications, can_view_academics, can_edit_profile, profiles!parent_athlete_links_parent_id_fkey(display_name)')
+          .select('id, parent_id, status, relationship, guardian_consent_given, last_reviewed_at, can_view_profile, can_view_applications, can_view_academics, can_edit_profile, can_view_costs, can_view_documents, can_view_contacts, can_view_messages, profiles!parent_athlete_links_parent_id_fkey(display_name)')
           .eq('athlete_id', session.userId)
-          .eq('status', 'approved')
+          .in('status', ['approved', 'restricted'])
       : Promise.resolve({ data: [] }),
     supabase.from('data_subject_requests').select('id, request_type, status, created_at').eq('user_id', session.userId).order('created_at', { ascending: false }),
     supabase.from('consents').select('purpose, document_version, granted, created_at').eq('user_id', session.userId).order('created_at', { ascending: false }),
   ]);
+  const { data: me } = isAthlete ? await supabase.from('private_profile_data').select('date_of_birth').eq('user_id', session.userId).maybeSingle() : { data: null };
+  const today = todayIso();
   const { data: blocks } = await supabase.from('user_blocks').select('blocked_id, reason, created_at').eq('blocker_id', session.userId).order('created_at', { ascending: false });
   const blockedIds = (blocks ?? []).map((b) => b.blocked_id);
   const { data: blockedProfiles } = blockedIds.length ? await supabase.from('profiles').select('id, display_name').in('id', blockedIds) : { data: [] };
@@ -75,25 +82,55 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
               <ul className="space-y-4">
                 {links.map((l) => {
                   const parent = l.profiles as unknown as { display_name: string } | null;
+                  const review = guardianReview({ dob: (me?.date_of_birth as string | null) ?? null, today, minorLink: !!l.guardian_consent_given, lastReviewed: (l.last_reviewed_at as string | null) ?? null });
+                  const paused = l.status === 'restricted';
                   return (
                     <li key={l.id} className="rounded-xl border border-line p-4">
-                      <p className="font-medium text-paper">{parent?.display_name ?? 'Familiar'}</p>
-                      <form action={updateFamilyPermissions} className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted">
+                      <p className="flex flex-wrap items-center gap-2 font-medium text-paper">
+                        {parent?.display_name ?? 'Familiar'}
+                        {paused && <Badge tone="warn">En pausa</Badge>}
+                        {review.state === 'lapsed' && <Badge tone="warn">Acceso suspendido</Badge>}
+                      </p>
+                      {review.state !== 'none' && (
+                        <div className="mt-3 rounded-lg border border-brass/40 bg-brass/10 p-3 text-sm">
+                          <p className="text-paper">
+                            Ya eres mayor de edad. ¿Quieres que {parent?.display_name ?? 'tu familiar'} siga viendo lo que marcas abajo?
+                            {review.state === 'due' ? ` Si no respondes antes del ${review.dueDate}, su acceso se suspenderá.` : ' Su acceso está suspendido hasta que lo confirmes.'}
+                          </p>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            <form action={reviewFamilyLink}><input type="hidden" name="id" value={l.id} /><input type="hidden" name="keep" value="yes" />
+                              <button className="min-h-11 rounded-full bg-brass px-4 text-sm font-semibold text-ink">Sí, que siga</button></form>
+                            <form action={reviewFamilyLink}><input type="hidden" name="id" value={l.id} /><input type="hidden" name="keep" value="no" />
+                              <button className="min-h-11 rounded-full border border-line px-4 text-sm text-paper">No, quitar acceso</button></form>
+                          </div>
+                        </div>
+                      )}
+                      <form action={updateFamilyPermissions} className="mt-3 grid gap-x-5 gap-y-2 text-sm text-muted sm:grid-cols-2">
                         <input type="hidden" name="id" value={l.id} />
                         {([
-                          ['can_view_profile', 'Ver mi Passport', l.can_view_profile],
-                          ['can_view_applications', 'Ver mis candidaturas', l.can_view_applications],
+                          ['can_view_profile', 'Ver mi Passport y shortlist', l.can_view_profile],
+                          ['can_view_applications', 'Ver mis candidaturas y proceso', l.can_view_applications],
                           ['can_view_academics', 'Ver mi académico', l.can_view_academics],
+                          ['can_view_costs', 'Ver costes y presupuesto', l.can_view_costs],
+                          ['can_view_documents', 'Ver mis documentos', l.can_view_documents],
+                          ['can_view_contacts', 'Ver quién me contacta', l.can_view_contacts],
+                          ['can_view_messages', 'Ver mis mensajes', l.can_view_messages],
                           ['can_edit_profile', 'Editar mi perfil', l.can_edit_profile],
                         ] as const).map(([name, label, checked]) => (
                           <label key={name} className="flex items-center gap-2">
-                            <input type="checkbox" name={name} defaultChecked={checked} className="accent-[var(--color-brass)]" />
+                            <input type="checkbox" name={name} defaultChecked={!!checked} className="accent-[var(--color-brass)]" />
                             {label}
                           </label>
                         ))}
-                        <button className="rounded-lg border border-line-strong px-3 py-1 text-xs text-paper hover:border-brass">Guardar permisos</button>
+                        <p className="text-xs text-faint sm:col-span-2">Tus notas privadas nunca son visibles para tu familia.</p>
+                        <button className="justify-self-start rounded-lg border border-line-strong px-3 py-1 text-xs text-paper hover:border-brass">Guardar permisos</button>
                       </form>
-                      <form action={revokeFamilyLink} className="mt-3">
+                      <form action={restrictFamilyLink} className="mt-3 inline-block">
+                        <input type="hidden" name="id" value={l.id} />
+                        <input type="hidden" name="restrict" value={paused ? 'no' : 'yes'} />
+                        <button className="mr-4 text-xs text-muted hover:text-paper">{paused ? 'Reanudar acceso' : 'Pausar acceso'}</button>
+                      </form>
+                      <form action={revokeFamilyLink} className="mt-3 inline-block">
                         <input type="hidden" name="id" value={l.id} />
                         <button className="text-xs text-faint hover:text-danger">Desvincular</button>
                       </form>

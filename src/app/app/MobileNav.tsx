@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { CalendarCheck, Compass, GitBranch, Home, LayoutGrid, ListChecks, Menu, MessageSquare, Trophy, X } from 'lucide-react';
+import { CalendarCheck, Compass, FileText, GitBranch, Home, LayoutGrid, ListChecks, Menu, MessageSquare, Trophy, Wallet, X } from 'lucide-react';
 import type { NavSection } from '@/lib/domain/navigation';
 import { cx } from '@/components/ui';
 import { Sidebar } from './Sidebar';
@@ -29,9 +29,17 @@ const CLUB_TABS = [
   { href: '/app/recruit/trials', label: 'Trials', Icon: CalendarCheck },
 ];
 
+/** Familias: hoy → coste → documentos → seguridad (mensajes). No es el panel del atleta en pequeño. */
+const FAMILY_TABS = [
+  { href: '/app/family', label: 'Hoy', Icon: Home, exact: true },
+  { href: '/app/family/costs', label: 'Costes', Icon: Wallet },
+  { href: '/app/requests', label: 'Documentos', Icon: FileText },
+  { href: '/app/inbox', label: 'Seguridad', Icon: MessageSquare },
+];
+
 /** Móvil: barra inferior tipo app (como LinkedIn) + menú completo en panel lateral. */
-export function MobileNav({ sections, staff = false }: { sections: NavSection[]; staff?: false | 'club' | 'university' }) {
-  const tabs = staff === 'club' ? CLUB_TABS : staff ? STAFF_TABS : TABS;
+export function MobileNav({ sections, staff = false, family = false }: { sections: NavSection[]; staff?: false | 'club' | 'university'; family?: boolean }) {
+  const tabs = staff === 'club' ? CLUB_TABS : staff ? STAFF_TABS : family ? FAMILY_TABS : TABS;
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const [lastPath, setLastPath] = useState(pathname);
