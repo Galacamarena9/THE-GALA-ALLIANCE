@@ -8,7 +8,7 @@ import { LIMITS, OTHERS_DATA_REPLY, SAFETY_REPLY, asData, asksForOthersPrivateDa
 import { TOOL_DEFS, runTool, type Draft, type Proposal, type Source, type ToolResult } from './tools';
 
 export type AiEvent =
-  | { type: 'meta'; requestId: string; intent: Intent; lang: Lang; mode: 'model' | 'fallback' | 'guard' }
+  | { type: 'meta'; requestId: string; intent: Intent; lang: Lang; mode: 'model' | 'fallback' | 'guard'; model?: string }
   | { type: 'status'; text: string }
   | { type: 'text'; delta: string }
   | { type: 'sources'; items: Source[] }
@@ -17,13 +17,27 @@ export type AiEvent =
   | { type: 'error'; message: string }
   | { type: 'done'; usage: { input: number; output: number; tools: number; latencyMs: number; outcome: 'ok' | 'fallback' | 'guard' | 'error' } };
 
-/** Proveedor de modelo: hoy Anthropic (ya configurado en el proyecto). Sin clave → respuestas deterministas. */
-export interface ModelProvider { name: string; model: string; available(): boolean }
+/**
+ * Proveedor de modelo: hoy Anthropic. Sin clave → respuestas deterministas.
+ * Modelo por tarea: las preguntas sencillas (guía, navegación, plazos) pueden ir a un modelo más ligero
+ * (ANTHROPIC_MODEL_FAST); comparaciones, ofertas, borradores y planificación usan el principal (ANTHROPIC_MODEL).
+ * Si no se configura el ligero, todo usa el principal: nunca se inventa un nombre de modelo.
+ */
+export interface ModelProvider { name: string; model: string; available(): boolean; modelFor(intent: Intent): string }
+export const LIGHT_INTENTS: readonly Intent[] = ['knowledge', 'general', 'deadlines', 'passport'];
 export const provider: ModelProvider = {
   name: 'anthropic',
   model: process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-5-5',
   available: () => Boolean(process.env.ANTHROPIC_API_KEY),
+  modelFor(intent) {
+    const fast = process.env.ANTHROPIC_MODEL_FAST;
+    return fast && LIGHT_INTENTS.includes(intent) ? fast : this.model;
+  },
 };
+
+/** Preferencias editables por el usuario (ai_preferences). */
+export interface AiPrefs { language: 'auto' | 'es' | 'en'; answer_style: 'short' | 'detailed' }
+export const DEFAULT_PREFS: AiPrefs = { language: 'auto', answer_style: 'short' };
 
 const STATUS: Record<string, string> = {
   get_next_best_action: 'Revisando tus prioridades…', get_pipeline_summary: 'Mirando tu pipeline…', get_deadlines: 'Revisando plazos…',
@@ -78,11 +92,14 @@ async function* fallback(intent: Intent, lang: Lang, q: string, s: SessionContex
   if (proposals.length) yield { type: 'proposals', items: proposals };
 }
 
-export async function* handle(s: SessionContext, messages: { role: 'user' | 'assistant'; content: string }[], page?: string): AsyncGenerator<AiEvent> {
+export async function* handle(s: SessionContext, messages: { role: 'user' | 'assistant'; content: string }[], page?: string, prefs: AiPrefs = DEFAULT_PREFS): AsyncGenerator<AiEvent> {
   const started = Date.now();
   const requestId = crypto.randomUUID();
   const q = messages.at(-1)!.content.slice(0, LIMITS.maxInputChars);
-  const { intent, lang } = routeIntent(q);
+  const routed = routeIntent(q);
+  const intent = routed.intent;
+  // El idioma elegido en preferencias manda sobre el detectado.
+  const lang: Lang = prefs.language === 'auto' ? routed.lang : prefs.language;
 
   // 1. Guardas antes del modelo.
   if (riskSignal(q) || asksForOthersPrivateData(q)) {
@@ -100,7 +117,8 @@ export async function* handle(s: SessionContext, messages: { role: 'user' | 'ass
     return;
   }
 
-  yield { type: 'meta', requestId, intent, lang, mode: 'model' };
+  const model = provider.modelFor(intent);
+  yield { type: 'meta', requestId, intent, lang, mode: 'model', model };
   const client = new Anthropic();
   const history = messages.slice(-LIMITS.maxHistory).map((m) => ({ role: m.role, content: m.content.slice(0, LIMITS.maxInputChars) }));
   // Un intento de inyección en la pregunta se marca, no se obedece.
@@ -112,11 +130,11 @@ export async function* handle(s: SessionContext, messages: { role: 'user' | 'ass
   try {
     for (let round = 0; round <= LIMITS.maxToolRounds; round++) {
       const stream = client.messages.stream({
-        model: provider.model,
+        model,
         max_tokens: LIMITS.maxOutputTokens,
         system: [
           { type: 'text', text: GALA_SYSTEM + RULES_EXTRA, cache_control: { type: 'ephemeral' } },
-          { type: 'text', text: `# Contexto mínimo\n${contextLine(s, page)}\nIntención detectada: ${intent}.` },
+          { type: 'text', text: `# Contexto mínimo\n${contextLine(s, page)}\nIntención detectada: ${intent}.\nIdioma de respuesta: ${lang === 'es' ? 'español' : 'English'} (mantén NCAA, NAIA, NJCAA, GPA, SAT, ACT, TOEFL, tuition, cost of attendance, net price y athletic scholarship en su forma original).\nEstilo: ${prefs.answer_style === 'detailed' ? 'detallado, con más contexto y ejemplos' : 'breve: lo esencial primero'}.` },
         ],
         tools: round < LIMITS.maxToolRounds ? (TOOL_DEFS as unknown as Anthropic.Tool[]) : [],
         messages: convo,

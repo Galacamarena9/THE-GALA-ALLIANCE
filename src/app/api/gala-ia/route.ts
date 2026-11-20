@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { getSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
 import { loadCatalog } from '@/lib/data/athlete';
-import { handle, provider } from '@/lib/ai/orchestrator';
+import { DEFAULT_PREFS, handle, provider, type AiPrefs } from '@/lib/ai/orchestrator';
 
 export const runtime = 'nodejs';
 
@@ -15,6 +15,8 @@ const bodySchema = z.object({
     .array(z.object({ role: z.enum(['user', 'assistant']), content: z.string().min(1).max(2000) }))
     .min(1)
     .max(16),
+  /** Conversación guardada a la que añadir (solo si el usuario activó el historial). */
+  conversationId: z.string().uuid().optional(),
 });
 
 const MODEL = process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-5-5';
@@ -22,7 +24,8 @@ const MODEL = process.env.ANTHROPIC_MODEL ?? 'claude-sonnet-5-5';
 /**
  * Gala IA.
  * - Requiere sesión y respeta límites atómicos en base de datos (40/día, 6/minuto).
- * - No guarda las conversaciones (minimización): solo métricas técnicas sin contenido (ai_events).
+ * - Por defecto no guarda las conversaciones (minimización): solo métricas técnicas sin contenido (ai_events).
+ *   Si el usuario activa el historial en sus preferencias, se guardan en ai_conversations/ai_messages (solo él las ve; 90 días).
  * - Modo "chat": orquestador con herramientas internas de solo lectura (RLS) → eventos NDJSON.
  *   Sin ANTHROPIC_API_KEY responde con datos reales de forma determinista (sin modelo).
  * - Modo "search": traduce lenguaje natural a filtros VISIBLES del escaparate.
@@ -84,19 +87,42 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ url: `/app/discover?${params.toString()}`, explanation: String(f.explanation ?? '') });
   }
 
+  // Preferencias e historial (opcional y controlado por el usuario).
+  const { data: prefRow } = await supabase.from('ai_preferences').select('save_history, language, answer_style').eq('user_id', session.userId).maybeSingle();
+  const prefs: AiPrefs = prefRow ? { language: prefRow.language as AiPrefs['language'], answer_style: prefRow.answer_style as AiPrefs['answer_style'] } : DEFAULT_PREFS;
+  const question = parsed.data.messages.at(-1)!.content;
+  let conversationId: string | null = null;
+  if (prefRow?.save_history) {
+    if (parsed.data.conversationId) {
+      const { data: own } = await supabase.from('ai_conversations').select('id').eq('id', parsed.data.conversationId).maybeSingle();
+      conversationId = own?.id ?? null;
+    }
+    if (!conversationId) {
+      const { data: created } = await supabase.from('ai_conversations').insert({ user_id: session.userId, title: question.replace(/\s+/g, ' ').trim().slice(0, 120) || 'Conversación' }).select('id').single();
+      conversationId = created?.id ?? null;
+    }
+    if (conversationId) await supabase.from('ai_messages').insert({ conversation_id: conversationId, user_id: session.userId, role: 'user', content: question.slice(0, 8000) });
+  }
+
   const encoder = new TextEncoder();
   const body = new ReadableStream<Uint8Array>({
     async start(controller) {
       const send = (e: unknown) => controller.enqueue(encoder.encode(`${JSON.stringify(e)}\n`));
-      let meta: { requestId: string; intent: string; mode: string } | null = null;
+      let meta: { requestId: string; intent: string; mode: string; model?: string } | null = null;
+      let answer = '';
+      if (conversationId) send({ type: 'conversation', id: conversationId });
       try {
-        for await (const ev of handle(session, parsed.data.messages, parsed.data.page)) {
+        for await (const ev of handle(session, parsed.data.messages, parsed.data.page, prefs)) {
           if (ev.type === 'meta') meta = ev;
+          if (ev.type === 'text') answer += ev.delta;
           send(ev);
+          if (ev.type === 'done' && conversationId && answer.trim()) {
+            await supabase.from('ai_messages').insert({ conversation_id: conversationId, user_id: session.userId, role: 'assistant', content: answer.slice(0, 8000) });
+          }
           if (ev.type === 'done' && meta) {
             await supabase.rpc('log_ai_event', {
               p_id: meta.requestId, p_intent: meta.intent, p_mode: meta.mode, p_outcome: ev.usage.outcome,
-              p_provider: meta.mode === 'model' ? provider.name : null, p_model: meta.mode === 'model' ? provider.model : null,
+              p_provider: meta.mode === 'model' ? provider.name : null, p_model: meta.mode === 'model' ? meta.model ?? provider.model : null,
               p_input: ev.usage.input, p_output: ev.usage.output, p_tools: ev.usage.tools, p_latency: ev.usage.latencyMs, p_page: parsed.data.page ?? null,
             });
           }

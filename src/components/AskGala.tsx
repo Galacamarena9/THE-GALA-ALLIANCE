@@ -76,19 +76,44 @@ function Drafts({ items }: { items: Draft[] }) {
   );
 }
 
+const NEGATIVE_REASONS = [
+  { id: 'wrong', label: 'Información incorrecta' },
+  { id: 'not_useful', label: 'Le falta contexto / no me sirve' },
+  { id: 'outdated', label: 'Información desactualizada' },
+  { id: 'unsafe', label: 'Inseguro o inapropiado' },
+  { id: 'other', label: 'Otro motivo' },
+] as const;
+
 function Feedback({ requestId }: { requestId: string }) {
-  const [sent, setSent] = useState<0 | 1 | -1>(0);
-  if (sent) return <span className="text-[11px] text-faint">Gracias por tu opinión.</span>;
+  const [state, setState] = useState<'idle' | 'why' | 'sent'>('idle');
+  if (state === 'sent') return <span className="text-[11px] text-faint" role="status">Gracias por tu opinión.</span>;
+  if (state === 'why') {
+    return (
+      <span className="inline-flex flex-wrap items-center gap-1.5 text-[11px] text-faint">¿Qué ha fallado?
+        {NEGATIVE_REASONS.map((r) => (
+          <button key={r.id} onClick={() => { setState('sent'); void sendAiFeedback({ requestId, rating: -1, reason: r.id }); }} className="rounded-full border border-line px-2 py-0.5 hover:border-brass hover:text-paper">{r.label}</button>
+        ))}
+      </span>
+    );
+  }
   return (
     <span className="inline-flex items-center gap-2 text-[11px] text-faint">¿Te ha servido?
-      <button aria-label="Útil" onClick={() => { setSent(1); void sendAiFeedback({ requestId, rating: 1, reason: 'helpful' }); }} className="rounded px-1.5 py-0.5 hover:text-paper">👍</button>
-      <button aria-label="No útil" onClick={() => { setSent(-1); void sendAiFeedback({ requestId, rating: -1, reason: 'not_useful' }); }} className="rounded px-1.5 py-0.5 hover:text-paper">👎</button>
+      <button aria-label="Útil" onClick={() => { setState('sent'); void sendAiFeedback({ requestId, rating: 1, reason: 'helpful' }); }} className="rounded px-1.5 py-0.5 hover:text-paper">👍</button>
+      <button aria-label="No útil" onClick={() => setState('why')} className="rounded px-1.5 py-0.5 hover:text-paper">👎</button>
     </span>
   );
 }
 
-export function AskGala({ compact = false, initialQuestion = '', context = 'default' }: { compact?: boolean; initialQuestion?: string; context?: 'default' | 'process' | 'match' | 'recruit' }) {
-  const [messages, setMessages] = useState<Msg[]>([]);
+export type SavedMsg = { role: 'user' | 'assistant'; content: string };
+
+export function AskGala({ compact = false, initialQuestion = '', context = 'default', conversationId: initialConversation, initialMessages = [], historyOn = false }: {
+  compact?: boolean; initialQuestion?: string; context?: 'default' | 'process' | 'match' | 'recruit';
+  /** Conversación guardada que se retoma (solo con historial activado). */
+  conversationId?: string; initialMessages?: SavedMsg[]; historyOn?: boolean;
+}) {
+  const [messages, setMessages] = useState<Msg[]>(() => initialMessages.map((m) => m.role === 'user' ? { role: 'user', content: m.content } : { role: 'assistant', content: m.content, a: { text: m.content, sources: [], proposals: [], drafts: [], mode: 'saved' } }));
+  const [conversationId, setConversationId] = useState<string | undefined>(initialConversation);
+  const abortRef = useRef<AbortController | null>(null);
   const [input, setInput] = useState(initialQuestion);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -105,10 +130,12 @@ export function AskGala({ compact = false, initialQuestion = '', context = 'defa
     paint();
     setInput('');
     setBusy(true);
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
     try {
       const res = await fetch('/api/gala-ia', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: 'chat', page: page?.slice(0, 120), messages: history.slice(-12).map((m) => ({ role: m.role, content: m.content || '…' })) }),
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: ctrl.signal,
+        body: JSON.stringify({ mode: 'chat', page: page?.slice(0, 120), conversationId, messages: history.slice(-12).map((m) => ({ role: m.role, content: m.content || '…' })) }),
       });
       if (!res.ok || !res.body) {
         const j = await res.json().catch(() => ({}));
@@ -125,7 +152,8 @@ export function AskGala({ compact = false, initialQuestion = '', context = 'defa
         for (const line of lines) {
           if (!line.trim()) continue;
           const ev = JSON.parse(line);
-          if (ev.type === 'meta') a = { ...a, requestId: ev.requestId, mode: ev.mode };
+          if (ev.type === 'conversation') setConversationId(ev.id);
+          else if (ev.type === 'meta') a = { ...a, requestId: ev.requestId, mode: ev.mode };
           else if (ev.type === 'text') a = { ...a, text: a.text + ev.delta, status: undefined };
           else if (ev.type === 'status') a = { ...a, status: ev.text };
           else if (ev.type === 'sources') a = { ...a, sources: ev.items };
@@ -137,10 +165,17 @@ export function AskGala({ compact = false, initialQuestion = '', context = 'defa
         endRef.current?.scrollIntoView({ block: 'nearest' });
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error');
-      setMessages(history.slice(0, -1));
-      setInput(q);
+      if (ctrl.signal.aborted) {
+        // Detenido por el usuario: se conserva lo recibido y se marca como incompleto (no es una respuesta definitiva).
+        a = { ...a, status: undefined, error: 'Respuesta detenida: puede estar incompleta.' };
+        paint();
+      } else {
+        setError(e instanceof Error ? e.message : 'Error');
+        setMessages(history.slice(0, -1));
+        setInput(q);
+      }
     } finally {
+      abortRef.current = null;
       setBusy(false);
     }
   }
@@ -190,9 +225,11 @@ export function AskGala({ compact = false, initialQuestion = '', context = 'defa
       {error && <p className="mb-2 text-sm text-danger" role="alert">{error}</p>}
       <form onSubmit={(e) => { e.preventDefault(); void ask(input); }} className="flex gap-2">
         <input value={input} onChange={(e) => setInput(e.target.value)} maxLength={2000} placeholder="Pregunta sobre tu proceso, universidades, plazos… (ES/EN)" aria-label="Pregunta para Gala IA" className={inputClass} />
-        <Button type="submit" disabled={busy || !input.trim()}>{busy ? '…' : 'Preguntar'}</Button>
+        {busy
+          ? <Button type="button" variant="secondary" onClick={() => abortRef.current?.abort()}>Detener</Button>
+          : <Button type="submit" disabled={!input.trim()}>Preguntar</Button>}
       </form>
-      <p className="mt-2 text-xs text-faint">Gala IA usa tus datos de Gala y la guía con fuentes oficiales. Puede equivocarse: comprueba lo importante. No es asesoramiento legal ni migratorio. No guardamos el texto de tus conversaciones.</p>
+      <p className="mt-2 text-xs text-faint">Gala IA usa tus datos de Gala y la guía con fuentes oficiales. Puede equivocarse: comprueba lo importante. No es asesoramiento legal ni migratorio. {historyOn ? 'Tu historial está activado: solo tú lo ves y se borra a los 90 días sin uso.' : 'No guardamos el texto de tus conversaciones.'}</p>
     </div>
   );
 }

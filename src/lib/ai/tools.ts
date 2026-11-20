@@ -148,7 +148,7 @@ export async function runTool(name: string, input: Record<string, unknown>, ctx:
     case 'search_knowledge': {
       const hits = searchKnowledge(String(input.query ?? ''), 3);
       return {
-        data: { results: hits.map((h) => ({ chapter: h.chapter, section: h.heading, text: h.text, reviewed: h.reviewed, review_pending: h.stale, guide_url: `/guia/${h.slug}` })) },
+        data: { results: hits.map((h) => ({ chapter: h.chapter, section: h.heading, text: h.text, applies_to: h.systems, version: h.version, reviewed: h.reviewed, review_pending: h.stale, guide_url: `/guia/${h.slug}` })) },
         sources: hits.flatMap((h) => h.sources.map((x) => ({ ...x, reviewed: h.reviewed, stale: h.stale }))).filter((x, i, a) => a.findIndex((y) => y.url === x.url) === i).slice(0, 4),
       };
     }

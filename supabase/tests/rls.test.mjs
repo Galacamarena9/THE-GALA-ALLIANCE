@@ -1485,6 +1485,21 @@ try {
     await expectError(() => as(u.adult, `update saved_items set match_snapshot = to_jsonb(repeat('x', 20000)) where athlete_id = $1`, [u.adult]));
   });
 
+  // ---------------------------------------------------------------- Fase 06 · historial de Gala AI (opcional)
+  await check('gala ai: sin activar el historial no se puede guardar nada', async () => {
+    await expectError(() => as(u.adult, `insert into ai_conversations (user_id, title) values ($1, 'x')`, [u.adult]), /history_disabled/);
+  });
+  await check('gala ai: con historial, solo el dueño ve y escribe; desactivarlo lo borra todo', async () => {
+    await as(u.adult, `insert into ai_preferences (user_id, save_history) values ($1, true) on conflict (user_id) do update set save_history = true`, [u.adult]);
+    const cid = (await as(u.adult, `insert into ai_conversations (user_id, title) values ($1, 'Plazos') returning id`, [u.adult])).rows[0].id;
+    await as(u.adult, `insert into ai_messages (conversation_id, user_id, role, content) values ($1, $2, 'user', 'hola')`, [cid, u.adult]);
+    eq((await as(u.parent, `select count(*)::int n from ai_messages`)).rows[0].n, 0, 'la familia no lo ve');
+    eq((await as(u.uni, `select count(*)::int n from ai_conversations`)).rows[0].n, 0, 'una organización no lo ve');
+    await expectError(() => as(u.uni, `insert into ai_messages (conversation_id, user_id, role, content) values ($1, $2, 'user', 'x')`, [cid, u.uni]));
+    await as(u.adult, `update ai_preferences set save_history = false where user_id = $1`, [u.adult]);
+    eq((await as(u.adult, `select count(*)::int n from ai_conversations`)).rows[0].n, 0, 'al desactivar se borra');
+  });
+
 } finally {
   console.log(results.join('\n'));
   console.log(`\n${passed} pruebas OK · ${failed} fallidas`);

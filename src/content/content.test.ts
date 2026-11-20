@@ -54,3 +54,14 @@ test('la checklist documental calcula fechas antes del 1 de agosto de la promoci
   assert.equal(suggestedDueDate('highlight_video', 2027), '2025-12-01');
   assert.equal(suggestedDueDate('i20', null), null);
 });
+
+test('base de conocimiento: cada capítulo de la guía tiene metadatos de control (sistema, versión, estado)', async () => {
+  const { GUIDE } = await import('./guide.ts');
+  const { GUIDE_META } = await import('./guide-meta.ts');
+  for (const c of GUIDE) {
+    const m = GUIDE_META[c.slug];
+    assert.ok(m, `faltan metadatos para ${c.slug}`);
+    assert.ok(m.version >= 1 && m.systems.length > 0, `metadatos incompletos en ${c.slug}`);
+  }
+  assert.deepEqual(Object.keys(GUIDE_META).sort(), GUIDE.map((c) => c.slug).sort(), 'metadatos huérfanos');
+});
