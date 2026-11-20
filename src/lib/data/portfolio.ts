@@ -2,7 +2,7 @@ import 'server-only';
 import { cache } from 'react';
 import { createClient } from '@/lib/supabase/server';
 import { myOrganizations, type MyOrg } from '@/lib/data/orgs';
-import { isRepStatus, portfolioStats, type AgencyNote, type PortfolioEntry, type PortfolioStats } from '@/lib/domain/portfolio';
+import { toRepStatus, portfolioStats, type AgencyNote, type PortfolioEntry, type PortfolioStats } from '@/lib/domain/portfolio';
 
 export interface PortfolioData {
   agencies: MyOrg[];
@@ -80,7 +80,7 @@ export const loadPortfolio = cache(async (userId: string): Promise<PortfolioData
   const agencyName = new Map(agencies.map((a) => [a.id, a.name]));
 
   const entries: PortfolioEntry[] = repRows
-    .filter((r) => isRepStatus(r.status))
+    .filter((r) => toRepStatus(r.status) !== null)
     .map((r) => {
       const d = dirById.get(r.athlete_id);
       const p = profById.get(r.athlete_id);
@@ -90,7 +90,7 @@ export const loadPortfolio = cache(async (userId: string): Promise<PortfolioData
         agencyName: agencyName.get(r.agency_id) ?? 'Agencia',
         agentId: r.agent_id,
         athleteId: r.athlete_id,
-        status: r.status as PortfolioEntry['status'],
+        status: toRepStatus(r.status) as PortfolioEntry['status'],
         message: r.message,
         createdAt: r.created_at,
         respondedAt: r.responded_at,

@@ -350,20 +350,29 @@ try {
 
   results.push('\nCartera de agentes');
   let agencyId; let repId;
+  const inOneYear = new Date(Date.now() + 365 * 864e5).toISOString().slice(0, 10);
+  const BASIC_PERMS = ['passport.view', 'opportunities.manage', 'pipeline.view', 'pipeline.manage', 'tasks.manage', 'deadlines.manage', 'messages.participate'];
+  const repRequest = async (agent, agency, athlete, o = {}) => (await as(agent,
+    `select representation_request($1, $2, $3, $4::text[], $5::text[], $6::text[], $7::text[], $8::date, coalesce($9::date, current_date), $10::uuid) id`,
+    [agency, athlete, o.type || 'non_exclusive', o.sports || ['basketball'], o.territories || ['WORLD'], o.categories || ['university', 'club', 'academy'],
+     o.perms || BASIC_PERMS, o.end || inOneYear, o.start || null, o.opportunity || null])).rows[0].id;
   await check('el agente crea su agencia y pide representar a un adulto', async () => {
     agencyId = (await as(u.agent, `insert into organizations (name, type, created_by) values ('Top Agency', 'agency', $1) returning id`, [u.agent])).rows[0].id;
-    repId = (await as(u.agent, `insert into agent_representations (agency_id, agent_id, athlete_id, status) values ($1, $2, $3, 'active') returning id, status`,
-      [agencyId, u.agent, u.adult])).rows[0].id;
+    await expectError(() => repRequest(u.agent, agencyId, u.adult), /agency_not_verified/);
+    await as(u.admin, `update organizations set verification_status = 'verified' where id = $1`, [agencyId]);
+    repId = await repRequest(u.agent, agencyId, u.adult);
     eq((await as(u.agent, `select status from agent_representations where id = $1`, [repId])).rows[0].status, 'requested', 'no puede autoactivarse:');
+    eq(await repRequest(u.agent, agencyId, u.adult), repId, 'idempotente:');
   });
-  await check('un agente no puede pedir representar a un menor', async () => {
-    await expectError(() => as(u.agent, `insert into agent_representations (agency_id, agent_id, athlete_id) values ($1, $2, $3)`, [agencyId, u.agent, u.minor]));
+  await check('nadie inserta representaciones a mano: solo la función transaccional', async () => {
+    await expectError(() => as(u.agent, `insert into agent_representations (agency_id, agent_id, athlete_id, end_date) values ($1, $2, $3, current_date + 30)`, [agencyId, u.agent, u.minor]), /representation_rpc_only|row-level/);
   });
   await check('el agente no puede aceptar en nombre del atleta', async () => {
-    await expectError(() => as(u.agent, `update agent_representations set status = 'active' where id = $1`, [repId]), /transition_not_allowed/);
+    await expectError(() => as(u.agent, `update agent_representations set status = 'active' where id = $1`, [repId]), /representation_rpc_only/);
+    await expectError(() => as(u.agent, `select representation_respond($1, true)`, [repId]), /not_found/);
   });
   await check('el atleta acepta y la representación queda activa', async () => {
-    await as(u.adult, `update agent_representations set status = 'active' where id = $1`, [repId]);
+    eq((await as(u.adult, `select representation_respond($1, true) s`, [repId])).rows[0].s, 'active');
     eq((await as(u.agent, `select status from agent_representations where id = $1`, [repId])).rows[0].status, 'active');
   });
   await check('otra organización no ve la cartera del agente', async () => {
@@ -522,9 +531,10 @@ try {
     await as(u.coach, `insert into contact_messages (request_id, sender_id, body) values ($1, $2, 'Gracias por aceptar')`, [reqId, u.coach]);
     eq((await as(u.adult, `select count(*)::int n from contact_messages where request_id = $1`, [reqId])).rows[0].n, 1);
   });
+  const unvAgency = (await as(u.agent, `insert into organizations (name, type, created_by) values ('Agencia sin verificar', 'agency', $1) returning id`, [u.agent])).rows[0].id;
   await check('una organización sin verificar no puede contactar', async () => {
     await expectError(() => as(u.agent, `insert into contact_requests (organization_id, requested_by, athlete_id, message)
-      values ($1, $2, $3, 'Quiero representarte, hablemos por favor.')`, [agencyId, u.agent, u.adult]), /verified_organization_required/);
+      values ($1, $2, $3, 'Quiero representarte, hablemos por favor.')`, [unvAgency, u.agent, u.adult]), /verified_organization_required/);
   });
   let minorReq;
   await check('contactar a un menor exige familia vinculada y su aprobación', async () => {
@@ -555,7 +565,7 @@ try {
 
   results.push('\nActualidad');
   await check('solo organizaciones verificadas publican; la editorial es del admin', async () => {
-    await expectError(() => as(u.agent, `insert into news_posts (organization_id, author_id, kind, title, body) values ($1, $2, 'announcement', 'Nueva agencia', 'Abrimos oficina en Valencia para atletas.')`, [agencyId, u.agent]), /verified_organization_required/);
+    await expectError(() => as(u.agent, `insert into news_posts (organization_id, author_id, kind, title, body) values ($1, $2, 'announcement', 'Nueva agencia', 'Abrimos oficina en Valencia para atletas.')`, [unvAgency, u.agent]), /verified_organization_required/);
     await expectError(() => as(u.brand, `insert into news_posts (author_id, kind, title, body) values ($1, 'story', 'Editorial falsa', 'Contenido sin organización de prueba.')`, [u.brand]));
     await as(u.uni, `insert into news_posts (organization_id, author_id, kind, title, body) values ($1, $2, 'announcement', 'Jornada de puertas abiertas', 'Visita virtual del campus el 1 de diciembre.')`, [uniId, u.uni]);
   });
@@ -1117,7 +1127,7 @@ try {
     eq(m.contacts_total, 1);
   });
   await check('REVOCACIÓN: con la relación terminada no se abren procesos nuevos', async () => {
-    await as(u.adult, `update agent_representations set status = 'ended' where id = $1`, [repId]);
+    eq((await as(u.adult, `select representation_end($1, 'Fin de la relación') s`, [repId])).rows[0].s, 'revoked');
     await expectError(() => as(u.agent, `insert into recruiting_cases (agency_id, athlete_id, institution_name, sport_id, cycle) values ($1, $2, 'Otra University', 'basketball', '2027-28')`, [agencyId, u.adult]), /representation_required/);
   });
   results.push('\nPassport v2: bloques, procedencia, vídeos, objetivos y visitas');
@@ -1616,8 +1626,8 @@ try {
   await check('11A agente: con representación activa propone; si cuesta dinero el atleta acepta antes; no inscribe a quien no representa', async () => {
     agencyT = (await as(u.agent, `insert into organizations (name, type, created_by) values ('Agency Trials', 'agency', $1) returning id`, [u.agent])).rows[0].id;
     await expectError(() => as(u.agent, `select trial_register($1, $2, $3)`, [paidTrial, u.adult, agencyT]), /not_allowed/);
-    await as(u.agent, `insert into agent_representations (agency_id, agent_id, athlete_id) values ($1, $2, $3)`, [agencyT, u.agent, u.adult]);
-    await as(u.adult, `update agent_representations set status = 'active', responded_at = now() where agency_id = $1 and athlete_id = $2`, [agencyT, u.adult]);
+    await as(u.admin, `update organizations set verification_status = 'verified' where id = $1`, [agencyT]);
+    { const rid = await repRequest(u.agent, agencyT, u.adult); await as(u.adult, `select representation_respond($1, true)`, [rid]); }
     const t3 = await makeOpp(u.coach, academyC, { price: 'paid', amount: 40, title: 'Trial agente' });
     eq((await as(u.agent, `select count(*)::int n from agent_representations where agency_id = $1 and athlete_id = $2 and status = 'active'`, [agencyT, u.adult])).rows[0].n, 1, 'representación activa');
     {
@@ -2615,6 +2625,148 @@ try {
     eq((await db.query(`select status from professional_credentials where id = $1`, [c.id])).rows[0].status, 'expired');
     eq((await as(agent2, `select count(*)::int n from professional_credentials where id = $1`, [c.id])).rows[0].n, 0, 'otra agencia no la ve');
     await expectError(() => as(u.adult, `insert into professional_credentials (user_id, issuing_body, credential_type) values ($1, 'X', 'other')`, [u.adult]), /row-level security/);
+  });
+
+  // ---------------------------------------------------------------- Prompt 12A · Modelo de representación
+  results.push('\nPrompt 12A: representación (alcance, menores, exclusividad, caducidad, revocación)');
+  const mkUser = async (name, role, age, sport = 'basketball') => {
+    const id = randomUUID();
+    await db.query(`insert into auth.users (id, email, raw_user_meta_data) values ($1, $2, $3)`, [id, `${name}-${id.slice(0, 6)}@test.dev`, { display_name: name }]);
+    await as(id, `insert into user_roles (user_id, role) values ($1, $2)`, [id, role]);
+    await as(id, `insert into private_profile_data (user_id, date_of_birth) values ($1, $2)`, [id, yearsAgo(age)]);
+    if (role === 'athlete') await as(id, `insert into athlete_profiles (user_id, sport_id, graduation_year, profile_visibility, stats_visibility) values ($1, $2, 2027, 'members', 'members')`, [id, sport]);
+    return id;
+  };
+  const can = async (who, ath, perm, sport = null, country = null, cat = null, opp = null) =>
+    (await as(who, `select agent_can($1, $2, $3, $4, $5, $6::uuid) ok`, [ath, perm, sport, country, cat, opp])).rows[0].ok;
+  await as(u.admin, `update organizations set verification_status = 'verified' where id = $1`, [agency2]);
+  const ra1 = await mkUser('rep-adulto', 'athlete', 22);
+  let rep1;
+  await check('P12A-1 adulto no exclusivo: acepta → activa, agente asignado, acceso solo dentro del alcance', async () => {
+    rep1 = await repRequest(u.agent, agencyId, ra1, { territories: ['US'], categories: ['university'] });
+    eq((await as(u.agent, `select agent_can($1, 'pipeline.view') ok`, [ra1])).rows[0].ok, false, 'sin aceptar no hay acceso');
+    eq((await as(ra1, `select representation_respond($1, true) s`, [rep1])).rows[0].s, 'active');
+    eq((await as(u.agent, `select count(*)::int n from representation_assignments where representation_id = $1 and role = 'primary' and ended_at is null`, [rep1])).rows[0].n, 1, 'primario');
+    eq(await can(u.agent, ra1, 'pipeline.view', 'basketball', 'US', 'university'), true, 'dentro del alcance');
+    eq(await can(u.agent, ra1, 'pipeline.view', 'basketball', 'ES', 'university'), false, 'otro territorio');
+    eq(await can(u.agent, ra1, 'pipeline.view', 'basketball', 'US', 'club'), false, 'otra categoría');
+    eq(await can(u.agent, ra1, 'documents.view'), false, 'permiso no concedido');
+    eq(await can(agent2, ra1, 'pipeline.view'), false, 'otra agencia');
+    eq((await as(u.brand, `select count(*)::int n from representation_coverage where representation_id = $1`, [rep1])).rows[0].n, 0, 'terceros no ven el alcance');
+  });
+  await check('P12A-9 multideporte: representar baloncesto no da nada en voleibol', async () => {
+    eq(await can(u.agent, ra1, 'pipeline.view', 'basketball'), true);
+    eq(await can(u.agent, ra1, 'pipeline.view', 'volleyball'), false);
+  });
+  await check('P12A ser miembro (incluso admin) de la agencia no basta: hace falta asignación', async () => {
+    const member = await mkUser('agency-member', 'agent', 30);
+    await db.query(`insert into organization_members (organization_id, user_id, member_role, agency_role) values ($1, $2, 'admin', 'admin')`, [agencyId, member]);
+    eq(await can(member, ra1, 'pipeline.view'), false, 'sin asignación');
+    await as(u.agent, `select representation_assign($1, $2, 'secondary')`, [rep1, member]);
+    eq(await can(member, ra1, 'pipeline.view'), true, 'asignado');
+    await expectError(() => as(u.agent, `select representation_assign($1, $2, 'secondary')`, [rep1, agent2]), /not_agency_member/);
+    await expectError(() => as(agent2, `select representation_assign($1, $2, 'primary')`, [rep1, agent2]), /not_allowed/);
+  });
+  await check('P12A-2 menor: atleta acepta, la familia aprueba alcance concreto y la agencia recibe solo eso', async () => {
+    const teen = await mkUser('rep-menor', 'athlete', 16); const mom = await mkUser('rep-madre', 'parent', 45);
+    const tk = (await as(mom, `insert into parent_athlete_links (parent_id, invited_by) values ($1, $1) returning invitation_token`, [mom])).rows[0].invitation_token;
+    await as(teen, `select accept_family_invitation($1)`, [tk]);
+    await expectError(() => repRequest(u.agent, agencyId, teen), /not_found/); // un menor no es descubrible por agencias
+    await expectError(() => as(agent2, `select representation_invite($1, $2)`, [agencyId, teen]), /not_allowed/);
+    const inv = (await as(mom, `select representation_invite($1, $2) id`, [agencyId, teen])).rows[0].id;
+    eq((await as(mom, `select representation_invite($1, $2) id`, [agencyId, teen])).rows[0].id, inv, 'idempotente');
+    await expectError(() => repRequest(agent2, agency2, teen), /not_found/); // la invitación es solo para esa agencia
+    const r = await repRequest(u.agent, agencyId, teen, { perms: ['passport.view', 'pipeline.view', 'documents.view'] });
+    eq((await as(teen, `select representation_respond($1, true) s`, [r])).rows[0].s, 'pending_guardian');
+    eq(await can(u.agent, teen, 'passport.view'), false, 'sin aprobación familiar no hay acceso');
+    await expectError(() => as(u.agent, `select representation_guardian_decide($1, true)`, [r]), /not_found/);
+    await expectError(() => as(teen, `select representation_guardian_decide($1, true)`, [r]), /not_found/);
+    await as(mom, `select representation_set_permissions($1, array['passport.view'])`, [r]);
+    eq((await as(mom, `select representation_guardian_decide($1, true) s`, [r])).rows[0].s, 'active');
+    eq(await can(u.agent, teen, 'passport.view'), true);
+    eq(await can(u.agent, teen, 'pipeline.view'), false, 'la familia lo retiró');
+    eq(await can(u.agent, teen, 'documents.view'), false);
+    eq((await db.query(`select count(*)::int n from consents where user_id = $1 and guardian_id = $2 and purpose = 'representation' and target_id = $3 and granted`, [teen, mom, r])).rows[0].n, 1, 'consentimiento registrado');
+    eq((await db.query(`select status from representation_invitations where id = $1`, [inv])).rows[0].status, 'used');
+  });
+  await check('P12A-3 reparto territorial: Europa-clubes y EE. UU.-universidades conviven aunque ambas sean exclusivas', async () => {
+    const a = await mkUser('rep-split', 'athlete', 20);
+    const r1 = await repRequest(u.agent, agencyId, a, { type: 'exclusive', territories: ['EUROPE'], categories: ['club'] });
+    const r2 = await repRequest(agent2, agency2, a, { type: 'exclusive', territories: ['US'], categories: ['university'] });
+    eq((await as(a, `select representation_respond($1, true) s`, [r1])).rows[0].s, 'active');
+    eq((await as(a, `select representation_respond($1, true) s`, [r2])).rows[0].s, 'active');
+    eq(await can(u.agent, a, 'pipeline.view', 'basketball', 'ES', 'club'), true);
+    eq(await can(u.agent, a, 'pipeline.view', 'basketball', 'US', 'university'), false);
+    eq(await can(agent2, a, 'pipeline.view', 'basketball', 'US', 'university'), true);
+  });
+  await check('P12A-4 conflicto exclusivo: mundo-exclusiva frente a España-exclusiva → revisión, sin activar', async () => {
+    const a = await mkUser('rep-conflict', 'athlete', 21);
+    const r1 = await repRequest(u.agent, agencyId, a, { type: 'exclusive', territories: ['WORLD'], categories: ['club', 'university'] });
+    eq((await as(a, `select representation_respond($1, true) s`, [r1])).rows[0].s, 'active');
+    const r2 = await repRequest(agent2, agency2, a, { type: 'exclusive', territories: ['ES'], categories: ['club'] });
+    eq((await as(a, `select representation_respond($1, true) s`, [r2])).rows[0].s, 'pending_review');
+    eq(await can(agent2, a, 'pipeline.view'), false, 'no se activa');
+    const c = (await as(u.admin, `select id from representation_conflicts where representation_id = $1 and status = 'open'`, [r2])).rows;
+    eq(c.length, 1, 'conflicto visible para Gala');
+    await expectError(() => as(agent2, `select representation_conflict_resolve($1, 'x', $2)`, [c[0].id, r2]), /admin_only/);
+  });
+  await check('P12A-5 caducada: el agente pierde acceso nuevo; atleta y procesos permanecen; el job es idempotente', async () => {
+    const a = await mkUser('rep-expira', 'athlete', 23);
+    const r = await repRequest(u.agent, agencyId, a);
+    await as(a, `select representation_respond($1, true)`, [r]);
+    await db.query(`update agent_representations set start_date = current_date - 400, end_date = current_date - 1 where id = $1`, [r]);
+    eq(await can(u.agent, a, 'pipeline.view'), false, 'fuera de fechas ya no es efectiva');
+    eq((await db.query(`select representation_expire_due() n`)).rows[0].n >= 1, true);
+    eq((await db.query(`select representation_expire_due() n`)).rows[0].n, 0, 'idempotente');
+    eq((await db.query(`select status from agent_representations where id = $1`, [r])).rows[0].status, 'expired');
+    eq((await db.query(`select count(*)::int n from representation_assignments where representation_id = $1 and ended_at is null`, [r])).rows[0].n, 0);
+    eq((await db.query(`select count(*)::int n from athlete_profiles where user_id = $1`, [a])).rows[0].n, 1, 'el atleta sigue');
+    await expectError(() => as(a, `select representation_renew($1, current_date + 100)`, [r]), /invalid_renewal/);
+  });
+  await check('P12A-8 reducción de alcance: sin documents.view pero con pipeline.view', async () => {
+    const a = await mkUser('rep-scope', 'athlete', 24);
+    const r = await repRequest(u.agent, agencyId, a, { perms: ['pipeline.view', 'documents.view'] });
+    await as(a, `select representation_respond($1, true)`, [r]);
+    eq(await can(u.agent, a, 'documents.view'), true);
+    await expectError(() => as(u.agent, `select representation_set_permissions($1, array['pipeline.view','documents.view','offers.view'])`, [r]), /not_found/);
+    await as(a, `select representation_set_permissions($1, array['pipeline.view'])`, [r]);
+    eq(await can(u.agent, a, 'documents.view'), false);
+    eq(await can(u.agent, a, 'pipeline.view'), true);
+    eq((await db.query(`select count(*)::int n from representation_permissions where representation_id = $1 and permission = 'documents.view' and status = 'revoked'`, [r])).rows[0].n, 1, 'historial');
+  });
+  await check('P12A-7 el agente sale de la agencia: su asignación termina, la representación sigue y se asigna otro primario', async () => {
+    const a = await mkUser('rep-leave', 'athlete', 25);
+    const leaver = await mkUser('rep-leaver', 'agent', 33);
+    await db.query(`insert into organization_members (organization_id, user_id, member_role, agency_role) values ($1, $2, 'recruiter', 'athlete_manager')`, [agencyId, leaver]);
+    const r = await repRequest(u.agent, agencyId, a);
+    await as(a, `select representation_respond($1, true)`, [r]);
+    await as(u.agent, `select representation_assign($1, $2, 'primary')`, [r, leaver]);
+    eq(await can(leaver, a, 'pipeline.view'), true);
+    eq(await can(u.agent, a, 'pipeline.view'), false, 'el primario anterior ya no está asignado');
+    await db.query(`delete from organization_members where organization_id = $1 and user_id = $2`, [agencyId, leaver]);
+    eq(await can(leaver, a, 'pipeline.view'), false, 'salió');
+    eq((await db.query(`select status from agent_representations where id = $1`, [r])).rows[0].status, 'active', 'sigue activa');
+    await as(u.agent, `select representation_assign($1, $2, 'primary')`, [r, u.agent]);
+    eq(await can(u.agent, a, 'pipeline.view'), true, 'nuevo primario');
+    eq((await db.query(`select count(*)::int n from audit_logs where entity_id = $1 and action in ('primary_agent_assigned')`, [r])).rows[0].n, 2, 'historial');
+  });
+  await check('P12A-10 oportunidad concreta: el alcance no se extiende a otras organizaciones', async () => {
+    const opps = (await db.query(`select id from opportunities order by created_at limit 2`)).rows.map((x) => x.id);
+    const a = await mkUser('rep-opp', 'athlete', 22);
+    await expectError(() => repRequest(u.agent, agencyId, a, { type: 'opportunity_specific' }), /check constraint|rep_opportunity_specific/);
+    const r = await repRequest(u.agent, agencyId, a, { type: 'opportunity_specific', opportunity: opps[0] });
+    await as(a, `select representation_respond($1, true)`, [r]);
+    eq(await can(u.agent, a, 'pipeline.view', null, null, null, opps[0]), true);
+    eq(await can(u.agent, a, 'pipeline.view', null, null, null, opps[1]), false);
+  });
+  await check('P12A-6 revocada: acceso fuera, asignaciones cerradas, sin pérdida de datos; nadie más puede revocar', async () => {
+    await expectError(() => as(agent2, `select representation_end($1)`, [rep1]), /not_allowed/);
+    eq((await as(ra1, `select representation_end($1, 'Cambio de agencia') s`, [rep1])).rows[0].s, 'revoked');
+    eq(await can(u.agent, ra1, 'pipeline.view'), false);
+    eq((await db.query(`select count(*)::int n from representation_assignments where representation_id = $1 and ended_at is null`, [rep1])).rows[0].n, 0);
+    eq((await as(ra1, `select representation_end($1) s`, [rep1])).rows[0].s, 'revoked', 'idempotente');
+    eq((await as(u.agent, `select status from agent_representations where id = $1`, [rep1])).rows[0].status, 'revoked', 'el historial sigue visible para la agencia');
+    eq(await repRequest(u.agent, agencyId, ra1) !== rep1, true, 'una nueva solicitud es una relación nueva');
   });
 
   // ---------------------------------------------------------------- Prompt 9 · Supabase & PostgreSQL

@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  toRepStatus, repStatusDetail,
   buildTimeline, DEFAULT_FILTERS, dueText, filterPortfolio, filtersToQuery, friendlyDbError, gradOptions, initials,
   isOverdue, nextSteps, parseFilters, portfolioStats, sportOptions, statusCounts, type AgencyNote, type PortfolioEntry,
 } from './portfolio.ts';
@@ -104,4 +105,17 @@ test('utilidades: iniciales, vencimientos y errores legibles', () => {
   assert.match(dueText('2026-11-01', now), /^Vencido/);
   assert.match(friendlyDbError('representation_transition_not_allowed'), /Solo el atleta/);
   assert.match(friendlyDbError('new row violates row-level security policy'), /permiso/);
+});
+
+test('12A · los diez estados de la base de datos se agrupan en cuatro para la cartera', () => {
+  assert.equal(toRepStatus('pending_guardian'), 'requested');
+  assert.equal(toRepStatus('pending_review'), 'requested');
+  assert.equal(toRepStatus('suspended'), 'active');
+  assert.equal(toRepStatus('revoked'), 'ended');
+  assert.equal(toRepStatus('expired'), 'ended');
+  assert.equal(toRepStatus('terminated'), 'ended');
+  assert.equal(toRepStatus('declined'), 'declined');
+  assert.equal(toRepStatus('inventado'), null);
+  assert.equal(repStatusDetail('active'), null);
+  assert.match(repStatusDetail('pending_guardian') ?? '', /familia/);
 });

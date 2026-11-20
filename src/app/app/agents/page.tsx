@@ -4,7 +4,8 @@ import { createClient } from '@/lib/supabase/server';
 import { Badge, Card, CardTitle, EmptyState, Notice, PageHeader } from '@/components/ui';
 import { respondRepresentation } from '@/app/actions/marketplace';
 import { StatusPill } from '@/components/portfolio';
-import { isRepStatus } from '@/lib/domain/portfolio';
+import { REP_PERMISSIONS, REP_TYPE_LABEL, repStatusDetail, toRepStatus } from '@/lib/domain/portfolio';
+import { RepPermissionsForm } from '@/components/agency/RepPermissionsForm';
 import { CASE_STAGES, stageLabel } from '@/lib/domain/agency-cases';
 
 export const metadata: Metadata = { title: 'Agentes' };
@@ -14,7 +15,7 @@ export default async function AthleteAgentsPage() {
   const supabase = await createClient();
   const { data: reps } = await supabase
     .from('agent_representations')
-    .select('id, status, message, created_at, organizations(name, website, verification_status)')
+    .select('id, status, message, created_at, representation_type, start_date, end_date, organizations(name, website, verification_status), representation_coverage(dimension, value), representation_permissions(permission, status)')
     .eq('athlete_id', session.userId)
     .order('created_at', { ascending: false });
   // Solo llegan los procesos que la agencia ha decidido compartir (lo garantiza la RLS).
@@ -32,19 +33,35 @@ export default async function AthleteAgentsPage() {
   return (
     <>
       <PageHeader kicker="Agentes" title="Quién quiere representarte" description="Tú decides. Nadie te representa sin tu aceptación expresa, y puedes terminar la relación cuando quieras." />
-      {session.isMinor && <div className="mb-5"><Notice tone="neutral">Mientras seas menor de edad, los agentes no pueden proponerte representación en la plataforma.</Notice></div>}
+      {session.isMinor && <div className="mb-5"><Notice tone="neutral">Las agencias no pueden encontrarte mientras seas menor. Si quieres una propuesta, tu familia o tú podéis invitar a una agencia verificada, y nada se activa sin la aprobación de tu familia.</Notice></div>}
       <div className="mb-5"><Notice tone="neutral">Antes de firmar con un agente, consulta las normas de agentes de la NCAA/NAIA y de tu federación: algunos acuerdos pueden afectar a tu elegibilidad.</Notice></div>
       {reps?.length ? (
         <ul className="space-y-4">
           {reps.map((r) => {
             const org = r.organizations as unknown as { name: string; website: string | null; verification_status: string } | null;
+            const ui = toRepStatus(r.status);
+            const detail = repStatusDetail(r.status);
+            const cov = (r.representation_coverage ?? []) as { dimension: string; value: string }[];
+            const perms = ((r.representation_permissions ?? []) as { permission: string; status: string }[]).filter((p) => p.status === 'active').map((p) => p.permission);
+            const scope = (d: string) => cov.filter((c) => c.dimension === d).map((c) => (c.value === 'WORLD' ? 'Todo el mundo' : c.value)).join(', ');
+            const open = r.status === 'active' || r.status === 'suspended' || r.status === 'pending_review' || r.status === 'pending_guardian';
             return (
               <li key={r.id}>
                 <Card>
-                  <CardTitle kicker={org?.verification_status === 'verified' ? 'Agencia verificada ✓' : 'Agencia sin verificar'} action={isRepStatus(r.status) ? <StatusPill status={r.status} /> : <Badge>{r.status}</Badge>}>
+                  <CardTitle kicker={org?.verification_status === 'verified' ? 'Agencia verificada ✓' : 'Agencia sin verificar'} action={ui ? <StatusPill status={ui} /> : <Badge>{r.status}</Badge>}>
                     {org?.name}
                   </CardTitle>
+                  {detail && <p className="mb-2 text-sm text-warn">{detail}</p>}
                   {r.message && <p className="text-sm text-muted">“{r.message}”</p>}
+                  <dl className="mt-3 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+                    <div><dt className="inline text-faint">Tipo: </dt><dd className="inline text-paper">{REP_TYPE_LABEL[r.representation_type] ?? r.representation_type}</dd></div>
+                    <div><dt className="inline text-faint">Vigencia: </dt><dd className="inline text-paper">{r.start_date} → {r.end_date}</dd></div>
+                    {scope('sport') && <div><dt className="inline text-faint">Deporte: </dt><dd className="inline text-paper">{scope('sport')}</dd></div>}
+                    {scope('territory') && <div><dt className="inline text-faint">Territorio: </dt><dd className="inline text-paper">{scope('territory')}</dd></div>}
+                  </dl>
+                  {r.status === 'requested' && perms.length > 0 && (
+                    <p className="mt-2 text-sm text-muted">Si aceptas, podrá: {REP_PERMISSIONS.filter((p) => perms.includes(p.id)).map((p) => p.label.toLowerCase()).join(' · ')}. Podrás quitar cualquiera después.</p>
+                  )}
                   {org?.website && <a href={org.website} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-sm text-brass hover:underline">Web de la agencia ↗</a>}
                   <div className="mt-4 flex gap-2">
                     {r.status === 'requested' && (
@@ -53,8 +70,14 @@ export default async function AthleteAgentsPage() {
                         <form action={respondRepresentation}><input type="hidden" name="id" value={r.id} /><input type="hidden" name="status" value="declined" /><button className="rounded-lg border border-line-strong px-3 py-1.5 text-sm text-paper">Rechazar</button></form>
                       </>
                     )}
-                    {r.status === 'active' && <form action={respondRepresentation}><input type="hidden" name="id" value={r.id} /><input type="hidden" name="status" value="ended" /><button className="text-sm text-faint hover:text-danger">Terminar representación</button></form>}
+                    {open && <form action={respondRepresentation}><input type="hidden" name="id" value={r.id} /><input type="hidden" name="status" value="ended" /><button className="text-sm text-faint hover:text-danger">{r.status === 'active' ? 'Revocar representación' : 'Cancelar'}</button></form>}
                   </div>
+                  {(r.status === 'active' || r.status === 'suspended') && (
+                    <details className="mt-4 rounded-lg border border-line p-3">
+                      <summary className="cursor-pointer text-sm font-medium text-paper">Qué puede hacer esta agencia</summary>
+                      <div className="mt-3"><RepPermissionsForm id={r.id} active={perms} /></div>
+                    </details>
+                  )}
                   {r.status === 'active' && (
                     <p className="mt-3 text-xs text-faint">Si terminas la relación, la agencia conserva el historial de lo hecho, pero no puede abrir procesos nuevos con tu nombre.</p>
                   )}

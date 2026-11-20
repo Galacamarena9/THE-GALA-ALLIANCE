@@ -103,15 +103,12 @@ export async function endRepresentation(_prev: FormState, formData: FormData): P
     .safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: 'Solicitud no válida.' };
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('agent_representations')
-    .update({ status: 'ended' })
-    .eq('id', parsed.data.id)
-    .eq('agency_id', parsed.data.agency_id)
-    .eq('status', parsed.data.from)
-    .select('id');
+  const { data: current } = await supabase.from('agent_representations').select('status').eq('id', parsed.data.id).eq('agency_id', parsed.data.agency_id).maybeSingle();
+  const group = current?.status === 'active' || current?.status === 'suspended' || current?.status === 'disputed' ? 'active'
+    : current?.status === 'requested' || current?.status === 'pending_guardian' || current?.status === 'pending_review' ? 'requested' : null;
+  if (group !== parsed.data.from) return { error: 'El estado ha cambiado mientras tanto. Recarga la página.' };
+  const { error } = await supabase.rpc('representation_end', { p_id: parsed.data.id });
   if (error) return { error: friendlyDbError(error.message) };
-  if (!data?.length) return { error: 'El estado ha cambiado mientras tanto. Recarga la página.' };
   refresh(parsed.data.athlete_id);
   revalidatePath('/app/agents');
   return { ok: true, message: parsed.data.from === 'requested' ? 'Propuesta retirada' : 'Representación finalizada' };

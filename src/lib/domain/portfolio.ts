@@ -25,6 +25,38 @@ export function isRepStatus(v: unknown): v is RepStatus {
   return v === 'requested' || v === 'active' || v === 'declined' || v === 'ended';
 }
 
+/**
+ * 12A: la base de datos distingue diez estados (pending_guardian, pending_review, suspended, expired, revoked…).
+ * La cartera los agrupa en cuatro para no sobrecargar: qué está en marcha, qué espera, qué se cerró.
+ */
+export const DB_REP_STATUSES = ['requested', 'pending_guardian', 'pending_review', 'active', 'suspended', 'disputed',
+  'expired', 'revoked', 'terminated', 'declined'] as const;
+export type DbRepStatus = (typeof DB_REP_STATUSES)[number];
+
+export function toRepStatus(v: unknown): RepStatus | null {
+  switch (v) {
+    case 'requested': case 'pending_guardian': case 'pending_review': return 'requested';
+    case 'active': case 'suspended': case 'disputed': return 'active';
+    case 'declined': return 'declined';
+    case 'expired': case 'revoked': case 'terminated': case 'ended': return 'ended';
+    default: return null;
+  }
+}
+
+/** Matiz para el detalle: por qué está pendiente o cómo terminó. null si el grupo ya lo dice todo. */
+export function repStatusDetail(v: unknown): string | null {
+  switch (v) {
+    case 'pending_guardian': return 'Esperando la aprobación de la familia';
+    case 'pending_review': return 'Gala revisa un solape con otra representación exclusiva';
+    case 'suspended': return 'Suspendida temporalmente por Gala';
+    case 'disputed': return 'En disputa';
+    case 'expired': return 'Caducó en su fecha de fin';
+    case 'revoked': return 'El atleta la revocó';
+    case 'terminated': return 'La agencia la terminó';
+    default: return null;
+  }
+}
+
 export interface PortfolioEntry {
   repId: string;
   agencyId: string;
@@ -338,3 +370,25 @@ export function friendlyDbError(message: string | undefined): string {
   if (m.includes('row-level security') || m.includes('agency_required')) return 'No tienes permiso para hacer esto.';
   return 'No se ha podido guardar. Inténtalo de nuevo.';
 }
+
+/** 12A: permisos que el atleta concede a su agencia, en lenguaje del atleta. */
+export const REP_PERMISSIONS: { id: string; label: string }[] = [
+  { id: 'passport.view', label: 'Ver tu Passport completo' },
+  { id: 'passport.suggest_edit', label: 'Sugerirte cambios en el Passport' },
+  { id: 'opportunities.manage', label: 'Buscar y preparar oportunidades para ti' },
+  { id: 'pipeline.view', label: 'Ver tus procesos con universidades y clubes' },
+  { id: 'pipeline.manage', label: 'Gestionar esos procesos' },
+  { id: 'tasks.manage', label: 'Crear tareas para ti' },
+  { id: 'deadlines.manage', label: 'Gestionar tus plazos' },
+  { id: 'documents.view', label: 'Ver tus documentos' },
+  { id: 'documents.request_share', label: 'Pedirte compartir documentos' },
+  { id: 'messages.participate', label: 'Participar en tus conversaciones' },
+  { id: 'organization.contact', label: 'Contactar con organizaciones en tu nombre' },
+  { id: 'offers.view', label: 'Ver tus ofertas' },
+  { id: 'offers.negotiate', label: 'Negociar ofertas' },
+  { id: 'financial_context.view', label: 'Ver tu contexto económico' },
+];
+
+export const REP_TYPE_LABEL: Record<string, string> = {
+  exclusive: 'Exclusiva', non_exclusive: 'No exclusiva', opportunity_specific: 'Solo una oportunidad',
+};
