@@ -39,6 +39,9 @@ export async function POST(request: NextRequest) {
   if (parsed.data.messages.at(-1)?.role !== 'user') return NextResponse.json({ error: 'invalid_request' }, { status: 400 });
 
   const supabase = await createClient();
+  // 16 · Interruptor de emergencia: Gala puede apagar la IA sin tumbar el resto de la plataforma.
+  const { data: aiOn } = await supabase.rpc('flag_enabled', { p_key: 'gala_ai' });
+  if (aiOn === false) return NextResponse.json({ error: 'Gala IA está en pausa temporalmente. El resto de la plataforma funciona con normalidad.' }, { status: 503 });
   const { data: allowed, error: quotaError } = await supabase.rpc('consume_ai_request');
   if (quotaError) return NextResponse.json({ error: 'quota_check_failed' }, { status: 500 });
   if (!allowed) return NextResponse.json({ error: 'Has llegado al límite de Gala IA (40 al día, 6 por minuto). Espera un momento.' }, { status: 429 });

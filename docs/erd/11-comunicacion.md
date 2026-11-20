@@ -1,7 +1,7 @@
 <!-- Generado por scripts/erd/generate.mjs a partir de las migraciones. No editar a mano: `npm run erd`. -->
 # 11 · Comunicación, avisos y seguridad
 
-Tablas: **10** · RLS activada en 10/10.
+Tablas: **12** · RLS activada en 12/12.
 Se relaciona con: `athlete_documents` (03), `athlete_profiles` (03), `auth_users`, `organizations` (05), `profiles` (01).
 
 ## AS-IS · Modelo actual
@@ -38,6 +38,11 @@ erDiagram
   AUTH_USERS |o--o{ SAFETY_CASES : "created_by"
   ORGANIZATIONS |o--o{ SAFETY_CASES : "subject_org"
   AUTH_USERS |o--o{ SAFETY_CASES : "subject_user"
+  AUTH_USERS |o--o{ SUPPORT_CASE_NOTES : "author_id"
+  SUPPORT_CASES ||--o{ SUPPORT_CASE_NOTES : "case_id"
+  AUTH_USERS |o--o{ SUPPORT_CASES : "assigned_to"
+  ORGANIZATIONS |o--o{ SUPPORT_CASES : "organization_id"
+  AUTH_USERS |o--o{ SUPPORT_CASES : "requester_id"
   PROFILES |o--o{ USER_FEEDBACK : "user_id"
   CONTACT_MESSAGES {
     int8 id PK
@@ -146,6 +151,26 @@ erDiagram
     timestamptz created_at
     timestamptz closed_at
   }
+  SUPPORT_CASE_NOTES {
+    uuid id PK
+    uuid case_id FK
+    uuid author_id FK
+    text body
+    bool internal
+    timestamptz created_at
+  }
+  SUPPORT_CASES {
+    uuid id PK
+    uuid requester_id FK
+    uuid organization_id FK
+    text subject
+    text body
+    text category
+    text status
+    uuid assigned_to FK
+    timestamptz created_at
+    timestamptz updated_at
+  }
   USER_FEEDBACK {
     uuid id PK
     uuid user_id FK
@@ -169,10 +194,13 @@ erDiagram
 | `notifications` | Personal | — | persona (user_id) → se borra | Leídas: 6 meses · todas: 12 meses | Sí | KEEP |
 | `safety_case_events` | Sensible | — | persona (actor_id) → se anonimiza | Mientras exista la cuenta | No: Línea de tiempo interna del caso | KEEP |
 | `safety_cases` | Sensible | — | persona (assigned_to) → se anonimiza<br>persona (created_by) → se anonimiza<br>organización (subject_org) → se anonimiza<br>persona (subject_user) → se anonimiza | Mientras exista la cuenta | No: Investigación interna de Trust & Safety | KEEP |
+| `support_case_notes` | Personal | — | persona (author_id) → se anonimiza | Mientras exista la cuenta | No: Notas del equipo de Gala; las públicas se ven en la app | KEEP |
+| `support_cases` | Personal | — | persona (assigned_to) → se anonimiza<br>organización (organization_id) → se anonimiza<br>persona (requester_id) → se anonimiza | Mientras exista la cuenta | Sí | KEEP |
 | `user_feedback` | Personal | — | persona (user_id) → se anonimiza | 24 meses | Sí | KEEP |
 
 - `moderation_actions`: Medidas proporcionales con ámbito y duración; la persona afectada las ve.
 - `safety_cases`: Caso que agrupa denuncias, pruebas y medidas.
+- `support_cases`: Casos de soporte.
 
 ## TO-BE · Modelo objetivo
 

@@ -3318,6 +3318,58 @@ try {
     eq((await as(u.agent, `select count(*)::int n from notifications where kind = 'billing.payment_failed'`)).rows[0].n, 1, 'aviso al dueño');
   });
 
+  // ---------------------------------------------------------------- Prompt 16 · Operaciones de administración
+  results.push('\nPrompt 16: interruptores, búsqueda minimizada, soporte, doble aprobación y conflictos');
+  const fin = await mkAdmin('finance', 'finance');
+  await check('P16 §62-63 interruptor de emergencia: solo super admin, con motivo; se aplica en la base de datos', async () => {
+    await expectError(() => as(support, `select flag_set('brand_offers', false, 'Investigando un fraude')`), /admin_only/);
+    await expectError(() => as(sa, `select flag_set('brand_offers', false, 'x')`), /reason_required/);
+    await as(sa, `select flag_set('brand_offers', false, 'Investigando un patrón de fraude en ofertas')`);
+    eq((await as(null, `select flag_enabled('brand_offers') e`)).rows[0].e, false);
+    const Z2 = await mkUser('f-ath', 'athlete', 23);
+    const ap = (await as(Z2, `insert into campaign_applications (campaign_id, athlete_id, rules_acknowledged) values ($1, $2, true) returning id`, [camp3, Z2])).rows[0].id;
+    await as(u.brand, `update campaign_applications set status = 'selected' where id = $1`, [ap]);
+    await expectError(() => send(u.brand, ap, PRODUCT), /feature_disabled/);
+    await as(sa, `select flag_set('brand_offers', true, 'Investigación cerrada sin incidencias')`);
+    await send(u.brand, ap, PRODUCT);
+    eq((await db.query(`select count(*)::int n from audit_logs where action in ('flag_disabled', 'flag_enabled')`)).rows[0].n, 2, 'auditado');
+  });
+  await check('P16 §7-8 búsqueda global: solo roles internos y con datos mínimos', async () => {
+    await expectError(() => as(u.coach, `select * from admin_search('Agency')`), /admin_only/);
+    await expectError(() => as(support, `select * from admin_search('ab')`), /query_too_short/);
+    const rows = (await as(support, `select * from admin_search('Top Agency')`)).rows;
+    eq(rows.some((r) => r.kind === 'organization'), true);
+    eq(Object.keys(rows[0]).sort().join(','), 'detail,id,kind,label', 'sin campos sensibles');
+  });
+  await check('P16 §38-41 soporte: la persona ve su caso y las respuestas públicas; nunca las notas internas', async () => {
+    const sc = (await as(u.adult, `insert into support_cases (requester_id, subject, body, category, status) values ($1, 'No veo mi documento', 'Subí el expediente y no aparece en la lista.', 'data', 'resolved') returning id, status`, [u.adult])).rows[0];
+    eq(sc.status, 'open', 'el estado lo pone Gala');
+    eq((await as(u.coach, `select count(*)::int n from support_cases where id = $1`, [sc.id])).rows[0].n, 0);
+    await expectError(() => as(u.adult, `select support_case_update($1, 'resolved')`, [sc.id]), /admin_only/);
+    await as(support, `select support_case_update($1, 'in_progress', 'Posible fallo de subida en móvil', false)`, [sc.id]);
+    await as(support, `select support_case_update($1, 'waiting_user', '¿Puedes probar desde el ordenador?', true)`, [sc.id]);
+    eq((await as(u.adult, `select count(*)::int n from support_case_notes where case_id = $1`, [sc.id])).rows[0].n, 1, 'solo la pública');
+    eq((await as(support, `select count(*)::int n from support_case_notes where case_id = $1`, [sc.id])).rows[0].n, 2);
+  });
+  await check('P16 §47/§70 conceder un plan a mano exige dos personas; escribir en la tabla directamente, no', async () => {
+    const W2 = await mkUser('f-w', 'athlete', 21);
+    await expectError(() => as(sa, `insert into entitlements (user_id, plan_code, source, reference) values ($1, 'family_core', 'admin', 'manual-1')`, [W2]), /row-level/);
+    await expectError(() => as(support, `select admin_request('entitlement_grant', $1::jsonb, 'Compensación por un fallo del servicio')`, [JSON.stringify({ user_id: W2, plan_code: 'family_core' })]), /admin_only/);
+    const req = (await as(fin, `select admin_request('entitlement_grant', $1::jsonb, 'Compensación por un fallo del servicio') id`, [JSON.stringify({ user_id: W2, plan_code: 'family_core' })])).rows[0].id;
+    await expectError(() => as(fin, `select admin_approve($1, true)`, [req]), /second_approver_required/);
+    eq((await as(sa, `select admin_approve($1, true) s`, [req])).rows[0].s, 'approved');
+    eq((await as(W2, `select feature_limit('cv') n`)).rows[0].n, 1, 'plan concedido');
+    eq((await as(sa, `select admin_approve($1, true) s`, [req])).rows[0].s, 'approved', 'idempotente');
+  });
+  await check('P16 §30 conflictos de representación: Gala los ve con su contexto; terceros no', async () => {
+    eq((await as(ts, `select count(*)::int n from admin_representation_conflicts`)).rows[0].n >= 1, true);
+    eq((await as(u.brand, `select count(*)::int n from admin_representation_conflicts`)).rows[0].n, 0);
+  });
+  await check('P16 §64 estado de jobs: solo admin', async () => {
+    await expectError(() => as(u.coach, `select * from admin_jobs()`), /admin_only/);
+    await as(sa, `select * from admin_jobs()`);
+  });
+
   // ---------------------------------------------------------------- Prompt 9 · Supabase & PostgreSQL
   results.push('\nPrompt 9: integridad, documentos, concurrencia y catálogo');
   await check('P9 S9-01 · un documento, la foto o una evidencia no pueden apuntar a la carpeta de otra persona', async () => {

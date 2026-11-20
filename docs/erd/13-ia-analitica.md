@@ -1,7 +1,7 @@
 <!-- Generado por scripts/erd/generate.mjs a partir de las migraciones. No editar a mano: `npm run erd`. -->
 # 13 · IA, academia, analítica y auditoría
 
-Tablas: **13** · RLS activada en 13/13.
+Tablas: **15** · RLS activada en 15/15.
 Se relaciona con: `auth_users`, `organizations` (05), `profiles` (01), `safety_cases` (11).
 
 ## AS-IS · Modelo actual
@@ -10,6 +10,8 @@ Se relaciona con: `auth_users`, `organizations` (05), `profiles` (01), `safety_c
 erDiagram
   PROFILES ||--o{ ACADEMY_ATTEMPTS : "user_id"
   PROFILES ||--o{ ACADEMY_PROGRESS : "user_id"
+  AUTH_USERS |o--o{ ADMIN_APPROVALS : "approved_by"
+  AUTH_USERS ||--o{ ADMIN_APPROVALS : "requested_by"
   AUTH_USERS |o--o{ ADMIN_ROLES : "granted_by"
   AUTH_USERS ||--o{ ADMIN_ROLES : "user_id"
   PROFILES ||--o{ AI_CONVERSATIONS : "user_id"
@@ -26,6 +28,7 @@ erDiagram
   SAFETY_CASES |o--o{ BREAK_GLASS_GRANTS : "case_id"
   AUTH_USERS |o--o{ BREAK_GLASS_GRANTS : "reviewed_by"
   AUTH_USERS ||--o{ BREAK_GLASS_GRANTS : "subject_user"
+  AUTH_USERS |o--o{ FEATURE_FLAGS : "updated_by"
   PROFILES |o--o{ PRODUCT_EVENTS : "user_id"
   AUTH_USERS ||--o{ RATE_LIMIT_EVENTS : "user_id"
   ACADEMY_ATTEMPTS {
@@ -42,6 +45,18 @@ erDiagram
     text exam PK
     text topic_id PK
     timestamptz completed_at
+  }
+  ADMIN_APPROVALS {
+    uuid id PK
+    text action
+    jsonb payload
+    text reason
+    uuid requested_by FK
+    uuid approved_by FK
+    text status
+    timestamptz created_at
+    timestamptz decided_at
+    timestamptz expires_at
   }
   ADMIN_ROLES {
     uuid user_id PK,FK
@@ -125,6 +140,14 @@ erDiagram
     uuid reviewed_by FK
     timestamptz reviewed_at
   }
+  FEATURE_FLAGS {
+    text key PK
+    bool enabled
+    text description
+    bool kill_switch
+    uuid updated_by FK
+    timestamptz updated_at
+  }
   PRODUCT_EVENTS {
     int8 id PK
     uuid user_id FK
@@ -146,6 +169,7 @@ erDiagram
 |---|---|---|---|---|---|---|
 | `academy_attempts` | Personal | — | persona (user_id) → se borra | Mientras exista la cuenta | Sí | KEEP |
 | `academy_progress` | Personal | — | persona (user_id) → se borra | Mientras exista la cuenta | Sí | KEEP |
+| `admin_approvals` | Interna | — | persona (approved_by) → se anonimiza<br>persona (requested_by) → se borra | Mientras exista la organización | No: Doble aprobación interna de Gala | KEEP |
 | `admin_roles` | Interna | — | persona (granted_by) → se anonimiza<br>persona (user_id) → se borra | Mientras exista la organización | No: Roles internos de Gala | KEEP |
 | `ai_conversations` | Personal | — | persona (user_id) → se borra | 90 días sin actividad; se borra al desactivar el historial | Sí | KEEP |
 | `ai_events` | Interna | — | persona (user_id) → se borra | 13 meses | No: Telemetría técnica sin contenido de las preguntas | KEEP |
@@ -155,8 +179,11 @@ erDiagram
 | `ai_usage` | Interna | — | persona (user_id) → se borra | 90 días | Sí | KEEP |
 | `audit_logs` | Interna | — | persona (actor_id) → se anonimiza<br>organización (organization_id) → se anonimiza | Inmutable; se anonimiza al borrar la cuenta | No: Registro de seguridad de Gala | KEEP |
 | `break_glass_grants` | Interna | — | persona (admin_id) → se borra<br>persona (reviewed_by) → se anonimiza<br>persona (subject_user) → se borra | Mientras exista la organización | No: Acceso de emergencia de Gala: auditoría interna | KEEP |
+| `feature_flags` | Pública | — | persona (updated_by) → se anonimiza | Mientras esté publicado o vigente | — | KEEP |
 | `product_events` | Personal | — | persona (user_id) → se borra | 13 meses | Sí | KEEP |
 | `rate_limit_events` | Interna | — | persona (user_id) → se borra | 7 días | No: Contadores técnicos anti-spam (7 días) | KEEP |
+
+- `feature_flags`: Interruptores de funcionalidad; no sustituyen permisos.
 
 ## TO-BE · Modelo objetivo
 

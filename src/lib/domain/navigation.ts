@@ -115,12 +115,14 @@ export const PERSONAL_SERVICES: Record<AppRole, NavItem[]> = {
     { href: '/app/admin/panel', label: 'Panel de mando', icon: 'chart', desc: 'Métricas, embudo, automatizaciones y ventas.' },
     { href: '/app/admin', label: 'Revisión y verificación', icon: 'shield', desc: 'Colas de verificación y denuncias.' },
     { href: '/app/admin/safety', label: 'Trust & Safety', icon: 'shield', desc: 'Casos, medidas proporcionales y apelaciones.' },
+    { href: '/app/admin/ops', label: 'Operaciones', icon: 'chart', desc: 'Interruptores, soporte, aprobaciones y conflictos.' },
   ],
 };
 
 export const ACCOUNT_SERVICES: NavItem[] = [
   { href: '/precios', label: 'Planes y servicios', icon: 'tag', desc: 'Gratis para atletas; Core, Elite y Signature para familias.' },
   { href: '/app/settings', label: 'Privacidad y datos', icon: 'shield', desc: 'Visibilidad, descarga de datos y baja de la cuenta.' },
+  { href: '/app/support', label: 'Ayuda', icon: 'book', desc: 'Escríbenos y te respondemos aquí.' },
   { href: '/app/trust', label: 'Confianza y seguridad', icon: 'shield', desc: 'Quién ve tus datos ahora, medidas que te afecten y cómo apelar.' },
 ];
 
