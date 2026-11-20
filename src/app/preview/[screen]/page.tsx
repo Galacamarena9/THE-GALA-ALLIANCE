@@ -49,7 +49,8 @@ import { PublicOpportunityView } from '@/app/oportunidades/[id]/View';
 import { TrialsBoard } from '@/components/trials/TrialsBoard';
 import { TrialPanel } from '@/components/trials/TrialPanel';
 import { FamilyTrialCenter } from '@/components/trials/FamilyTrialCenter';
-import { previewTrials, previewTrialPanel, previewFamilyTrials } from '@/lib/preview/trials';
+import { previewTrials, previewTrialPanel, previewFamilyTrials, previewProgram } from '@/lib/preview/trials';
+import { ProgramPanel } from '@/components/trials/ProgramPanel';
 import type { PublicOpportunity } from '@/lib/data/public-opportunity';
 
 // Oportunidad pública ficticia (organización y cifras inventadas solo para revisar el diseño).
@@ -68,7 +69,7 @@ const demoPublicOpp: PublicOpportunity = {
  */
 export const metadata: Metadata = { title: 'Probador interno', robots: { index: false, follow: false } };
 
-const SCREENS = ['agent-home', 'portfolio', 'athlete-home', 'coach-home', 'pipeline', 'pipeline-table', 'match', 'opportunity', 'passport', 'galamatch', 'command-center', 'athlete-pipeline', 'club-trials', 'trial-club', 'trial-athlete', 'family-trials'] as const;
+const SCREENS = ['agent-home', 'portfolio', 'athlete-home', 'coach-home', 'pipeline', 'pipeline-table', 'match', 'opportunity', 'passport', 'galamatch', 'command-center', 'athlete-pipeline', 'club-trials', 'trial-club', 'trial-athlete', 'family-trials', 'program-athlete'] as const;
 
 // Gala Match con el motor real y datos ficticios: un Passport completo y otro con muchos datos ausentes.
 const demoOpp = { sport_id: 'basketball', position_ids: [1], graduation_years: [2027], division: 'ncaa_d2' as const, min_gpa_4: 2.5, english_required: 'TOEFL 80', annual_cost_usd: 40000, aid_amount_usd: 30000 };
@@ -121,6 +122,7 @@ export default async function PreviewPage({ params }: { params: Promise<{ screen
         {screen === 'club-trials' && <div className="mx-auto max-w-xl"><TrialsBoard trials={previewTrials} /></div>}
         {screen === 'trial-club' && <div className="mx-auto max-w-xl space-y-4"><TrialPanel {...previewTrialPanel} me={null} asClub asFamily={false} preview={false} filterHref={(f) => `/preview/trial-club?pf=${f}`} /></div>}
         {screen === 'trial-athlete' && <div className="mx-auto max-w-xl space-y-4"><TrialPanel {...previewTrialPanel} me="00000000-0000-0000-0000-00000000a001" registrations={[]} applications={[]} asClub={false} asFamily={false} preview={false} /></div>}
+        {screen === 'program-athlete' && <div className="mx-auto max-w-xl space-y-4"><ProgramPanel {...previewProgram} me="00000000-0000-0000-0000-00000000a001" applications={[]} asClub={false} asFamily /></div>}
         {screen === 'family-trials' && <div className="mx-auto max-w-xl"><FamilyTrialCenter items={previewFamilyTrials} /></div>}
         {screen === 'opportunity' && <PublicOpportunityView o={demoPublicOpp} sport="Baloncesto" positions={['Base', 'Escolta']} />}
         {screen === 'match' && (

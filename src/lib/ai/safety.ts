@@ -26,6 +26,16 @@ export const SAFETY_REPLY = {
   es: 'Esto es importante y no tienes que gestionarlo sola/o. No envíes fotos, dinero ni datos personales, y no sigas la conversación fuera de Gala. Usa «Denunciar» en el perfil o en el mensaje para que el equipo lo revise; si eres menor, cuéntaselo a tu familia o a un adulto de confianza. Si hay peligro inmediato, llama al 112.',
   en: 'This matters and you do not have to handle it alone. Do not send photos, money or personal details, and do not move the conversation outside Gala. Use “Report” on the profile or message so the team can review it; if you are a minor, tell your family or a trusted adult. If there is immediate danger, call your local emergency number.',
 };
+/**
+ * 11E · Juicios personales que Gala no infiere sobre ningún atleta: actitud, inteligencia, personalidad, atractivo,
+ * lealtad, «si de verdad quiere», o la probabilidad de ser profesional. No hay datos verificables para eso.
+ */
+const PERSONAL_JUDGEMENT = /((tiene|tendr[aá]|es) (buena |mala )?(actitud|car[aá]cter|personalidad)|(es|ser[aá]) (inteligente|list[oa]|leal|guap[oa]|atractiv[oa]|confiable)|(de verdad|realmente) quiere (venir|nuestro|jugar)|(llegar[aá]|ser[aá]) (a ser )?profesional|(good|bad) attitude|is (she|he|they) (intelligent|smart|loyal|attractive|trustworthy)|really want(s)? (to join|our)|will (she|he|they) (become|turn) pro)/i;
+export function asksPersonalJudgement(text: string) { return PERSONAL_JUDGEMENT.test(text); }
+export const PERSONAL_JUDGEMENT_REPLY = {
+  es: 'No hago valoraciones personales (actitud, inteligencia, carácter, interés real o probabilidad de llegar a profesional): no hay datos verificables para eso y sería injusto para el atleta. Puedo resumir su Passport, sus estadísticas verificadas, su vídeo o su encaje con vuestra necesidad.',
+  en: 'I don’t make personal judgements (attitude, intelligence, character, real interest or the chance of turning pro): there is no verifiable data for that and it would be unfair to the athlete. I can summarise their Passport, verified stats, video or fit with your need.',
+};
 export const OTHERS_DATA_REPLY = {
   es: 'No puedo compartir datos de contacto ni información privada de otras personas. Si quieres contactar con alguien, hazlo desde Gala: así se aplican los permisos y, con menores, la aprobación de la familia.',
   en: 'I can’t share contact details or private information about other people. To reach someone, use Gala so permissions — and family approval for minors — apply.',

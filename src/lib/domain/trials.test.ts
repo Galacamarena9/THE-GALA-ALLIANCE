@@ -62,3 +62,11 @@ test('trials: errores y huecos de publicación se traducen a mensajes concretos'
   assert.match(trialErrorMessage('use_application_org_decide'), /desde el propio trial/);
   assert.deepEqual(publishGapMessages('not_publishable:date,price'), ['Añade la fecha y la zona horaria antes de publicar.', 'Es de pago: indica el importe de la inscripción o de la cuota.']);
 });
+
+test('coste: pagos únicos + un periodo recurrente = primer ciclo (dicho); dos periodos recurrentes no se suman', () => {
+  const c = (o: Partial<CostComponent>): CostComponent => ({ component_type: 'program_fee', label: null, amount: null, currency: null, required: true, included: false, period: 'one_off', ...o } as CostComponent);
+  const k = knownRequiredCost('paid', [c({ amount: 8000, currency: 'EUR', period: 'per_season' }), c({ component_type: 'accommodation', amount: 4500, currency: 'EUR', period: 'per_season' }), c({ component_type: 'registration', amount: 250, currency: 'EUR' }), c({ component_type: 'meals', included: true })]);
+  assert.equal(k.total, 12750);
+  assert.equal(k.basis, 'primera temporada, incluye pagos únicos');
+  assert.equal(knownRequiredCost('paid', [c({ amount: 100, currency: 'EUR', period: 'per_month' }), c({ amount: 900, currency: 'EUR', period: 'per_year' })]).total, null);
+});

@@ -48,3 +48,14 @@ test('publicar: no se anuncia ayuda sin estado de beca y la caducidad es coheren
   assert.ok(validatePublish({ ...base, expires_at: '2027-01-01' }, '2026-11-20').expires_at);
   assert.ok(validatePublish({ ...base, expires_at: '2026-10-01', deadline: null }, '2026-11-20').expires_at);
 });
+
+test('siguiente mejor acción del club: trial inminente primero, candidaturas a trials después y sin urgencia inventada', () => {
+  const base = { verified: true, hasPrograms: true, activeNeeds: 1, newApplications: 0, toReview: 0, overdueTasks: 0, dueTodayTasks: 0, expiringOpportunities: [], sharedInfo: 0, members: 3 };
+  assert.equal(coachActions(base).length, 0, 'nada urgente → «Todo al día»');
+  const r = coachActions({ ...base, trialApplications: [{ id: 't2', title: 'Trial U18', count: 5 }], upcomingTrial: { id: 't1', title: 'Trial bases', hours: 20, confirmed: 14, missingDocs: 3 } });
+  assert.equal(r[0].key, 'trial:t1');
+  assert.equal(r[0].priority, 'urgent');
+  assert.match(r[0].reason, /14 confirmados · 3 con documentos pendientes/);
+  assert.equal(r[1].key, 'trialapps:t2');
+  assert.match(r[1].title, /5 candidaturas/);
+});

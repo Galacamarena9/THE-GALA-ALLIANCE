@@ -106,6 +106,9 @@ export interface CoachInput {
   verified: boolean; hasPrograms: boolean; activeNeeds: number; newApplications: number; toReview: number;
   overdueTasks: number; dueTodayTasks: number; expiringOpportunities: { id: string; title: string; days: number }[];
   sharedInfo: number; members: number;
+  /** Clubes y academias: trials con candidaturas sin revisar y el próximo trial en ≤48 h (datos reales). */
+  trialApplications?: { id: string; title: string; count: number }[];
+  upcomingTrial?: { id: string; title: string; hours: number; confirmed: number; missingDocs: number } | null;
 }
 export interface CoachAction { key: string; title: string; reason: string; href: string; priority: 'urgent' | 'important' | 'recommended' }
 
@@ -113,6 +116,13 @@ export function coachActions(i: CoachInput): CoachAction[] {
   const out: CoachAction[] = [];
   if (!i.verified) out.push({ key: 'verify', title: 'Completa la verificación de tu organización', reason: 'Hasta entonces puedes configurar programas y necesidades, pero no descubrir ni contactar atletas.', href: '/app/organization', priority: 'urgent' });
   for (const o of i.expiringOpportunities) out.push({ key: `exp:${o.id}`, title: `${o.title} caduca en ${o.days} día${o.days === 1 ? '' : 's'}`, reason: 'Revísala, amplía la fecha o ciérrala. Nunca se renueva sola.', href: `/app/opportunities/${o.id}`, priority: o.days <= 3 ? 'urgent' : 'important' });
+  // Trials: el día del trial manda; después, las candidaturas sin revisar. Nunca urgencia inventada.
+  if (i.upcomingTrial) {
+    const t = i.upcomingTrial;
+    const when = t.hours <= 0 ? 'hoy' : t.hours <= 24 ? 'mañana' : 'en 2 días';
+    out.push({ key: `trial:${t.id}`, title: `${t.title}: ${when}`, reason: `${t.confirmed} confirmado${t.confirmed === 1 ? '' : 's'}${t.missingDocs ? ` · ${t.missingDocs} con documentos pendientes` : ''}. Prepara la lista y el check-in.`, href: `/app/opportunities/${t.id}#participantes`, priority: t.hours <= 24 ? 'urgent' : 'important' });
+  }
+  for (const a of i.trialApplications ?? []) out.push({ key: `trialapps:${a.id}`, title: `Revisa ${a.count} candidatura${a.count > 1 ? 's' : ''} a «${a.title}»`, reason: 'Aceptar, lista de espera o no continuar: el atleta lo ve al momento.', href: `/app/opportunities/${a.id}#candidaturas`, priority: 'important' });
   if (i.overdueTasks) out.push({ key: 'tasks:overdue', title: `${i.overdueTasks} tarea${i.overdueTasks > 1 ? 's' : ''} vencida${i.overdueTasks > 1 ? 's' : ''}`, reason: 'Tareas del equipo con fecha pasada.', href: '/app/recruit/tasks', priority: 'urgent' });
   if (i.newApplications) out.push({ key: 'apps:new', title: `Revisa ${i.newApplications} candidatura${i.newApplications > 1 ? 's' : ''} nueva${i.newApplications > 1 ? 's' : ''}`, reason: 'Atletas que se han presentado a vuestras oportunidades.', href: '/app/recruit/candidates?stage=new', priority: 'important' });
   if (i.sharedInfo) out.push({ key: 'info:shared', title: `${i.sharedInfo} atleta${i.sharedInfo > 1 ? 's han' : ' ha'} compartido información`, reason: 'Respuestas a vuestras solicitudes.', href: '/app/recruit/candidates', priority: 'important' });

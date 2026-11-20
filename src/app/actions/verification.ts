@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { orgNameKey } from '@/lib/domain/org-name';
 import { requireSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
 import { siteUrl } from '@/lib/env';
@@ -14,11 +15,14 @@ export type OrgHit = { kind: 'organization' | 'institution'; id: string; name: s
 export async function searchInstitutions(q: string): Promise<OrgHit[]> {
   await requireSession();
   const term = q.replace(/[%_,()\\]/g, '').trim().slice(0, 80);
+  const key = orgNameKey(term);
   if (term.length < 2) return [];
   const supabase = await createClient();
   const [{ data: orgs }, { data: insts }] = await Promise.all([
     supabase.from('organizations').select('id, name, city, state, country, verification_status, institution_id')
-      .in('type', ['university', 'college', 'club', 'academy']).ilike('name', `%${term}%`).limit(8),
+      .in('type', ['university', 'college', 'club', 'academy'])
+      // Por nombre y por clave canónica: «ValenciaBasket» o «Valencia Basket Club» encuentran «Valencia Basket».
+      .or(key ? `name.ilike.%${term}%,name_key.like.%${key}%` : `name.ilike.%${term}%`).limit(8),
     supabase.from('institutions').select('id, name, city, state').ilike('name', `%${term}%`).limit(8),
   ]);
   const linked = new Set((orgs ?? []).map((o) => o.institution_id).filter(Boolean));

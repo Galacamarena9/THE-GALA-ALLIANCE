@@ -46,6 +46,17 @@ for (const width of WIDTHS) {
       await expect(page.getByText(/[Oo]pcional/).first()).toBeVisible();
     });
 
+    test('academia: coste obligatorio conocido sin inventar el viaje; aceptar ≠ matricular', async ({ page }) => {
+      await page.goto('/preview/program-athlete', { waitUntil: 'networkidle' });
+      await noOverflow(page);
+      await expect(page.getByText(/Coste obligatorio conocido:\s*12\.750/).first()).toBeVisible();
+      await expect(page.getByText(/Viaje no incluido: coste desconocido/)).toBeVisible();
+      await expect(page.getByText(/no significa que tengas una/)).toBeVisible();
+      await expect(page.getByText(/Aceptarla no te matricula todavía/)).toBeVisible();
+      await page.getByRole('button', { name: 'Aceptar plaza' }).click();
+      await expect(page.getByRole('button', { name: 'Confirmar', exact: true })).toBeVisible();
+    });
+
     test('familia: lo que necesita su decisión aparece primero', async ({ page }) => {
       await page.goto('/preview/family-trials', { waitUntil: 'networkidle' });
       await noOverflow(page);
