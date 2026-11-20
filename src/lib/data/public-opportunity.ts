@@ -11,7 +11,7 @@ import type { Division, OpportunityType } from '@/lib/types';
  * (migración 20261116001000): nunca notas de revisión ni quién la creó o revisó.
  */
 const PUBLIC_COLUMNS =
-  'id, title, type, sport_id, position_ids, graduation_years, division, min_gpa_4, english_required, location, start_term, places, deadline, annual_cost_usd, aid_amount_usd, financial_source, description, status, is_reviewed, updated_at, organizations!inner(name, type, verification_status, website)';
+  'id, organization_id, title, type, sport_id, position_ids, graduation_years, division, min_gpa_4, english_required, location, start_term, places, deadline, annual_cost_usd, aid_amount_usd, financial_source, description, status, is_reviewed, updated_at, organizations!inner(name, type, verification_status, website)';
 
 export interface PublicOpportunity {
   id: string;
@@ -34,6 +34,7 @@ export interface PublicOpportunity {
   status: string;
   is_reviewed: boolean | null;
   updated_at: string | null;
+  organization_id?: string;
   organizations: { name: string; type: string; verification_status: string; website: string | null };
 }
 

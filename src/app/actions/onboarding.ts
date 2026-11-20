@@ -2,6 +2,7 @@
 
 import { logEvent } from '@/lib/events';
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { getSession } from '@/lib/session';
@@ -145,5 +146,10 @@ export async function completeOnboarding(_prev: FormState, formData: FormData): 
   const pendingInvite = typeof raw.invite === 'string' && /^[a-f0-9]{64}$/.test(raw.invite) ? raw.invite : null;
   const teamInvite = typeof raw.team === 'string' && /^[a-f0-9]{64}$/.test(raw.team) ? raw.team : null;
   await logEvent('onboarding_completed', { role: data.role });
+  // 20 · Atribución de la invitación (si llegó con ?ref=): una vez, nunca a uno mismo; lo valida la base de datos.
+  const ref = (await cookies()).get('tga_ref')?.value;
+  if (!addingRole && ref && /^[a-z0-9]{8}$/.test(ref)) {
+    try { await supabase.rpc('referral_claim', { p_code: ref }); } catch { /* nunca bloquea el alta */ }
+  }
   redirect(pendingInvite ? `/invite/${pendingInvite}` : teamInvite ? `/join/${teamInvite}` : roleHome(data.role));
 }

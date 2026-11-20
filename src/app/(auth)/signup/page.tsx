@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { ACTORS } from '@/lib/domain/roles';
 import { SignupForm } from './SignupForm';
+import { RefCapture } from '@/components/RefCapture';
 
 export const metadata: Metadata = { title: 'Crear cuenta' };
 
@@ -12,6 +13,7 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
       <p className="mb-2 text-[13px] font-semibold text-brass">{actor ? actor.label : 'Crear cuenta'}</p>
       <h1 className="text-3xl text-paper">{actor ? actor.promise : 'Empieza en menos de un minuto'}</h1>
       <p className="mb-8 mt-3 text-sm text-muted">Gratis para atletas y familias.</p>
+      <RefCapture />
       <SignupForm role={actor?.role} />
     </>
   );
