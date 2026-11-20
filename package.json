@@ -12,6 +12,7 @@
     "test:rls": "node supabase/tests/rls.test.mjs",
     "test:e2e": "playwright test",
     "erd": "node scripts/erd/generate.mjs",
+    "check:perf": "node scripts/perf/budget.mjs",
     "check:secrets": "node scripts/check-secrets.mjs",
     "check:erd": "node scripts/erd/check.mjs"
   },

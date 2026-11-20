@@ -3392,6 +3392,37 @@ try {
     eq((await as(u.coach, `select count(*)::int n from metric_definitions`)).rows[0].n, 0);
   });
 
+  // ---------------------------------------------------------------- Prompt 18 · Rendimiento
+  results.push('\nPrompt 18: RLS de evaluación única, índices sin redundancias y búsqueda indexada');
+  await check('P18 §16 ninguna policy llama a auth.uid() por fila', async () => {
+    const bad = (await db.query(`select tablename || '.' || policyname p from pg_policies where schemaname = 'public'
+      and regexp_replace(coalesce(qual, '') || ' ' || coalesce(with_check, ''), '\\( SELECT auth\\.uid\\(\\) AS uid\\)', '', 'g') ~ 'auth\\.uid\\(\\)'`)).rows.map((r) => r.p);
+    eq(bad.join(', '), '', 'policies con auth.uid() por fila');
+  });
+  await check('P18 §13 sin índices duplicados ni prefijos redundantes', async () => {
+    const dup = (await db.query(`with idx as (
+        select i.indexrelid, i.indrelid, c.relname n, i.indkey::text cols, i.indisunique u, i.indisprimary pk, i.indpred is null np, pg_get_indexdef(i.indexrelid) d
+          from pg_index i join pg_class c on c.oid = i.indexrelid join pg_class t on t.oid = i.indrelid join pg_namespace s on s.oid = t.relnamespace where s.nspname = 'public')
+      select a.n from idx a join idx b on a.indrelid = b.indrelid and a.indexrelid <> b.indexrelid
+       where not a.u and not a.pk and a.np and b.np and a.d like '%USING btree%' and b.d like '%USING btree%' and (b.cols = a.cols or b.cols like a.cols || ' %')`)).rows.map((r) => r.n);
+    eq(dup.join(', '), '');
+  });
+  await check('P18 §31 la búsqueda por nombre usa el índice de trigramas', async () => {
+    await db.query(`set enable_seqscan = off`);
+    try {
+      const plan = (await db.query(`explain select id from organizations where name ilike '%agency%'`)).rows.map((r) => r['QUERY PLAN']).join('\n');
+      eq(/organizations_name_trgm/.test(plan), true, plan);
+    } finally { await db.query(`set enable_seqscan = on`); }
+  });
+  await check('P18 §19 revocación en vivo sigue siendo inmediata tras optimizar (sin caché de permisos)', async () => {
+    const L = await mkUser('p-live', 'athlete', 22);
+    const r = await repRequest(u.agent, agencyId, L, { perms: ['offers.view', 'passport.view'] });
+    await as(L, `select representation_respond($1, true)`, [r]);
+    eq(await can(u.agent, L, 'offers.view'), true);
+    await as(L, `select representation_set_permissions($1, array['passport.view'])`, [r]);
+    eq(await can(u.agent, L, 'offers.view'), false);
+  });
+
   // ---------------------------------------------------------------- Prompt 9 · Supabase & PostgreSQL
   results.push('\nPrompt 9: integridad, documentos, concurrencia y catálogo');
   await check('P9 S9-01 · un documento, la foto o una evidencia no pueden apuntar a la carpeta de otra persona', async () => {
