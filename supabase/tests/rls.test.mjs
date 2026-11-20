@@ -3430,6 +3430,8 @@ try {
     const h = (await as(u.admin, `select admin_platform_health() h`)).rows[0].h;
     for (const k of ['child_safety_open', 'stripe_unprocessed', 'verifications_pending', 'kill_switches_off', 'break_glass_unreviewed']) eq(k in h, true, k);
     eq(JSON.stringify(h).match(/[0-9a-f]{8}-[0-9a-f]{4}-/), null, 'sin identificadores');
+  });
+
   // ---------------------------------------------------------------- Prompt 20 · Crecimiento
   results.push('\nPrompt 20: invitaciones con atribución honesta');
   await check('P20 invitar: código propio; una atribución por persona, nunca a uno mismo; sin bucles para menores; quién se unió no se expone', async () => {
