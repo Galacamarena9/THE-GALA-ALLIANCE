@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/server';
 import { loadCatalog } from '@/lib/data/athlete';
 import type { DirectoryRow } from '@/components/AthleteCard';
 import { AthleteAvatar } from '@/components/portfolio';
-import { Badge, ButtonLink, EmptyState, PageHeader, cx, inputClass } from '@/components/ui';
+import { Badge, ButtonLink, EmptyState, PageHeader, cx, inputClass, buttonClass } from '@/components/ui';
 import { copyToList, removeSavedAthlete, updateSavedNote } from '@/app/actions/lists';
 import { deleteSearch, markSearchSeen } from '@/app/actions/growth';
 import { countNewMatches, filtersToQuery, type DirectoryFilters } from '@/lib/data/directory';
@@ -176,7 +176,7 @@ export default async function ListsPage({ searchParams }: { searchParams: Promis
                         <input type="hidden" name="list_name" value={r.list_name} />
                         <label className="block text-xs font-medium text-muted" htmlFor={`note-${r.athlete_id}`}>Nota privada</label>
                         <textarea id={`note-${r.athlete_id}`} name="private_note" rows={2} maxLength={2000} defaultValue={r.private_note ?? ''} placeholder="Qué te gustó, a quién se lo propondrías…" className={cx(inputClass, 'resize-y')} />
-                        <button className="rounded-lg border border-line-strong px-3 py-1.5 text-xs font-medium text-paper hover:border-brass/50">Guardar nota</button>
+                        <button className={buttonClass('secondary', 'sm')}>Guardar nota</button>
                       </form>
 
                       <div className="mt-auto flex flex-wrap items-center gap-2 border-t border-line pt-3">

@@ -3,7 +3,7 @@ import { requireSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
 import { managedAthletes } from '@/lib/data/family';
 import { INFO_KIND_LABEL } from '@/lib/domain/recruit';
-import { Badge, Card, EmptyState, Notice, PageHeader, inputClass } from '@/components/ui';
+import { Badge, Card, EmptyState, Notice, PageHeader, inputClass, buttonClass } from '@/components/ui';
 import { respondInfoRequest } from '@/app/actions/recruit';
 
 export const metadata: Metadata = { title: 'Solicitudes de información' };
@@ -57,9 +57,9 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
                           </label>
                         )}
                         <label className="text-xs text-muted">Compartir hasta<input type="date" name="until" defaultValue={in30} className={inputClass} /></label>
-                        <button className="min-h-11 rounded-full bg-brass px-4 text-sm font-semibold text-ink">Compartir</button>
+                        <button className={buttonClass('primary', 'md')}>Compartir</button>
                       </form>
-                      <form action={respondInfoRequest}><input type="hidden" name="id" value={r.id} /><input type="hidden" name="share" value="0" /><button className="min-h-11 rounded-full border border-line px-4 text-sm text-paper">Rechazar</button></form>
+                      <form action={respondInfoRequest}><input type="hidden" name="id" value={r.id} /><input type="hidden" name="share" value="0" /><button className={buttonClass('secondary', 'md')}>Rechazar</button></form>
                     </div>
                   )}
                   {r.status === 'shared' && (

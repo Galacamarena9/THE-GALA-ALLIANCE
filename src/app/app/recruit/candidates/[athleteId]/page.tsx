@@ -7,7 +7,7 @@ import { loadCatalog } from '@/lib/data/athlete';
 import { currentRecruitOrg, loadCandidate } from '@/lib/data/recruit';
 import { INFO_KIND_LABEL, INTERNAL_STAGES, INTERNAL_STAGE_LABEL, needFit, type InternalStage, type NeedCriteria } from '@/lib/domain/recruit';
 import { PROVENANCE_LABEL } from '@/lib/domain/passport';
-import { Badge, Card, CardTitle, Notice, PageHeader } from '@/components/ui';
+import { Badge, Card, CardTitle, Notice, PageHeader, buttonClass } from '@/components/ui';
 import { MediaSwitcher } from '@/components/recruit/MediaSwitcher';
 import { RecruitShell } from '@/components/recruit/RecruitShell';
 import { AddToShortlist, InfoRequestForm, OrgNoteForm, OrgOfferForm, OrgTaskForm } from '@/components/recruit/RecruitForms';
@@ -139,12 +139,12 @@ export default async function CandidatePage({ params, searchParams }: { params: 
                     <form action={updateCandidate} className="flex gap-2"><input type="hidden" name="id" value={c.id} /><input type="hidden" name="athlete" value={athleteId} /><input type="hidden" name="op" value="stage" />
                       <label className="sr-only" htmlFor="cs">Etapa</label>
                       <select id="cs" name="stage" defaultValue={c.internal_stage} className="min-h-11 flex-1 rounded-lg border border-line bg-ink/40 px-2 text-sm text-paper">{INTERNAL_STAGES.map((s) => <option key={s} value={s}>{INTERNAL_STAGE_LABEL[s]}</option>)}</select>
-                      <button className="min-h-11 rounded-lg border border-line px-3 text-xs font-semibold text-paper">Cambiar</button>
+                      <button className={buttonClass('secondary', 'sm')}>Cambiar</button>
                     </form>
                     <form action={updateCandidate} className="flex gap-2"><input type="hidden" name="id" value={c.id} /><input type="hidden" name="athlete" value={athleteId} /><input type="hidden" name="op" value="assign" />
                       <label className="sr-only" htmlFor="ca">Asignado a</label>
                       <select id="ca" name="assignee" defaultValue={c.assigned_to ?? ''} className="min-h-11 flex-1 rounded-lg border border-line bg-ink/40 px-2 text-sm text-paper"><option value="">Sin asignar</option>{d.members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</select>
-                      <button className="min-h-11 rounded-lg border border-line px-3 text-xs font-semibold text-paper">Asignar</button>
+                      <button className={buttonClass('secondary', 'sm')}>Asignar</button>
                     </form>
                     <form action={updateCandidate}><input type="hidden" name="id" value={c.id} /><input type="hidden" name="athlete" value={athleteId} /><input type="hidden" name="op" value={c.archived_at ? 'restore' : 'archive'} /><button className="text-xs text-muted hover:text-paper">{c.archived_at ? 'Recuperar' : 'Archivar'}</button></form>
                   </div>

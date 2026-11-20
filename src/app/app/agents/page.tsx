@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { requireSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
-import { Badge, Card, CardTitle, EmptyState, Notice, PageHeader } from '@/components/ui';
+import { Badge, Card, CardTitle, EmptyState, Notice, PageHeader, buttonClass } from '@/components/ui';
 import { respondRepresentation } from '@/app/actions/marketplace';
 import { StatusPill } from '@/components/portfolio';
 import { REP_PERMISSIONS, REP_TYPE_LABEL, repStatusDetail, toRepStatus } from '@/lib/domain/portfolio';
@@ -74,8 +74,8 @@ export default async function AthleteAgentsPage() {
                   <div className="mt-4 flex gap-2">
                     {r.status === 'requested' && (
                       <>
-                        <form action={respondRepresentation}><input type="hidden" name="id" value={r.id} /><input type="hidden" name="status" value="active" /><button className="rounded-lg bg-brass px-3 py-1.5 text-sm text-ink">Aceptar</button></form>
-                        <form action={respondRepresentation}><input type="hidden" name="id" value={r.id} /><input type="hidden" name="status" value="declined" /><button className="rounded-lg border border-line-strong px-3 py-1.5 text-sm text-paper">Rechazar</button></form>
+                        <form action={respondRepresentation}><input type="hidden" name="id" value={r.id} /><input type="hidden" name="status" value="active" /><button className={buttonClass('primary', 'sm')}>Aceptar</button></form>
+                        <form action={respondRepresentation}><input type="hidden" name="id" value={r.id} /><input type="hidden" name="status" value="declined" /><button className={buttonClass('secondary', 'sm')}>Rechazar</button></form>
                       </>
                     )}
                     {open && <form action={respondRepresentation}><input type="hidden" name="id" value={r.id} /><input type="hidden" name="status" value="ended" /><button className="text-sm text-faint hover:text-danger">{r.status === 'active' ? 'Revocar representación' : 'Cancelar'}</button></form>}

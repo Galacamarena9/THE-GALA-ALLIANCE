@@ -14,7 +14,7 @@ import { CONFIDENCE_LABEL, matchAthleteToOpportunity, TIER_LABEL } from '@/lib/d
 import { MatchBreakdown } from '@/components/MatchBreakdown';
 import { DIVISION_LABEL, OPPORTUNITY_STATUS_LABEL, OPPORTUNITY_TYPE_LABEL, domainOf, usd } from '@/lib/domain/labels';
 import type { Opportunity } from '@/lib/types';
-import { Badge, Card, CardTitle, EmptyState, Notice, PageHeader } from '@/components/ui';
+import { Badge, Card, CardTitle, EmptyState, Notice, PageHeader, buttonClass } from '@/components/ui';
 import { ApplyOpportunityForm, ReportButton } from '@/components/forms';
 import { deleteOpportunity, submitForReview } from '@/app/actions/opportunities';
 import { AnswerQuestionForm, AskQuestionForm } from '@/components/QuestionForms';
@@ -168,14 +168,14 @@ export default async function OpportunityPage({ params, searchParams }: { params
           {opp.review_note && <span className="text-sm text-muted">Nota de revisión: {opp.review_note}</span>}
           {opp.status === 'published' && (
             <>
-              <form action={setOpportunityLifecycle}><input type="hidden" name="id" value={opp.id} /><button name="action" value="confirm" className="rounded-lg border border-line-strong px-3 py-1.5 text-sm text-paper hover:border-brass">Confirmar que sigue abierta</button></form>
-              <form action={setOpportunityLifecycle}><input type="hidden" name="id" value={opp.id} /><button name="action" value="filled" className="rounded-lg border border-line-strong px-3 py-1.5 text-sm text-paper hover:border-brass">Marcar plaza cubierta</button></form>
+              <form action={setOpportunityLifecycle}><input type="hidden" name="id" value={opp.id} /><button name="action" value="confirm" className={buttonClass('secondary', 'sm')}>Confirmar que sigue abierta</button></form>
+              <form action={setOpportunityLifecycle}><input type="hidden" name="id" value={opp.id} /><button name="action" value="filled" className={buttonClass('secondary', 'sm')}>Marcar plaza cubierta</button></form>
               <form action={setOpportunityLifecycle}><input type="hidden" name="id" value={opp.id} /><button name="action" value="closed" className="text-sm text-faint hover:text-danger">Cerrar</button></form>
             </>
           )}
           {(opp.status === 'draft' || opp.status === 'rejected') && (
             <>
-              <form action={submitForReview}><input type="hidden" name="id" value={opp.id} /><button className="rounded-lg bg-brass px-3 py-1.5 text-sm text-ink">Enviar a revisión</button></form>
+              <form action={submitForReview}><input type="hidden" name="id" value={opp.id} /><button className={buttonClass('primary', 'sm')}>Enviar a revisión</button></form>
               <form action={deleteOpportunity}><input type="hidden" name="id" value={opp.id} /><button className="text-sm text-faint hover:text-danger">Eliminar</button></form>
             </>
           )}

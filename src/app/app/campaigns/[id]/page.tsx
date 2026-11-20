@@ -5,7 +5,7 @@ import { requireSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
 import { CAMPAIGN_KIND_LABEL, COMPENSATION_LABEL, usd } from '@/lib/domain/labels';
 import { NIL_GO_THRESHOLD_USD, nilGoApplies } from '@/lib/domain/ncaa';
-import { Badge, Card, CardTitle, EmptyState, Notice, PageHeader } from '@/components/ui';
+import { Badge, Card, CardTitle, EmptyState, Notice, PageHeader, buttonClass } from '@/components/ui';
 import { CampaignApplyForm, ReportButton } from '@/components/forms';
 import { moveCampaignApplication, setCampaignStatus } from '@/app/actions/marketplace';
 import { updateBrandPayment, withdrawBrandOffer } from '@/app/actions/brand-offers';
@@ -74,8 +74,8 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
               <CardTitle kicker="Estado">{c.status}</CardTitle>
               {c.review_note && <p className="mb-3 text-sm text-muted">Nota de revisión: {c.review_note}</p>}
               <div className="flex gap-2">
-                {(c.status === 'draft' || c.status === 'rejected') && <form action={setCampaignStatus}><input type="hidden" name="id" value={c.id} /><input type="hidden" name="status" value="pending_review" /><button className="rounded-lg bg-brass px-3 py-1.5 text-sm text-ink">Enviar a revisión</button></form>}
-                {c.status === 'published' && <form action={setCampaignStatus}><input type="hidden" name="id" value={c.id} /><input type="hidden" name="status" value="closed" /><button className="rounded-lg border border-line-strong px-3 py-1.5 text-sm text-paper">Cerrar oferta</button></form>}
+                {(c.status === 'draft' || c.status === 'rejected') && <form action={setCampaignStatus}><input type="hidden" name="id" value={c.id} /><input type="hidden" name="status" value="pending_review" /><button className={buttonClass('primary', 'sm')}>Enviar a revisión</button></form>}
+                {c.status === 'published' && <form action={setCampaignStatus}><input type="hidden" name="id" value={c.id} /><input type="hidden" name="status" value="closed" /><button className={buttonClass('secondary', 'sm')}>Cerrar oferta</button></form>}
               </div>
             </Card>
           ) : session.isMinor ? (
@@ -108,7 +108,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
                     {(['shortlisted', 'selected', 'declined'] as const).filter((s) => s !== a.status && a.status !== 'withdrawn').map((s) => (
                       <form key={s} action={moveCampaignApplication}>
                         <input type="hidden" name="id" value={a.id} /><input type="hidden" name="status" value={s} /><input type="hidden" name="campaign_id" value={c.id} />
-                        <button className="rounded-lg border border-line-strong px-2.5 py-1 text-xs text-paper hover:border-brass">{s === 'shortlisted' ? 'Preseleccionar' : s === 'selected' ? 'Seleccionar' : 'Descartar'}</button>
+                        <button className={buttonClass('secondary', 'sm')}>{s === 'shortlisted' ? 'Preseleccionar' : s === 'selected' ? 'Seleccionar' : 'Descartar'}</button>
                       </form>
                     ))}
                   </div>
@@ -141,7 +141,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
                                 <p className="mt-2 text-xs text-muted">Pago: {PAYMENT_LABEL[o.payment_status]}</p>
                                 {(o.payment_status === 'pending' || o.payment_status === 'disputed') && (
                                   <form action={updateBrandPayment} className="mt-1"><input type="hidden" name="id" value={o.id} /><input type="hidden" name="status" value="paid_declared" /><input type="hidden" name="campaign_id" value={c.id} />
-                                    <button className="rounded-lg border border-line-strong px-3 py-1.5 text-xs text-paper">Ya hemos pagado</button></form>
+                                    <button className={buttonClass('secondary', 'sm')}>Ya hemos pagado</button></form>
                                 )}
                               </>
                             )}

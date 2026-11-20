@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { requireSession } from '@/lib/session';
 import { logEvent } from '@/lib/events';
 import { createClient } from '@/lib/supabase/server';
-import { Badge, ButtonLink, Card, CardTitle, EmptyState, Notice, PageHeader } from '@/components/ui';
+import { Badge, ButtonLink, Card, CardTitle, EmptyState, Notice, PageHeader, buttonClass } from '@/components/ui';
 import { SubmitDeliverableForm } from '@/components/brand/OfferForms';
 import { respondBrandOffer, updateBrandPayment } from '@/app/actions/brand-offers';
 import {
@@ -74,13 +74,13 @@ export default async function CollaborationsPage() {
                 </dl>
                 <p className="mt-4 rounded-xl bg-surface-2 p-3 text-xs text-muted">Si compites en la NCAA o tienes visado de estudiante, revisa tu normativa (NIL Go, límites de ingresos) antes de aceptar. Tu agente puede ayudarte, pero la decisión es tuya.</p>
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <form action={respondBrandOffer}><input type="hidden" name="id" value={o.id} /><input type="hidden" name="accept" value="yes" /><button className="min-h-11 rounded-full bg-brass px-5 text-sm font-semibold text-ink">Aceptar</button></form>
+                  <form action={respondBrandOffer}><input type="hidden" name="id" value={o.id} /><input type="hidden" name="accept" value="yes" /><button className={buttonClass('primary', 'md')}>Aceptar</button></form>
                   <details>
                     <summary className="inline-flex min-h-11 cursor-pointer items-center rounded-full border border-line-strong px-5 text-sm text-paper">Rechazar</summary>
                     <form action={respondBrandOffer} className="mt-2 flex max-w-md flex-col gap-2 rounded-xl border border-line p-3">
                       <input type="hidden" name="id" value={o.id} /><input type="hidden" name="accept" value="no" />
                       <label className="text-xs text-muted">Motivo (opcional, la marca lo verá)<input name="reason" maxLength={500} className="mt-1 w-full rounded-lg border border-line bg-ink px-3 py-2 text-sm text-paper" /></label>
-                      <button className="min-h-11 rounded-full border border-danger/40 px-4 text-sm font-semibold text-danger">Rechazar la oferta</button>
+                      <button className={buttonClass('danger', 'md')}>Rechazar la oferta</button>
                     </form>
                   </details>
                 </div>
@@ -117,8 +117,8 @@ export default async function CollaborationsPage() {
               {(o.payment_status === 'pending' || o.payment_status === 'paid_declared') && (
                 <div className="mt-3 flex flex-wrap gap-2 border-t border-line pt-3">
                   <p className="w-full text-xs text-muted">{o.payment_status === 'paid_declared' ? 'La marca indica que ha pagado. Confírmalo solo cuando lo hayas recibido.' : 'Cuando recibas el pago, confírmalo aquí.'}</p>
-                  <form action={updateBrandPayment}><input type="hidden" name="id" value={o.id} /><input type="hidden" name="status" value="confirmed" /><button className="min-h-11 rounded-full bg-brass px-4 text-sm font-semibold text-ink">He recibido el pago</button></form>
-                  <form action={updateBrandPayment}><input type="hidden" name="id" value={o.id} /><input type="hidden" name="status" value="disputed" /><button className="min-h-11 rounded-full border border-danger/40 px-4 text-sm text-danger">Hay un problema</button></form>
+                  <form action={updateBrandPayment}><input type="hidden" name="id" value={o.id} /><input type="hidden" name="status" value="confirmed" /><button className={buttonClass('primary', 'md')}>He recibido el pago</button></form>
+                  <form action={updateBrandPayment}><input type="hidden" name="id" value={o.id} /><input type="hidden" name="status" value="disputed" /><button className={buttonClass('danger', 'md')}>Hay un problema</button></form>
                 </div>
               )}
             </Card>
