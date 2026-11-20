@@ -202,3 +202,15 @@ grant execute on function public.case_access_by_id(uuid, boolean) to authenticat
 /* ROLLBACK: restaurar las policies de recruiting_cases*, recruiting_case_tasks, recruiting_case_activities desde
    20261114000100/agency_core, y las funciones has_connection_with_athlete, trial_actor y org_has_document_grant desde
    su última versión anterior; borrar agent_can_via, case_access, case_access_by_id y offers_select_agent. */
+
+-- 9. Corrección encontrada por la prueba RGPD: borrar una cuenta que creó escenarios de coste fallaba porque el
+--    guard impedía que la FK pusiera created_by a NULL. El borrado (cascada del sistema) sí puede anonimizar.
+create or replace function public.guard_cost_scenario()
+returns trigger language plpgsql set search_path = public as $$
+begin
+  if new.athlete_id is distinct from old.athlete_id
+     or (new.created_by is distinct from old.created_by and not (new.created_by is null and current_user not in ('authenticated', 'anon'))) then
+    raise exception 'scenario_owner_immutable' using errcode = '42501';
+  end if;
+  return new;
+end $$;

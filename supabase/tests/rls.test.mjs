@@ -3037,6 +3037,37 @@ try {
     eq((await db.query(`select (select count(*) from athlete_offers where id = $1) + (select count(*) from athlete_documents where id = $2) + (select count(*) from recruiting_cases where id = $3) n`, [offerX, docX, caseX])).rows[0].n, '3', 'nada se borra');
   });
 
+  // ---------------------------------------------------------------- Prompt 12C · Pentest del workspace
+  results.push('\nPrompt 12C: pentest del workspace del agente');
+  await check('P12C §37 escalada del dueño: sin asignación no ve ofertas ni Passport privado; asignarse es auditable', async () => {
+    const Z = await mkUser('c-athlete', 'athlete', 23);
+    await as(Z, `update athlete_profiles set profile_visibility = 'private' where user_id = $1`, [Z]);
+    const M = await mkUser('c-manager', 'agent', 34);
+    await db.query(`insert into organization_members (organization_id, user_id, member_role, agency_role) values ($1, $2, 'recruiter', 'athlete_manager')`, [agencyId, M]);
+    await as(Z, `select representation_invite($1, $2)`, [agencyId, Z]);
+    const rz = await repRequest(u.agent, agencyId, Z, { perms: ['passport.view', 'offers.view'] });
+    await as(Z, `select representation_respond($1, true)`, [rz]);
+    await as(u.agent, `select representation_assign($1, $2, 'primary')`, [rz, M]); // el dueño deja de estar asignado
+    const off = (await as(Z, `insert into athlete_offers (athlete_id, university_name, source) values ($1, 'Coastal College', 'athlete') returning id`, [Z])).rows[0].id;
+    eq((await as(M, `select count(*)::int n from athlete_offers where id = $1`, [off])).rows[0].n, 1, 'el asignado ve');
+    eq((await as(u.agent, `select count(*)::int n from athlete_offers where id = $1`, [off])).rows[0].n, 0, 'el dueño sin asignar no');
+    eq((await as(u.agent, `select count(*)::int n from athlete_profiles where user_id = $1`, [Z])).rows[0].n, 0);
+    await as(u.agent, `select representation_assign($1, $2, 'collaborator')`, [rz, u.agent]);
+    eq((await as(u.agent, `select count(*)::int n from athlete_offers where id = $1`, [off])).rows[0].n, 1, 'tras asignarse');
+    eq((await db.query(`select count(*)::int n from audit_logs where entity_id = $1 and action = 'agent_assigned' and actor_id = $2`, [rz, u.agent])).rows[0].n, 1, 'queda auditado');
+  });
+  await check('P12C §22/§26 un agente no se asigna a representaciones de otra agencia ni amplía su alcance', async () => {
+    const W = await mkUser('c-w', 'athlete', 22);
+    const rw = await repRequest(agent2, agency2, W);
+    await as(W, `select representation_respond($1, true)`, [rw]);
+    await expectError(() => as(u.agent, `select representation_assign($1, $2, 'collaborator')`, [rw, u.agent]), /not_allowed/);
+    await expectError(() => as(agent2, `select representation_set_permissions($1, array['offers.negotiate'])`, [rw]), /not_found/);
+    await expectError(() => as(agent2, `update representation_assignments set role = 'primary' where representation_id = $1`, [rw]), /row-level|permission denied/).catch(async () => {
+      eq((await db.query(`select count(*)::int n from representation_assignments where representation_id = $1 and role = 'primary'`, [rw])).rows[0].n, 1);
+    });
+    await expectError(() => as(agent2, `select representation_conflict_resolve(gen_random_uuid(), 'x', $1)`, [rw]), /admin_only/);
+  });
+
   // ---------------------------------------------------------------- Prompt 9 · Supabase & PostgreSQL
   results.push('\nPrompt 9: integridad, documentos, concurrencia y catálogo');
   await check('P9 S9-01 · un documento, la foto o una evidencia no pueden apuntar a la carpeta de otra persona', async () => {
