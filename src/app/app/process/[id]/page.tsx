@@ -4,6 +4,9 @@ import { notFound } from 'next/navigation';
 import { requireSession } from '@/lib/session';
 import { managedAthletes } from '@/lib/data/family';
 import { loadProcess } from '@/lib/data/pipeline';
+import { loadAthleteContext, loadOneMatch } from '@/lib/data/gala-match';
+import { describeConfidence, explainChange, parseSnapshot } from '@/lib/domain/gala-match/changes';
+import { CONFIDENCE_LABEL } from '@/lib/domain/gala-match/engine';
 import { DOC_CHECKLIST, DOC_KINDS } from '@/content/documents';
 import { CHANNEL_LABEL, CLOSE_REASON, SOURCE_LABEL, STAGE_INFO, URGENCY_INFO, netCost, type Stage } from '@/lib/domain/pipeline';
 import { usd } from '@/lib/domain/labels';
@@ -38,6 +41,11 @@ export default async function ProcessDetailPage({ params, searchParams }: { para
   const u = URGENCY_INFO[p.urgency];
   const targetHref = p.target_kind === 'institution' ? `/app/universities/${p.target_id}` : `/app/opportunities/${p.target_id}`;
   const requested = new Set(docs.map((x) => x.kind));
+  // Encaje actual (motor real) frente al congelado al guardar. Solo con la sesión del atleta: la familia puede no ver todos sus bloques.
+  const ctx = session.userId === A ? await loadAthleteContext(A).catch(() => null) : null;
+  const current = ctx ? await loadOneMatch(A, ctx.ctx, p.target_kind, p.target_id).catch(() => null) : null;
+  const snap = parseSnapshot(p.match_snapshot);
+  const change = current && snap ? explainChange(snap, current.m) : null;
 
   return (
     <>
@@ -128,6 +136,27 @@ export default async function ProcessDetailPage({ params, searchParams }: { para
               </form>
             </Card>
           )}
+
+          <Card>
+            <CardTitle kicker="Gala Match">Tu encaje</CardTitle>
+            {current ? (
+              <p className="text-sm text-paper">
+                Ahora: <strong>{current.m.score != null ? `${current.m.score}%` : 'sin porcentaje (faltan datos)'}</strong>
+                <span className="text-muted"> · confianza {CONFIDENCE_LABEL[current.m.confidence].toLowerCase()}</span>
+              </p>
+            ) : session.userId !== A ? <p className="text-sm text-muted">El encaje actual solo lo calcula el atleta desde su cuenta.</p> : <p className="text-sm text-muted">No hay encaje actual disponible: la oportunidad puede haberse cerrado o faltan datos.</p>}
+            {p.match_score_at_save != null && <p className="mt-1 text-xs text-muted">Al guardarlo: {p.match_score_at_save}% ({d(p.created_at)})</p>}
+            {change && (
+              <div className="mt-2 text-xs text-muted">
+                {describeConfidence(change) && <p>{describeConfidence(change)}</p>}
+                {change.reasons.length > 0 ? (
+                  <ul className="mt-1 space-y-0.5">{change.reasons.map((r) => <li key={r.factor}><span aria-hidden>{r.direction === 'up' ? '↑ ' : '↓ '}</span>{r.text}</li>)}</ul>
+                ) : change.methodChanged ? <p>Actualizamos el método de cálculo; ningún dato concreto explica el cambio.</p> : null}
+              </div>
+            )}
+            <p className="mt-2 text-[11px] text-faint">Compatibilidad con la información disponible. No es una probabilidad de admisión ni de beca.</p>
+            {current && <Link href={`/app/match/${p.target_kind}/${p.target_id}`} className="mt-2 inline-block text-xs font-semibold text-brass hover:underline">Ver desglose →</Link>}
+          </Card>
 
           <Card>
             <CardTitle kicker="Documentos">Checklist</CardTitle>

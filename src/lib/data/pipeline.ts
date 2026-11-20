@@ -2,11 +2,11 @@ import 'server-only';
 import { createClient } from '@/lib/supabase/server';
 import { urgencyOf, type Urgency } from '@/lib/domain/pipeline';
 
-const PROC_COLS = 'id, target_kind, target_id, status, shortlist_tier, note, match_score_at_save, created_at, updated_at, archived_at, next_action, next_action_due, close_reason, stage_changed_at, decided_at';
+const PROC_COLS = 'id, target_kind, target_id, status, shortlist_tier, note, match_score_at_save, match_snapshot, created_at, updated_at, archived_at, next_action, next_action_due, close_reason, stage_changed_at, decided_at';
 
 export interface ProcessRow {
   id: string; target_kind: 'institution' | 'opportunity'; target_id: string; status: string; shortlist_tier: string | null; note: string | null;
-  match_score_at_save: number | null; created_at: string; updated_at: string; archived_at: string | null; next_action: string | null;
+  match_score_at_save: number | null; match_snapshot?: unknown; created_at: string; updated_at: string; archived_at: string | null; next_action: string | null;
   next_action_due: string | null; close_reason: string | null; stage_changed_at: string; decided_at: string | null;
   name: string; sub: string; official_deadline: string | null; org_verified: boolean | null;
   application: { id: string; status: string } | null; open_tasks: number; open_task_due: string | null; offers: number;
