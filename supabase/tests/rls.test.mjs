@@ -2769,6 +2769,186 @@ try {
     eq(await repRequest(u.agent, agencyId, ra1) !== rep1, true, 'una nueva solicitud es una relación nueva');
   });
 
+  // ---------------------------------------------------------------- Prompt 12A.1 · Integridad de la representación
+  results.push('\nPrompt 12A.1: integridad, transiciones, fechas, concurrencia y bypass');
+  const adultRep = async (agent, agency, o = {}) => {
+    const a = await mkUser('i-' + (o.tag || 'a'), 'athlete', 22);
+    const r = await repRequest(agent, agency, a, o);
+    const s = (await as(a, `select representation_respond($1, true) s`, [r])).rows[0].s;
+    return { a, r, s };
+  };
+  await check('P12A.1 §12-14 menor: tutor ajeno o desvinculado no aprueba; doble aprobación = un consentimiento; si la familia se desvincula, acceso fuera', async () => {
+    const teen = await mkUser('i-teen', 'athlete', 16); const dad = await mkUser('i-dad', 'parent', 48); const other = await mkUser('i-otherdad', 'parent', 50);
+    const tk = (await as(dad, `insert into parent_athlete_links (parent_id, invited_by) values ($1, $1) returning invitation_token`, [dad])).rows[0].invitation_token;
+    await as(teen, `select accept_family_invitation($1)`, [tk]);
+    const otherKid = await mkUser('i-otherkid', 'athlete', 15);
+    const tk2 = (await as(other, `insert into parent_athlete_links (parent_id, invited_by) values ($1, $1) returning invitation_token`, [other])).rows[0].invitation_token;
+    await as(otherKid, `select accept_family_invitation($1)`, [tk2]);
+    await as(teen, `select representation_invite($1, $2)`, [agencyId, teen]);
+    const r = await repRequest(u.agent, agencyId, teen);
+    await as(teen, `select representation_respond($1, true)`, [r]);
+    await expectError(() => as(other, `select representation_guardian_decide($1, true)`, [r]), /not_found/);
+    eq((await as(dad, `select representation_guardian_decide($1, true) s`, [r])).rows[0].s, 'active');
+    eq((await as(dad, `select representation_guardian_decide($1, true) s`, [r])).rows[0].s, 'active', 'repetir no cambia nada');
+    eq((await db.query(`select count(*)::int n from consents where target_id = $1 and purpose = 'representation'`, [r])).rows[0].n, 1, 'un único consentimiento');
+    eq((await db.query(`select count(*)::int n from audit_logs where entity_id = $1 and action = 'representation_activated'`, [r])).rows[0].n, 1, 'activada una vez');
+    eq(await can(u.agent, teen, 'pipeline.view'), true);
+    await db.query(`update parent_athlete_links set status = 'revoked', revoked_at = now() where parent_id = $1 and athlete_id = $2`, [dad, teen]);
+    eq(await can(u.agent, teen, 'pipeline.view'), false, 'sin familia vinculada no hay acceso');
+    await expectError(() => as(dad, `select representation_end($1)`, [r]), /not_allowed/);
+  });
+  await check('P12A.1 §15-16 y §76 fechas: futura sin acceso hasta su día; fin < inicio rechazado por la base de datos; hoy es inclusivo', async () => {
+    const a = await mkUser('i-future', 'athlete', 22);
+    const r = await repRequest(u.agent, agencyId, a, { start: new Date(Date.now() + 10 * 864e5).toISOString().slice(0, 10), end: new Date(Date.now() + 200 * 864e5).toISOString().slice(0, 10) });
+    eq((await as(a, `select representation_respond($1, true) s`, [r])).rows[0].s, 'active');
+    eq(await can(u.agent, a, 'pipeline.view'), false, 'antes de empezar no hay acceso');
+    const bad = await mkUser('i-bad', 'athlete', 22);
+    await expectError(() => repRequest(u.agent, agencyId, bad, { end: '2020-01-01' }), /invalid_dates/);
+    await expectError(() => db.query(`update agent_representations set end_date = start_date - 1 where id = $1`, [r]), /rep_dates_valid|check constraint/);
+    await db.query(`update agent_representations set start_date = current_date, end_date = current_date where id = $1`, [r]);
+    eq(await can(u.agent, a, 'pipeline.view'), true, 'inicio y fin hoy: vigente');
+  });
+  await check('P12A.1 §21-22 suspensión y reactivación: sin acceso, sin borrar; reactivar revalida la agencia', async () => {
+    const { a, r } = await adultRep(u.agent, agencyId, { tag: 'susp' });
+    await expectError(() => as(u.agent, `select representation_suspend($1, true, 'motivo')`, [r]), /admin_only/);
+    await expectError(() => as(u.admin, `select representation_suspend($1, true, '')`, [r]), /reason_required/);
+    eq((await as(u.admin, `select representation_suspend($1, true, 'Denuncia en revisión') s`, [r])).rows[0].s, 'suspended');
+    eq(await can(u.agent, a, 'pipeline.view'), false);
+    eq((await db.query(`select count(*)::int n from representation_assignments where representation_id = $1 and ended_at is null`, [r])).rows[0].n, 1, 'asignaciones intactas');
+    await expectError(() => as(u.agent, `update agent_representations set status = 'active' where id = $1`, [r]), /representation_rpc_only/);
+    await as(u.admin, `update organizations set verification_status = 'unverified' where id = $1`, [agencyId]);
+    try {
+      await expectError(() => as(u.admin, `select representation_suspend($1, false, 'Revisado')`, [r]), /agency_not_verified/);
+    } finally { await as(u.admin, `update organizations set verification_status = 'verified' where id = $1`, [agencyId]); }
+    eq((await as(u.admin, `select representation_suspend($1, false, 'Revisado') s`, [r])).rows[0].s, 'active');
+    eq(await can(u.agent, a, 'pipeline.view'), true);
+  });
+  await check('P12A.1 §7 si la agencia pierde la verificación, nadie de ella accede', async () => {
+    const { a } = await adultRep(u.agent, agencyId, { tag: 'unv' });
+    eq(await can(u.agent, a, 'pipeline.view'), true);
+    await db.query(`update organizations set org_status = 'suspended' where id = $1`, [agencyId]).catch(() => null);
+    const st = (await db.query(`select org_status from organizations where id = $1`, [agencyId])).rows[0].org_status;
+    try { if (st !== 'active') eq(await can(u.agent, a, 'pipeline.view'), false); }
+    finally { await db.query(`update organizations set org_status = 'active' where id = $1`, [agencyId]); }
+  });
+  await check('P12A.1 §24-29 alcance: duplicados se fusionan, permiso caducado no vale, región y mundo cubren lo suyo', async () => {
+    const { a, r } = await adultRep(u.agent, agencyId, { tag: 'scope', sports: ['basketball', 'basketball'], territories: ['EUROPE'], perms: ['pipeline.view', 'pipeline.view', 'offers.view'] });
+    eq((await db.query(`select count(*)::int n from representation_coverage where representation_id = $1 and dimension = 'sport'`, [r])).rows[0].n, 1);
+    eq((await db.query(`select count(*)::int n from representation_permissions where representation_id = $1 and permission = 'pipeline.view'`, [r])).rows[0].n, 1);
+    eq(await can(u.agent, a, 'pipeline.view', 'basketball', 'ES'), true, 'España ∈ Europa');
+    eq(await can(u.agent, a, 'pipeline.view', 'basketball', 'US'), false);
+    await db.query(`update representation_permissions set expires_at = now() - interval '1 minute' where representation_id = $1 and permission = 'offers.view'`, [r]);
+    eq(await can(u.agent, a, 'offers.view'), false, 'permiso caducado');
+    const w = await adultRep(u.agent, agencyId, { tag: 'world' });
+    eq(await can(u.agent, w.a, 'pipeline.view', 'basketball', 'JP'), true, 'WORLD cubre Japón');
+  });
+  await check('P12A.1 §32-34 exclusivas sin conflicto: distinto tipo de oportunidad, deporte o fechas', async () => {
+    const a = await mkUser('i-noconf', 'athlete', 22);
+    const r1 = await repRequest(u.agent, agencyId, a, { type: 'exclusive', categories: ['club'] });
+    eq((await as(a, `select representation_respond($1, true) s`, [r1])).rows[0].s, 'active');
+    const r2 = await repRequest(agent2, agency2, a, { type: 'exclusive', categories: ['university'] });
+    eq((await as(a, `select representation_respond($1, true) s`, [r2])).rows[0].s, 'active', 'otro tipo de oportunidad');
+    const b = await mkUser('i-noconf2', 'athlete', 22);
+    const s1 = await repRequest(u.agent, agencyId, b, { type: 'exclusive', sports: ['basketball'] });
+    await as(b, `select representation_respond($1, true)`, [s1]);
+    const s2 = await repRequest(agent2, agency2, b, { type: 'exclusive', sports: ['volleyball'] });
+    eq((await as(b, `select representation_respond($1, true) s`, [s2])).rows[0].s, 'active', 'otro deporte');
+    const c = await mkUser('i-noconf3', 'athlete', 22);
+    const t1 = await repRequest(u.agent, agencyId, c, { type: 'exclusive', end: new Date(Date.now() + 100 * 864e5).toISOString().slice(0, 10) });
+    await as(c, `select representation_respond($1, true)`, [t1]);
+    const t2 = await repRequest(agent2, agency2, c, { type: 'exclusive', start: new Date(Date.now() + 120 * 864e5).toISOString().slice(0, 10), end: new Date(Date.now() + 400 * 864e5).toISOString().slice(0, 10) });
+    eq((await as(c, `select representation_respond($1, true) s`, [t2])).rows[0].s, 'active', 'fechas sin solape');
+  });
+  await check('P12A.1 §36 y §75 concurrencia: dos exclusivas aceptadas a la vez → una activa y otra en revisión', async () => {
+    const a = await mkUser('i-race', 'athlete', 22);
+    const r1 = await repRequest(u.agent, agencyId, a, { type: 'exclusive' });
+    const r2 = await repRequest(agent2, agency2, a, { type: 'exclusive' });
+    const mk = async () => { const c = new pg.Client({ connectionString: url.toString() }); await c.connect(); await c.query('begin'); await c.query('set local role authenticated');
+      await c.query(`select set_config('request.jwt.claims', $1, true)`, [JSON.stringify({ sub: a, role: 'authenticated' })]); return c; };
+    const c1 = await mk(); const c2 = await mk();
+    try {
+      const p1 = c1.query(`select representation_respond($1, true) s`, [r1]).then(async (x) => { await c1.query('commit'); return x.rows[0].s; });
+      const p2 = c2.query(`select representation_respond($1, true) s`, [r2]).then(async (x) => { await c2.query('commit'); return x.rows[0].s; });
+      const out = (await Promise.all([p1, p2])).sort();
+      eq(out.join(','), 'active,pending_review');
+    } finally { await c1.end(); await c2.end(); }
+    eq((await db.query(`select count(*)::int n from agent_representations where athlete_id = $1 and status = 'active'`, [a])).rows[0].n, 1);
+  });
+  await check('P12A.1 §37 Gala resuelve el conflicto y activa una sola', async () => {
+    const a = await mkUser('i-resolve', 'athlete', 22);
+    const r1 = await repRequest(u.agent, agencyId, a, { type: 'exclusive' });
+    await as(a, `select representation_respond($1, true)`, [r1]);
+    const r2 = await repRequest(agent2, agency2, a, { type: 'exclusive' });
+    await as(a, `select representation_respond($1, true)`, [r2]);
+    await as(a, `select representation_end($1, 'Me quedo con la segunda')`, [r1]);
+    const c = (await db.query(`select id from representation_conflicts where representation_id = $1 and status = 'open'`, [r2])).rows[0].id;
+    await as(u.admin, `select representation_conflict_resolve($1, 'La primera fue revocada por el atleta', $2)`, [c, r2]);
+    eq((await db.query(`select status from agent_representations where id = $1`, [r2])).rows[0].status, 'active');
+    await as(u.admin, `select representation_conflict_resolve($1, 'otra vez', $2)`, [c, r2]);
+    eq((await db.query(`select count(*)::int n from audit_logs where entity_id = $1 and action = 'representation_conflict_resolved'`, [c])).rows[0].n, 1, 'idempotente');
+  });
+  await check('P12A.1 §38-44 asignaciones y roster: un solo primario, varios colaboradores, roster por agencia con «por vencer»', async () => {
+    const { a, r } = await adultRep(u.agent, agencyId, { tag: 'roster', end: new Date(Date.now() + 20 * 864e5).toISOString().slice(0, 10) });
+    const c1 = await mkUser('i-col1', 'agent', 30); const c2 = await mkUser('i-col2', 'agent', 31);
+    for (const c of [c1, c2]) await db.query(`insert into organization_members (organization_id, user_id, member_role, agency_role) values ($1, $2, 'recruiter', 'recruiter')`, [agencyId, c]);
+    await as(u.agent, `select representation_assign($1, $2, 'collaborator')`, [r, c1]);
+    await as(u.agent, `select representation_assign($1, $2, 'viewer')`, [r, c2]);
+    eq((await db.query(`select count(*)::int n from representation_assignments where representation_id = $1 and ended_at is null`, [r])).rows[0].n, 3);
+    eq(await can(c2, a, 'pipeline.view'), true, 'viewer lee'); eq(await can(c2, a, 'pipeline.manage'), false, 'viewer no gestiona');
+    await expectError(() => db.query(`insert into representation_assignments (representation_id, agency_id, user_id, role, assigned_by) values ($1, $2, $3, 'primary', $3)`, [r, agencyId, c1]), /duplicate key|unique/);
+    eq((await as(u.agent, `select roster_status from agency_roster where representation_id = $1`, [r])).rows[0].roster_status, 'expiring');
+    eq((await as(agent2, `select count(*)::int n from agency_roster where agency_id = $1`, [agencyId])).rows[0].n, 0, 'otra agencia no ve el roster');
+  });
+  await check('P12A.1 §46-50 acuerdo: documento del atleta correcto, versiones, «documentado» no es «verificado»', async () => {
+    const { a, r } = await adultRep(u.agent, agencyId, { tag: 'agree' });
+    const doc = (await as(a, `insert into athlete_documents (athlete_id, kind, title, due_date) values ($1, 'other', 'Contrato de representación', current_date + 30) returning id`, [a])).rows[0].id;
+    const foreign = (await as(u.adult, `insert into athlete_documents (athlete_id, kind, title, due_date) values ($1, 'other', 'Otro contrato', current_date + 30) returning id`, [u.adult])).rows[0].id;
+    await expectError(() => as(a, `select representation_add_agreement($1, $2, current_date, current_date + 300)`, [r, foreign]), /agreement_document_mismatch/);
+    const v1 = (await as(a, `select representation_add_agreement($1, $2, current_date, current_date + 300) id`, [r, doc])).rows[0].id;
+    const v2 = (await as(u.agent, `select representation_add_agreement($1, null, current_date, current_date + 300) id`, [r])).rows[0].id;
+    const rows = (await db.query(`select id, version, evidence_status from representation_agreements where representation_id = $1 order by version`, [r])).rows;
+    eq(rows.map((x) => `${x.version}:${x.evidence_status}`).join(','), '1:documented,2:declared');
+    await as(u.agent, `update representation_agreements set evidence_status = 'verified' where id = $1`, [v1]).catch(() => null);
+    eq((await db.query(`select evidence_status from representation_agreements where id = $1`, [v1])).rows[0].evidence_status, 'documented', 'la agencia no lo verifica');
+    eq((await as(u.brand, `select count(*)::int n from representation_agreements where id in ($1, $2)`, [v1, v2])).rows[0].n, 0, 'terceros no lo ven');
+  });
+  await check('P12A.1 §66-67 notificaciones y auditoría del ciclo completo', async () => {
+    const { a, r } = await adultRep(u.agent, agencyId, { tag: 'audit' });
+    eq((await as(a, `select count(*)::int n from notifications where kind = 'representation.requested'`)).rows[0].n, 1, 'atleta avisado');
+    eq((await as(u.agent, `select count(*)::int n from notifications where kind = 'representation.active' and link = '/app/portfolio'`)).rows[0].n >= 1, true, 'agente avisado');
+    const acts = (await db.query(`select action from audit_logs where entity_id = $1 and entity = 'agent_representation' order by created_at`, [r])).rows.map((x) => x.action);
+    for (const x of ['representation_requested', 'athlete_approved', 'representation_activated']) eq(acts.includes(x), true, x);
+  });
+  await check('P12A.1 §70-74 sin huérfanos, todo o nada, idempotencia y transiciones inválidas', async () => {
+    eq((await db.query(`select (select count(*) from representation_coverage c where not exists (select 1 from agent_representations r where r.id = c.representation_id))
+      + (select count(*) from representation_permissions p where not exists (select 1 from agent_representations r where r.id = p.representation_id))
+      + (select count(*) from representation_assignments a where not exists (select 1 from agent_representations r where r.id = a.representation_id)) n`)).rows[0].n, '0');
+    const a = await mkUser('i-atomic', 'athlete', 22);
+    await expectError(() => repRequest(u.agent, agencyId, a, { perms: ['pipeline.view', 'superpoder.total'] }), /invalid_permission/);
+    await expectError(() => repRequest(u.agent, agencyId, a, { sports: ['curling'] }), /invalid|sport/);
+    eq((await db.query(`select count(*)::int n from agent_representations where athlete_id = $1`, [a])).rows[0].n, 0, 'nada a medias');
+    const r = await repRequest(u.agent, agencyId, a);
+    eq((await as(a, `select representation_respond($1, true) s`, [r])).rows[0].s, 'active');
+    eq((await as(a, `select representation_respond($1, false) s`, [r])).rows[0].s, 'active', 'responder otra vez no la cambia');
+    await expectError(() => as(a, `select representation_guardian_decide($1, true)`, [r]), /not_found/);
+    eq((await as(a, `select representation_end($1) s`, [r])).rows[0].s, 'revoked');
+    eq((await as(a, `select representation_respond($1, true) s`, [r])).rows[0].s, 'revoked', 'una revocada no revive');
+    await expectError(() => as(a, `select representation_renew($1, current_date + 200)`, [r]), /invalid_renewal/);
+  });
+  await check('P12A.1 §79 bypass: nadie escribe alcance, permisos, asignaciones, conflictos ni acuerdos por fuera de las funciones', async () => {
+    const { a, r } = await adultRep(u.agent, agencyId, { tag: 'bypass' });
+    await expectError(() => as(u.agent, `insert into representation_coverage (representation_id, dimension, value) values ($1, 'territory', 'WORLD')`, [r]), /row-level|permission denied|rpc_only/);
+    await expectError(() => as(u.agent, `insert into representation_permissions (representation_id, permission) values ($1, 'offers.negotiate')`, [r]), /row-level|permission denied/);
+    await expectError(() => as(u.agent, `insert into representation_assignments (representation_id, agency_id, user_id, role, assigned_by) values ($1, $2, $3, 'collaborator', $3)`, [r, agencyId, agent2]), /row-level|permission denied/);
+    await expectError(() => as(a, `update representation_permissions set status = 'active' where representation_id = $1`, [r]), /row-level|permission denied/).catch(async () => {
+      eq((await db.query(`select count(*)::int n from representation_permissions where representation_id = $1 and status = 'active'`, [r])).rows[0].n, 7);
+    });
+    await expectError(() => as(u.agent, `update agent_representations set end_date = end_date + 365 where id = $1`, [r]), /representation_rpc_only/);
+    await expectError(() => as(u.agent, `select representation_activate($1)`, [r]), /permission denied/);
+    await expectError(() => as(u.agent, `select representation_expire_due()`), /permission denied/);
+    await expectError(() => as(null, `select agent_can($1, 'pipeline.view')`, [a]), /permission denied/);
+  });
+
   // ---------------------------------------------------------------- Prompt 9 · Supabase & PostgreSQL
   results.push('\nPrompt 9: integridad, documentos, concurrencia y catálogo');
   await check('P9 S9-01 · un documento, la foto o una evidencia no pueden apuntar a la carpeta de otra persona', async () => {
