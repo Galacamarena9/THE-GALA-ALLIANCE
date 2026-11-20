@@ -68,6 +68,10 @@ export interface PortfolioEntry {
   createdAt: string;
   respondedAt: string | null;
   endedAt: string | null;
+  /** 12A: estado real en la base de datos, fecha de fin y tipo (opcionales para no romper datos antiguos). */
+  dbStatus?: string;
+  endDate?: string | null;
+  representationType?: string | null;
   name: string;
   avatarUrl: string | null;
   country: string | null;
@@ -392,3 +396,25 @@ export const REP_PERMISSIONS: { id: string; label: string }[] = [
 export const REP_TYPE_LABEL: Record<string, string> = {
   exclusive: 'Exclusiva', non_exclusive: 'No exclusiva', opportunity_specific: 'Solo una oportunidad',
 };
+
+export interface RepAlert { repId: string; athleteId: string; name: string; tone: 'danger' | 'warn' | 'neutral'; text: string; daysLeft: number | null }
+
+/**
+ * 12C · Lo que necesita atención en la cartera, solo con hechos reales y sin urgencia artificial:
+ * representaciones que vencen en 30 días o menos, esperas de la familia o de Gala, y suspensiones.
+ */
+export function representationAlerts(entries: PortfolioEntry[], today: Date = new Date()): RepAlert[] {
+  const day = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
+  const out: RepAlert[] = [];
+  for (const e of entries) {
+    const base = { repId: e.repId, athleteId: e.athleteId, name: e.name };
+    if (e.dbStatus === 'active' && e.endDate) {
+      const left = Math.round((Date.parse(`${e.endDate}T00:00:00Z`) - day) / 864e5);
+      if (left >= 0 && left <= 30) out.push({ ...base, tone: left <= 7 ? 'danger' : 'warn', daysLeft: left,
+        text: left === 0 ? 'La representación vence hoy' : `La representación vence en ${left} día${left === 1 ? '' : 's'}` });
+    } else if (e.dbStatus === 'pending_guardian') out.push({ ...base, tone: 'neutral', daysLeft: null, text: 'Esperando la aprobación de la familia' });
+    else if (e.dbStatus === 'pending_review') out.push({ ...base, tone: 'warn', daysLeft: null, text: 'Gala revisa un solape con otra representación exclusiva' });
+    else if (e.dbStatus === 'suspended') out.push({ ...base, tone: 'danger', daysLeft: null, text: 'Representación suspendida por Gala' });
+  }
+  return out.sort((a, b) => (a.daysLeft ?? 99) - (b.daysLeft ?? 99));
+}

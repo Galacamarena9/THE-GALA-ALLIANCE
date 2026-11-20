@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  toRepStatus, repStatusDetail,
+  toRepStatus, repStatusDetail, representationAlerts,
   buildTimeline, DEFAULT_FILTERS, dueText, filterPortfolio, filtersToQuery, friendlyDbError, gradOptions, initials,
   isOverdue, nextSteps, parseFilters, portfolioStats, sportOptions, statusCounts, type AgencyNote, type PortfolioEntry,
 } from './portfolio.ts';
@@ -118,4 +118,18 @@ test('12A · los diez estados de la base de datos se agrupan en cuatro para la c
   assert.equal(toRepStatus('inventado'), null);
   assert.equal(repStatusDetail('active'), null);
   assert.match(repStatusDetail('pending_guardian') ?? '', /familia/);
+});
+
+test('12C · alertas de representación: solo hechos reales, las más urgentes primero', () => {
+  const today = new Date('2026-11-20T10:00:00Z');
+  const alerts = representationAlerts([
+    entry({ athleteId: 'a', name: 'Lucía', dbStatus: 'active', endDate: '2026-12-04' }),
+    entry({ athleteId: 'b', name: 'Carlos', dbStatus: 'active', endDate: '2026-11-22' }),
+    entry({ athleteId: 'c', name: 'Ana', dbStatus: 'active', endDate: '2027-06-01' }),
+    entry({ athleteId: 'd', name: 'Teo', status: 'requested', dbStatus: 'pending_guardian' }),
+  ], today);
+  assert.deepEqual(alerts.map((a) => a.name), ['Carlos', 'Lucía', 'Teo']);
+  assert.equal(alerts[0].text, 'La representación vence en 2 días');
+  assert.equal(alerts[0].tone, 'danger');
+  assert.equal(alerts[1].tone, 'warn');
 });

@@ -8,7 +8,7 @@ import { caseAgenda, stageLabel } from '@/lib/domain/agency-cases';
 import { loadCatalog } from '@/lib/data/athlete';
 import { ButtonLink, Notice, inputClass } from '@/components/ui';
 import { ActivityFeed, AthleteAvatar, KpiTile, NextStepsList, Panel, PanelLink, StatusPill } from '@/components/portfolio';
-import { buildTimeline, dueText, initials, nextSteps, relativeTime, sortPortfolio } from '@/lib/domain/portfolio';
+import { buildTimeline, dueText, initials, nextSteps, relativeTime, representationAlerts, sortPortfolio } from '@/lib/domain/portfolio';
 
 /**
  * Inicio del agente: todo sale de su cartera real (sin métricas inventadas).
@@ -34,6 +34,7 @@ export function AgentHomeView({ displayName, data, sports, cases = [] }: { displ
   const steps = nextSteps(notes, nameOf).slice(0, 5);
   const agenda = caseAgenda(cases).slice(0, 5);
   const openCases = cases.filter((c) => c.stage !== 'closed' && c.stage !== 'committed').length;
+  const alerts = representationAlerts(entries).slice(0, 4);
   const first = displayName.split(' ')[0];
   const hour = new Date().getHours();
   const greeting = hour < 13 ? 'Buenos días' : hour < 20 ? 'Buenas tardes' : 'Buenas noches';
@@ -82,6 +83,25 @@ export function AgentHomeView({ displayName, data, sports, cases = [] }: { displ
 
       {!agencies.length && (
         <Notice>Registra tu agencia para empezar a construir tu cartera: <Link href="/app/organization" className="font-semibold underline">crear agencia</Link>.</Notice>
+      )}
+
+      {alerts.length > 0 && (
+        <Panel title="Necesita atención" action={<PanelLink href="/app/portfolio">Cartera →</PanelLink>}>
+          <ul className="space-y-0.5">
+            {alerts.map((a) => (
+              <li key={a.repId}>
+                <Link href={`/app/portfolio/${a.athleteId}`} className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-surface-2/60">
+                  <span className={`h-2 w-2 shrink-0 rounded-full ${a.tone === 'danger' ? 'bg-danger' : a.tone === 'warn' ? 'bg-warn' : 'bg-faint'}`} aria-hidden />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium text-paper">{a.name}</span>
+                    <span className={`block truncate text-xs ${a.tone === 'danger' ? 'text-danger' : 'text-faint'}`}>{a.text}</span>
+                  </span>
+                  <ArrowRight className="h-4 w-4 shrink-0 text-faint" aria-hidden />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Panel>
       )}
 
       {/* KPIs reales y clicables */}
