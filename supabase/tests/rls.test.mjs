@@ -1736,6 +1736,39 @@ try {
     eq(r.w, true); eq(r.m, false, 'no accede a otro programa');
   });
 
+  await check('RGPD exportación: cada sección de la descarga es legible por su titular (minor, atleta, coach, familia)', async () => {
+    const src = readFileSync(join(here, '..', '..', 'src/lib/privacy/export-tables.ts'), 'utf8');
+    const sources = [...src.matchAll(/\{ key: '([a-z_]+)', table: '([a-z_]+)'([^}]*)\}/g)].map(([, key, table, rest]) => ({
+      key, table,
+      column: rest.match(/column: '([a-z_]+)'/)?.[1] ?? 'user_id',
+      select: (rest.match(/select: '([^']+)'/)?.[1] ?? '*').replace(/,\s*[a-z_]+\(\*\)/g, ''),
+      either: rest.match(/either: \['([a-z_]+)', '([a-z_]+)'\]/)?.slice(1),
+    }));
+    if (sources.length < 50) throw new Error(`solo ${sources.length} secciones leídas del fichero`);
+    const fails = [];
+    for (const who of [u.minor, u.adult, u.coach, u.parent]) {
+      for (const s of sources) {
+        const where = s.either ? `${s.either[0]} = $1 or ${s.either[1]} = $1` : `${s.column} = $1`;
+        try { await as(who, `select ${s.select} from ${s.table} where ${where}`, [who]); } catch (e) { fails.push(`${s.key}: ${e.message}`); }
+      }
+    }
+    if (fails.length) throw new Error([...new Set(fails)].join(' | '));
+  });
+
+  // Debe ir la última: borra todas las cuentas y organizaciones de prueba.
+  await check('RGPD: toda cuenta y toda organización se puede borrar (anonimiza auditoría, no bloquea)', async () => {
+    await db.query(`select set_config('request.jwt.claims', '{}', false)`);
+    const fails = [];
+    for (const { id } of (await db.query(`select id from auth.users`)).rows) {
+      try { await db.query(`delete from auth.users where id = $1`, [id]); } catch (e) { fails.push(`usuario: ${e.message} @ ${(e.where ?? "").split("\n")[0]}`); }
+    }
+    for (const { id } of (await db.query(`select id from public.organizations`)).rows) {
+      try { await db.query(`delete from public.organizations where id = $1`, [id]); } catch (e) { fails.push(`organización: ${e.message} @ ${(e.where ?? "").split("\n")[0]}`); }
+    }
+    if (fails.length) throw new Error([...new Set(fails)].join(' | '));
+    eq((await db.query(`select count(*)::int n from public.audit_logs where actor_id is not null`)).rows[0].n, 0, 'auditoría anonimizada');
+  });
+
 } finally {
   console.log(results.join('\n'));
   console.log(`\n${passed} pruebas OK · ${failed} fallidas`);

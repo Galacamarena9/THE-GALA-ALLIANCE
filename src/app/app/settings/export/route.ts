@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { EXPORT_SOURCES } from '@/lib/privacy/export-tables';
 
 /**
  * Derecho de acceso y portabilidad: descarga en JSON de todos los datos propios.
  * Usa el cliente del usuario, así que solo puede devolver lo que la RLS le permite ver de sí mismo.
+ * La lista de tablas vive en src/lib/privacy/export-tables.ts (comprobada en CI contra el catálogo de datos).
  */
 export async function GET() {
   const supabase = await createClient();
@@ -11,66 +13,20 @@ export async function GET() {
   const uid = auth.user?.id;
   if (!uid) return NextResponse.json({ error: 'auth_required' }, { status: 401 });
 
-  const own = (table: string, column = 'user_id') => supabase.from(table).select('*').eq(column, uid);
-  const [profile, privateData, roles, athlete, academics, finances, stats, languages, achievements, links, applications, saved, consents, requests,
-    updates, academyProgress, academyAttempts, searches, notifications, serviceRequests, feedback, documents, offers, entitlements, rosters, events] =
-    await Promise.all([
-      own('profiles', 'id'),
-      own('private_profile_data'),
-      own('user_roles'),
-      own('athlete_profiles'),
-      own('athlete_academics', 'athlete_id'),
-      own('athlete_finances', 'athlete_id'),
-      own('athlete_statistics', 'athlete_id'),
-      own('athlete_languages', 'athlete_id'),
-      own('athlete_achievements', 'athlete_id'),
-      supabase.from('parent_athlete_links').select('id, parent_id, athlete_id, status, relationship, created_at, approved_at, revoked_at').or(`parent_id.eq.${uid},athlete_id.eq.${uid}`),
-      supabase.from('applications').select('*, application_status_history(*)').eq('athlete_id', uid),
-      own('saved_athletes', 'owner_id'),
-      own('consents'),
-      own('data_subject_requests'),
-      own('athlete_updates', 'athlete_id'),
-      own('academy_progress'),
-      own('academy_attempts'),
-      own('saved_searches', 'owner_id'),
-      own('notifications'),
-      own('service_requests'),
-      own('user_feedback'),
-      supabase.from('athlete_documents').select('id, kind, title, due_date, mime_type, size_bytes, uploaded_at, created_at').eq('athlete_id', uid),
-      own('athlete_offers', 'athlete_id'),
-      own('entitlements'),
-      own('club_roster', 'athlete_id'),
-      own('product_events'),
-    ]);
+  const results = await Promise.all(
+    EXPORT_SOURCES.map(async (s) => {
+      let q = supabase.from(s.table).select(s.select ?? '*');
+      q = s.either ? q.or(`${s.either[0]}.eq.${uid},${s.either[1]}.eq.${uid}`) : q.eq(s.column ?? 'user_id', uid);
+      const { data, error } = await q;
+      return [s.key, error ? { error: 'No se pudo leer esta sección; vuelve a intentarlo o pídela a privacidad.' } : data] as const;
+    }),
+  );
 
   const body = {
     exported_at: new Date().toISOString(),
     account: { id: uid, email: auth.user?.email, created_at: auth.user?.created_at },
-    profile: profile.data,
-    private_data: privateData.data,
-    roles: roles.data,
-    athlete_profile: athlete.data,
-    academics: academics.data,
-    finances: finances.data,
-    statistics: stats.data,
-    languages: languages.data,
-    achievements: achievements.data,
-    family_links: links.data,
-    applications: applications.data,
-    saved_athletes: saved.data,
-    consents: consents.data,
-    data_requests: requests.data,
-    athlete_updates: updates.data,
-    academy: { progress: academyProgress.data, attempts: academyAttempts.data },
-    saved_searches: searches.data,
-    notifications: notifications.data,
-    service_requests: serviceRequests.data,
-    feedback: feedback.data,
-    documents: { note: 'Metadatos de tus documentos. Los archivos se descargan uno a uno desde Documentos.', items: documents.data },
-    external_offers: offers.data,
-    plans: entitlements.data,
-    club_rosters: rosters.data,
-    product_events: events.data,
+    note: 'Los archivos de tus documentos se descargan uno a uno desde Documentos. Las notas internas que una organización escribe sobre ti pertenecen a esa organización.',
+    ...Object.fromEntries(results),
   };
 
   return new NextResponse(JSON.stringify(body, null, 2), {
