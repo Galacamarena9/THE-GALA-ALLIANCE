@@ -46,11 +46,20 @@ export function CampaignForm({ brands, sports }: { brands: { id: string; name: s
               <Field label="Importe (USD)" htmlFor="compensation_usd" error={fe.compensation_usd} hint="Desde 600 $, los atletas NCAA D-I lo declaran en NIL Go."><input id="compensation_usd" name="compensation_usd" type="number" min={0} className={inputClass} /></Field>
               <Field label="Plazo de candidatura" htmlFor="application_deadline"><input id="application_deadline" name="application_deadline" type="date" className={inputClass} /></Field>
             </div>
+            <div className="grid gap-5 sm:grid-cols-3">
+              <Field label="Producto (si lo hay)" htmlFor="product_description" hint="Producto no es dinero: se mostrará así."><input id="product_description" name="product_description" maxLength={500} className={inputClass} /></Field>
+              <Field label="Valor del producto (USD)" htmlFor="product_value_usd"><input id="product_value_usd" name="product_value_usd" type="number" min={0} className={inputClass} /></Field>
+              <Field label="Meses de uso de la imagen" htmlFor="usage_months"><input id="usage_months" name="usage_months" type="number" min={0} max={60} className={inputClass} /></Field>
+              <Field label="Canales de uso" htmlFor="usage_channels" hint="Separados por comas"><input id="usage_channels" name="usage_channels" placeholder="instagram, web" className={inputClass} /></Field>
+              <Field label="Exclusividad: categoría" htmlFor="exclusivity_category" hint="Vacío = sin exclusividad"><input id="exclusivity_category" name="exclusivity_category" maxLength={120} className={inputClass} /></Field>
+              <Field label="Exclusividad: días" htmlFor="exclusivity_days"><input id="exclusivity_days" name="exclusivity_days" type="number" min={0} max={730} className={inputClass} /></Field>
+            </div>
+            <label className="flex items-center gap-2 text-sm text-muted"><input type="checkbox" name="paid_media" /> La imagen del atleta se usará también en publicidad pagada</label>
             <div className="grid gap-5 sm:grid-cols-2">
-              <Field label="Derechos de uso de la imagen" htmlFor="usage_rights" hint="Canales, duración y exclusividad."><textarea id="usage_rights" name="usage_rights" rows={2} className={inputClass} /></Field>
+              <Field label="Otras condiciones de uso" htmlFor="usage_rights"><textarea id="usage_rights" name="usage_rights" rows={2} className={inputClass} /></Field>
               <Field label="Territorio" htmlFor="territory"><input id="territory" name="territory" placeholder="España, UE, global…" className={inputClass} /></Field>
             </div>
-            <Notice>La plataforma no firma contratos ni gestiona pagos. No se permiten ofertas que condicionen el rendimiento deportivo ni el fichaje por un equipo.</Notice>
+            <Notice>Cada atleta seleccionado recibe tu oferta con estas condiciones desglosadas y decide. La plataforma no firma contratos ni procesa pagos. No se permiten ofertas que condicionen el rendimiento deportivo ni el fichaje por un equipo.</Notice>
           </Card>
           <div className="flex gap-3">
             <SubmitButton name="submit" value="review">Enviar a revisión</SubmitButton>

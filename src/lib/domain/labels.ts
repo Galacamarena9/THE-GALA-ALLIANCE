@@ -108,6 +108,8 @@ export const COMPENSATION_LABEL: Record<string, string> = {
   product: 'Producto',
   fixed_fee: 'Pago fijo',
   mixed: 'Producto + pago',
+  conditional: 'Condicionado a resultados',
+  unknown: 'No especificada',
 };
 
 export const NEWS_KIND_LABEL: Record<string, string> = {

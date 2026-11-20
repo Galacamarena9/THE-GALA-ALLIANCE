@@ -86,6 +86,8 @@ export const EXPORT_SOURCES: ExportSource[] = [
   { key: 'feedback', table: 'user_feedback' },
   // Marcas y negocio
   { key: 'campaign_applications', table: 'campaign_applications', column: 'athlete_id' },
+  { key: 'brand_offers', table: 'campaign_offers', select: 'id, campaign_id, version, status, compensation_unknown, usage_months, usage_channels, usage_territory, organic_use, paid_media, exclusivity_category, exclusivity_days, terms, expires_at, responded_at, payment_status, created_at', column: 'athlete_id' },
+  { key: 'brand_deliverable_submissions', table: 'campaign_deliverable_submissions', column: 'athlete_id' },
   { key: 'service_requests', table: 'service_requests' },
   // IA, academia y analítica
   { key: 'ai_conversations', table: 'ai_conversations' },

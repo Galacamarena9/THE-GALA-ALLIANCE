@@ -1,8 +1,8 @@
 <!-- Generado por scripts/erd/generate.mjs a partir de las migraciones. No editar a mano: `npm run erd`. -->
 # 00 · MASTER · Mapa de datos de The Gala Alliance
 
-**131 tablas** en 14 dominios, todas con RLS (131/131).
-Clasificación: Pública 17 · Interna 35 · Personal 59 · Sensible 20 · con posibles datos de menores: 49.
+**136 tablas** en 14 dominios, todas con RLS (136/136).
+Clasificación: Pública 17 · Interna 36 · Personal 61 · Sensible 22 · con posibles datos de menores: 49.
 
 Cómo leerlo: cada dominio tiene su fichero con el diagrama AS-IS (columnas reales), el inventario y el TO-BE. La arquitectura, las reglas y el plan están en [`docs/DATA_ARCHITECTURE.md`](../DATA_ARCHITECTURE.md).
 
@@ -23,7 +23,7 @@ flowchart LR
   D09["09 · Discovery, shortlists y pipeline del staff<br>15 tablas"]
   D10["10 · Agencias y clubes<br>18 tablas"]
   D11["11 · Comunicación, avisos y seguridad<br>6 tablas"]
-  D12["12 · Marcas y negocio<br>3 tablas"]
+  D12["12 · Marcas y negocio<br>8 tablas"]
   D13["13 · IA, academia, analítica y auditoría<br>10 tablas"]
   D14["14 · Clubs & Academies: trials, programas y participación<br>13 tablas"]
   D02 --> D01
@@ -165,6 +165,6 @@ erDiagram
 | [09 · Discovery, shortlists y pipeline del staff](./09-recruiting-staff.md) | 15 | `saved_athletes`, `saved_searches` |
 | [10 · Agencias y clubes](./10-agencias-clubes.md) | 18 | `club_roster_invites` |
 | [11 · Comunicación, avisos y seguridad](./11-comunicacion.md) | 6 | — |
-| [12 · Marcas y negocio](./12-marcas-negocio.md) | 3 | — |
+| [12 · Marcas y negocio](./12-marcas-negocio.md) | 8 | — |
 | [13 · IA, academia, analítica y auditoría](./13-ia-analitica.md) | 10 | — |
 | [14 · Clubs & Academies: trials, programas y participación](./14-clubs-academias.md) | 13 | — |

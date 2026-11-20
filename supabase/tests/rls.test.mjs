@@ -3068,6 +3068,105 @@ try {
     await expectError(() => as(agent2, `select representation_conflict_resolve(gen_random_uuid(), 'x', $1)`, [rw]), /admin_only/);
   });
 
+  // ---------------------------------------------------------------- Prompt 13 · Marcas
+  results.push('\nPrompt 13: ofertas de marca, entregables, derechos de uso y pago');
+  const B = await mkUser('m-athlete', 'athlete', 22);
+  const brand3 = (await as(u.brand, `insert into organizations (name, type, created_by) values ('Brand Three', 'brand', $1) returning id`, [u.brand])).rows[0].id;
+  await as(u.admin, `update organizations set verification_status = 'verified' where id = $1`, [brand3]);
+  const camp3 = (await as(u.brand, `insert into brand_campaigns (brand_org_id, created_by, title, description, kind, deliverables, compensation_kind, product_description, product_value_usd, usage_months, usage_channels)
+    values ($1, $2, 'Zapatillas 2027', 'Buscamos atletas universitarios para probar y enseñar nuestra nueva zapatilla.', 'product_testing', '1 reel y 2 stories', 'product', 'Dos pares de zapatillas', 350, 6, array['instagram']) returning id`, [brand3, u.brand])).rows[0].id;
+  await as(u.admin, `update brand_campaigns set status = 'published' where id = $1`, [camp3]);
+  const app3 = (await as(B, `insert into campaign_applications (campaign_id, athlete_id, rules_acknowledged) values ($1, $2, true) returning id`, [camp3, B])).rows[0].id;
+  const D1 = JSON.stringify([{ kind: 'reel', platform: 'instagram', quantity: 1, description: 'Reel probando la zapatilla en pista', due_date: null }]);
+  const PRODUCT = JSON.stringify([{ kind: 'product', amount: 350, currency: 'EUR', description: 'Dos pares de zapatillas' }]);
+  const send = (who, app, comps, delivs = D1, o = {}) => as(who, `select campaign_offer_send($1, $2::jsonb, $3::jsonb, $4, $5::text[], $6, $7, $8, $9, $10, $11) id`,
+    [app, comps, delivs, o.months ?? 6, o.channels ?? ['instagram'], o.paid ?? false, o.exclCat ?? null, o.exclDays ?? 0, o.expires ?? 14, o.terms ?? null, o.unknown ?? false]);
+  let off1; let off2;
+  await check('P13 §20-23 solo a un atleta seleccionado, con compensación y entregables explícitos', async () => {
+    await expectError(() => send(u.brand, app3, PRODUCT), /athlete_not_selected/);
+    await as(u.brand, `update campaign_applications set status = 'selected' where id = $1`, [app3]);
+    await expectError(() => send(u.brand, app3, '[]'), /compensation_required/);
+    await expectError(() => send(u.brand, app3, PRODUCT, '[]'), /deliverables_required/);
+    await expectError(() => send(u.brand, app3, JSON.stringify([{ kind: 'performance_bonus', amount: 100, guaranteed: true, description: 'Bonus por 10k vistas' }])), /component_bonus_conditional/);
+    await expectError(() => send(u.brand, app3, PRODUCT, D1, { exclDays: 90 }), /campaign_offer_exclusivity/);
+    await expectError(() => send(agent2, app3, PRODUCT), /not_found/);
+    off1 = (await send(u.brand, app3, PRODUCT)).rows[0].id;
+  });
+  await check('P13 §30 «no especificado» antes que inventar un valor', async () => {
+    const id = (await send(u.brand, app3, '[]', D1, { unknown: true })).rows[0].id;
+    eq((await db.query(`select status from campaign_offers where id = $1`, [off1])).rows[0].status, 'superseded', 'la v1 queda sustituida');
+    eq((await db.query(`select count(*)::int n from campaign_offers where application_id = $1 and status = 'sent'`, [app3])).rows[0].n, 1, 'una sola abierta');
+    off2 = (await send(u.brand, app3, PRODUCT, D1, { exclCat: 'Calzado deportivo', exclDays: 90 })).rows[0].id;
+    eq((await db.query(`select version from campaign_offers where id = $1`, [off2])).rows[0].version, 3);
+    eq((await db.query(`select status from campaign_offers where id = $1`, [id])).rows[0].status, 'superseded');
+  });
+  await check('P13 §51 frontera: atleta y marca sí; otra organización, coach o anónimo no; el agente solo con alcance «marcas»', async () => {
+    eq((await as(B, `select count(*)::int n from campaign_offers where id = $1`, [off2])).rows[0].n, 1);
+    eq((await as(u.brand, `select count(*)::int n from campaign_offer_components where offer_id = $1`, [off2])).rows[0].n, 1);
+    eq((await as(u.coach, `select count(*)::int n from campaign_offers where id = $1`, [off2])).rows[0].n, 0);
+    eq((await as(agent2, `select count(*)::int n from campaign_deliverables where offer_id = $1`, [off2])).rows[0].n, 0);
+    await expectError(() => as(null, `select count(*) from campaign_offers`), /permission denied/);
+    const ru = await repRequest(u.agent, agencyId, B, { categories: ['university'], perms: ['offers.view'] });
+    await as(B, `select representation_respond($1, true)`, [ru]);
+    eq((await as(u.agent, `select count(*)::int n from campaign_offers where id = $1`, [off2])).rows[0].n, 0, 'alcance solo universidades');
+    await as(B, `select representation_end($1)`, [ru]);
+    const rb = await repRequest(u.agent, agencyId, B, { categories: ['brand'], perms: ['offers.view'] });
+    await as(B, `select representation_respond($1, true)`, [rb]);
+    eq((await as(u.agent, `select count(*)::int n from campaign_offers where id = $1`, [off2])).rows[0].n, 1, 'alcance marcas');
+  });
+  await check('P13 §37/§41 nadie edita una oferta enviada; solo el atleta la acepta', async () => {
+    await expectError(() => as(u.brand, `update campaign_offer_components set amount = 999 where offer_id = $1`, [off2]), /brand_rpc_only|row-level|permission denied/).catch(async () => {
+      eq((await db.query(`select amount::int a from campaign_offer_components where offer_id = $1`, [off2])).rows[0].a, 350);
+    });
+    await expectError(() => as(u.brand, `insert into campaign_offers (campaign_id, application_id, brand_org_id, athlete_id, expires_at) values ($1, $2, $3, $4, now() + interval '1 day')`, [camp3, app3, brand3, B]), /brand_rpc_only|row-level|permission denied/);
+    await expectError(() => as(u.agent, `select campaign_offer_respond($1, true)`, [off2]), /not_found/);
+    await expectError(() => as(u.brand, `select campaign_offer_respond($1, true)`, [off2]), /not_found/);
+  });
+  await check('P13 §33 entregar antes de aceptar no; después, versiones sin sobrescribir', async () => {
+    const dl = (await db.query(`select id from campaign_deliverables where offer_id = $1`, [off2])).rows[0].id;
+    await expectError(() => as(B, `select campaign_deliverable_submit($1, 'https://instagram.com/p/1')`, [dl]), /offer_not_accepted/);
+    eq((await as(B, `select campaign_offer_respond($1, true) s`, [off2])).rows[0].s, 'accepted');
+    eq((await as(B, `select campaign_offer_respond($1, false) s`, [off2])).rows[0].s, 'accepted', 'idempotente');
+    eq((await db.query(`select payment_status from campaign_offers where id = $1`, [off2])).rows[0].payment_status, 'not_applicable', 'solo producto: no hay pago en dinero');
+    await expectError(() => as(B, `select campaign_deliverable_submit($1, 'http://inseguro.com')`, [dl]), /invalid_url/);
+    eq((await as(B, `select campaign_deliverable_submit($1, 'https://instagram.com/p/1') v`, [dl])).rows[0].v, 1);
+    await expectError(() => as(u.brand, `select campaign_deliverable_review($1, false, 'no')`, [dl]), /feedback_required/);
+    eq((await as(u.brand, `select campaign_deliverable_review($1, false, 'Falta mostrar el logo al final del reel') s`, [dl])).rows[0].s, 'changes_requested');
+    eq((await as(B, `select campaign_deliverable_submit($1, 'https://instagram.com/p/2') v`, [dl])).rows[0].v, 2);
+    eq((await db.query(`select count(*)::int n from campaign_deliverable_submissions where deliverable_id = $1`, [dl])).rows[0].n, 2, 'la v1 se conserva');
+    await expectError(() => as(agent2, `select campaign_deliverable_review($1, true)`, [dl]), /not_found/);
+    eq((await as(u.brand, `select campaign_deliverable_review($1, true, null) s`, [dl])).rows[0].s, 'approved');
+    await expectError(() => as(B, `select campaign_deliverable_submit($1, 'https://instagram.com/p/3')`, [dl]), /deliverable_closed/);
+  });
+  await check('P13 §43-44/§64 pago: la marca declara, solo el atleta confirma o disputa', async () => {
+    const C = await mkUser('m-cash', 'athlete', 24);
+    const ap = (await as(C, `insert into campaign_applications (campaign_id, athlete_id, rules_acknowledged) values ($1, $2, true) returning id`, [camp3, C])).rows[0].id;
+    await as(u.brand, `update campaign_applications set status = 'selected' where id = $1`, [ap]);
+    const o = (await send(u.brand, ap, JSON.stringify([{ kind: 'cash', amount: 500, currency: 'USD', description: 'Pago fijo' }]))).rows[0].id;
+    await expectError(() => as(u.brand, `select campaign_payment_update($1, 'paid_declared')`, [o]), /payment_not_applicable/);
+    await as(C, `select campaign_offer_respond($1, true)`, [o]);
+    eq((await db.query(`select payment_status from campaign_offers where id = $1`, [o])).rows[0].payment_status, 'pending');
+    await expectError(() => as(u.brand, `select campaign_payment_update($1, 'confirmed')`, [o]), /payment_transition_not_allowed/);
+    await as(u.brand, `select campaign_payment_update($1, 'paid_declared')`, [o]);
+    await expectError(() => as(B, `select campaign_payment_update($1, 'confirmed')`, [o]), /not_found/);
+    eq((await as(C, `select campaign_payment_update($1, 'confirmed') s`, [o])).rows[0].s, 'confirmed');
+  });
+  await check('P13 §60 caducidad: una oferta vencida no se puede aceptar; el job es idempotente', async () => {
+    const E = await mkUser('m-exp', 'athlete', 23);
+    const ap = (await as(E, `insert into campaign_applications (campaign_id, athlete_id, rules_acknowledged) values ($1, $2, true) returning id`, [camp3, E])).rows[0].id;
+    await as(u.brand, `update campaign_applications set status = 'selected' where id = $1`, [ap]);
+    const o = (await send(u.brand, ap, PRODUCT)).rows[0].id;
+    await db.query(`update campaign_offers set expires_at = now() - interval '1 minute' where id = $1`, [o]);
+    eq((await as(E, `select campaign_offer_respond($1, true) s`, [o])).rows[0].s, 'expired');
+    eq((await db.query(`select campaign_offers_expire_due() n`)).rows[0].n, 0);
+  });
+  await check('P13 §25 notas internas de la marca: el atleta y otras organizaciones no las ven', async () => {
+    await as(u.brand, `insert into brand_application_notes (application_id, brand_org_id, author_id, body) values ($1, $2, $3, 'Buen encaje con la línea running')`, [app3, brand3, u.brand]);
+    eq((await as(B, `select count(*)::int n from brand_application_notes where application_id = $1`, [app3])).rows[0].n, 0);
+    eq((await as(u.coach, `select count(*)::int n from brand_application_notes`)).rows[0].n, 0);
+    await expectError(() => as(agent2, `insert into brand_application_notes (application_id, brand_org_id, author_id, body) values ($1, $2, $3, 'x')`, [app3, brand3, agent2]), /row-level/);
+  });
+
   // ---------------------------------------------------------------- Prompt 9 · Supabase & PostgreSQL
   results.push('\nPrompt 9: integridad, documentos, concurrencia y catálogo');
   await check('P9 S9-01 · un documento, la foto o una evidencia no pueden apuntar a la carpeta de otra persona', async () => {

@@ -8,6 +8,9 @@ import { NIL_GO_THRESHOLD_USD, nilGoApplies } from '@/lib/domain/ncaa';
 import { Badge, Card, CardTitle, EmptyState, Notice, PageHeader } from '@/components/ui';
 import { CampaignApplyForm, ReportButton } from '@/components/forms';
 import { moveCampaignApplication, setCampaignStatus } from '@/app/actions/marketplace';
+import { updateBrandPayment, withdrawBrandOffer } from '@/app/actions/brand-offers';
+import { BrandOfferForm, ReviewDeliverableForm } from '@/components/brand/OfferForms';
+import { DELIVERABLE_LABEL, DELIVERABLE_STATUS_LABEL, PAYMENT_LABEL, describeCompensation, exclusivitySummary, usageSummary, type OfferComponent } from '@/lib/domain/brand-offers';
 
 export const metadata: Metadata = { title: 'Oferta de marca' };
 
@@ -29,6 +32,15 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
   const { data: dir } = isMember && athleteIds.length ? await supabase.from('athlete_directory').select('user_id, display_name, sport_id, country').in('user_id', athleteIds) : { data: [] };
   const nameById = new Map((dir ?? []).map((d) => [d.user_id, d]));
   const mine = !isMember ? apps?.[0] : null;
+  type O = { id: string; application_id: string; status: string; version: number; payment_status: string; compensation_unknown: boolean;
+    campaign_offer_components: OfferComponent[];
+    campaign_deliverables: { id: string; kind: string; quantity: number; status: string; campaign_deliverable_submissions: { version: number; url: string }[] }[] };
+  const { data: offerRows } = isMember
+    ? await supabase.from('campaign_offers').select('id, application_id, status, version, payment_status, compensation_unknown, campaign_offer_components(kind, amount, currency, guaranteed, description), campaign_deliverables(id, kind, quantity, status, campaign_deliverable_submissions(version, url))')
+        .eq('campaign_id', id).neq('status', 'superseded').order('version', { ascending: false })
+    : { data: [] };
+  const offerByApp = new Map<string, O>();
+  for (const o of (offerRows ?? []) as unknown as O[]) if (!offerByApp.has(o.application_id)) offerByApp.set(o.application_id, o);
 
   return (
     <>
@@ -40,7 +52,10 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
             <div className="sm:col-span-2"><dt className="text-faint">Entregables</dt><dd className="whitespace-pre-line text-paper">{c.deliverables}</dd></div>
             <div><dt className="text-faint">Compensación</dt><dd className="text-paper">{COMPENSATION_LABEL[c.compensation_kind]}{c.compensation_usd != null ? ` · ${usd(c.compensation_usd)}` : ''}</dd></div>
             <div><dt className="text-faint">Territorio</dt><dd className="text-paper">{c.territory ?? 'No indicado'}</dd></div>
-            <div className="sm:col-span-2"><dt className="text-faint">Derechos de uso</dt><dd className="text-paper">{c.usage_rights ?? 'No indicados: pregunta antes de aceptar'}</dd></div>
+            {c.product_description && <div><dt className="text-faint">Producto</dt><dd className="text-paper">{c.product_description}{c.product_value_usd != null ? ` · valor ${usd(c.product_value_usd)} (no es dinero)` : ''}</dd></div>}
+            <div><dt className="text-faint">Uso de la imagen</dt><dd className="text-paper">{c.usage_months != null ? usageSummary({ usage_months: c.usage_months, usage_channels: c.usage_channels ?? [], usage_territory: c.territory ?? 'WORLD', organic_use: true, paid_media: !!c.paid_media }) : 'No indicado: pregunta antes de aceptar'}</dd></div>
+            <div><dt className="text-faint">Exclusividad</dt><dd className="text-paper">{exclusivitySummary({ exclusivity_category: c.exclusivity_category ?? null, exclusivity_days: c.exclusivity_days ?? 0 })}</dd></div>
+            {c.usage_rights && <div className="sm:col-span-2"><dt className="text-faint">Otras condiciones de uso</dt><dd className="text-paper">{c.usage_rights}</dd></div>}
             <div><dt className="text-faint">Plazo</dt><dd className="text-paper">{c.application_deadline ?? 'Abierto'}</dd></div>
           </dl>
           <div className="mt-6 rounded-2xl border border-line bg-surface-2 p-4 text-sm leading-relaxed text-muted">
@@ -66,7 +81,10 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
           ) : session.isMinor ? (
             <Notice tone="neutral">Disponible a partir de los 18 años.</Notice>
           ) : mine ? (
-            <Card><CardTitle kicker="Tu candidatura">{mine.status}</CardTitle><p className="text-sm text-muted">La marca te contactará por la plataforma si te selecciona.</p></Card>
+            <Card><CardTitle kicker="Tu candidatura">{mine.status === 'selected' ? 'Seleccionado' : mine.status}</CardTitle>
+              <p className="text-sm text-muted">{mine.status === 'selected' ? 'La marca te ha seleccionado. Su oferta, con todas las condiciones, te llegará a «Mis colaboraciones».' : 'La marca te contactará por la plataforma si te selecciona.'}</p>
+              {mine.status === 'selected' && <Link href="/app/collaborations" className="mt-2 inline-block text-sm text-brass hover:underline">Ir a Mis colaboraciones →</Link>}
+            </Card>
           ) : c.status === 'published' ? (
             <Card><CardTitle kicker="Aplicar">¿Te interesa?</CardTitle><CampaignApplyForm campaignId={c.id} /></Card>
           ) : null}
@@ -94,6 +112,50 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
                       </form>
                     ))}
                   </div>
+                  {a.status === 'selected' && (() => {
+                    const o = offerByApp.get(a.id);
+                    const comp = o ? describeCompensation(o.campaign_offer_components, o.compensation_unknown) : null;
+                    return (
+                      <div className="w-full rounded-xl border border-line bg-surface-2/40 p-3">
+                        {o && comp ? (
+                          <>
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <p className="text-sm text-paper">Oferta v{o.version} · {comp.headline}</p>
+                              <Badge tone={o.status === 'accepted' ? 'ok' : o.status === 'sent' ? 'brass' : 'neutral'}>{o.status === 'sent' ? 'Esperando al atleta' : o.status === 'accepted' ? 'Aceptada' : o.status === 'declined' ? 'Rechazada' : o.status === 'expired' ? 'Caducada' : 'Retirada'}</Badge>
+                            </div>
+                            {o.status === 'sent' && <form action={withdrawBrandOffer} className="mt-2"><input type="hidden" name="id" value={o.id} /><input type="hidden" name="campaign_id" value={c.id} /><button className="text-xs text-faint hover:text-danger">Retirar oferta</button></form>}
+                            {o.status === 'accepted' && (
+                              <>
+                                <ul className="mt-2 space-y-2">
+                                  {o.campaign_deliverables.map((d) => {
+                                    const last = [...d.campaign_deliverable_submissions].sort((x, y) => y.version - x.version)[0];
+                                    return (
+                                      <li key={d.id} className="text-sm">
+                                        <span className="text-paper">{d.quantity} × {DELIVERABLE_LABEL[d.kind] ?? d.kind}</span> · <span className="text-muted">{DELIVERABLE_STATUS_LABEL[d.status]}</span>
+                                        {last && <> · <a href={last.url} target="_blank" rel="noopener noreferrer" className="text-brass hover:underline">versión {last.version}</a></>}
+                                        {d.status === 'submitted' && <div className="mt-2"><ReviewDeliverableForm id={d.id} campaignId={c.id} /></div>}
+                                      </li>
+                                    );
+                                  })}
+                                </ul>
+                                <p className="mt-2 text-xs text-muted">Pago: {PAYMENT_LABEL[o.payment_status]}</p>
+                                {(o.payment_status === 'pending' || o.payment_status === 'disputed') && (
+                                  <form action={updateBrandPayment} className="mt-1"><input type="hidden" name="id" value={o.id} /><input type="hidden" name="status" value="paid_declared" /><input type="hidden" name="campaign_id" value={c.id} />
+                                    <button className="rounded-lg border border-line-strong px-3 py-1.5 text-xs text-paper">Ya hemos pagado</button></form>
+                                )}
+                              </>
+                            )}
+                          </>
+                        ) : <p className="text-sm text-muted">Seleccionado. Envía tu oferta con todas las condiciones explícitas.</p>}
+                        {(!o || o.status !== 'accepted') && (
+                          <details className="mt-2">
+                            <summary className="cursor-pointer text-sm font-medium text-brass">{o?.status === 'sent' ? 'Enviar una nueva versión' : 'Enviar oferta'}</summary>
+                            <div className="mt-3"><BrandOfferForm applicationId={a.id} campaignId={c.id} /></div>
+                          </details>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </li>
               ))}
             </ul>
