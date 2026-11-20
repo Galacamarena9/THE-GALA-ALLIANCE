@@ -115,6 +115,7 @@ export const PERSONAL_SERVICES: Record<AppRole, NavItem[]> = {
     { href: '/app/admin/panel', label: 'Panel de mando', icon: 'chart', desc: 'Métricas, embudo, automatizaciones y ventas.' },
     { href: '/app/admin', label: 'Revisión y verificación', icon: 'shield', desc: 'Colas de verificación y denuncias.' },
     { href: '/app/admin/safety', label: 'Trust & Safety', icon: 'shield', desc: 'Casos, medidas proporcionales y apelaciones.' },
+    { href: '/app/admin/analytics', label: 'Analítica', icon: 'chart', desc: 'Liquidez, activación, retención y oferta/demanda, con sus definiciones.' },
     { href: '/app/admin/ops', label: 'Operaciones', icon: 'chart', desc: 'Interruptores, soporte, aprobaciones y conflictos.' },
   ],
 };

@@ -54,3 +54,23 @@ Medición propia, sin herramientas de terceros ni cookies de analítica: los eve
 | `trial_applied` | `registerForTrial` | `by` (athlete/agent) | Inscripciones a trials (11A) |
 | `trial_viewed` | ficha de un trial (atleta) | — | Interés en trials |
 | `agent_trials_viewed` | `/app/portfolio/trials` | — | Uso del módulo de trials por agentes |
+
+## Prompt 17 · Eventos añadidos (12–16)
+
+| Evento | Cuándo | Propiedades |
+|---|---|---|
+| `representation_requested` | Una agencia propone representar | `type` |
+| `representation_accepted` | El atleta acepta (dedupe por representación) | — |
+| `representation_revoked` | Atleta, familia o agencia terminan | — |
+| `agency_invited` | Atleta o familia invitan a una agencia | — |
+| `brand_offer_sent` | Una marca envía una oferta | `components`, `unknown` |
+| `brand_offer_accepted` | El atleta acepta (dedupe por oferta) | — |
+| `deliverable_submitted` | El atleta entrega | `version` |
+| `collaborations_viewed` / `trust_center_viewed` / `billing_viewed` | Vista de página | — |
+| `support_case_opened` | Se abre un caso de soporte | `category` |
+| `subscription_started` | Reservado para el alta de suscripción (dedupe por sesión de Stripe) | — |
+
+**Reglas:**
+- Los eventos de un **menor** se guardan **sin propiedades**, aunque se envíen.
+- Los eventos con `dedupe_key` no se duplican.
+- La lista de eventos está cerrada en la base de datos: un evento desconocido se rechaza.

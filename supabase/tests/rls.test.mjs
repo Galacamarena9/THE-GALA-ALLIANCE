@@ -3370,6 +3370,28 @@ try {
     await as(sa, `select * from admin_jobs()`);
   });
 
+  // ---------------------------------------------------------------- Prompt 17 · Analítica
+  results.push('\nPrompt 17: eventos, privacidad de menores y métricas agregadas');
+  await check('P17 §12 los eventos de un menor no llevan propiedades; los de un adulto sí; dedupe idempotente', async () => {
+    await as(u.minor, `select log_event('trust_center_viewed', '{"from":"menu"}'::jsonb)`);
+    await as(u.adult, `select log_event('trust_center_viewed', '{"from":"menu"}'::jsonb)`);
+    eq(JSON.stringify((await db.query(`select props from product_events where user_id = $1 and event = 'trust_center_viewed'`, [u.minor])).rows[0].props), '{}', 'menor sin props');
+    eq((await db.query(`select props->>'from' f from product_events where user_id = $1 and event = 'trust_center_viewed'`, [u.adult])).rows[0].f, 'menu');
+    await as(u.adult, `select log_event('subscription_started', '{}'::jsonb, 'cs_123')`);
+    await as(u.adult, `select log_event('subscription_started', '{}'::jsonb, 'cs_123')`);
+    eq((await db.query(`select count(*)::int n from product_events where user_id = $1 and event = 'subscription_started'`, [u.adult])).rows[0].n, 1, 'idempotente');
+    await expectError(() => as(u.adult, `select log_event('evento_inventado', '{}'::jsonb)`), /check constraint/);
+  });
+  await check('P17 §35/§41 métricas: solo admin, agregadas, grupos pequeños ocultos y sin ranking de personas', async () => {
+    await expectError(() => as(u.coach, `select admin_marketplace_metrics(30)`), /admin_only/);
+    const m = (await as(u.admin, `select admin_marketplace_metrics(30) m`)).rows[0].m;
+    for (const k of ['active', 'athlete_activation', 'liquidity', 'supply_demand', 'retention', 'agents', 'brands', 'revenue', 'trust', 'top_events']) eq(k in m, true, k);
+    eq(m.supply_demand.every((s) => s.athletes >= 5), true, 'k-anonimato');
+    eq(JSON.stringify(m).includes(u.adult), false, 'ningún id de persona');
+    eq((await as(u.admin, `select count(*)::int n from metric_definitions`)).rows[0].n >= 10, true);
+    eq((await as(u.coach, `select count(*)::int n from metric_definitions`)).rows[0].n, 0);
+  });
+
   // ---------------------------------------------------------------- Prompt 9 · Supabase & PostgreSQL
   results.push('\nPrompt 9: integridad, documentos, concurrencia y catálogo');
   await check('P9 S9-01 · un documento, la foto o una evidencia no pueden apuntar a la carpeta de otra persona', async () => {

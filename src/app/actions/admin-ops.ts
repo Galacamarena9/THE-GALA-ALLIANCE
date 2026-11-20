@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
+import { logEvent } from '@/lib/events';
 import { createClient } from '@/lib/supabase/server';
 import { requireSession } from '@/lib/session';
 import type { FormState } from './auth';
@@ -62,5 +63,6 @@ export async function openSupportCase(_prev: FormState, formData: FormData): Pro
   const { error } = await supabase.from('support_cases').insert({ ...p.data, requester_id: session.userId });
   if (error) return { error: 'No se ha podido enviar.' };
   revalidatePath('/app/support');
+  await logEvent('support_case_opened', { category: p.data.category });
   return { ok: true, message: 'Recibido. Te responderemos aquí y te avisaremos.' };
 }

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { logEvent } from '@/lib/events';
 import { requireSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
 import type { FormState } from '@/app/actions/auth';
@@ -69,6 +70,7 @@ export async function sendBrandOffer(_prev: FormState, formData: FormData): Prom
   });
   if (error) return { error: friendly(error.message) };
   revalidatePath(`/app/campaigns/${d.campaign_id}`);
+  await logEvent('brand_offer_sent', { components: components.length, unknown: d.unknown === 'on' });
   return { ok: true, message: 'Oferta enviada. El atleta ve cada condición antes de decidir.' };
 }
 
@@ -80,6 +82,7 @@ export async function respondBrandOffer(formData: FormData) {
   if (!p.success) return;
   const supabase = await createClient();
   await supabase.rpc('campaign_offer_respond', { p_offer: p.data.id, p_accept: p.data.accept === 'yes', p_reason: p.data.reason || null });
+  if (p.data.accept === 'yes') await logEvent('brand_offer_accepted', {}, `offer:${p.data.id}`);
   revalidatePath('/app/collaborations');
 }
 
@@ -101,6 +104,7 @@ export async function submitDeliverable(_prev: FormState, formData: FormData): P
   const { data, error } = await supabase.rpc('campaign_deliverable_submit', { p_deliverable: p.data.id, p_url: p.data.url, p_note: p.data.note || null });
   if (error) return { error: error.message.includes('deliverable_closed') ? 'Este entregable ya está cerrado.' : 'No se ha podido enviar.' };
   revalidatePath('/app/collaborations');
+  await logEvent('deliverable_submitted', { version: Number(data) || 1 });
   return { ok: true, message: `Versión ${data} enviada a la marca.` };
 }
 

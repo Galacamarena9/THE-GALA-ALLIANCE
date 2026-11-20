@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { requireSession } from '@/lib/session';
+import { logEvent } from '@/lib/events';
 import { createClient } from '@/lib/supabase/server';
 import { Badge, ButtonLink, Card, CardTitle, EmptyState, Notice, PageHeader } from '@/components/ui';
 import { SubmitDeliverableForm } from '@/components/brand/OfferForms';
@@ -32,6 +33,7 @@ export default async function CollaborationsPage() {
   if (session.isMinor) {
     return (<><PageHeader kicker="Marcas" title="Mis colaboraciones" /><Notice tone="neutral">Las colaboraciones con marcas están disponibles a partir de los 18 años.</Notice></>);
   }
+  void logEvent('collaborations_viewed');
   const supabase = await createClient();
   const { data } = await supabase.from('campaign_offers')
     .select(`id, status, version, expires_at, created_at, terms, compensation_unknown, usage_months, usage_channels, usage_territory, organic_use, paid_media,

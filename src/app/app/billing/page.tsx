@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { requireSession } from '@/lib/session';
+import { logEvent } from '@/lib/events';
 import { createClient } from '@/lib/supabase/server';
 import { myOrganizations } from '@/lib/data/orgs';
 import { Badge, Card, CardTitle, EmptyState, Notice, PageHeader } from '@/components/ui';
@@ -31,6 +32,7 @@ const eur = (c: number, cur: string) => new Intl.NumberFormat('es-ES', { style: 
 export default async function BillingPage({ searchParams }: { searchParams: Promise<{ estado?: string }> }) {
   const session = await requireSession(['agent', 'coach', 'university', 'brand']);
   const sp = await searchParams;
+  void logEvent('billing_viewed');
   const supabase = await createClient();
   const orgs = (await myOrganizations(session.userId)).filter((o) => ['owner', 'admin'].includes(o.member_role as string));
   if (!orgs.length) return (<><PageHeader kicker="Cuenta" title="Facturación" /><EmptyState title="Nada que facturar">La facturación la gestiona quien dirige la organización.</EmptyState></>);
