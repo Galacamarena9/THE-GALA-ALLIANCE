@@ -7,6 +7,8 @@ import { createClient } from '@/lib/supabase/server';
 import { getSession, requireSession } from '@/lib/session';
 import type { FormState } from '@/app/actions/auth';
 import { logEvent } from '@/lib/events';
+import { createHash } from 'node:crypto';
+import { uploadMatches } from '@/lib/domain/file-sniff';
 import { DOC_CHECKLIST, DOC_KINDS, suggestedDueDate } from '@/content/documents';
 import { planByCode } from '@/content/plans';
 
@@ -57,10 +59,18 @@ export async function recordDocumentUpload(input: { id: string; athleteId: strin
   const session = await canManage(parsed.data.athleteId);
   if (!session) return { ok: false };
   const supabase = await createClient();
+  // Comprobación en servidor del archivo ya subido: firma real y tamaño, no lo que declara el navegador.
+  const { data: blob } = await supabase.storage.from('athlete-documents').download(parsed.data.path);
+  const bytes = blob ? new Uint8Array(await blob.arrayBuffer()) : null;
+  if (!bytes || !uploadMatches(bytes, { mime: parsed.data.mime, size: parsed.data.size })) {
+    await supabase.storage.from('athlete-documents').remove([parsed.data.path]);
+    return { ok: false, reason: 'invalid_file' as const };
+  }
+  const contentSha256 = createHash('sha256').update(bytes).digest('hex');
   const { data: prev } = await supabase.from('athlete_documents').select('storage_path').eq('id', parsed.data.id).maybeSingle();
   const { error } = await supabase.from('athlete_documents').update({
     storage_path: parsed.data.path, mime_type: parsed.data.mime, size_bytes: parsed.data.size,
-    uploaded_by: session.userId, uploaded_at: new Date().toISOString(),
+    content_sha256: contentSha256, uploaded_by: session.userId, uploaded_at: new Date().toISOString(),
   }).eq('id', parsed.data.id).eq('athlete_id', parsed.data.athleteId);
   if (!error && prev?.storage_path && prev.storage_path !== parsed.data.path) {
     await supabase.storage.from('athlete-documents').remove([prev.storage_path]);
@@ -76,7 +86,7 @@ export async function removeDocumentFile(formData: FormData) {
   const supabase = await createClient();
   const { data } = await supabase.from('athlete_documents').select('storage_path').eq('id', parsed.data.id).maybeSingle();
   if (data?.storage_path) await supabase.storage.from('athlete-documents').remove([data.storage_path]);
-  await supabase.from('athlete_documents').update({ storage_path: null, mime_type: null, size_bytes: null, uploaded_at: null, uploaded_by: null }).eq('id', parsed.data.id);
+  await supabase.from('athlete_documents').update({ storage_path: null, mime_type: null, size_bytes: null, content_sha256: null, uploaded_at: null, uploaded_by: null }).eq('id', parsed.data.id);
   revalidatePath('/app/documents');
 }
 

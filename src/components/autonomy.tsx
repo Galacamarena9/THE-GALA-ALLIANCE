@@ -32,7 +32,7 @@ export function DocumentUpload({ docId, athleteId, hasFile }: { docId: string; a
       const res = await recordDocumentUpload({ id: docId, athleteId, path, mime: file.type, size: file.size });
       if (!res.ok) {
         await supabase.storage.from('athlete-documents').remove([path]);
-        return setError('No se ha podido guardar.');
+        return setError('reason' in res && res.reason === 'invalid_file' ? 'El archivo no es un PDF, JPG o PNG válido.' : 'No se ha podido guardar.');
       }
       router.refresh();
     });

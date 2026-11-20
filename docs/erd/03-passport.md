@@ -106,6 +106,7 @@ erDiagram
     uuid uploaded_by FK
     timestamptz uploaded_at
     timestamptz created_at
+    text content_sha256
   }
   ATHLETE_FINANCES {
     uuid athlete_id PK,FK
