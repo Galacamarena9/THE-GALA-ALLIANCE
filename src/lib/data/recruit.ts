@@ -86,31 +86,35 @@ export interface DiscoverRow {
 }
 export const PAGE_SIZE = 20;
 
-export async function discoverAthletes(f: DiscoverFilters, need: NeedCriteria | null) {
+export async function discoverAthletes(f: DiscoverFilters, need: NeedCriteria | null, orgId?: string) {
   const supabase = await createClient();
-  // Filtros solo sobre la vista enmascarada: un bloque privado sale NULL y nunca coincide.
-  let q = supabase.from('athlete_directory').select('*', { count: 'exact' }).eq('open_to_opportunities', true)
-    .order('updated_at', { ascending: false }).range((f.page - 1) * PAGE_SIZE, f.page * PAGE_SIZE - 1);
   const sport = f.sport ?? need?.sport_id;
-  if (sport) q = q.eq('sport_id', sport);
-  if (f.position) q = q.or(`primary_position_id.eq.${f.position},secondary_position_id.eq.${f.position}`);
-  if (f.grad) q = q.eq('graduation_year', f.grad);
-  if (f.country && /^[A-Z]{2}$/.test(f.country)) q = q.eq('country', f.country);
-  if (f.minHeight) q = q.gte('height_cm', f.minHeight);
-  if (f.video) q = q.eq('has_video', true);
-  if (f.q) q = q.ilike('display_name', `%${f.q.replace(/[%_,()]/g, '').slice(0, 60)}%`);
-  // Filtros sobre bloques con su propia RLS: solo atletas que comparten ese bloque contigo.
-  if (f.academics) {
-    const { data } = await supabase.from('athlete_academics').select('athlete_id').neq('gpa_source', 'self_reported').limit(2000);
-    q = q.in('user_id', (data ?? []).map((r) => r.athlete_id));
-  }
-  if (f.verifiedStats) {
-    const { data } = await supabase.from('athlete_statistics').select('athlete_id').neq('source', 'self_reported').limit(5000);
-    q = q.in('user_id', [...new Set((data ?? []).map((r) => r.athlete_id))]);
-  }
-  const { data, count, error } = await q;
+  // Sin deporte no se busca: impide listar toda la base de atletas (anti-enumeración).
+  if (!sport || !orgId) return { rows: [] as DiscoverRow[], total: 0, needsSport: !sport };
+  const { data: ok } = await supabase.rpc('discovery_consume');
+  if (ok === false) throw new Error('discover_quota');
+  // La búsqueda se hace en la base de datos con la política de cada atleta: Discovery activado, bloques filtrables
+  // y organización verificada con permiso. Aquí solo llegan identificadores autorizados.
+  const filters: Record<string, string | number | boolean> = { sport };
+  if (f.position) filters.position = f.position;
+  if (f.grad) filters.grad = f.grad;
+  if (f.country && /^[A-Z]{2}$/.test(f.country)) filters.country = f.country;
+  if (f.minHeight) filters.min_height = f.minHeight;
+  if (f.video) filters.video = true;
+  if (f.academics) filters.academics = true;
+  if (f.verifiedStats) filters.verified_stats = true;
+  if (f.q) filters.q = f.q.slice(0, 60);
+  const { data: hits, error: hitErr } = await supabase.rpc('discover_athlete_ids', { p_org: orgId, p_filters: filters, p_page: Math.min(f.page, 20), p_page_size: PAGE_SIZE });
+  if (hitErr) throw new Error('discover_unavailable');
+  const hitRows = (hits ?? []) as { user_id: string; total: number; match_blocked: string[] }[];
+  const blocked = new Map(hitRows.map((h) => [h.user_id, new Set(h.match_blocked ?? [])]));
+  const order = new Map(hitRows.map((h, i) => [h.user_id, i]));
+  const { data, error } = hitRows.length
+    ? await supabase.from('athlete_directory').select('*').in('user_id', hitRows.map((h) => h.user_id))
+    : { data: [], error: null };
   if (error) throw new Error('discover_unavailable');
-  const rows = (data ?? []) as Omit<DiscoverRow, 'academics_documented' | 'verified_stats' | 'fit'>[];
+  const count = hitRows[0]?.total ?? 0;
+  const rows = ((data ?? []) as Omit<DiscoverRow, 'academics_documented' | 'verified_stats' | 'fit'>[]).sort((a, b) => (order.get(a.user_id) ?? 0) - (order.get(b.user_id) ?? 0));
   const ids = rows.map((r) => r.user_id);
   const [acad, stats] = ids.length ? await Promise.all([
     supabase.from('athlete_academics').select('athlete_id, gpa_source').in('athlete_id', ids),
@@ -120,13 +124,18 @@ export async function discoverAthletes(f: DiscoverFilters, need: NeedCriteria | 
   const statRows = (stats.data ?? []) as { athlete_id: string; source: string }[];
   const visibleStats = new Set(statRows.map((s) => s.athlete_id));
   const out: DiscoverRow[] = rows.map((r) => {
+    // Lo que el atleta no permite usar para el encaje cuenta como «desconocido» (baja la confianza, no penaliza).
+    const nope = blocked.get(r.user_id) ?? new Set<string>();
     const facts: AthleteFacts = {
-      ...r, academics_documented: acadMap.has(r.user_id) ? acadMap.get(r.user_id)! : null,
-      verified_stats: visibleStats.has(r.user_id) ? statRows.filter((s) => s.athlete_id === r.user_id && s.source !== 'self_reported').length : null,
+      ...r,
+      height_cm: nope.has('physical') ? null : r.height_cm,
+      has_video: nope.has('videos') ? false : r.has_video,
+      academics_documented: nope.has('academics') ? null : acadMap.has(r.user_id) ? acadMap.get(r.user_id)! : null,
+      verified_stats: nope.has('stats') ? null : visibleStats.has(r.user_id) ? statRows.filter((s) => s.athlete_id === r.user_id && s.source !== 'self_reported').length : null,
     };
     return { ...r, academics_documented: facts.academics_documented, verified_stats: facts.verified_stats, fit: need ? needFit(need, facts) : null };
   });
-  return { rows: out, total: count ?? 0 };
+  return { rows: out, total: Number(count) || 0, needsSport: false };
 }
 
 /** Ficha de candidato: solo los bloques que el coach puede ver (RLS por bloque) + su contexto interno. */

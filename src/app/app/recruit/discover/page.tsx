@@ -40,7 +40,7 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
   let result: Awaited<ReturnType<typeof discoverAthletes>> | null = null;
   let failed = false;
   if (canDiscover) {
-    try { result = await discoverAthletes(f, need ?? null); } catch { failed = true; }
+    try { result = await discoverAthletes(f, need ?? null, org?.id); } catch { failed = true; }
     if (result && f.page === 1) void logEvent('athlete_discovered', { filters: Object.values(f).filter(Boolean).length, need: !!need });
   }
   const sport = f.sport ?? need?.sport_id;
@@ -61,7 +61,7 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
     sp.vstats && { k: 'vstats', label: 'Estadísticas verificadas' },
   ].filter(Boolean) as { k: keyof SP; label: string }[];
   const rows = need && result ? [...result.rows].sort((a, b) => Number(b.fit?.blocked === false) - Number(a.fit?.blocked === false)) : result?.rows ?? [];
-  const totalPages = result ? Math.max(1, Math.ceil(result.total / PAGE_SIZE)) : 1;
+  const totalPages = result ? Math.min(20, Math.max(1, Math.ceil(result.total / PAGE_SIZE))) : 1;
   const listOpts = (lists ?? []).map((l) => ({ id: l.id, name: l.name }));
 
   return (
@@ -111,6 +111,7 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
             {need && <p className="text-xs text-muted">El % es compatibilidad con los criterios de «{need.title}», no una valoración del talento. Los datos que el atleta no comparte no penalizan: bajan la confianza.</p>}
 
             {failed ? <Notice tone="danger">No se ha podido cargar la búsqueda. <Link href={qs({})} className="underline">Reintentar</Link></Notice>
+            : result?.needsSport ? <EmptyState title="Elige un deporte para buscar">Para proteger a los atletas, Discovery no lista toda la base: empieza por un deporte (o una necesidad de recruiting).</EmptyState>
             : !rows.length ? <EmptyState title="Sin resultados">Prueba a quitar algún filtro. Solo aparecen atletas abiertos a oportunidades que comparten su perfil contigo.</EmptyState>
             : (
               <ul className="grid gap-3 lg:grid-cols-2">
