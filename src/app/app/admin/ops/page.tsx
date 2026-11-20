@@ -30,6 +30,15 @@ export default async function AdminOpsPage({ searchParams }: { searchParams: Pro
     can.trust_safety ? supabase.from('admin_representation_conflicts').select('*').eq('status', 'open').order('detected_at') : Promise.resolve({ data: [] }),
     supabase.rpc('admin_jobs'),
   ]);
+  const { data: healthRaw } = await supabase.rpc('admin_platform_health');
+  const h = (healthRaw ?? {}) as Record<string, number | boolean | string[] | null>;
+  const alarms = [
+    (h.child_safety_oldest_hours as number) >= 24 && `Hay una denuncia de seguridad infantil sin atender desde hace ${h.child_safety_oldest_hours} h (objetivo: < 24 h).`,
+    (h.stripe_unprocessed as number) > 0 && `${h.stripe_unprocessed} evento(s) de Stripe sin procesar: revisa el webhook.`,
+    (h.break_glass_unreviewed as number) > 0 && `${h.break_glass_unreviewed} acceso(s) de emergencia sin revisar.`,
+    Array.isArray(h.kill_switches_off) && h.kill_switches_off.length > 0 && `Funcionalidades apagadas: ${(h.kill_switches_off as string[]).join(', ')}.`,
+    h.cron_available === false && 'pg_cron no está activo: las caducidades y limpiezas no corren solas.',
+  ].filter(Boolean) as string[];
   const results = (search.data ?? []) as { kind: string; id: string; label: string; detail: string | null }[];
 
   return (
@@ -37,6 +46,12 @@ export default async function AdminOpsPage({ searchParams }: { searchParams: Pro
       <PageHeader kicker="Admin" title="Operaciones" description="Interruptores, soporte, aprobaciones y conflictos. Gala opera: no curiosea." />
       {sp.aprobacion === 'misma_persona' && <div className="mb-5"><Notice tone="warn">Una aprobación la da otra persona distinta de quien la pidió.</Notice></div>}
       {sp.aprobacion === 'ok' && <div className="mb-5"><Notice tone="ok">Decisión registrada.</Notice></div>}
+
+      <Card className="mb-5">
+        <CardTitle kicker="Salud" action={<Badge tone={alarms.length ? 'warn' : 'ok'}>{alarms.length ? `${alarms.length} alerta(s)` : 'Todo en orden'}</Badge>}>Estado de la plataforma</CardTitle>
+        {alarms.length ? <ul className="space-y-1 text-sm text-warn">{alarms.map((a) => <li key={a}>• {a}</li>)}</ul> : <p className="text-sm text-muted">Sin colas atascadas, pagos sin procesar ni alarmas de seguridad.</p>}
+        <p className="mt-2 text-xs text-faint">Denuncias abiertas: {String(h.reports_open ?? 0)} · verificaciones pendientes: {String(h.verifications_pending ?? 0)} · representaciones en revisión: {String(h.representations_pending_review ?? 0)} · pagos en disputa: {String(h.payments_disputed ?? 0)}</p>
+      </Card>
 
       <div className="grid gap-5 xl:grid-cols-2">
         <Card>

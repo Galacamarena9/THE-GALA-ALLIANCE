@@ -6,7 +6,12 @@ import { createServerClient } from '@supabase/ssr';
  * Es solo una primera barrera de UX: la seguridad real está en la RLS.
  */
 export async function proxy(request: NextRequest) {
+  // 19 · Id de petición: se propaga a la app (errores y logs) y se devuelve al navegador para soporte.
+  const incoming = request.headers.get('x-request-id');
+  const requestId = incoming && /^[A-Za-z0-9-]{8,64}$/.test(incoming) ? incoming : crypto.randomUUID();
+  request.headers.set('x-request-id', requestId);
   let response = NextResponse.next({ request });
+  response.headers.set('x-request-id', requestId);
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key =
@@ -21,6 +26,7 @@ export async function proxy(request: NextRequest) {
       setAll(cookiesToSet, headers) {
         for (const { name, value } of cookiesToSet) request.cookies.set(name, value);
         response = NextResponse.next({ request });
+        response.headers.set('x-request-id', requestId);
         for (const { name, value, options } of cookiesToSet) response.cookies.set(name, value, options);
         for (const [k, v] of Object.entries(headers ?? {})) response.headers.set(k, v);
       },
@@ -35,7 +41,9 @@ export async function proxy(request: NextRequest) {
     const login = request.nextUrl.clone();
     login.pathname = '/login';
     login.search = `?next=${encodeURIComponent(pathname + request.nextUrl.search)}`;
-    return NextResponse.redirect(login);
+    const redirect = NextResponse.redirect(login);
+    redirect.headers.set('x-request-id', requestId);
+    return redirect;
   }
 
   return response;

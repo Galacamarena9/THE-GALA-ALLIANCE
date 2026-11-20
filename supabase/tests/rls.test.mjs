@@ -3423,6 +3423,15 @@ try {
     eq(await can(u.agent, L, 'offers.view'), false);
   });
 
+  // ---------------------------------------------------------------- Prompt 19 · Observabilidad
+  results.push('\nPrompt 19: salud de la plataforma');
+  await check('P19 salud de la plataforma: solo admin, solo agregados', async () => {
+    await expectError(() => as(u.coach, `select admin_platform_health()`), /admin_only/);
+    const h = (await as(u.admin, `select admin_platform_health() h`)).rows[0].h;
+    for (const k of ['child_safety_open', 'stripe_unprocessed', 'verifications_pending', 'kill_switches_off', 'break_glass_unreviewed']) eq(k in h, true, k);
+    eq(JSON.stringify(h).match(/[0-9a-f]{8}-[0-9a-f]{4}-/), null, 'sin identificadores');
+  });
+
   // ---------------------------------------------------------------- Prompt 9 · Supabase & PostgreSQL
   results.push('\nPrompt 9: integridad, documentos, concurrencia y catálogo');
   await check('P9 S9-01 · un documento, la foto o una evidencia no pueden apuntar a la carpeta de otra persona', async () => {
