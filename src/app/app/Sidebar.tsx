@@ -6,13 +6,13 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { ChevronDown } from 'lucide-react';
 import { NavIcon } from '@/components/NavIcon';
 import { cx } from '@/components/ui';
-import type { NavItem, NavSection } from '@/lib/domain/navigation';
+import { flattenMode, type NavItem, type NavMode } from '@/lib/domain/navigation';
 
+/** Entrada activa: coincidencia exacta (con query) o alias; si no, el prefijo más largo. */
 export function useActiveHref(items: NavItem[]) {
   const pathname = usePathname();
   const search = useSearchParams();
   const current = `${pathname}${search.toString() ? `?${search.toString()}` : ''}`;
-  // Activo = coincidencia exacta (con query) o, si no hay, el prefijo más largo.
   const exact = items.find((i) => i.href === current) ?? items.find((i) => i.aliases?.includes(pathname));
   const prefix = [...items]
     .filter((i) => !i.href.includes('?'))
@@ -21,76 +21,94 @@ export function useActiveHref(items: NavItem[]) {
   return (exact ?? prefix)?.href;
 }
 
-function Item({ item, active, onNavigate }: { item: NavItem; active: boolean; onNavigate?: () => void }) {
+/** ¿Este destino de primer nivel contiene la página actual (él mismo o una de sus vistas contextuales)? */
+const contains = (top: NavItem, active?: string) => !!active && (top.href === active || !!top.children?.some((c) => c.href === active));
+
+function Item({ item, active, exact = true, sub, compact, onNavigate }: { item: NavItem; active: boolean; exact?: boolean; sub?: boolean; compact?: boolean; onNavigate?: () => void }) {
   return (
     <li>
       <Link
         href={item.href}
         onClick={onNavigate}
-        title={item.desc}
-        aria-current={active ? 'page' : undefined}
+        title={compact ? item.label : item.desc}
+        aria-label={compact ? item.label : undefined}
+        aria-current={active ? (exact ? 'page' : 'true') : undefined}
         className={cx(
-          'group relative flex items-center gap-3 rounded-xl px-3 py-2 text-[13.5px] transition-all duration-200',
-          active ? 'bg-brass/10 font-semibold text-brass' : 'text-muted hover:translate-x-0.5 hover:bg-ink hover:text-paper',
+          'group relative flex items-center rounded-xl transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass',
+          compact ? 'h-11 w-11 justify-center' : sub ? 'gap-2.5 py-1.5 pl-10 pr-3 text-[13px]' : 'gap-3 px-3 py-2 text-sm',
+          active ? 'bg-brass/10 font-semibold text-brass' : 'text-muted hover:bg-ink hover:text-paper',
         )}
       >
-        {active && <span className="absolute inset-y-1.5 left-0 w-[3px] rounded-full bg-brass" aria-hidden />}
-        <span className={cx('transition-colors', active ? 'text-brass' : 'text-faint group-hover:text-brass')}><NavIcon name={item.icon} /></span>
-        {item.label}
+        {active && !sub && <span className="absolute inset-y-1.5 left-0 w-[3px] rounded-full bg-brass" aria-hidden />}
+        {!sub && <span className={cx('transition-colors', active ? 'text-brass' : 'text-faint group-hover:text-brass')}><NavIcon name={item.icon} /></span>}
+        {!compact && item.label}
       </Link>
     </li>
   );
 }
 
-function Section({ section, active, onNavigate }: { section: NavSection; active?: string; onNavigate?: () => void }) {
-  const containsActive = section.items.some((i) => i.href === active);
-  const [open, setOpen] = useState(!section.collapsed || containsActive);
-  const [showMore, setShowMore] = useState(section.items.some((i) => i.more && i.href === active));
-  const main = section.items.filter((i) => !i.more);
-  const extra = section.items.filter((i) => i.more);
-  const single = section.items.length === 1 && section.title === 'Inicio';
+/**
+ * Barra lateral por modo (Agent OS, Athlete OS, University OS, Operaciones…): pocos destinos de primer nivel;
+ * las vistas contextuales del destino activo se despliegan debajo; «Más» plegado. `compact`: raíl de tablet.
+ */
+export function Sidebar({ mode, onNavigate, compact = false }: { mode: NavMode; onNavigate?: () => void; compact?: boolean }) {
+  const active = useActiveHref(flattenMode(mode));
+  const moreActive = mode.more.some((i) => i.href === active);
+  const [moreOpen, setMoreOpen] = useState(moreActive);
 
-  if (single) {
-    return <ul><Item item={section.items[0]} active={active === section.items[0].href} onNavigate={onNavigate} /></ul>;
-  }
   return (
-    <div>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        className="group mb-1.5 flex w-full items-center justify-between rounded-lg px-3 py-1 text-[13px] font-semibold text-faint transition-colors hover:text-muted"
-      >
-        <span>{section.title}</span>
-        <span className="flex items-center gap-1.5">
-          {!open && <span className="rounded-full bg-surface-2 px-1.5 py-0.5 text-xs tracking-normal text-muted">{section.items.length}</span>}
-          <ChevronDown className={cx('h-3.5 w-3.5 transition-transform duration-200', open ? '' : '-rotate-90')} aria-hidden />
-        </span>
-      </button>
-      {open && (
-        <ul className="space-y-0.5">
-          {main.map((item) => <Item key={item.href} item={item} active={active === item.href} onNavigate={onNavigate} />)}
-          {showMore && extra.map((item) => <Item key={item.href} item={item} active={active === item.href} onNavigate={onNavigate} />)}
-          {extra.length > 0 && (
-            <li>
-              <button type="button" onClick={() => setShowMore((v) => !v)} className="flex w-full items-center gap-3 rounded-xl px-3 py-1.5 text-xs text-faint transition-colors hover:text-brass">
-                <ChevronDown className={cx('h-4 w-4 transition-transform', showMore ? 'rotate-180' : '')} aria-hidden />
-                {showMore ? 'Ver menos' : `Ver más (${extra.length})`}
-              </button>
+    <nav aria-label={`Navegación · ${mode.label}`} className={cx(compact ? 'flex flex-col items-center gap-1' : 'space-y-1')}>
+      <ul className={cx(compact ? 'flex flex-col items-center gap-1' : 'space-y-0.5')}>
+        {mode.primary.map((top) => {
+          const here = contains(top, active);
+          const subs = (top.children ?? []).filter((c, i, arr) => arr.findIndex((x) => x.href === c.href) === i);
+          return (
+            <li key={top.href}>
+              <ul>
+                <Item item={top} active={here} exact={top.href === active && !(top.children ?? []).some((c) => c.href === active)} compact={compact} onNavigate={onNavigate} />
+                {here && !compact && subs.length > 1 && (
+                  <li>
+                    <ul className="mb-1 mt-0.5 space-y-0.5" aria-label={`Vistas de ${top.label}`}>
+                      {subs.map((c) => <Item key={c.href} item={c} active={c.href === active} sub onNavigate={onNavigate} />)}
+                    </ul>
+                  </li>
+                )}
+              </ul>
             </li>
+          );
+        })}
+      </ul>
+      {mode.more.length > 0 && (
+        <div className={cx(compact ? 'relative' : 'pt-3')}>
+          <button
+            type="button"
+            onClick={() => setMoreOpen((v) => !v)}
+            aria-expanded={moreOpen}
+            aria-controls="nav-more"
+            aria-label={compact ? 'Más' : undefined}
+            className={cx(
+              'flex items-center rounded-xl text-muted transition-colors hover:bg-ink hover:text-paper focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass',
+              compact ? 'h-11 w-11 justify-center' : 'w-full gap-3 px-3 py-2 text-sm',
+              moreActive && 'font-semibold text-brass',
+            )}
+          >
+            <span className="text-faint"><NavIcon name="more" /></span>
+            {!compact && <span className="flex-1 text-left">Más</span>}
+            {!compact && <ChevronDown className={cx('h-4 w-4 transition-transform', moreOpen ? 'rotate-180' : '')} aria-hidden />}
+          </button>
+          {moreOpen && (
+            <ul
+              id="nav-more"
+              className={cx(
+                'space-y-0.5',
+                compact ? 'absolute left-14 top-0 z-50 w-64 rounded-2xl border border-line bg-surface p-2 shadow-[var(--shadow-elevated)]' : 'mt-1',
+              )}
+            >
+              {mode.more.map((i) => <Item key={i.href} item={i} active={i.href === active} onNavigate={() => { setMoreOpen(false); onNavigate?.(); }} />)}
+            </ul>
           )}
-        </ul>
+        </div>
       )}
-    </div>
-  );
-}
-
-/** Barra lateral: lo esencial siempre visible, grupos plegables y "Ver más" para lo secundario. */
-export function Sidebar({ sections, onNavigate }: { sections: NavSection[]; onNavigate?: () => void }) {
-  const active = useActiveHref(sections.flatMap((s) => s.items));
-  return (
-    <nav aria-label="Servicios" className="space-y-5">
-      {sections.map((section) => <Section key={section.title} section={section} active={active} onNavigate={onNavigate} />)}
     </nav>
   );
 }

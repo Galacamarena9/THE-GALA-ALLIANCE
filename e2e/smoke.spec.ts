@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { LEGACY_REDIRECTS } from '../src/lib/domain/legacy-routes';
 
 const PUBLIC = [
   '/', '/oportunidades', '/oportunidades?v=college', '/oportunidades?v=brands', '/seguridad', '/herramientas', '/precios', '/inversores', '/calculadora', '/guia', '/guia/divisiones-y-becas',
@@ -12,7 +13,7 @@ const PROTECTED = [
   '/app', '/app/pipeline', '/app/pipeline/team', '/app/contacts', '/app/portfolio', '/app/athlete/passport',
   '/app/discover', '/app/lists', '/app/inbox', '/app/agents', '/app/invitar', '/app/collaborations', '/app/trust', '/app/billing', '/app/support', '/app/admin/panel', '/app/plan', '/onboarding',
   '/app/match', '/app/shortlist', '/app/process', '/app/recruit', '/app/recruit/discover', '/app/requests', '/app/universities',
-  '/app/portfolio/trials', '/app/ia', '/app/verify', '/app/verify/start', '/app/recruit/trials', '/app/family', '/app/family/costs', '/app/family/safety',
+  '/app/portfolio/trials', '/app/ia', '/app/admin', '/app/admin/ops', '/app/verify', '/app/verify/start', '/app/recruit/trials', '/app/family', '/app/family/costs', '/app/family/safety',
 ];
 
 async function dismissConsent(page: Page) {
@@ -56,6 +57,19 @@ test.describe('protección de acceso', () => {
       const res = await request.get(path, { maxRedirects: 0 });
       expect(res.status()).toBe(307);
       expect(res.headers().location).toContain(`/login?next=${encodeURIComponent(path)}`);
+    });
+  }
+  // Prompt 4: alias de los modos por actor y pantallas fusionadas → ruta canónica, sin bucles.
+  for (const r of LEGACY_REDIRECTS) {
+    const src = r.source.replace(':id', '00000000-0000-0000-0000-000000000000').replace(':slug', 'agentes');
+    const dest = r.destination.replace(':id', '00000000-0000-0000-0000-000000000000').replace(':slug', 'agentes');
+    test(`redirección ${src} → ${dest}`, async ({ request }) => {
+      const res = await request.get(src, { maxRedirects: 0 });
+      expect(res.status()).toBe(r.permanent ? 308 : 307);
+      expect(res.headers().location).toBe(dest);
+      // Un solo salto: el destino no vuelve a redirigir a otro alias.
+      const next = await request.get(dest, { maxRedirects: 0 });
+      expect(LEGACY_REDIRECTS.some((x) => x.source === new URL(next.headers().location ?? 'http://x/none', 'http://x').pathname)).toBe(false);
     });
   }
   for (const path of ['/api/agency/export', '/api/lists/export']) {

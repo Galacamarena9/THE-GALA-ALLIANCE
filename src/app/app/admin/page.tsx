@@ -17,7 +17,9 @@ export const metadata: Metadata = { title: 'Revisión' };
 
 const REASON: Record<string, string> = { child_safety: 'Seguridad infantil', harassment: 'Acoso', fake_or_misleading: 'Falso / engañoso', spam: 'Spam', illegal_content: 'Ilegal', privacy: 'Privacidad', other: 'Otro' };
 
-export default async function AdminPage() {
+export default async function AdminPage({ searchParams }: { searchParams: Promise<{ view?: string }> }) {
+  // Verificación y Moderación son dos destinos de Operaciones Gala sobre la misma página.
+  const moderation = (await searchParams).view === 'moderation';
   const session = await requireSession(['admin']);
   await requireAdminMfa();
   if (!session.roles.includes('admin')) redirect('/app');
@@ -41,8 +43,11 @@ export default async function AdminPage() {
 
   return (
     <>
-      <PageHeader kicker="Trust & Safety" title="Revisión y verificación" description="Todo lo que se publica pasa por aquí. Cada decisión queda en el registro de auditoría." />
+      {moderation
+        ? <PageHeader kicker="Operaciones Gala" title="Moderación" description="Denuncias por prioridad. Cada decisión queda en el registro de auditoría." />
+        : <PageHeader kicker="Operaciones Gala" title="Verificación" description="Organizaciones, becas, campañas, enlaces y reclamaciones antes de publicarse. Cada decisión queda en el registro de auditoría." />}
       <div className="space-y-5">
+{!moderation && (<>
         {aiRow && (
           <Card>
             <CardTitle kicker="Gala IA · 7 días">Calidad y coste</CardTitle>
@@ -60,6 +65,8 @@ export default async function AdminPage() {
             <p className="mt-2 text-[11px] text-faint">Sin contenido de conversaciones: solo métricas técnicas (13 meses).</p>
           </Card>
         )}
+</>)}
+{moderation && (<>
         <Card>
           <CardTitle kicker="Denuncias (DSA)" action={queue(reports.data?.length ?? 0)}>Cola por prioridad</CardTitle>
           <p className="mb-2 text-xs text-muted">Para casos complejos (varias denuncias, sanciones, apelaciones): <Link href="/app/admin/safety" className="text-brass hover:underline">Trust &amp; Safety →</Link></p>
@@ -83,7 +90,9 @@ export default async function AdminPage() {
             ))}
           </ul>
         </Card>
+</>)}
 
+{!moderation && (<>
         <Card>
           <CardTitle kicker="Organizaciones" action={queue(orgs.data?.length ?? 0)}>Verificación pendiente</CardTitle>
           <ul className="divide-y divide-line">
@@ -230,6 +239,7 @@ export default async function AdminPage() {
           <p className="mb-4 text-sm text-muted">Busca por nombre en College Scorecard (U.S. Department of Education). Se guardan nombre, ciudad, estado, web, calculadora de precio y coste oficial con fecha de consulta. Después completa división, deportes y enlaces desde la ficha.</p>
           <ScorecardImportForm />
         </Card>
+</>)}
       </div>
     </>
   );

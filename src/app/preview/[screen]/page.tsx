@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { ShellPreview } from '../ShellPreview';
 import { AgentHomeView } from '@/app/app/AgentHome';
 import { PortfolioView } from '@/app/app/portfolio/PortfolioView';
 import { DEFAULT_FILTERS } from '@/lib/domain/portfolio';
@@ -73,7 +74,7 @@ const demoPublicOpp: PublicOpportunity = {
  */
 export const metadata: Metadata = { title: 'Probador interno', robots: { index: false, follow: false } };
 
-const SCREENS = ['agent-home', 'portfolio', 'athlete-home', 'coach-home', 'pipeline', 'pipeline-table', 'match', 'opportunity', 'passport', 'galamatch', 'command-center', 'athlete-pipeline', 'club-trials', 'trial-club', 'trial-athlete', 'family-trials', 'program-athlete', 'family-home', 'family-costs', 'family-welcome'] as const;
+const SCREENS = ['agent-home', 'portfolio', 'athlete-home', 'coach-home', 'pipeline', 'pipeline-table', 'match', 'opportunity', 'passport', 'galamatch', 'command-center', 'athlete-pipeline', 'club-trials', 'trial-club', 'trial-athlete', 'family-trials', 'program-athlete', 'family-home', 'family-costs', 'family-welcome', 'shell-agent', 'shell-athlete', 'shell-university', 'shell-operations'] as const;
 
 // Gala Match con el motor real y datos ficticios: un Passport completo y otro con muchos datos ausentes.
 const demoOpp = { sport_id: 'basketball', position_ids: [1], graduation_years: [2027], division: 'ncaa_d2' as const, min_gpa_4: 2.5, english_required: 'TOEFL 80', annual_cost_usd: 40000, aid_amount_usd: 30000 };
@@ -85,6 +86,11 @@ export default async function PreviewPage({ params }: { params: Promise<{ screen
   const { screen } = await params;
   if (!(SCREENS as readonly string[]).includes(screen)) notFound();
   const d = previewPortfolio;
+  if (screen.startsWith('shell-')) {
+    const role = ({ 'shell-agent': 'agent', 'shell-athlete': 'athlete', 'shell-university': 'university', 'shell-operations': 'admin' } as const)[screen as 'shell-agent'];
+    const people = role === 'agent' ? [...new Map(d.entries.map((e) => [e.athleteId, e])).values()].map((e) => ({ href: `/app/portfolio/${e.athleteId}`, label: e.name, kind: 'Atleta', desc: e.sportName ?? '' })) : [];
+    return <ShellPreview role={role} people={people} />;
+  }
   return (
     <div className="min-h-dvh bg-ink px-5 py-8 sm:px-8 lg:px-10">
       <div className="mx-auto max-w-6xl">

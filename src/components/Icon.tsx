@@ -3,6 +3,8 @@ import type { IconName } from '@/lib/domain/navigation';
 /** Iconos lineales propios (sin librería externa), 20px, trazo 1.5. */
 const PATHS: Record<IconName, string> = {
   home: 'M3 10.5 10 4l7 6.5M5 9v7h4v-4h2v4h4V9',
+  search: 'M9 15a6 6 0 1 0 0-12 6 6 0 0 0 0 12zM17 17l-3.5-3.5',
+  more: 'M5 10h.01M10 10h.01M15 10h.01',
   showcase: 'M3 5h14v10H3zM3 12l4-3 3 2 3-3 4 3',
   trophy: 'M6 3h8v4a4 4 0 0 1-8 0V3zM6 5H3a3 3 0 0 0 3 3M14 5h3a3 3 0 0 1-3 3M10 11v3M7 17h6M8 14h4v3',
   campus: 'M2 8l8-4 8 4-8 4-8-4zM5 9.5V14c0 1 2.2 2 5 2s5-1 5-2V9.5M18 8v5',

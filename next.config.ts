@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next';
+import { LEGACY_REDIRECTS } from './src/lib/domain/legacy-routes';
 
 const isDev = process.env.NODE_ENV !== 'production';
 const supabase = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://*.supabase.co';
@@ -34,6 +35,10 @@ const nextConfig: NextConfig = {
         as: '*.css',
       },
     },
+  },
+  // Prompt 4: alias de los modos por actor y pantallas fusionadas (ver src/lib/domain/legacy-routes.ts).
+  async redirects() {
+    return LEGACY_REDIRECTS.map(({ source, destination, permanent }) => ({ source, destination, permanent }));
   },
   async headers() {
     return [

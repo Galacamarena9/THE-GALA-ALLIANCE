@@ -15,13 +15,15 @@ const SUPPORT_STATUS: Record<string, string> = { open: 'Abierto', waiting_user: 
  * 16 · Operaciones de Gala: interruptores, búsqueda, soporte, aprobaciones dobles, conflictos de representación y
  * jobs. Cada bloque solo aparece con el rol interno que lo permite; la base de datos lo vuelve a comprobar.
  */
-export default async function AdminOpsPage({ searchParams }: { searchParams: Promise<{ q?: string; aprobacion?: string }> }) {
+export default async function AdminOpsPage({ searchParams }: { searchParams: Promise<{ q?: string; aprobacion?: string; view?: string }> }) {
   await requireSession(['admin']);
   const sp = await searchParams;
   const supabase = await createClient();
   const roles = await Promise.all(['super_admin', 'support', 'finance', 'trust_safety'].map((r) => supabase.rpc('has_admin_role', { p_role: r }).then((x) => [r, x.data === true] as const)));
   const can = Object.fromEntries(roles) as Record<string, boolean>;
   const q = (sp.q ?? '').trim();
+  // Soporte y Cumplimiento son dos destinos de Operaciones Gala sobre la misma página (mismos permisos y datos).
+  const support = sp.view === 'support';
   const [{ data: flags }, search, { data: cases }, { data: approvals }, { data: conflicts }, { data: jobs }] = await Promise.all([
     supabase.from('feature_flags').select('key, enabled, description, kill_switch, updated_at').order('key'),
     q.length >= 3 && (can.support || can.trust_safety) ? supabase.rpc('admin_search', { p_query: q }) : Promise.resolve({ data: null }),
@@ -43,17 +45,22 @@ export default async function AdminOpsPage({ searchParams }: { searchParams: Pro
 
   return (
     <>
-      <PageHeader kicker="Admin" title="Operaciones" description="Interruptores, soporte, aprobaciones y conflictos. Gala opera: no curiosea." />
+      {support
+        ? <PageHeader kicker="Operaciones Gala" title="Soporte" description="Búsqueda mínima de personas y organizaciones, y casos abiertos. Gala opera: no curiosea." />
+        : <PageHeader kicker="Operaciones Gala" title="Cumplimiento" description="Salud de la plataforma, interruptores, aprobaciones dobles, conflictos de representación y jobs." />}
       {sp.aprobacion === 'misma_persona' && <div className="mb-5"><Notice tone="warn">Una aprobación la da otra persona distinta de quien la pidió.</Notice></div>}
       {sp.aprobacion === 'ok' && <div className="mb-5"><Notice tone="ok">Decisión registrada.</Notice></div>}
 
+{!support && (<>
       <Card className="mb-5">
-        <CardTitle kicker="Salud" action={<Badge tone={alarms.length ? 'warn' : 'ok'}>{alarms.length ? `${alarms.length} alerta(s)` : 'Todo en orden'}</Badge>}>Estado de la plataforma</CardTitle>
+        <CardTitle kicker="Salud" action={<Badge tone={alarms.length ? 'warn' : 'ok'}>{alarms.length ? `${alarms.length} ${alarms.length === 1 ? 'alerta' : 'alertas'}` : 'Todo en orden'}</Badge>}>Estado de la plataforma</CardTitle>
         {alarms.length ? <ul className="space-y-1 text-sm text-warn">{alarms.map((a) => <li key={a}>• {a}</li>)}</ul> : <p className="text-sm text-muted">Sin colas atascadas, pagos sin procesar ni alarmas de seguridad.</p>}
         <p className="mt-2 text-xs text-faint">Denuncias abiertas: {String(h.reports_open ?? 0)} · verificaciones pendientes: {String(h.verifications_pending ?? 0)} · representaciones en revisión: {String(h.representations_pending_review ?? 0)} · pagos en disputa: {String(h.payments_disputed ?? 0)}</p>
       </Card>
+</>)}
 
       <div className="grid gap-5 xl:grid-cols-2">
+{!support && (<>
         <Card>
           <CardTitle kicker="Interruptores">Funcionalidades</CardTitle>
           <ul className="divide-y divide-line">
@@ -68,19 +75,23 @@ export default async function AdminOpsPage({ searchParams }: { searchParams: Pro
             ))}
           </ul>
         </Card>
+</>)}
 
+{support && (<>
         <Card>
           <CardTitle kicker="Búsqueda">Personas y organizaciones</CardTitle>
           {can.support || can.trust_safety ? (
             <>
-              <form className="flex gap-2"><input name="q" defaultValue={q} minLength={3} placeholder="Nombre (mín. 3 letras)" aria-label="Buscar" className={inputClass} /><button className="rounded-lg bg-brass px-4 text-sm text-ink">Buscar</button></form>
+              <form className="flex gap-2"><input type="hidden" name="view" value="support" /><input name="q" defaultValue={q} minLength={3} placeholder="Nombre (mín. 3 letras)" aria-label="Buscar" className={inputClass} /><button className="rounded-lg bg-brass px-4 text-sm text-ink">Buscar</button></form>
               <p className="mt-1 text-xs text-faint">Datos mínimos. Cada búsqueda queda auditada.</p>
               {results.length > 0 && <ul className="mt-3 divide-y divide-line text-sm">{results.map((r) => <li key={`${r.kind}-${r.id}`} className="py-2"><span className="text-paper">{r.label}</span> <span className="text-faint">· {r.kind === 'user' ? 'persona' : 'organización'} · {r.detail ?? '—'}</span></li>)}</ul>}
               {q.length >= 3 && !results.length && <p className="mt-3 text-sm text-muted">Sin resultados.</p>}
             </>
           ) : <p className="text-sm text-muted">Requiere el rol de soporte o de Trust &amp; Safety.</p>}
         </Card>
+</>)}
       </div>
+{support && (<>
 
       {can.support && (
         <Card className="mt-5">
@@ -103,7 +114,9 @@ export default async function AdminOpsPage({ searchParams }: { searchParams: Pro
           </ul>
         </Card>
       )}
+</>)}
 
+{!support && (<>
       {(can.finance || can.super_admin) && (
         <Card className="mt-5">
           <CardTitle kicker="Doble aprobación" action={<Badge>{approvals?.length ?? 0}</Badge>}>Pendientes</CardTitle>
@@ -121,7 +134,9 @@ export default async function AdminOpsPage({ searchParams }: { searchParams: Pro
           </ul>
         </Card>
       )}
+</>)}
 
+{!support && (<>
       {can.trust_safety && (
         <Card className="mt-5">
           <CardTitle kicker="Representación" action={<Badge>{conflicts?.length ?? 0}</Badge>}>Conflictos de exclusividad</CardTitle>
@@ -147,13 +162,16 @@ export default async function AdminOpsPage({ searchParams }: { searchParams: Pro
           </ul>
         </Card>
       )}
+</>)}
 
+{!support && (<>
       <Card className="mt-5">
         <CardTitle kicker="Sistema">Jobs programados</CardTitle>
         {(jobs ?? []).length ? (
           <ul className="divide-y divide-line text-sm">{(jobs as { jobname: string; schedule: string; last_status: string | null; last_run: string | null }[]).map((j) => <li key={j.jobname} className="flex justify-between py-2"><span className="text-paper">{j.jobname}</span><span className="text-faint">{j.schedule} · {j.last_status ?? 'sin ejecuciones'}{j.last_run ? ` · ${date(j.last_run)}` : ''}</span></li>)}</ul>
         ) : <p className="text-sm text-muted">pg_cron no está activo en este entorno: los jobs (caducidades, limpieza) no se ejecutan solos. Actívalo en Supabase.</p>}
       </Card>
+</>)}
       <p className="mt-6 text-xs text-faint"><Link href="/app/admin" className="text-brass hover:underline">Revisión</Link> · <Link href="/app/admin/safety" className="text-brass hover:underline">Trust &amp; Safety</Link> · <Link href="/app/admin/panel" className="text-brass hover:underline">Panel de mando</Link></p>
     </>
   );
