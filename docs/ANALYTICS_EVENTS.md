@@ -69,6 +69,8 @@ Medición propia, sin herramientas de terceros ni cookies de analítica: los eve
 | `collaborations_viewed` / `trust_center_viewed` / `billing_viewed` | Vista de página | — |
 | `support_case_opened` | Se abre un caso de soporte | `category` |
 | `subscription_started` | Reservado para el alta de suscripción (dedupe por sesión de Stripe) | — |
+| `agent_home_viewed` | El agente abre su Inicio (dedupe por hora) | `attention`, `partial`, `state` |
+| `agent_attention_opened` | Abre un elemento de «Necesita atención» (vía `/app/go`) | `kind` |
 
 **Reglas:**
 - Los eventos de un **menor** se guardan **sin propiedades**, aunque se envíen.

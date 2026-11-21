@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { ShellPreview } from '../ShellPreview';
+import { previewAgentHome } from '@/lib/preview/agent-home';
 import { AgentHomeView } from '@/app/app/AgentHome';
 import { PortfolioView } from '@/app/app/portfolio/PortfolioView';
 import { DEFAULT_FILTERS } from '@/lib/domain/portfolio';
@@ -74,7 +75,7 @@ const demoPublicOpp: PublicOpportunity = {
  */
 export const metadata: Metadata = { title: 'Probador interno', robots: { index: false, follow: false } };
 
-const SCREENS = ['agent-home', 'portfolio', 'athlete-home', 'coach-home', 'pipeline', 'pipeline-table', 'match', 'opportunity', 'passport', 'galamatch', 'command-center', 'athlete-pipeline', 'club-trials', 'trial-club', 'trial-athlete', 'family-trials', 'program-athlete', 'family-home', 'family-costs', 'family-welcome', 'shell-agent', 'shell-athlete', 'shell-university', 'shell-operations'] as const;
+const SCREENS = ['agent-home', 'agent-home-empty', 'agent-home-partial', 'agent-home-no-agency', 'agent-home-error', 'portfolio', 'athlete-home', 'coach-home', 'pipeline', 'pipeline-table', 'match', 'opportunity', 'passport', 'galamatch', 'command-center', 'athlete-pipeline', 'club-trials', 'trial-club', 'trial-athlete', 'family-trials', 'program-athlete', 'family-home', 'family-costs', 'family-welcome', 'shell-agent', 'shell-athlete', 'shell-university', 'shell-operations'] as const;
 
 // Gala Match con el motor real y datos ficticios: un Passport completo y otro con muchos datos ausentes.
 const demoOpp = { sport_id: 'basketball', position_ids: [1], graduation_years: [2027], division: 'ncaa_d2' as const, min_gpa_4: 2.5, english_required: 'TOEFL 80', annual_cost_usd: 40000, aid_amount_usd: 30000 };
@@ -97,7 +98,7 @@ export default async function PreviewPage({ params }: { params: Promise<{ screen
         {(screen === 'pipeline' || screen === 'pipeline-table') && (
           <PipelineBoard cases={previewCases} view={screen === 'pipeline' ? 'board' : 'table'} sportName={new Map(previewSports.map((s) => [s.id, s.name_es]))} writableAgencies={new Set(['org-1'])} />
         )}
-        {screen === 'agent-home' && <AgentHomeView displayName="Carlos Ruiz" data={d} sports={previewSports} cases={previewCases} />}
+        {screen.startsWith('agent-home') && <AgentHomeView displayName="Carlos Ruiz" data={previewAgentHome(({ 'agent-home': 'full', 'agent-home-empty': 'empty', 'agent-home-partial': 'partial', 'agent-home-no-agency': 'no_agency', 'agent-home-error': 'error' } as const)[screen as 'agent-home'])} />}
         {(screen === 'athlete-home' || screen === 'coach-home') && (
           <div className="space-y-6">
             <RoleHero
