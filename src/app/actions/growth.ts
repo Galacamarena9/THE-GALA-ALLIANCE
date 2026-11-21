@@ -3,6 +3,8 @@
 import { logEvent } from '@/lib/events';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { TALENT_FILTER_KEYS, parseTalentFilters } from '@/lib/domain/talent-search';
+import { DIRECTORY_DIVISIONS } from '@/lib/data/directory';
 import { createClient } from '@/lib/supabase/server';
 import { getSession, requireSession } from '@/lib/session';
 import type { FormState } from '@/app/actions/auth';
@@ -48,17 +50,18 @@ export async function saveAcademyAttempt(input: { exam: 'sat' | 'toefl'; correct
 }
 
 // ---------------------------------------------------------------- Búsquedas guardadas
-const FILTER_KEYS = ['sport', 'position', 'grad', 'division', 'gpa', 'video', 'q'] as const;
 
 export async function saveSearch(_prev: FormState, formData: FormData): Promise<FormState> {
   const session = await requireSession(['university', 'coach', 'agent', 'brand']);
   const label = z.string().trim().min(2, 'Ponle un nombre (mín. 2 caracteres)').max(80).safeParse(formData.get('label'));
   if (!label.success) return { error: label.error.issues[0].message };
-  const filters: Record<string, string> = {};
-  for (const k of FILTER_KEYS) {
+  // Misma validación que la búsqueda: solo claves y valores permitidos (la base de datos vuelve a comprobar las claves).
+  const raw: Record<string, string> = {};
+  for (const k of TALENT_FILTER_KEYS) {
     const v = formData.get(k);
-    if (typeof v === 'string' && v.trim() && v.length <= 60) filters[k] = v.trim();
+    if (typeof v === 'string') raw[k] = v;
   }
+  const filters = parseTalentFilters(raw, DIRECTORY_DIVISIONS);
   if (!Object.keys(filters).length) return { error: 'Aplica al menos un filtro antes de guardar la búsqueda.' };
   const supabase = await createClient();
   const { error } = await supabase.from('saved_searches').insert({ owner_id: session.userId, label: label.data, filters });
