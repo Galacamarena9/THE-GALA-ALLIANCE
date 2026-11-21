@@ -1,5 +1,4 @@
 import type { AppRole } from '@/lib/types';
-import { ACTORS } from './roles.ts';
 
 export interface NavItem {
   href: string;
@@ -11,6 +10,8 @@ export interface NavItem {
   more?: boolean;
   /** Otras rutas exactas que también marcan esta entrada como activa (p. ej. «Inicio» = espacio de trabajo). */
   aliases?: string[];
+  /** Navegación contextual: aparece bajo el destino cuando estás en él, en las migas y en el buscador. */
+  children?: NavItem[];
 }
 export interface NavSection {
   title: string;
@@ -21,7 +22,7 @@ export interface NavSection {
 export type IconName =
   | 'home' | 'showcase' | 'trophy' | 'campus' | 'book' | 'calc' | 'spark' | 'path' | 'id' | 'inbox'
   | 'megaphone' | 'handshake' | 'family' | 'pipeline' | 'list' | 'building' | 'shield' | 'users' | 'chat' | 'news'
-  | 'grad' | 'bell' | 'tag' | 'chart' | 'compare' | 'doc' | 'scale' | 'user' | 'compass';
+  | 'grad' | 'bell' | 'tag' | 'chart' | 'compare' | 'doc' | 'scale' | 'user' | 'compass' | 'search' | 'more';
 
 /** Red y visibilidad: el lado "LinkedIn deportivo" (perfiles, conversaciones, actualidad). */
 export const NETWORK_SERVICES: NavItem[] = [
@@ -134,7 +135,6 @@ export const LEARN_SERVICES: NavItem[] = [
   { href: '/app/ia', label: 'Gala IA', icon: 'spark', desc: 'Pregunta lo que quieras sobre el proceso, a cualquier hora.' },
   { href: '/app/calculator', label: 'Calculadora de coste', icon: 'calc', desc: 'Coste real a 4 años con viajes, seguro y subidas.' },
   { href: '/app/guia', label: 'Centro de información', icon: 'book', desc: 'Divisiones, requisitos, documentos y visado con fuentes oficiales.' },
-  { href: '/app/portal/atletas', label: 'Portales por perfil', icon: 'compass', desc: 'Qué ofrece la plataforma a cada tipo de usuario.', more: true },
 ];
 
 /**
@@ -146,7 +146,7 @@ export const WORKSPACE_HOME: Partial<Record<AppRole, string>> = {
   coach: '/app/recruit',
   university: '/app/recruit',
   brand: '/app/campaigns?view=mine',
-  admin: '/app/admin/ops',
+  admin: '/app/admin',
 };
 
 /** Rol principal para la navegación: el primero en este orden (el atleta manda sobre la familia). */
@@ -154,55 +154,302 @@ export function navPrimary(roles: AppRole[]): AppRole | undefined {
   return (['athlete', 'agent', 'parent', 'university', 'coach', 'brand', 'admin'] as AppRole[]).find((r) => roles.includes(r));
 }
 
-const FAMILY_SIDE: AppRole[] = ['athlete', 'parent'];
-const ORG_SIDE: AppRole[] = ['university', 'coach', 'agent', 'brand'];
-const pick = (list: NavItem[], href: string, extra: Partial<NavItem> = {}): NavItem[] => list.filter((i) => i.href === href).map((i) => ({ ...i, ...extra }));
 
-/**
- * Barra lateral por actor: lo que se usa a diario a la vista (máx. 8) y lo demás tras "Ver más" o en el buscador.
- * Atleta y familia: Mi espacio · Descubrir (becas, universidades) · Mensajes · Aprender y decidir.
- * Organizaciones: Mi espacio · Talento (escaparate) · Mensajes · Herramientas (plegada).
- * Las notificaciones viven en la campana de la cabecera, no en la barra.
- */
-export function sidebarFor(roles: AppRole[], primaryRole?: AppRole | null): NavSection[] {
-  const family = roles.some((r) => FAMILY_SIDE.includes(r));
-  const org = roles.some((r) => ORG_SIDE.includes(r));
-  // Mismo rol principal que usa /app para decidir a qué espacio llevar.
-  const primary = primaryRole && roles.includes(primaryRole) ? primaryRole : navPrimary(roles);
-  const workspace = primary ? WORKSPACE_HOME[primary] : undefined;
-  // Si «Inicio» es el espacio de trabajo, hereda su descripción (el buscador sigue encontrando «Recruiting», «Panel familiar»…).
-  const ws = workspace && primary ? PERSONAL_SERVICES[primary].find((i) => i.href === workspace) : undefined;
-  const sections: NavSection[] = [{ title: 'Inicio', items: [{ href: '/app', label: 'Inicio', icon: 'home', desc: ws ? `${ws.label}: ${ws.desc}` : 'Tu resumen y los siguientes pasos.', ...(workspace ? { aliases: [workspace.split('?')[0]] } : {}) }] }];
-  // Coaches y universidades descubren desde su espacio (búsqueda con privacidad y encaje): sin un segundo «escaparate».
-  const recruiter = roles.some((r) => r === 'coach' || r === 'university');
-  if (org && !recruiter) sections.push({ title: 'Talento', items: pick(NETWORK_SERVICES, '/app/discover') });
-  const order: AppRole[] = ['athlete', 'parent', 'university', 'coach', 'agent', 'brand', 'admin'];
-  for (const role of order) {
-    if (!roles.includes(role)) continue;
-    const label = role === 'admin' ? 'Administración' : `Mi espacio · ${ACTORS.find((a) => a.role === role)?.label}`;
-    // El espacio de trabajo ya es «Inicio»: no se repite con otro nombre.
-    sections.push({ title: label, items: PERSONAL_SERVICES[role].filter((i) => i.href !== workspace) });
-  }
-  if (family) {
-    sections.push({
-      title: 'Descubrir',
-      items: [
-        ...pick(OPPORTUNITY_SERVICES, '/app/opportunities', { label: 'Becas' }),
-        ...pick(OPPORTUNITY_SERVICES, '/app/universities'),
-        ...pick(OPPORTUNITY_SERVICES, '/app/universities/compare', { more: true }),
-        ...pick(NETWORK_SERVICES, '/app/discover', { more: true }),
-      ],
-    });
-  }
-  sections.push({
-    title: 'Red',
-    items: [...pick(NETWORK_SERVICES, '/app/inbox'), ...pick(NETWORK_SERVICES, '/app/showcase', family ? { more: true } : {}), ...pick(NETWORK_SERVICES, '/app/news', { more: true }), ...(family ? [] : pick(OPPORTUNITY_SERVICES, '/app/opportunities', { label: 'Becas', more: true }))],
+// ================================================================================================
+// Prompt 4 · UNA plataforma, CUATRO modos (+ familia y marca). Cada actor ve SU producto:
+// pocos destinos de primer nivel y el resto como navegación contextual dentro de cada destino.
+// Las rutas físicas no cambian (enlaces profundos y servicios intactos): cambia cómo se agrupan.
+// ================================================================================================
+
+export type NavModeId = 'agent' | 'athlete' | 'family' | 'university' | 'brand' | 'operations';
+export interface NavMode {
+  id: NavModeId;
+  label: string;
+  /** Destinos de primer nivel (barra lateral, raíl de tablet). */
+  primary: NavItem[];
+  /** «Más»: un único destino plegado (cuenta como uno). Vacío = sin «Más». */
+  more: NavItem[];
+  /** Barra inferior móvil: 4 accesos + «Menú». */
+  tabs: NavItem[];
+  /** Solo buscador (⌘K) y menú de usuario: herramientas y cuenta que no merecen un destino. */
+  extra: NavItem[];
+}
+
+const it = (href: string, label: string, icon: IconName, desc?: string, x: Partial<NavItem> = {}): NavItem => ({ href, label, icon, desc, ...x });
+
+const MESSAGES = it('/app/inbox', 'Mensajes', 'chat', 'Conversaciones seguras; con menores, la familia aprueba y ve el hilo.');
+const TOOLS: NavItem[] = [
+  it('/app/ia', 'Gala IA', 'spark', 'Pregunta lo que quieras sobre el proceso, a cualquier hora.'),
+  it('/app/calculator', 'Calculadora de coste', 'calc', 'Coste real a 4 años con viajes, seguro y subidas.'),
+  it('/app/guia', 'Centro de información', 'book', 'Divisiones, requisitos, documentos y visado con fuentes oficiales.'),
+  it('/app/news', 'Actualidad', 'news', 'Novedades de atletas, comunicados oficiales y cambios de normativa.'),
+];
+const ACCOUNT = (org: boolean): NavItem[] => [
+  org ? it('/app/billing', 'Plan y facturación', 'tag', 'Tu plan, asientos, uso y facturas.') : it('/precios', 'Planes y servicios', 'tag', 'Gratis para atletas; Core, Elite y Signature para familias.'),
+  it('/app/settings', 'Privacidad y datos', 'shield', 'Visibilidad, descarga de datos y baja de la cuenta.'),
+  it('/app/trust', 'Confianza y seguridad', 'shield', 'Quién ve tus datos ahora, medidas que te afecten y cómo apelar.'),
+  it('/app/support', 'Ayuda', 'book', 'Escríbenos y te respondemos aquí.'),
+  it('/app/invitar', 'Invitar', 'spark', 'Comparte The Gala Alliance con tu equipo.'),
+];
+
+/** Agent OS: Inicio, Atletas, Oportunidades, Recruiting, Mensajes, Más. */
+function agentMode(): NavMode {
+  const athletes = it('/app/portfolio', 'Atletas', 'users', 'Tu cartera: representados, propuestas, notas y seguimientos.', {
+    children: [
+      it('/app/portfolio', 'Mis atletas', 'users', 'Representados y propuestas, con su estado y siguiente paso.'),
+      it('/app/discover', 'Buscar talento', 'search', 'Filtra por deporte, posición, físico, nacionalidad, promoción, nivel e idioma.'),
+      it('/app/lists', 'Listas', 'list', 'Atletas guardados y búsquedas con alertas.'),
+      it('/app/portfolio/trials', 'Trials y programas', 'trophy', 'Trials de clubes y academias para tus representados.'),
+    ],
   });
-  sections.push({ title: family ? 'Aprender y decidir' : 'Herramientas', items: LEARN_SERVICES, collapsed: true });
-  // Las organizaciones pagan su plan aquí; atletas y familias ven los planes públicos.
-  const account = org ? ACCOUNT_SERVICES.map((i) => (i.href === '/precios' ? { ...i, href: '/app/billing', label: 'Plan y facturación', desc: 'Tu plan, asientos, uso y facturas.' } : i)) : ACCOUNT_SERVICES;
-  sections.push({ title: 'Cuenta', items: account, collapsed: true });
-  // Sin duplicados entre secciones (p. ej. atleta + familia): se queda la primera aparición.
+  const opportunities = it('/app/opportunities', 'Oportunidades', 'trophy', 'Becas, universidades y jornadas para tus atletas.', {
+    children: [
+      it('/app/opportunities', 'Becas y oportunidades', 'trophy', 'Ofertas de organizaciones verificadas con sello de confianza y coste neto.'),
+      it('/app/universities', 'Universidades', 'campus', 'Directorio con datos oficiales del U.S. Department of Education.'),
+      it('/app/universities/compare', 'Comparar universidades', 'compare', 'Hasta 5 universidades lado a lado.'),
+      it('/app/showcase', 'Showcase Day', 'showcase', 'Jornada mensual ante universidades y clubes verificados.'),
+    ],
+  });
+  const recruiting = it('/app/pipeline', 'Recruiting', 'pipeline', 'Cada atleta con cada universidad: fase, responsable, tareas e historial.', {
+    children: [
+      it('/app/pipeline', 'Procesos', 'pipeline', 'Tablero y tabla de procesos con plazos y responsables.'),
+      it('/app/contacts', 'Universidades y coaches', 'campus', 'Contactos de programas, privados de tu agencia.'),
+      it('/app/pipeline/team', 'Equipo', 'users', 'Quién lleva cada proceso en tu agencia.'),
+    ],
+  });
+  const home = it('/app', 'Inicio', 'home', 'Hoy: vencidos, ofertas que caducan, documentos y respuestas.');
+  return {
+    id: 'agent', label: 'Agencia',
+    primary: [home, athletes, opportunities, recruiting, MESSAGES],
+    more: [it('/app/organization', 'Agencia', 'building', 'Datos de la agencia, verificación y miembros.'), ...TOOLS, ...ACCOUNT(true)],
+    tabs: [home, { ...athletes, label: 'Atletas' }, { ...recruiting, label: 'Procesos' }, MESSAGES],
+    extra: [],
+  };
+}
+
+/** Athlete OS: Inicio, Oportunidades, Mi camino, Mensajes, Perfil (exactamente 5, sin «Más»). */
+function athleteMode(adult: boolean): NavMode {
+  const home = it('/app', 'Inicio', 'home', 'Tu siguiente paso, tus plazos y quién te ha visto.');
+  const opportunities = it('/app/opportunities', 'Oportunidades', 'trophy', 'Becas, universidades que encajan contigo y tu shortlist.', {
+    children: [
+      it('/app/match', 'Gala Match', 'compass', 'Las universidades y oportunidades que más encajan contigo, con las razones.'),
+      it('/app/opportunities', 'Becas', 'trophy', 'Ofertas de organizaciones verificadas con sello de confianza y coste neto.'),
+      it('/app/universities', 'Universidades', 'campus', 'Directorio con datos oficiales.'),
+      it('/app/shortlist', 'Mi shortlist', 'list', 'Tus universidades guardadas, listas para comparar.'),
+      it('/app/universities/compare', 'Comparar universidades', 'compare', 'Hasta 5 universidades lado a lado.'),
+      it('/app/showcase', 'Showcase Day', 'showcase', 'Jornada mensual ante universidades y clubes verificados.'),
+      ...(adult ? [it('/app/campaigns', 'Marcas y patrocinios', 'megaphone', 'Colaboraciones con marcas (solo mayores de edad).')] : []),
+    ],
+  });
+  const journey = it('/app/process', 'Mi camino', 'path', 'Tus procesos, candidaturas, ofertas, documentos y plan.', {
+    children: [
+      it('/app/process', 'Mis procesos', 'pipeline', 'Cada universidad que sigues: etapa, siguiente paso, tareas y documentos.'),
+      it('/app/applications', 'Candidaturas', 'inbox', 'Estado de cada beca a la que te has apuntado.'),
+      it('/app/offers', 'Ofertas', 'scale', 'Coste neto, riesgos y memo de decisión.'),
+      it('/app/documents', 'Documentos', 'doc', 'Checklist y archivos privados del proceso.'),
+      it('/app/requests', 'Solicitudes', 'shield', 'Universidades que te piden algo: tú decides qué compartes.'),
+      it('/app/plan', 'Mi plan', 'tag', 'Informe del perfil, CV deportivo, lista de universidades y calendario.'),
+      it('/app/athlete', 'Plazos por curso', 'path', 'Lo que toca según tu año.'),
+      it('/app/academia', 'Academia SAT/TOEFL', 'grad', 'Práctica con preguntas tipo examen y fechas oficiales.'),
+    ],
+  });
+  const profile = it('/app/athlete/passport', 'Perfil', 'id', 'Tu Passport: lo que ven universidades, clubes y agentes.', {
+    children: [
+      it('/app/athlete/passport', 'Mi Passport', 'id', 'Tu perfil deportivo y académico.'),
+      it('/app/share', 'Compartir mi perfil', 'megaphone', 'Enlace privado para coaches y quién lo abre.'),
+      it('/app/agents', 'Agentes', 'handshake', 'Agentes que quieren representarte y los que aceptaste.'),
+      ...(adult ? [it('/app/collaborations', 'Colaboraciones', 'megaphone', 'Tus colaboraciones con marcas.')] : []),
+      it('/app/settings', 'Privacidad y datos', 'shield', 'Quién ve cada bloque, descarga de datos y baja.'),
+    ],
+  });
+  return {
+    id: 'athlete', label: 'Atleta',
+    primary: [home, opportunities, journey, MESSAGES, profile],
+    more: [],
+    tabs: [home, { ...opportunities, label: 'Oportun.' }, journey, MESSAGES],
+    extra: [...TOOLS, ...ACCOUNT(false).filter((i) => i.href !== '/app/settings')],
+  };
+}
+
+/** Familia: el proceso de su hijo/a, el coste y su aprobación. */
+function familyMode(): NavMode {
+  const home = it('/app', 'Inicio', 'home', 'Panel familiar: lo que necesita vuestra decisión y los plazos.', { aliases: ['/app/family'] });
+  const costs = it('/app/family/costs', 'Coste real', 'scale', 'Coste publicado, ayuda confirmada y lo que falta, opción por opción.');
+  const journey = it('/app/process', 'Su camino', 'path', 'Procesos, ofertas, documentos y plan de tu hijo o hija.', {
+    children: [
+      it('/app/process', 'Procesos', 'pipeline', 'Los procesos de recruiting y qué toca hacer en cada uno.'),
+      it('/app/offers', 'Ofertas', 'scale', 'Coste neto, riesgos y memo de decisión.'),
+      it('/app/documents', 'Documentos', 'doc', 'Checklist y archivos privados del proceso.'),
+      it('/app/requests', 'Solicitudes', 'shield', 'Peticiones de universidades: tú decides.'),
+      it('/app/plan', 'Plan familiar', 'tag', 'Informe, lista de universidades y calendario.'),
+      it('/app/academia', 'Academia SAT/TOEFL', 'grad', 'Práctica con preguntas tipo examen.'),
+    ],
+  });
+  const safety = it('/app/family/safety', 'Seguridad', 'shield', 'Quién puede contactar y ver a tu hijo o hija.');
+  return {
+    id: 'family', label: 'Familia',
+    primary: [home, costs, journey, MESSAGES],
+    more: [safety, it('/app/share', 'Compartir su perfil', 'megaphone', 'Enlaces privados de reclutamiento.'),
+      it('/app/opportunities', 'Becas', 'trophy', 'Ofertas de organizaciones verificadas.'), it('/app/universities', 'Universidades', 'campus', 'Directorio con datos oficiales.'),
+      ...TOOLS, ...ACCOUNT(false)],
+    tabs: [{ ...home, label: 'Hoy' }, { ...costs, label: 'Costes' }, { ...journey, label: 'Su camino' }, MESSAGES],
+    extra: [],
+  };
+}
+
+/** University OS (universidades, colleges, clubes y academias): Inicio, Descubrir, Candidatos, Oportunidades, Recruiting, Más. */
+function universityMode(club: boolean, isCoach: boolean): NavMode {
+  const home = it('/app', 'Inicio', 'home', 'Recruiting: qué necesita atención, plazas por posición y agenda.', { aliases: ['/app/recruit'] });
+  const discover = it('/app/recruit/discover', 'Descubrir', 'search', 'Búsqueda con privacidad y encaje con tus necesidades.', {
+    children: [
+      it('/app/recruit/discover', 'Descubrir atletas', 'search', 'Búsqueda que respeta la privacidad, con encaje.'),
+      it('/app/recruit/compare', 'Comparar', 'compare', 'Candidatos lado a lado.'),
+    ],
+  });
+  const candidates = it('/app/recruit/candidates', 'Candidatos', 'users', 'Por etapa interna, asignados y con historial.', {
+    children: [
+      it('/app/recruit/candidates', 'Procesos', 'pipeline', 'Candidatos por etapa interna.'),
+      it('/app/recruit/shortlists', 'Listas de seguimiento', 'list', 'Listas privadas o de equipo, con revisión y notas.'),
+      it('/app/applications', 'Candidaturas recibidas', 'inbox', 'Quién se ha apuntado a cada oportunidad.'),
+    ],
+  });
+  const opportunities = it('/app/opportunities?view=mine', 'Oportunidades', 'trophy', 'Vuestras becas, trials y programas publicados.', {
+    children: [
+      it('/app/opportunities?view=mine', 'Publicadas', 'trophy', 'Gestiona lo que habéis publicado.'),
+      it('/app/opportunities/new', 'Publicar', 'megaphone', 'Sale al momento si pasa los controles automáticos.'),
+      it('/app/recruit/trials', 'Trials', 'trophy', 'Inscripciones, plazas y asistencia.'),
+    ],
+  });
+  const recruiting = it('/app/recruit/needs', 'Recruiting', 'chart', 'Necesidades por posición y tareas del equipo.', {
+    children: [
+      it('/app/recruit/needs', 'Necesidades', 'chart', 'Plazas por posición, temporada y promoción.'),
+      it('/app/recruit/tasks', 'Tareas del equipo', 'list', 'Quién hace qué y para cuándo.'),
+      it('/app/showcase', 'Showcase Day', 'showcase', 'Jornada mensual de atletas inscritos.'),
+    ],
+  });
+  return {
+    id: 'university', label: club ? 'Club / academia' : 'Universidad',
+    primary: [home, discover, candidates, opportunities, recruiting],
+    more: [MESSAGES, it('/app/organization', club ? 'Club / academia' : 'Universidad y equipo', 'building', 'Datos, verificación y miembros.'),
+      ...(isCoach ? [it('/app/verify', 'Mi verificación', 'shield', 'Correo institucional, afiliación y cargo.'), it('/app/club', 'Portal de club', 'users', 'Plantilla, validación de estadísticas y colocaciones.')] : []),
+      it('/app/lists', 'Listas personales', 'list', 'Atletas guardados y búsquedas con alertas.'),
+      ...TOOLS, ...ACCOUNT(true)],
+    tabs: club
+      ? [{ ...home, label: 'Inicio' }, { ...discover, label: 'Descubrir' }, it('/app/recruit/shortlists', 'Listas', 'list'), it('/app/recruit/trials', 'Trials', 'trophy')]
+      : [{ ...home, label: 'Inicio' }, { ...discover, label: 'Descubrir' }, { ...candidates, label: 'Candidatos' }, { ...opportunities, label: 'Oportun.' }],
+    extra: [],
+  };
+}
+
+/** Marca: campañas (su inicio), talento y listas. Las colaboraciones viven dentro de cada campaña. */
+function brandMode(): NavMode {
+  const home = it('/app', 'Inicio', 'home', 'Tus campañas y sus candidaturas.', { aliases: ['/app/campaigns'] });
+  const talent = it('/app/discover', 'Talento', 'search', 'Atletas mayores de edad que aceptan colaboraciones.');
+  const lists = it('/app/lists', 'Listas', 'list', 'Atletas que te interesan, agrupados en listas.');
+  return {
+    id: 'brand', label: 'Marca',
+    primary: [home, talent, lists, MESSAGES],
+    more: [it('/app/campaigns/new', 'Nueva campaña', 'megaphone', 'Publica una campaña para atletas mayores de edad.'),
+      it('/app/organization', 'Marca', 'building', 'Datos de la marca, verificación y equipo.'), ...TOOLS, ...ACCOUNT(true)],
+    tabs: [home, talent, lists, MESSAGES],
+    extra: [],
+  };
+}
+
+/** Gala Operations: Verificación, Cumplimiento, Confianza, Moderación, Soporte. */
+function operationsMode(): NavMode {
+  const verification = it('/app/admin', 'Verificación', 'shield', 'Organizaciones, becas, campañas, enlaces y reclamaciones.');
+  const compliance = it('/app/admin/ops', 'Cumplimiento', 'scale', 'Salud, interruptores, aprobaciones dobles, conflictos y jobs.');
+  const trust = it('/app/admin/safety', 'Confianza', 'shield', 'Casos, medidas proporcionales y apelaciones.');
+  const moderation = it('/app/admin?view=moderation', 'Moderación', 'bell', 'Denuncias por prioridad.');
+  const support = it('/app/admin/ops?view=support', 'Soporte', 'chat', 'Búsqueda mínima y casos de soporte.');
+  return {
+    id: 'operations', label: 'Operaciones Gala',
+    primary: [verification, compliance, trust, moderation, support],
+    more: [it('/app/admin/panel', 'Panel de mando', 'chart', 'Métricas, embudo, automatizaciones y ventas.'),
+      it('/app/admin/analytics', 'Analítica', 'chart', 'Liquidez, activación y retención, con sus definiciones.'), MESSAGES, ...TOOLS],
+    tabs: [verification, moderation, trust, support],
+    extra: [],
+  };
+}
+
+export interface NavContext { roles: AppRole[]; primaryRole?: AppRole | null; isMinor?: boolean; clubStaff?: boolean }
+
+/** El modo lo decide el rol principal del perfil (o el primero que tenga). */
+export function navModeFor({ roles, primaryRole, isMinor = false, clubStaff = false }: NavContext): NavMode {
+  const primary = primaryRole && roles.includes(primaryRole) ? primaryRole : navPrimary(roles);
+  switch (primary) {
+    case 'agent': return withOtherRoles(agentMode(), roles, primary);
+    case 'athlete': return withOtherRoles(athleteMode(!isMinor), roles, primary);
+    case 'parent': return withOtherRoles(familyMode(), roles, primary);
+    case 'university': case 'coach': return withOtherRoles(universityMode(clubStaff, roles.includes('coach')), roles, primary);
+    case 'brand': return withOtherRoles(brandMode(), roles, primary);
+    case 'admin': return operationsMode();
+    default: return { id: 'athlete', label: 'Cuenta', primary: [it('/app', 'Inicio', 'home'), MESSAGES], more: [...TOOLS, ...ACCOUNT(false)], tabs: [it('/app', 'Inicio', 'home'), MESSAGES], extra: [] };
+  }
+}
+
+/** Con varios roles, los otros espacios quedan en «Más» (ningún espacio inaccesible). Admin: acceso a Operaciones. */
+function withOtherRoles(mode: NavMode, roles: AppRole[], primary: AppRole): NavMode {
+  const others: NavItem[] = [];
+  const seen = new Set(flattenMode(mode).map((i) => i.href.split('?')[0]));
+  for (const r of roles) {
+    if (r === primary) continue;
+    if (r === 'admin') { others.push(it('/app/admin', 'Operaciones Gala', 'shield', 'Verificación, cumplimiento, confianza, moderación y soporte.')); continue; }
+    const extra = r === 'agent' ? agentMode() : r === 'parent' ? familyMode() : r === 'brand' ? brandMode() : r === 'athlete' ? athleteMode(false) : universityMode(false, r === 'coach');
+    for (const i of flattenMode(extra)) {
+      const k = i.href.split('?')[0];
+      if (i.href === '/app' || seen.has(k)) continue;
+      seen.add(k);
+      others.push({ ...i, children: undefined });
+    }
+    if (r === 'parent' && !seen.has('/app/family')) others.unshift(it('/app/family', 'Panel familiar', 'family', 'El proceso de tu hijo o hija.'));
+  }
+  return others.length ? { ...mode, more: [...others, ...mode.more] } : mode;
+}
+
+/** Todos los destinos del modo (primer nivel, contextuales, «Más» y extra), sin duplicar. */
+export function flattenMode(mode: NavMode): NavItem[] {
+  const out: NavItem[] = [];
   const seen = new Set<string>();
-  return sections.map((s) => ({ ...s, items: s.items.filter((i) => (seen.has(i.href) ? false : (seen.add(i.href), true))) })).filter((s) => s.items.length);
+  const add = (i: NavItem) => { if (!seen.has(i.href)) { seen.add(i.href); out.push(i); } };
+  for (const p of mode.primary) { add(p); p.children?.forEach(add); }
+  mode.more.forEach(add);
+  mode.extra.forEach(add);
+  return out;
+}
+
+/** Número de destinos de primer nivel: los primarios más «Más» si existe. */
+export const topLevelCount = (mode: NavMode) => mode.primary.length + (mode.more.length ? 1 : 0);
+
+/** Compatibilidad: secciones para la barra lateral, el menú móvil y el buscador. */
+export function sidebarFor(roles: AppRole[], primaryRole?: AppRole | null, ctx: Partial<NavContext> = {}): NavSection[] {
+  const mode = navModeFor({ roles, primaryRole, ...ctx });
+  const sections: NavSection[] = [{ title: mode.label, items: mode.primary }];
+  if (mode.more.length) sections.push({ title: 'Más', items: mode.more, collapsed: true });
+  if (mode.extra.length) sections.push({ title: 'Herramientas y cuenta', items: mode.extra, collapsed: true });
+  return sections;
+}
+
+/** Migas de pan: destino de primer nivel › vista contextual (si es distinta). */
+export function breadcrumbsFor(mode: NavMode, pathname: string, search = ''): NavItem[] {
+  const current = `${pathname}${search ? `?${search}` : ''}`;
+  const matches = (i: NavItem) => {
+    const base = i.href.split('?')[0];
+    if (i.href === current || i.aliases?.includes(pathname)) return 3;
+    if (base === '/app') return pathname === '/app' ? 2 : 0;
+    if (pathname === base && !i.href.includes('?')) return 2;
+    return pathname.startsWith(`${base}/`) ? 1 : 0;
+  };
+  let best: { top: NavItem; child?: NavItem; score: number; len: number } | null = null;
+  for (const top of [...mode.primary, ...mode.more]) {
+    for (const c of [top, ...(top.children ?? [])]) {
+      const sc = matches(c);
+      if (!sc) continue;
+      const len = c.href.length;
+      if (!best || sc > best.score || (sc === best.score && len > best.len)) best = { top, child: c === top ? undefined : c, score: sc, len };
+    }
+  }
+  if (!best) return [];
+  return best.child && best.child.href !== best.top.href ? [best.top, best.child] : [best.top];
 }

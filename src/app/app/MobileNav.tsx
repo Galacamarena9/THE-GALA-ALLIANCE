@@ -3,56 +3,17 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Briefcase, CalendarCheck, Compass, FileText, GitBranch, Home, IdCard, LayoutGrid, ListChecks, Menu, MessageSquare, ShieldCheck, Trophy, Wallet, X, type LucideIcon } from 'lucide-react';
-import type { AppRole } from '@/lib/types';
-import type { NavSection } from '@/lib/domain/navigation';
+import { Menu, X } from 'lucide-react';
+import { flattenMode, type NavMode } from '@/lib/domain/navigation';
+import { NavIcon } from '@/components/NavIcon';
 import { cx } from '@/components/ui';
-import { Sidebar } from './Sidebar';
-
-interface Tab { href: string; label: string; Icon: LucideIcon; exact?: boolean; also?: string }
-const MESSAGES: Tab = { href: '/app/inbox', label: 'Mensajes', Icon: MessageSquare };
-/** Por defecto (varios roles o sin rol claro). */
-const TABS: Tab[] = [
-  { href: '/app', label: 'Inicio', Icon: Home },
-  { href: '/app/discover', label: 'Escaparate', Icon: LayoutGrid },
-  { href: '/app/opportunities', label: 'Becas', Icon: Trophy },
-  MESSAGES,
-];
-/** Cada actor, a un toque de lo que resuelve su día: no el mismo menú para todos. */
-const ROLE_TABS: Partial<Record<AppRole, Tab[]>> = {
-  // Atleta: hacerse ver (Passport) → encontrar encaje (Match) → seguir procesos.
-  athlete: [{ href: '/app', label: 'Inicio', Icon: Home }, { href: '/app/athlete/passport', label: 'Passport', Icon: IdCard }, { href: '/app/match', label: 'Match', Icon: Compass }, MESSAGES],
-  // Agente: sus atletas, sus procesos con plazos y propuestas.
-  agent: [{ href: '/app', label: 'Inicio', Icon: Home }, { href: '/app/portfolio', label: 'Cartera', Icon: Briefcase }, { href: '/app/pipeline', label: 'Procesos', Icon: GitBranch }, MESSAGES],
-  // Marca: sus campañas (su inicio), talento y listas.
-  brand: [{ href: '/app', label: 'Inicio', Icon: Home, also: '/app/campaigns' }, { href: '/app/discover', label: 'Talento', Icon: LayoutGrid }, { href: '/app/lists', label: 'Listas', Icon: ListChecks }, MESSAGES],
-};
-/** Staff de universidades y clubes: lo que un coach usa a diario, a un toque (Descubrir ↔ Shortlists ↔ Pipeline). */
-const STAFF_TABS: Tab[] = [
-  { href: '/app/recruit', label: 'Inicio', Icon: Home, exact: true },
-  { href: '/app/recruit/discover', label: 'Descubrir', Icon: Compass },
-  { href: '/app/recruit/shortlists', label: 'Listas', Icon: ListChecks },
-  { href: '/app/recruit/candidates', label: 'Procesos', Icon: GitBranch },
-];
-/** Clubes y academias: el día a día es Descubrir ↔ Shortlists ↔ Trials (el pipeline queda en «Más»). */
-const CLUB_TABS: Tab[] = [
-  { href: '/app/recruit', label: 'Inicio', Icon: Home, exact: true },
-  { href: '/app/recruit/discover', label: 'Descubrir', Icon: Compass },
-  { href: '/app/recruit/shortlists', label: 'Listas', Icon: ListChecks },
-  { href: '/app/recruit/trials', label: 'Trials', Icon: CalendarCheck },
-];
-
-/** Familias: hoy → coste → documentos → seguridad (mensajes). No es el panel del atleta en pequeño. */
-const FAMILY_TABS: Tab[] = [
-  { href: '/app/family', label: 'Hoy', Icon: Home, exact: true },
-  { href: '/app/family/costs', label: 'Costes', Icon: Wallet },
-  { href: '/app/requests', label: 'Documentos', Icon: FileText },
-  { href: '/app/family/safety', label: 'Seguridad', Icon: ShieldCheck },
-];
+import { Sidebar, useActiveHref } from './Sidebar';
 
 /** Móvil: barra inferior tipo app (como LinkedIn) + menú completo en panel lateral. */
-export function MobileNav({ sections, staff = false, family = false, primary }: { sections: NavSection[]; staff?: false | 'club' | 'university'; family?: boolean; primary?: AppRole | null }) {
-  const tabs: Tab[] = staff === 'club' ? CLUB_TABS : staff ? STAFF_TABS : family ? FAMILY_TABS : (primary && ROLE_TABS[primary]) || TABS;
+export function MobileNav({ mode }: { mode: NavMode }) {
+  const tabs = mode.tabs.slice(0, 4);
+  const items = flattenMode(mode);
+  const activeHref = useActiveHref(items);
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const [lastPath, setLastPath] = useState(pathname);
@@ -66,17 +27,18 @@ export function MobileNav({ sections, staff = false, family = false, primary }: 
   }, [open]);
 
   return (
-    <div className="lg:hidden">
+    <div className="md:hidden">
       <nav aria-label="Accesos rápidos" className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-ink/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl">
         <ul className="grid grid-cols-5">
-          {tabs.map(({ href, label, Icon, exact: exactTab, also }) => {
-            const exact = href === '/app' || exactTab;
-            const active = (exact ? pathname === href : pathname.startsWith(href)) || (!!also && pathname.startsWith(also));
+          {tabs.map((t) => {
+            // Activa si la página actual es la pestaña o una de sus vistas contextuales.
+            const top = mode.primary.find((p) => p.href === t.href);
+            const active = activeHref === t.href || !!top?.children?.some((c) => c.href === activeHref);
             return (
-              <li key={href}>
-                <Link href={href} className={cx('flex flex-col items-center gap-1 py-2.5 text-xs', active ? 'text-brass' : 'text-muted')} aria-current={active ? 'page' : undefined}>
-                  <Icon className="h-5 w-5" aria-hidden strokeWidth={1.8} />
-                  {label}
+              <li key={t.href}>
+                <Link href={t.href} className={cx('flex min-h-[52px] flex-col items-center justify-center gap-1 py-2 text-xs', active ? 'font-semibold text-brass' : 'text-muted')} aria-current={active ? 'page' : undefined}>
+                  <NavIcon name={t.icon} className="h-5 w-5" />
+                  {t.label}
                 </Link>
               </li>
             );
@@ -84,7 +46,7 @@ export function MobileNav({ sections, staff = false, family = false, primary }: 
           <li>
             <button type="button" onClick={() => setOpen(true)} aria-expanded={open} aria-controls="mobile-sidebar" className="flex w-full flex-col items-center gap-1 py-2.5 text-xs text-muted">
               <Menu className="h-5 w-5" aria-hidden strokeWidth={1.8} />
-              {staff ? 'Más' : 'Todo'}
+              Menú
             </button>
           </li>
         </ul>
@@ -94,10 +56,10 @@ export function MobileNav({ sections, staff = false, family = false, primary }: 
           <button className="absolute inset-0 bg-black/60 backdrop-blur-sm" aria-label="Cerrar menú" onClick={() => setOpen(false)} />
           <div id="mobile-sidebar" className="absolute inset-y-0 left-0 w-[86%] max-w-sm overflow-y-auto border-r border-line bg-ink p-4">
             <div className="mb-4 flex items-center justify-between">
-              <p className="font-display text-lg font-bold text-paper">Todas las funciones</p>
+              <p className="font-display text-lg font-bold text-paper">{mode.label}</p>
               <button onClick={() => setOpen(false)} className="rounded-lg p-2 text-muted hover:bg-surface" aria-label="Cerrar"><X className="h-5 w-5" /></button>
             </div>
-            <Sidebar sections={sections} onNavigate={() => setOpen(false)} />
+            <Sidebar mode={mode} onNavigate={() => setOpen(false)} />
           </div>
         </div>
       )}
