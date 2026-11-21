@@ -20,7 +20,9 @@ export type FunnelEvent =
   // 17 · flujos de 12-16
   | 'representation_requested' | 'representation_accepted' | 'representation_revoked' | 'agency_invited'
   | 'brand_offer_sent' | 'brand_offer_accepted' | 'deliverable_submitted' | 'collaborations_viewed'
-  | 'trust_center_viewed' | 'support_case_opened' | 'subscription_started' | 'billing_viewed';
+  | 'trust_center_viewed' | 'support_case_opened' | 'subscription_started' | 'billing_viewed'
+  // Prompt 5 · Inicio del agente
+  | 'agent_home_viewed' | 'agent_attention_opened';
 
 export async function logEvent(event: FunnelEvent, props: Record<string, string | number | boolean> = {}, dedupeKey?: string) {
   try {
