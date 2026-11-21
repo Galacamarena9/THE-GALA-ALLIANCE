@@ -1467,6 +1467,28 @@ try {
     eq((await as(u.adult, `select height_cm from athlete_directory where user_id = $1`, [u.adult])).rows[0].height_cm, 181, 'el atleta sí');
     await as(u.adult, `update athlete_profiles set sport_visibility = 'members' where user_id = $1`, [u.adult]);
   });
+  await check('búsqueda de talento: los filtros nuevos respetan el bloque de visibilidad y no son un oráculo', async () => {
+    await as(u.adult, `update athlete_profiles set profile_visibility = 'public', sport_visibility = 'members', nationality = 'ES', weight_kg = 78, dominant_side = 'left', league = 'Liga demo', years_experience = 6 where user_id = $1`, [u.adult]);
+    await as(u.adult, `insert into athlete_languages (athlete_id, language_code, level) values ($1, 'en', 'b2') on conflict (athlete_id, language_code) do update set level = 'b2'`, [u.adult]);
+    const r = (await as(u.coach, `select nationality, weight_kg, dominant_side, league, years_experience, english_level from athlete_directory where user_id = $1`, [u.adult])).rows[0];
+    eq(r.nationality, 'ES'); eq(r.weight_kg, 78); eq(r.dominant_side, 'left'); eq(r.english_level, 'b2');
+    eq((await as(u.coach, `select count(*)::int n from athlete_directory where user_id = $1 and dominant_side = 'left' and weight_kg between 70 and 80`, [u.adult])).rows[0].n, 1, 'filtrable');
+    // Bloque deportivo privado: peso, lateralidad, liga y experiencia desaparecen y no se pueden filtrar.
+    await as(u.adult, `update athlete_profiles set sport_visibility = 'private' where user_id = $1`, [u.adult]);
+    const h = (await as(u.coach, `select weight_kg, dominant_side, league, years_experience from athlete_directory where user_id = $1`, [u.adult])).rows[0];
+    eq(h.weight_kg, null); eq(h.dominant_side, null); eq(h.league, null); eq(h.years_experience, null);
+    eq((await as(u.coach, `select count(*)::int n from athlete_directory where user_id = $1 and dominant_side = 'left'`, [u.adult])).rows[0].n, 0, 'oculto = no filtrable');
+    eq((await as(u.adult, `select weight_kg from athlete_directory where user_id = $1`, [u.adult])).rows[0].weight_kg, 78, 'el atleta sí');
+    await as(u.adult, `update athlete_profiles set sport_visibility = 'members' where user_id = $1`, [u.adult]);
+    // Estadística validada por club: solo cuenta si el bloque de estadísticas es visible.
+    const def = (await db.query(`select id from sport_stat_definitions limit 1`)).rows[0].id;
+    await db.query(`insert into athlete_statistics (athlete_id, stat_definition_id, season, value, source) values ($1, $2, '2026', 1, 'club_verified') on conflict do nothing`, [u.adult, def]);
+    await as(u.adult, `update athlete_profiles set stats_visibility = 'members' where user_id = $1`, [u.adult]);
+    eq((await as(u.coach, `select has_verified_stats v from athlete_directory where user_id = $1`, [u.adult])).rows[0].v, true);
+    await as(u.adult, `update athlete_profiles set stats_visibility = 'private' where user_id = $1`, [u.adult]);
+    eq((await as(u.coach, `select has_verified_stats v from athlete_directory where user_id = $1`, [u.adult])).rows[0].v, false, 'oculto');
+    await as(u.adult, `update athlete_profiles set stats_visibility = 'members' where user_id = $1`, [u.adult]);
+  });
   await check('becas: sin información no se puede anunciar ayuda; la confirmada solo vive en la oferta', async () => {
     const opp = (await db.query(`select id from opportunities where organization_id = $1 limit 1`, [uniId])).rows[0];
     if (!opp) return;

@@ -19,9 +19,17 @@ export interface DirectoryRow {
   target_divisions: Division[];
   open_to_opportunities: boolean;
   has_video: boolean;
+  // Búsqueda de talento (opcionales: otras pantallas no las piden).
+  nationality?: string | null;
+  weight_kg?: number | null;
+  dominant_side?: string | null;
+  league?: string | null;
+  years_experience?: number | null;
+  english_level?: string | null;
+  has_verified_stats?: boolean;
 }
 
-const flag = (cc: string | null) =>
+export const flag = (cc: string | null) =>
   cc && /^[A-Z]{2}$/.test(cc) ? String.fromCodePoint(...[...cc].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65)) : '';
 
 export function AthleteCard({ a, positionName, sportName, footer }: { a: DirectoryRow; positionName?: string; sportName?: string; footer?: ReactNode }) {
@@ -48,6 +56,7 @@ export function AthleteCard({ a, positionName, sportName, footer }: { a: Directo
           <div><dt className="text-xs text-faint">Objetivo</dt><dd className="truncate font-display text-xl font-bold text-paper">{a.target_divisions[0] ? DIVISION_LABEL[a.target_divisions[0]] : '—'}</dd></div>
         </dl>
         <div className="mt-3 flex flex-wrap gap-1.5">
+          {a.has_verified_stats && <Badge tone="ok">✓ Stats validadas</Badge>}
           {a.has_video && <Badge tone="brass">▶ Vídeo</Badge>}
           {a.open_to_opportunities && <Badge tone="ok">Abierto/a a ofertas</Badge>}
         </div>
