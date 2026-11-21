@@ -5,6 +5,9 @@ import { previewAgentHome, previewCrmRows } from '@/lib/preview/agent-home';
 import { AgentHomeView } from '@/app/app/AgentHome';
 import { AthletesCrm } from '@/app/app/portfolio/AthletesCrm';
 import { DEFAULT_CRM } from '@/lib/domain/athletes-crm';
+import { Athlete360View } from '@/app/app/portfolio/[athleteId]/Athlete360View';
+import { previewAthlete360 } from '@/lib/preview/athlete-360';
+import { parseA360Tab } from '@/lib/domain/athlete-360';
 import { previewPortfolio, previewSports, previewCases } from '@/lib/preview/fixtures';
 import { PipelineBoard } from '@/components/agency/PipelineBoard';
 import { ROLE_SHORTCUTS, RoleHero, ShortcutTiles } from '@/components/RoleHero';
@@ -75,14 +78,14 @@ const demoPublicOpp: PublicOpportunity = {
  */
 export const metadata: Metadata = { title: 'Probador interno', robots: { index: false, follow: false } };
 
-const SCREENS = ['portfolio-100', 'portfolio-empty', 'agent-home', 'agent-home-empty', 'agent-home-partial', 'agent-home-no-agency', 'agent-home-error', 'portfolio', 'athlete-home', 'coach-home', 'pipeline', 'pipeline-table', 'match', 'opportunity', 'passport', 'galamatch', 'command-center', 'athlete-pipeline', 'club-trials', 'trial-club', 'trial-athlete', 'family-trials', 'program-athlete', 'family-home', 'family-costs', 'family-welcome', 'shell-agent', 'shell-athlete', 'shell-university', 'shell-operations'] as const;
+const SCREENS = ['athlete-360', 'athlete-360-empty', 'athlete-360-viewer', 'athlete-360-locked', 'portfolio-100', 'portfolio-empty', 'agent-home', 'agent-home-empty', 'agent-home-partial', 'agent-home-no-agency', 'agent-home-error', 'portfolio', 'athlete-home', 'coach-home', 'pipeline', 'pipeline-table', 'match', 'opportunity', 'passport', 'galamatch', 'command-center', 'athlete-pipeline', 'club-trials', 'trial-club', 'trial-athlete', 'family-trials', 'program-athlete', 'family-home', 'family-costs', 'family-welcome', 'shell-agent', 'shell-athlete', 'shell-university', 'shell-operations'] as const;
 
 // Gala Match con el motor real y datos ficticios: un Passport completo y otro con muchos datos ausentes.
 const demoOpp = { sport_id: 'basketball', position_ids: [1], graduation_years: [2027], division: 'ncaa_d2' as const, min_gpa_4: 2.5, english_required: 'TOEFL 80', annual_cost_usd: 40000, aid_amount_usd: 30000 };
 const demoFull = matchAthleteToOpportunity({ sport_id: 'basketball', primary_position_id: 1, secondary_position_id: null, graduation_year: 2027, target_divisions: ['ncaa_d1'], annual_budget_usd: 8000 }, { gpa: 8, gpa_scale: 10, english_test: 'toefl', english_score: '92' }, demoOpp);
 const demoThin = matchAthleteToOpportunity({ sport_id: 'basketball', primary_position_id: null, secondary_position_id: null, graduation_year: 2027, target_divisions: [], annual_budget_usd: null }, null, demoOpp);
 
-export default async function PreviewPage({ params }: { params: Promise<{ screen: string }> }) {
+export default async function PreviewPage({ params, searchParams }: { params: Promise<{ screen: string }>; searchParams: Promise<{ tab?: string }> }) {
   if (process.env.ENABLE_PREVIEW !== '1') notFound();
   const { screen } = await params;
   if (!(SCREENS as readonly string[]).includes(screen)) notFound();
@@ -147,6 +150,13 @@ export default async function PreviewPage({ params }: { params: Promise<{ screen
           <div className="grid gap-5 md:grid-cols-2">
             {[demoFull, demoThin].map((m, i) => <section key={i} className="rounded-[var(--radius-card)] border border-line bg-surface p-6"><MatchBreakdown match={m} editHref="#" /></section>)}
           </div>
+        )}
+        {screen.startsWith('athlete-360') && (
+          <Athlete360View
+            data={previewAthlete360(screen === 'athlete-360-empty' ? 'empty' : screen === 'athlete-360-viewer' ? 'viewer' : screen === 'athlete-360-locked' ? 'no-permissions' : 'full')}
+            tab={parseA360Tab((await searchParams).tab).tab}
+            userId="me"
+          />
         )}
         {screen.startsWith('portfolio') && <AthletesCrm rows={screen === 'portfolio-100' ? previewCrmRows(100) : screen === 'portfolio-empty' ? [] : previewCrmRows()} initial={DEFAULT_CRM} agency={{ name: 'Norte Sports Management', verified: true }} />}
       </div>

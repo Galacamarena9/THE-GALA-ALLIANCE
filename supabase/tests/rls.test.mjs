@@ -415,6 +415,12 @@ try {
     }
     eq((await as(u.agent, `select count(*)::int n from agent_representations where athlete_id = $1`, [u.adult])).rows[0].n > 0, true, 'la propia agencia sí');
   });
+  await check('Ficha 360: las notas internas de la agencia no llegan al atleta, a una universidad ni a otra agencia', async () => {
+    for (const who of [u.adult, u.coach, u.uni, agent2]) {
+      eq((await as(who, `select count(*)::int n from agency_athlete_notes where athlete_id = $1`, [u.adult])).rows[0].n, 0);
+    }
+    eq((await as(u.agent, `select count(*)::int n from agency_athlete_notes where athlete_id = $1`, [u.adult])).rows[0].n > 0, true, 'la propia agencia sí');
+  });
   await check('nadie se hace pasar por otro autor', async () => {
     await expectError(() => as(u.agent, `insert into agency_athlete_notes (agency_id, athlete_id, author_id, body) values ($1, $2, $3, 'x')`,
       [agencyId, u.adult, agent2]), /row-level security/);
