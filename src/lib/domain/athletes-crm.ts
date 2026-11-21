@@ -54,6 +54,13 @@ export interface CrmEntry {
 export interface CrmVerification { athleteId: string; verifiedStats: boolean; video: boolean }
 
 const FINAL = new Set(['committed', 'closed']);
+
+/** Resumen de verificación en una frase (lo comparten «Mis atletas» y la ficha 360). */
+export function verificationText(v: Pick<CrmVerification, 'verifiedStats' | 'video'> | null | undefined): string {
+  if (!v) return 'Sin datos compartidos';
+  if (v.verifiedStats) return v.video ? 'Stats validadas · vídeo' : 'Stats validadas';
+  return v.video ? 'Vídeo · stats declaradas' : 'Datos declarados';
+}
 const REP_ORDER: RepStatus[] = ['active', 'requested', 'declined', 'ended'];
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
@@ -93,7 +100,7 @@ export function crmRows(entries: CrmEntry[], input: AgentHomeInput, attention: A
     return {
       id: e.athleteId, name: e.name, avatarUrl: e.avatarUrl, sportId: e.sportId, sport: e.sportName, position: e.positionName, country: e.country,
       intake: e.graduationYear, rep: e.status,
-      verification: !v ? 'Sin datos compartidos' : v.verifiedStats ? (v.video ? 'Stats validadas · vídeo' : 'Stats validadas') : v.video ? 'Vídeo · stats declaradas' : 'Datos declarados',
+      verification: verificationText(v),
       journey: e.status === 'requested' ? 'Propuesta pendiente' : e.status !== 'active' ? 'Sin representación activa' : bucket?.label ?? 'Sin procesos',
       nextAction: top?.title ?? nextCase?.nextAction ?? (nextCase ? `Siguiente paso con ${nextCase.institution}` : null),
       nextDue: top?.due ?? nextCase?.nextActionDue ?? null,

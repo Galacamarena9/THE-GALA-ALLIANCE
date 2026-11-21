@@ -218,8 +218,8 @@ function RowActions({ r, wide = false }: { r: CrmRow; wide?: boolean }) {
           <MoreHorizontal className="h-4 w-4" aria-hidden />
         </summary>
         <ul className="absolute right-0 z-20 mt-1 w-56 rounded-xl border border-line bg-surface p-1 text-sm shadow-[var(--shadow-elevated)]">
-          {active && <MenuLink href={`/app/portfolio/${r.id}?tab=notas`}>Añadir nota</MenuLink>}
-          {active && <MenuLink href={`/app/portfolio/${r.id}?tab=procesos`}>Ver procesos</MenuLink>}
+          {active && <MenuLink href={`/app/portfolio/${r.id}?tab=actividad#nota`}>Añadir nota</MenuLink>}
+          {active && <MenuLink href={`/app/portfolio/${r.id}?tab=recruiting`}>Ver procesos</MenuLink>}
           {active && <MenuLink href={`/app/opportunities${r.sportId ? `?sport=${r.sportId}` : ''}`}>Buscar oportunidades</MenuLink>}
           <MenuLink href={`/athletes/${r.id}`}>Perfil público</MenuLink>
         </ul>

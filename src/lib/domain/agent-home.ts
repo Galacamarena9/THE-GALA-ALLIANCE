@@ -121,7 +121,7 @@ export function buildAttention(input: AgentHomeInput, now: Date = new Date()): A
     if (!f.dueDate || f.dueDate >= today) return;
     // El texto del seguimiento es interno de la agencia: aquí solo el hecho y la fecha.
     push({ key: `follow:${f.id}`, kind: 'overdue', athleteId: f.athleteId, title: 'Seguimiento pendiente', context: 'Tu agenda',
-      due: f.dueDate, dueState: 'overdue', cta: { label: 'Ver seguimiento', href: `/app/portfolio/${f.athleteId}?tab=pasos` } });
+      due: f.dueDate, dueState: 'overdue', cta: { label: 'Ver seguimiento', href: `/app/portfolio/${f.athleteId}?tab=actividad` } });
   });
   for (const r of input.repAlerts) {
     if (!r.severe) continue;
