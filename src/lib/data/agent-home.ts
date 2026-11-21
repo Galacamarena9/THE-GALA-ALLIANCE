@@ -2,7 +2,7 @@ import 'server-only';
 import { createClient } from '@/lib/supabase/server';
 import { loadPortfolio } from '@/lib/data/portfolio';
 import { loadAgencyCases } from '@/lib/data/agency-cases';
-import { representationAlerts } from '@/lib/domain/portfolio';
+import { representationAlerts, type PortfolioEntry } from '@/lib/domain/portfolio';
 import {
   athletesPreview, buildAttention, pipelineCounts, summarize,
   type AgentHomeInput, type AgentHomeSummary, type AthletePreviewRow, type AttentionItem, type HomeAthlete,
@@ -28,13 +28,22 @@ export interface AgentHomeData {
 
 const EMPTY_SUMMARY: AgentHomeSummary = { athletes: 0, needAttention: 0, activeOpportunities: 0, offers: 0, deadlinesToday: 0 };
 
-export async function loadAgentHome(userId: string, now: Date = new Date()): Promise<AgentHomeData> {
-  const empty = (state: AgentHomeData['state'], agency: AgentHomeData['agency'] = null): AgentHomeData =>
-    ({ state, agency, summary: EMPTY_SUMMARY, attention: [], athletes: [], pipeline: pipelineCounts([]), partial: [], pendingProposals: 0 });
-  try {
+export interface AgentSources {
+  agency: { name: string; verified: boolean };
+  input: AgentHomeInput;
+  partial: AgentHomeData['partial'];
+  entries: PortfolioEntry[];
+}
+
+/**
+ * Fuentes compartidas del Inicio y de «Mis atletas» (misma proyección, misma RLS): null si no hay agencia.
+ * Lanza si la cartera no se puede cargar; las demás fuentes degradan a «parcial».
+ */
+export async function loadAgentSources(userId: string, now: Date = new Date()): Promise<AgentSources | null> {
+
     const portfolio = await loadPortfolio(userId);
     const ag = portfolio.agencies[0];
-    if (!ag) return empty('no_agency');
+    if (!ag) return null;
     const agency = { name: ag.name, verified: ag.verification_status === 'verified' };
     const partial: AgentHomeData['partial'] = [];
     const supabase = await createClient();
@@ -91,6 +100,18 @@ export async function loadAgentHome(userId: string, now: Date = new Date()): Pro
       opportunities: ((oppsRes.data ?? []) as unknown as { id: string; title: string; sport_id: string | null; graduation_years: number[] | null; deadline: string | null; created_at: string; organizations: { name: string } | null }[])
         .map((o) => ({ id: o.id, title: o.title, organization: o.organizations?.name ?? 'Organización verificada', sportId: o.sport_id, graduationYears: o.graduation_years ?? [], deadline: o.deadline, createdAt: o.created_at })),
     };
+    return { agency, input, partial, entries: portfolio.entries };
+}
+
+export async function loadAgentHome(userId: string, now: Date = new Date()): Promise<AgentHomeData> {
+  const empty = (state: AgentHomeData['state'], agency: AgentHomeData['agency'] = null): AgentHomeData =>
+    ({ state, agency, summary: EMPTY_SUMMARY, attention: [], athletes: [], pipeline: pipelineCounts([]), partial: [], pendingProposals: 0 });
+  try {
+    const src = await loadAgentSources(userId, now);
+    if (!src) return empty('no_agency');
+    const { agency, input, partial } = src;
+    const athletes = input.athletes;
+    const cases = input.cases;
     const attention = buildAttention(input, now);
     return {
       state: 'ok', agency, attention,
