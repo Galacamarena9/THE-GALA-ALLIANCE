@@ -24,7 +24,7 @@ function profileHref(roles: string[]) {
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await requireSession();
   await enforceMfaChallenge('/app');
-  const sections = sidebarFor(session.roles);
+  const sections = sidebarFor(session.roles, session.primaryRole ?? session.roles[0]);
   const supabase = await createClient();
   // Staff de clubes y academias: su barra inferior lleva «Trials» en lugar de «Pipeline» (sigue en «Más»).
   const staff = session.roles.some((r) => r === 'coach' || r === 'university') && !session.roles.includes('athlete');
@@ -69,7 +69,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <div className="mx-auto max-w-6xl">{children}</div>
         </main>
       </div>
-      <Suspense><MobileNav sections={sections} staff={staff ? (clubStaff ? 'club' : 'university') : false} family={!staff && session.roles.includes('parent') && !session.roles.includes('athlete')} /></Suspense>
+      <Suspense><MobileNav sections={sections} staff={staff ? (clubStaff ? 'club' : 'university') : false} family={!staff && session.roles.includes('parent') && !session.roles.includes('athlete')} primary={session.primaryRole ?? session.roles[0]} /></Suspense>
     </div>
   );
 }

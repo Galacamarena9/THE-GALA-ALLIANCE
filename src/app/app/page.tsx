@@ -7,7 +7,7 @@ import { requireSession, type SessionContext } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
 import { loadPassport } from '@/lib/data/athlete';
 import { familyPlan } from '@/lib/data/family';
-import { sidebarFor } from '@/lib/domain/navigation';
+import { PERSONAL_SERVICES, WORKSPACE_HOME } from '@/lib/domain/navigation';
 import { roleHome } from '@/lib/domain/roles';
 import { NavIcon } from '@/components/NavIcon';
 import { Card, CardTitle } from '@/components/ui';
@@ -128,9 +128,9 @@ export default async function HomePage() {
   const unread = unreadCount ?? 0;
   // Con los primeros pasos hechos, cada organización y la familia van directas a su espacio de trabajo:
   // el inicio genérico solo existe para arrancar, no para repetir el menú.
-  const workspace: Partial<Record<string, string>> = { parent: '/app/family', coach: '/app/recruit', university: '/app/recruit', brand: '/app/campaigns?view=mine', admin: '/app/admin/ops' };
-  if (primary && done === steps.length && workspace[primary] && !(signal && signal.value > 0)) redirect(workspace[primary]!);
-  const mine = sidebarFor(session.roles).find((s) => s.title.startsWith('Mi espacio') || s.title === 'Administración');
+  const workspace = primary ? WORKSPACE_HOME[primary] : undefined;
+  if (workspace && done === steps.length && !(signal && signal.value > 0)) redirect(workspace);
+  const mine = primary ? { items: PERSONAL_SERVICES[primary] } : null;
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">

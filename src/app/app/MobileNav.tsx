@@ -3,34 +3,47 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { CalendarCheck, Compass, FileText, GitBranch, Home, LayoutGrid, ListChecks, Menu, MessageSquare, ShieldCheck, Trophy, Wallet, X } from 'lucide-react';
+import { Briefcase, CalendarCheck, Compass, FileText, GitBranch, Home, IdCard, LayoutGrid, ListChecks, Menu, MessageSquare, ShieldCheck, Trophy, Wallet, X, type LucideIcon } from 'lucide-react';
+import type { AppRole } from '@/lib/types';
 import type { NavSection } from '@/lib/domain/navigation';
 import { cx } from '@/components/ui';
 import { Sidebar } from './Sidebar';
 
-const TABS = [
+interface Tab { href: string; label: string; Icon: LucideIcon; exact?: boolean; also?: string }
+const MESSAGES: Tab = { href: '/app/inbox', label: 'Mensajes', Icon: MessageSquare };
+/** Por defecto (varios roles o sin rol claro). */
+const TABS: Tab[] = [
   { href: '/app', label: 'Inicio', Icon: Home },
   { href: '/app/discover', label: 'Escaparate', Icon: LayoutGrid },
   { href: '/app/opportunities', label: 'Becas', Icon: Trophy },
-  { href: '/app/inbox', label: 'Mensajes', Icon: MessageSquare },
+  MESSAGES,
 ];
+/** Cada actor, a un toque de lo que resuelve su día: no el mismo menú para todos. */
+const ROLE_TABS: Partial<Record<AppRole, Tab[]>> = {
+  // Atleta: hacerse ver (Passport) → encontrar encaje (Match) → seguir procesos.
+  athlete: [{ href: '/app', label: 'Inicio', Icon: Home }, { href: '/app/athlete/passport', label: 'Passport', Icon: IdCard }, { href: '/app/match', label: 'Match', Icon: Compass }, MESSAGES],
+  // Agente: sus atletas, sus procesos con plazos y propuestas.
+  agent: [{ href: '/app', label: 'Inicio', Icon: Home }, { href: '/app/portfolio', label: 'Cartera', Icon: Briefcase }, { href: '/app/pipeline', label: 'Procesos', Icon: GitBranch }, MESSAGES],
+  // Marca: sus campañas (su inicio), talento y listas.
+  brand: [{ href: '/app', label: 'Inicio', Icon: Home, also: '/app/campaigns' }, { href: '/app/discover', label: 'Talento', Icon: LayoutGrid }, { href: '/app/lists', label: 'Listas', Icon: ListChecks }, MESSAGES],
+};
 /** Staff de universidades y clubes: lo que un coach usa a diario, a un toque (Descubrir ↔ Shortlists ↔ Pipeline). */
-const STAFF_TABS = [
+const STAFF_TABS: Tab[] = [
   { href: '/app/recruit', label: 'Inicio', Icon: Home, exact: true },
   { href: '/app/recruit/discover', label: 'Descubrir', Icon: Compass },
-  { href: '/app/recruit/shortlists', label: 'Shortlists', Icon: ListChecks },
-  { href: '/app/recruit/candidates', label: 'Pipeline', Icon: GitBranch },
+  { href: '/app/recruit/shortlists', label: 'Listas', Icon: ListChecks },
+  { href: '/app/recruit/candidates', label: 'Procesos', Icon: GitBranch },
 ];
 /** Clubes y academias: el día a día es Descubrir ↔ Shortlists ↔ Trials (el pipeline queda en «Más»). */
-const CLUB_TABS = [
+const CLUB_TABS: Tab[] = [
   { href: '/app/recruit', label: 'Inicio', Icon: Home, exact: true },
   { href: '/app/recruit/discover', label: 'Descubrir', Icon: Compass },
-  { href: '/app/recruit/shortlists', label: 'Shortlists', Icon: ListChecks },
+  { href: '/app/recruit/shortlists', label: 'Listas', Icon: ListChecks },
   { href: '/app/recruit/trials', label: 'Trials', Icon: CalendarCheck },
 ];
 
 /** Familias: hoy → coste → documentos → seguridad (mensajes). No es el panel del atleta en pequeño. */
-const FAMILY_TABS = [
+const FAMILY_TABS: Tab[] = [
   { href: '/app/family', label: 'Hoy', Icon: Home, exact: true },
   { href: '/app/family/costs', label: 'Costes', Icon: Wallet },
   { href: '/app/requests', label: 'Documentos', Icon: FileText },
@@ -38,8 +51,8 @@ const FAMILY_TABS = [
 ];
 
 /** Móvil: barra inferior tipo app (como LinkedIn) + menú completo en panel lateral. */
-export function MobileNav({ sections, staff = false, family = false }: { sections: NavSection[]; staff?: false | 'club' | 'university'; family?: boolean }) {
-  const tabs = staff === 'club' ? CLUB_TABS : staff ? STAFF_TABS : family ? FAMILY_TABS : TABS;
+export function MobileNav({ sections, staff = false, family = false, primary }: { sections: NavSection[]; staff?: false | 'club' | 'university'; family?: boolean; primary?: AppRole | null }) {
+  const tabs: Tab[] = staff === 'club' ? CLUB_TABS : staff ? STAFF_TABS : family ? FAMILY_TABS : (primary && ROLE_TABS[primary]) || TABS;
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const [lastPath, setLastPath] = useState(pathname);
@@ -56,9 +69,9 @@ export function MobileNav({ sections, staff = false, family = false }: { section
     <div className="lg:hidden">
       <nav aria-label="Accesos rápidos" className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-ink/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl">
         <ul className="grid grid-cols-5">
-          {tabs.map(({ href, label, Icon, ...rest }) => {
-            const exact = href === '/app' || ('exact' in rest && rest.exact);
-            const active = exact ? pathname === href : pathname.startsWith(href);
+          {tabs.map(({ href, label, Icon, exact: exactTab, also }) => {
+            const exact = href === '/app' || exactTab;
+            const active = (exact ? pathname === href : pathname.startsWith(href)) || (!!also && pathname.startsWith(also));
             return (
               <li key={href}>
                 <Link href={href} className={cx('flex flex-col items-center gap-1 py-2.5 text-xs', active ? 'text-brass' : 'text-muted')} aria-current={active ? 'page' : undefined}>
