@@ -13,7 +13,7 @@ export function useActiveHref(items: NavItem[]) {
   const search = useSearchParams();
   const current = `${pathname}${search.toString() ? `?${search.toString()}` : ''}`;
   // Activo = coincidencia exacta (con query) o, si no hay, el prefijo más largo.
-  const exact = items.find((i) => i.href === current);
+  const exact = items.find((i) => i.href === current) ?? items.find((i) => i.aliases?.includes(pathname));
   const prefix = [...items]
     .filter((i) => !i.href.includes('?'))
     .sort((a, b) => b.href.length - a.href.length)

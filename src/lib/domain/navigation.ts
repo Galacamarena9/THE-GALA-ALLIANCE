@@ -9,6 +9,8 @@ export interface NavItem {
   desc?: string;
   /** Secundario: aparece tras "Ver más" para que la barra no abrume. */
   more?: boolean;
+  /** Otras rutas exactas que también marcan esta entrada como activa (p. ej. «Inicio» = espacio de trabajo). */
+  aliases?: string[];
 }
 export interface NavSection {
   title: string;
@@ -50,7 +52,7 @@ export const COMMON_SERVICES: NavItem[] = [...NETWORK_SERVICES, ...OPPORTUNITY_S
 /** Servicios personales por tipo de usuario. */
 export const PERSONAL_SERVICES: Record<AppRole, NavItem[]> = {
   athlete: [
-    { href: '/app/athlete', label: 'Mi camino', icon: 'path', desc: 'Tu siguiente paso y los plazos según tu año.' },
+    { href: '/app/athlete', label: 'Mi camino', icon: 'path', desc: 'Tu siguiente paso y los plazos según tu año.', more: true },
     { href: '/app/athlete/passport', label: 'Mi Passport', icon: 'id', desc: 'Tu perfil deportivo y académico: lo que ven las universidades.' },
     { href: '/app/match', label: 'Gala Match', icon: 'compass', desc: 'Las universidades y oportunidades que más encajan contigo, con las razones.' },
     { href: '/app/shortlist', label: 'Mi shortlist', icon: 'list', desc: 'Tus universidades guardadas, organizadas por nivel y listas para comparar.', more: true },
@@ -81,7 +83,7 @@ export const PERSONAL_SERVICES: Record<AppRole, NavItem[]> = {
     { href: '/app/recruit/discover', label: 'Descubrir atletas', icon: 'compass', desc: 'Búsqueda que respeta la privacidad, con encaje con tus necesidades.' },
     { href: '/app/recruit/shortlists', label: 'Listas de seguimiento', icon: 'list', desc: 'Listas privadas o de equipo, con revisión, asignación y notas internas.' },
     { href: '/app/recruit/candidates', label: 'Procesos', icon: 'pipeline', desc: 'Candidatos por etapa interna, asignados y con historial.' },
-    { href: '/app/opportunities?view=mine', label: 'Nuestras becas', icon: 'trophy', desc: 'Gestiona vuestras becas publicadas.', more: true },
+    { href: '/app/opportunities?view=mine', label: 'Nuestras becas', icon: 'trophy', desc: 'Gestiona vuestras becas publicadas y quién se ha apuntado.' },
     { href: '/app/opportunities/new', label: 'Publicar una beca', icon: 'megaphone', desc: 'Sale al momento si pasa los controles automáticos.', more: true },
     { href: '/app/applications', label: 'Candidaturas (vista clásica)', icon: 'inbox', desc: 'Candidaturas recibidas por oportunidad.', more: true },
     { href: '/app/lists', label: 'Listas personales', icon: 'list', desc: 'Atletas guardados y búsquedas con alertas.', more: true },
@@ -135,6 +137,23 @@ export const LEARN_SERVICES: NavItem[] = [
   { href: '/app/portal/atletas', label: 'Portales por perfil', icon: 'compass', desc: 'Qué ofrece la plataforma a cada tipo de usuario.', more: true },
 ];
 
+/**
+ * Roles cuyo «Inicio» ES su espacio de trabajo: con los primeros pasos hechos, /app lleva directo aquí,
+ * y la barra no repite la misma página con otro nombre.
+ */
+export const WORKSPACE_HOME: Partial<Record<AppRole, string>> = {
+  parent: '/app/family',
+  coach: '/app/recruit',
+  university: '/app/recruit',
+  brand: '/app/campaigns?view=mine',
+  admin: '/app/admin/ops',
+};
+
+/** Rol principal para la navegación: el primero en este orden (el atleta manda sobre la familia). */
+export function navPrimary(roles: AppRole[]): AppRole | undefined {
+  return (['athlete', 'agent', 'parent', 'university', 'coach', 'brand', 'admin'] as AppRole[]).find((r) => roles.includes(r));
+}
+
 const FAMILY_SIDE: AppRole[] = ['athlete', 'parent'];
 const ORG_SIDE: AppRole[] = ['university', 'coach', 'agent', 'brand'];
 const pick = (list: NavItem[], href: string, extra: Partial<NavItem> = {}): NavItem[] => list.filter((i) => i.href === href).map((i) => ({ ...i, ...extra }));
@@ -145,16 +164,24 @@ const pick = (list: NavItem[], href: string, extra: Partial<NavItem> = {}): NavI
  * Organizaciones: Mi espacio · Talento (escaparate) · Mensajes · Herramientas (plegada).
  * Las notificaciones viven en la campana de la cabecera, no en la barra.
  */
-export function sidebarFor(roles: AppRole[]): NavSection[] {
+export function sidebarFor(roles: AppRole[], primaryRole?: AppRole | null): NavSection[] {
   const family = roles.some((r) => FAMILY_SIDE.includes(r));
   const org = roles.some((r) => ORG_SIDE.includes(r));
-  const sections: NavSection[] = [{ title: 'Inicio', items: [{ href: '/app', label: 'Inicio', icon: 'home', desc: 'Tu resumen y los siguientes pasos.' }] }];
-  if (org) sections.push({ title: 'Talento', items: pick(NETWORK_SERVICES, '/app/discover') });
+  // Mismo rol principal que usa /app para decidir a qué espacio llevar.
+  const primary = primaryRole && roles.includes(primaryRole) ? primaryRole : navPrimary(roles);
+  const workspace = primary ? WORKSPACE_HOME[primary] : undefined;
+  // Si «Inicio» es el espacio de trabajo, hereda su descripción (el buscador sigue encontrando «Recruiting», «Panel familiar»…).
+  const ws = workspace && primary ? PERSONAL_SERVICES[primary].find((i) => i.href === workspace) : undefined;
+  const sections: NavSection[] = [{ title: 'Inicio', items: [{ href: '/app', label: 'Inicio', icon: 'home', desc: ws ? `${ws.label}: ${ws.desc}` : 'Tu resumen y los siguientes pasos.', ...(workspace ? { aliases: [workspace.split('?')[0]] } : {}) }] }];
+  // Coaches y universidades descubren desde su espacio (búsqueda con privacidad y encaje): sin un segundo «escaparate».
+  const recruiter = roles.some((r) => r === 'coach' || r === 'university');
+  if (org && !recruiter) sections.push({ title: 'Talento', items: pick(NETWORK_SERVICES, '/app/discover') });
   const order: AppRole[] = ['athlete', 'parent', 'university', 'coach', 'agent', 'brand', 'admin'];
   for (const role of order) {
     if (!roles.includes(role)) continue;
     const label = role === 'admin' ? 'Administración' : `Mi espacio · ${ACTORS.find((a) => a.role === role)?.label}`;
-    sections.push({ title: label, items: PERSONAL_SERVICES[role] });
+    // El espacio de trabajo ya es «Inicio»: no se repite con otro nombre.
+    sections.push({ title: label, items: PERSONAL_SERVICES[role].filter((i) => i.href !== workspace) });
   }
   if (family) {
     sections.push({
@@ -172,7 +199,9 @@ export function sidebarFor(roles: AppRole[]): NavSection[] {
     items: [...pick(NETWORK_SERVICES, '/app/inbox'), ...pick(NETWORK_SERVICES, '/app/showcase', family ? { more: true } : {}), ...pick(NETWORK_SERVICES, '/app/news', { more: true }), ...(family ? [] : pick(OPPORTUNITY_SERVICES, '/app/opportunities', { label: 'Becas', more: true }))],
   });
   sections.push({ title: family ? 'Aprender y decidir' : 'Herramientas', items: LEARN_SERVICES, collapsed: true });
-  sections.push({ title: 'Cuenta', items: ACCOUNT_SERVICES, collapsed: true });
+  // Las organizaciones pagan su plan aquí; atletas y familias ven los planes públicos.
+  const account = org ? ACCOUNT_SERVICES.map((i) => (i.href === '/precios' ? { ...i, href: '/app/billing', label: 'Plan y facturación', desc: 'Tu plan, asientos, uso y facturas.' } : i)) : ACCOUNT_SERVICES;
+  sections.push({ title: 'Cuenta', items: account, collapsed: true });
   // Sin duplicados entre secciones (p. ej. atleta + familia): se queda la primera aparición.
   const seen = new Set<string>();
   return sections.map((s) => ({ ...s, items: s.items.filter((i) => (seen.has(i.href) ? false : (seen.add(i.href), true))) })).filter((s) => s.items.length);
