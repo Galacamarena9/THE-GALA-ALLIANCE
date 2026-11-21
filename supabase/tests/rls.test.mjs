@@ -409,6 +409,12 @@ try {
     eq((await as(agent2, `select agency_has_relationship($1, $2) r`, [agencyId, u.adult])).rows[0].r, false);
     eq((await as(u.agent, `select agency_has_relationship($1, $2) r`, [agencyId, u.adult])).rows[0].r, true);
   });
+  await check('Mis atletas: el UUID de un atleta ajeno no devuelve ningún registro a otra agencia', async () => {
+    for (const t of ['agent_representations', 'recruiting_cases', 'athlete_offers', 'agency_athlete_notes']) {
+      eq((await as(agent2, `select count(*)::int n from ${t} where athlete_id = $1`, [u.adult])).rows[0].n, 0, t);
+    }
+    eq((await as(u.agent, `select count(*)::int n from agent_representations where athlete_id = $1`, [u.adult])).rows[0].n > 0, true, 'la propia agencia sí');
+  });
   await check('nadie se hace pasar por otro autor', async () => {
     await expectError(() => as(u.agent, `insert into agency_athlete_notes (agency_id, athlete_id, author_id, body) values ($1, $2, $3, 'x')`,
       [agencyId, u.adult, agent2]), /row-level security/);
