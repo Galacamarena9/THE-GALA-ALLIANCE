@@ -1,6 +1,17 @@
 /** Siguiente mejor acción de la familia. Pura y determinista: el orden refleja seguridad → plazos → decisiones. */
 export type ApprovalKind = 'contact' | 'document' | 'participation';
-export interface FamilyApproval { kind: ApprovalKind; athleteName: string; what: string; href: string }
+export interface FamilyApproval {
+  kind: ApprovalKind; athleteName: string; what: string; href: string;
+  /** Para decidir desde la bandeja: id de la inscripción o matrícula (solo participaciones). */
+  ref?: { type: 'registration' | 'enrollment'; id: string; opportunity?: string };
+}
+
+/** Orden de la bandeja de Aprobaciones: contacto con el menor → documentos → participación (seguridad primero). */
+export const APPROVAL_ORDER: ApprovalKind[] = ['contact', 'document', 'participation'];
+export const APPROVAL_LABEL: Record<ApprovalKind, string> = { contact: 'Contacto', document: 'Documentos', participation: 'Participación' };
+export function sortApprovals<T extends Pick<FamilyApproval, 'kind' | 'athleteName'>>(items: T[]): T[] {
+  return [...items].sort((a, b) => APPROVAL_ORDER.indexOf(a.kind) - APPROVAL_ORDER.indexOf(b.kind) || a.athleteName.localeCompare(b.athleteName, 'es'));
+}
 export interface FamilyDeadline { date: string; label: string; athleteName: string; kind: 'official' | 'personal' | 'recommended'; href: string }
 export interface FamilyOffer { athleteName: string; org: string; deadline: string | null; href: string }
 
@@ -16,7 +27,6 @@ export interface FamilyInput {
 
 export interface FamilyAction { title: string; why: string; href: string; urgent: boolean }
 
-const APPROVAL_ORDER: ApprovalKind[] = ['contact', 'document', 'participation'];
 const APPROVAL_TITLE: Record<ApprovalKind, string> = {
   contact: 'Revisa una solicitud de contacto',
   document: 'Revisa una solicitud de documentos',
