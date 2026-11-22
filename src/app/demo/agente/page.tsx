@@ -28,7 +28,7 @@ export default function AgentDemoPage() {
           <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-5 py-3 sm:px-8">
             <p className="text-sm"><strong className="font-semibold">Demo con datos de ejemplo.</strong> Así es tu agencia en The Gala Alliance; nada de lo que ves es real.</p>
             <Link href="/signup?role=agent" className="inline-flex min-h-11 items-center gap-2 rounded-full bg-lime px-5 text-sm font-semibold text-night">
-              Crear mi agencia{solo?.priceNote?.includes('gratis') ? ' gratis' : ''} <ArrowRight className="h-4 w-4" aria-hidden />
+              Probar 30 días gratis <ArrowRight className="h-4 w-4" aria-hidden />
             </Link>
           </div>
         </div>

@@ -20,6 +20,19 @@ async function stripe(path: string, key: string, body: URLSearchParams) {
   return (await res.json()) as { id?: string; url?: string; error?: { message: string } };
 }
 
+interface CatalogPlan { code: string; name: string; stripe_price_id: string | null; price_cents: number | null; currency: string | null; billing_interval: string }
+
+/** Línea de la sesión de pago: el precio guardado en Stripe si existe; si no, uno recurrente creado desde el catálogo. */
+function linePrice(plan: CatalogPlan): Record<string, string> {
+  if (plan.stripe_price_id) return { 'line_items[0][price]': plan.stripe_price_id };
+  return {
+    'line_items[0][price_data][currency]': (plan.currency ?? 'EUR').toLowerCase(),
+    'line_items[0][price_data][unit_amount]': String(plan.price_cents),
+    'line_items[0][price_data][recurring][interval]': plan.billing_interval,
+    'line_items[0][price_data][product_data][name]': `The Gala Alliance · ${plan.name}`,
+  };
+}
+
 async function ensureCustomer(orgId: string, key: string): Promise<string | null> {
   const supabase = await createClient();
   const { data: accountId, error } = await supabase.rpc('billing_account_ensure', { p_org: orgId });
@@ -41,16 +54,20 @@ export async function startSubscription(formData: FormData) {
   if (!p.success) redirect('/app/billing?estado=error');
   const key = process.env.STRIPE_SECRET_KEY;
   const supabase = await createClient();
-  const { data: plan } = await supabase.from('plan_catalog').select('code, stripe_price_id, seats_included, billing_interval')
+  const { data: plan } = await supabase.from('plan_catalog').select('code, name, audience, stripe_price_id, price_cents, currency, billing_interval')
     .eq('code', p.data.plan_code).eq('active', true).order('version', { ascending: false }).limit(1).maybeSingle();
-  if (!key || !plan?.stripe_price_id || !['month', 'year'].includes(plan.billing_interval as string)) redirect('/app/billing?estado=no_disponible');
+  const cents = plan?.price_cents as number | null | undefined;
+  if (!key || !plan || !['month', 'year'].includes(plan.billing_interval as string) || (!plan.stripe_price_id && !(cents && cents > 0))) redirect('/app/billing?estado=no_disponible');
   const customer = await ensureCustomer(p.data.org_id, key);
   if (!customer) redirect('/app/billing?estado=no_permitido');
   const site = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
   const session = await stripe('/checkout/sessions', key, new URLSearchParams({
     mode: 'subscription', customer,
-    'line_items[0][price]': plan.stripe_price_id as string,
-    'line_items[0][quantity]': String(plan.seats_included ?? 1),
+    // Precio por plan (no por asiento): cantidad 1. Sin precio guardado en Stripe, se crea al vuelo desde el catálogo.
+    ...linePrice(plan as unknown as CatalogPlan),
+    'line_items[0][quantity]': '1',
+    // Agencias: 30 días de prueba; no se cobra nada hasta que acaba.
+    ...(plan.audience === 'agent' ? { 'subscription_data[trial_period_days]': '30' } : {}),
     'subscription_data[metadata][plan_code]': plan.code as string,
     'subscription_data[metadata][organization_id]': p.data.org_id,
     'tax_id_collection[enabled]': 'true', 'automatic_tax[enabled]': 'true',

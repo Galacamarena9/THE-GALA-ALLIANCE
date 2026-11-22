@@ -142,8 +142,8 @@ export const PLANS: Plan[] = [
     code: 'agent_solo',
     audience: 'agent',
     name: 'Agente',
-    price: '39 €/mes',
-    priceNote: '390 €/año · gratis hasta el 31/03/2027',
+    price: '29 €/mes',
+    priceNote: 'precio fundador · 30 días gratis · se mantiene mientras sigas suscrito',
     pitch: 'Para quien trabaja solo y lleva su cartera entre hojas de cálculo y WhatsApp.',
     includes: [
       '1 usuario y hasta 25 atletas con procesos abiertos',
@@ -159,8 +159,8 @@ export const PLANS: Plan[] = [
     code: 'agent_team',
     audience: 'agent',
     name: 'Agencia',
-    price: '99 €/mes',
-    priceNote: '990 €/año · gratis hasta el 31/03/2027',
+    price: '79 €/mes',
+    priceNote: 'precio fundador · 30 días gratis · se mantiene mientras sigas suscrito',
     pitch: 'Para equipos que se reparten atletas y universidades.',
     includes: [
       'Hasta 5 usuarios y 100 atletas con procesos abiertos',
