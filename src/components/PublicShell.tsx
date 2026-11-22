@@ -59,7 +59,7 @@ export function PublicHeader() {
           </nav>
           <div className="hidden items-center gap-2 md:flex">
             <ButtonLink href="/login" variant="ghost" className="h-9 px-3 text-[13px]">Iniciar sesión</ButtonLink>
-            <ButtonLink href="/signup" className="h-9 px-4 text-[13px] font-bold">Crear Passport</ButtonLink>
+            <ButtonLink href="/#para-quien" className="h-9 px-4 text-[13px] font-bold">Empezar gratis</ButtonLink>
           </div>
           <MobileMenu items={[...NAV, { href: '/inversores', label: 'Inversores' }, ...ACTORS.map((a) => ({ href: `/para/${a.slug}`, label: `Para ${a.plural.toLowerCase()}` }))]} />
         </div>
