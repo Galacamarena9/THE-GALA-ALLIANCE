@@ -3698,6 +3698,36 @@ try {
     await expectError(() => as(g, `select public.family_open_majority_reviews()`), /permission denied/);
   });
 
+  await check('P10C bis · ataques a las superficies nuevas (avisos, preferencias, denuncias, notas de agencia, revisión de mayoría)', async () => {
+    const mk = async (email) => { const id = randomUUID(); await db.query(`insert into auth.users (id, email) values ($1, $2)`, [id, email]); return id; };
+    const ins = (g, status, apps, costs) => db.query(`insert into parent_athlete_links (parent_id, athlete_id, invited_by, status, approved_at, relationship, guardian_consent_given, verification_status, can_view_applications, can_view_costs)
+      values ($1, $2, $1, $3, now(), 'other_family', true, 'athlete_confirmed', $4, $5)`, [g, fam.kid, status, apps, costs]);
+    const restricted = await mk('pentest-restricted@fam.test'); await ins(restricted, 'approved', false, false);
+    const paused = await mk('pentest-paused@fam.test'); await ins(paused, 'restricted', true, true);
+    const kinds = async (who) => (await db.query(`select count(*)::int n from notifications where user_id = $1 and kind like 'family.%'`, [who])).rows[0].n;
+    await as(fam.kid, `insert into athlete_offers (athlete_id, university_name, created_by) values ($1, 'Pentest University', $1)`, [fam.kid]);
+    eq(await kinds(restricted), 0, 'tutor sin permiso de proceso ni costes: sin aviso de oferta');
+    eq(await kinds(paused), 0, 'tutor en pausa: sin avisos');
+    // Avisos ajenos y llamadas directas a las funciones internas.
+    eq((await as(fam.dad, `select count(*)::int n from notifications where user_id = $1`, [fam.mom])).rows[0].n, 0, 'papá no lee los avisos de mamá');
+    await expectError(() => as(fam.mom, `select public.notify($1, 'family.offer', 'x', 'x', '/')`, [fam.dad]), /permission denied/);
+    await expectError(() => as(fam.mom, `select public.family_notify_offer()`), /permission denied|trigger/);
+    await expectError(() => as(fam.mom, `select * from public.athlete_first_name($1)`, [fam.other]), /permission denied/);
+    // Preferencias: ni para otro usuario ni con categorías inventadas.
+    await expectError(() => as(fam.mom, `insert into notification_preferences (user_id, category, in_app) values ($1, 'family_offers', false)`, [fam.dad]), /row-level security/);
+    await expectError(() => as(fam.mom, `insert into notification_preferences (user_id, category, in_app) values ($1, 'essential', false)`, [fam.mom]), /check constraint/);
+    // Denuncias: asignación masiva (autor, estado, prioridad) se ignora.
+    const rep = (await as(fam.mom, `insert into content_reports (entity_type, entity_id, reason, reporter_id, status, priority) values ('organization', $1, 'other', $2, 'actioned', 0) returning reporter_id, status, priority`, [agencyId, fam.dad])).rows[0];
+    eq(rep.reporter_id, fam.mom, 'autor forzado a quien denuncia'); eq(rep.status, 'open', 'estado'); eq(rep.priority, 2, 'prioridad');
+    eq((await as(fam.dad, `select count(*)::int n from content_reports where reporter_id = $1`, [fam.mom])).rows[0].n, 0, 'otro no ve la denuncia');
+    // Notas de agencia y auditoría: fuera del alcance de una familia.
+    eq((await as(fam.mom, `select public.agency_can_read_notes($1, $2) ok`, [agencyId, fam.kid])).rows[0].ok, false, 'familia ≠ agencia');
+    eq((await as(fam.mom, `select count(*)::int n from agency_athlete_notes`)).rows[0].n, 0, 'notas de agencia');
+    eq((await as(fam.mom, `select count(*)::int n from audit_logs where action like 'family_link.%'`)).rows[0].n, 0, 'auditoría solo admin');
+    await expectError(() => as(fam.mom, `select public.family_open_majority_reviews()`), /permission denied/);
+    await expectError(() => as(fam.mom, `select public.active_guardians_with($1, 'offers')`, [fam.other]), /permission denied/);
+  });
+
   if (!process.env.SKIP_ERASURE) await check('RGPD: toda cuenta y toda organización se puede borrar (anonimiza auditoría, no bloquea)', async () => {
     await db.query(`select set_config('request.jwt.claims', '{}', false)`);
     const fails = [];
