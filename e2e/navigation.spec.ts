@@ -15,7 +15,7 @@ test.describe('shell por actor', () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await open(page, '/preview/shell-agent');
     const nav = page.getByRole('navigation', { name: 'Navegación · Agencia' }).last();
-    for (const l of ['Inicio', 'Atletas', 'Oportunidades', 'Recruiting', 'Mensajes']) await expect(nav.getByRole('link', { name: l, exact: true })).toBeVisible();
+    for (const l of ['Hoy', 'Atletas', 'Procesos', 'Oportunidades', 'Mensajes']) await expect(nav.getByRole('link', { name: l, exact: true })).toBeVisible();
     await expect(nav.getByRole('button', { name: 'Más' })).toBeVisible();
     // Interacción 1: ⌘K. Interacción 2: escribir y Enter → ficha del atleta.
     await page.keyboard.press('Control+k');
@@ -46,7 +46,7 @@ test.describe('shell por actor', () => {
       await page.keyboard.press('Tab');
       order.push(await page.evaluate(() => (document.activeElement as HTMLElement | null)?.innerText?.trim() || (document.activeElement as HTMLElement | null)?.getAttribute('aria-label') || ''));
     }
-    const nav = ['Inicio', 'Descubrir', 'Candidatos', 'Oportunidades', 'Recruiting', 'Más'];
+    const nav = ['Hoy', 'Buscar atletas', 'Mis listas', 'Procesos', 'Becas y pruebas', 'Más'];
     const idx = nav.map((l) => order.indexOf(l));
     expect(idx.every((x) => x >= 0), `orden: ${order.join(' | ')}`).toBe(true);
     expect([...idx].sort((a, b) => a - b)).toEqual(idx);
@@ -72,7 +72,7 @@ test.describe('shell por actor', () => {
       expect(overflow).toBeLessThanOrEqual(2);
       if (w < 768) {
         const bar = page.getByRole('navigation', { name: 'Accesos rápidos' });
-        for (const l of ['Inicio', 'Atletas', 'Procesos', 'Mensajes']) await expect(bar.getByRole('link', { name: l })).toBeVisible();
+        for (const l of ['Hoy', 'Atletas', 'Procesos', 'Mensajes']) await expect(bar.getByRole('link', { name: l })).toBeVisible();
         await bar.getByRole('button', { name: 'Menú' }).click();
         await expect(page.getByRole('dialog', { name: 'Todas las funciones' })).toBeVisible();
       } else {
