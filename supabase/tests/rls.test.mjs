@@ -3858,6 +3858,50 @@ try {
     eq(t.scope, 'talent'); eq(t.subject_id, null);
   });
 
+  // ---------------------------------------------------------------- Fase 9 · Autoridad para comunicarse y datos privados
+  results.push('\nFase 9: mensajes con autoridad vigente, menores y datos internos de la agencia');
+  await check('F9-1 con representación activa el agente escribe; revocada, ya no puede escribir ni abrir otra conversación (el atleta sí contesta)', async () => {
+    const a = await mkUser('msg-adulta', 'athlete', 21);
+    const r = await repRequest(u.agent, agencyId, a);
+    await as(a, `select representation_respond($1, true)`, [r]);
+    const req = (await as(u.agent, `insert into contact_requests (organization_id, requested_by, athlete_id, message) values ($1, $2, $3, 'Hola, preparamos tu calendario de pruebas') returning id`, [agencyId, u.agent, a])).rows[0].id;
+    await as(a, `update contact_requests set status = 'accepted' where id = $1`, [req]);
+    await as(u.agent, `insert into contact_messages (request_id, sender_id, body) values ($1, $2, 'Primer paso: el vídeo')`, [req, u.agent]);
+    await as(a, `select representation_end($1, 'Cambio de agencia')`, [r]);
+    await expectError(() => as(u.agent, `insert into contact_messages (request_id, sender_id, body) values ($1, $2, '¿Seguimos?')`, [req, u.agent]), /row-level security/);
+    await as(a, `insert into contact_messages (request_id, sender_id, body) values ($1, $2, 'Gracias, cierro aquí')`, [req, a]);
+    await expectError(() => as(u.agent, `insert into contact_requests (organization_id, requested_by, athlete_id, message) values ($1, $2, $3, 'Otra vez nosotros')`, [agencyId, u.agent, a]), /representation_inactive/);
+  });
+  await check('F9-2 sin el permiso messages.participate tampoco se escribe, aunque la representación esté activa', async () => {
+    const a = await mkUser('msg-sinperm', 'athlete', 22);
+    const r = await repRequest(u.agent, agencyId, a, { perms: ['passport.view', 'pipeline.view'] });
+    await as(a, `select representation_respond($1, true)`, [r]);
+    await expectError(() => as(u.agent, `insert into contact_requests (organization_id, requested_by, athlete_id, message) values ($1, $2, $3, 'Hola')`, [agencyId, u.agent, a]), /representation_inactive/);
+    eq((await as(u.agent, `select agency_may_message($1, $2) ok`, [agencyId, a])).rows[0].ok, false);
+  });
+  await check('F9-3 menor: la conversación de la agencia empieza esperando a la familia y no se escribe hasta que se abre', async () => {
+    const teen = await mkUser('msg-menor', 'athlete', 16); const dad = await mkUser('msg-padre', 'parent', 47);
+    const tk = (await as(dad, `insert into parent_athlete_links (parent_id, invited_by) values ($1, $1) returning invitation_token`, [dad])).rows[0].invitation_token;
+    await as(teen, `select accept_family_invitation($1)`, [tk]);
+    await as(dad, `select representation_invite($1, $2)`, [agencyId, teen]);
+    const r = await repRequest(u.agent, agencyId, teen);
+    await as(teen, `select representation_respond($1, true)`, [r]);
+    await as(dad, `select representation_guardian_decide($1, true)`, [r]);
+    const req = (await as(u.agent, `insert into contact_requests (organization_id, requested_by, athlete_id, message) values ($1, $2, $3, 'Plan de la temporada') returning id, status`, [agencyId, u.agent, teen])).rows[0];
+    eq(req.status, 'pending_guardian', 'la familia primero');
+    await expectError(() => as(u.agent, `insert into contact_messages (request_id, sender_id, body) values ($1, $2, 'Hola')`, [req.id, u.agent]), /conversation_not_open|row-level security/);
+    eq((await as(dad, `select count(*)::int n from contact_requests where id = $1`, [req.id])).rows[0].n, 1, 'la familia ve la conversación');
+  });
+  await check('F9-4 lo interno de la agencia no llega al atleta, a la familia ni a otra agencia', async () => {
+    eq((await as(u.adult, `select count(*)::int n from agency_athlete_notes`)).rows[0].n, 0, 'atleta');
+    eq((await as(agent2, `select count(*)::int n from agency_athlete_notes where agency_id = $1`, [agencyId])).rows[0].n, 0, 'otra agencia');
+    eq((await as(u.adult, `select count(*)::int n from recruiting_case_activities a join recruiting_cases c on c.id = a.case_id where c.shared_with_athlete = false`)).rows[0].n, 0, 'actividad no compartida');
+  });
+  await check('F9-5 el documento sigue siendo del atleta: la agencia no puede crearlo ni cambiarlo por su cuenta', async () => {
+    await expectError(() => as(u.agent, `insert into athlete_documents (athlete_id, kind, title, storage_path) values ($1, 'transcript', 'Notas', $2)`, [u.adult, `${u.adult}/x.pdf`]), /row-level security|permission denied/);
+    eq((await as(u.agent, `update athlete_documents set title = 'cambiado' where athlete_id = $1`, [u.adult])).rowCount, 0);
+  });
+
   if (!process.env.SKIP_ERASURE) await check('RGPD: toda cuenta y toda organización se puede borrar (anonimiza auditoría, no bloquea)', async () => {
     await db.query(`select set_config('request.jwt.claims', '{}', false)`);
     const fails = [];

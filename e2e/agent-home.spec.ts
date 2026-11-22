@@ -39,7 +39,7 @@ test.describe('Inicio del agente', () => {
     const actionable = await page.locator('#hoy li[data-kind]:not([data-kind="new_opportunity"])').count();
     const shown = await page.getByRole('region', { name: 'Resumen' }).getByRole('link', { name: /Necesitan atención/ }).locator('span').nth(1).innerText();
     expect(Number(shown)).toBe(actionable);
-    await expect(page.getByRole('region', { name: 'Procesos por fase' }).locator('ol > li')).toHaveCount(6);
+    await expect(page.getByRole('region', { name: 'Procesos por fase' }).locator('ol > li')).toHaveCount(5);
   });
 
   test('acción común en ≤ 2 clics: abrir un atleta desde Mis atletas', async ({ page }) => {

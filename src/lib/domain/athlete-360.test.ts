@@ -63,7 +63,7 @@ test('recorrido: tarea vencida → depende de tu agencia, con organización y fa
   }));
   assert.equal(j.nextAction, 'Enviar expediente');
   assert.equal(j.organization, 'North');
-  assert.equal(j.stage, 'Visita');
+  assert.equal(j.stage, 'Visita o prueba');
   assert.equal(j.waitingOn, 'you');
   assert.equal(j.dueState, 'overdue');
   assert.equal(j.resolve?.href, '/app/pipeline/c1');

@@ -7,6 +7,7 @@ import { CASE_STAGES, isCaseStale, cycleOptions, canWrite } from '@/lib/domain/a
 import { isOverdue } from '@/lib/domain/portfolio';
 import { OpenCaseForm } from '@/components/agency/CaseForms';
 import { PipelineBoard } from '@/components/agency/PipelineBoard';
+import { loadNextActions } from '@/lib/data/next-actions';
 import { ButtonLink, Card, CardTitle, EmptyState, PageHeader, inputClass } from '@/components/ui';
 
 export const metadata: Metadata = { title: 'Procesos de recruiting' };
@@ -39,6 +40,7 @@ export default async function PipelinePage({ searchParams }: { searchParams: SP 
 
   const writable = data.agencies.filter((a) => canWrite(data.myRole.get(a.id)));
   const cases = data.cases.filter((c) => (!athleteFilter || c.athleteId === athleteFilter) && (!ownerFilter || c.ownerId === ownerFilter));
+  const actions = await loadNextActions(session.userId, cases);
   const open = data.cases.filter((c) => c.stage !== 'closed' && c.stage !== 'committed');
   const stale = open.filter((c) => isCaseStale(c)).length;
   const overdue = open.filter((c) => isOverdue(c.nextActionDue)).length;
@@ -128,7 +130,7 @@ export default async function PipelinePage({ searchParams }: { searchParams: SP 
           Abre el primero: un atleta, una universidad y una temporada. A partir de ahí, cada cambio de fase queda registrado con fecha y autor.
         </EmptyState>
       ) : (
-        <PipelineBoard cases={cases} view={view} sportName={sportName} writableAgencies={new Set(writable.map((a) => a.id))} />
+        <PipelineBoard cases={cases} view={view} sportName={sportName} actions={actions} />
       )}
 
       <Card className="mt-8">

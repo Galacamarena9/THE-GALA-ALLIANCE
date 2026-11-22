@@ -153,14 +153,16 @@ export function buildAttention(input: AgentHomeInput, now: Date = new Date()): A
   return items.sort((a, b) => a.rank - b.rank || (a.due ?? '9999').localeCompare(b.due ?? '9999') || a.athleteName.localeCompare(b.athleteName, 'es') || a.key.localeCompare(b.key));
 }
 
-/** Pipeline del agente en 6 fases visibles (las 13 internas se agrupan; «cerrado» no cuenta). */
+/**
+ * Pipeline del agente en 5 fases visibles (fase 9): Introducción · Evaluación · Visita o prueba · Oferta · Decisión o colocado.
+ * Las 13 fases internas se agrupan; «cerrado» no cuenta. Lo aún sin contactar (investigación, shortlist) vive en Introducción.
+ */
 export const PIPELINE_BUCKETS = [
-  { id: 'discovery', label: 'Descubrimiento', stages: ['research', 'fit_review', 'shortlisted', 'approved_to_contact'] },
-  { id: 'introduction', label: 'Introducción', stages: ['contacted', 'response_received'] },
+  { id: 'introduction', label: 'Introducción', stages: ['research', 'fit_review', 'shortlisted', 'approved_to_contact', 'contacted', 'response_received'] },
   { id: 'evaluation', label: 'Evaluación', stages: ['active_conversation', 'academic_review'] },
-  { id: 'visit', label: 'Visita', stages: ['evaluation_visit'] },
-  { id: 'offer', label: 'Oferta', stages: ['offer_discussion', 'decision_pending'] },
-  { id: 'placed', label: 'Colocado', stages: ['committed'] },
+  { id: 'visit', label: 'Visita o prueba', stages: ['evaluation_visit'] },
+  { id: 'offer', label: 'Oferta', stages: ['offer_discussion'] },
+  { id: 'placed', label: 'Decisión o colocado', stages: ['decision_pending', 'committed'] },
 ] as const;
 
 export function pipelineCounts(cases: HomeCase[]) {
