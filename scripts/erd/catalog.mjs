@@ -129,11 +129,11 @@ export const TABLES = {
   org_notes: { domain: '09-recruiting-staff', cls: 'internal', decision: 'KEEP', noExport: NO_ORG_DATA },
   org_tasks: { domain: '09-recruiting-staff', cls: 'internal', decision: 'KEEP' },
   org_activity: { domain: '09-recruiting-staff', cls: 'internal', decision: 'KEEP', retention: 'Inmutable; se anonimiza o se borra con la organización' },
-  org_assignment_log: { domain: '09-recruiting-staff', cls: 'internal', decision: 'KEEP' },
+  org_assignment_log: { domain: '09-recruiting-staff', cls: 'internal', decision: 'KEEP', note: 'Log inmutable: athlete_id, candidate_id y shortlist_id son referencias históricas sin FK (a propósito).' },
   org_saved_searches: { domain: '09-recruiting-staff', cls: 'internal', decision: 'KEEP' },
   discovery_usage: { domain: '09-recruiting-staff', cls: 'internal', decision: 'KEEP', export: true },
   saved_athletes: { domain: '09-recruiting-staff', cls: 'personal', decision: 'MERGE → org_shortlists privadas', export: true, note: 'Listas personales anteriores a las shortlists.' },
-  saved_searches: { domain: '09-recruiting-staff', cls: 'personal', decision: 'MERGE → org_saved_searches (solo para staff)', export: true },
+  saved_searches: { domain: '09-recruiting-staff', cls: 'personal', decision: 'MERGE → org_saved_searches (solo para staff)', export: true, note: 'Ampliada en el Prompt 4 (búsqueda de talento) pese a la decisión de fusión: fase B1 de ARCHITECTURE-AUDIT.md.' },
 
   // 10 · Agencias y clubes
   agent_representations: { domain: '10-agencias-clubes', cls: 'sensitive', minors: true, decision: 'KEEP', export: true },

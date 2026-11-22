@@ -287,7 +287,9 @@ erDiagram
 | `saved_searches` | Personal | — | persona (owner_id) → se borra | Mientras exista la cuenta | Sí | MERGE → org_saved_searches (solo para staff) |
 | `shortlist_access` | Interna | — | persona (granted_by) → se anonimiza<br>organización (organization_id) → se borra<br>persona (user_id) → se borra | Mientras exista la organización | — | KEEP |
 
+- `org_assignment_log`: Log inmutable: athlete_id, candidate_id y shortlist_id son referencias históricas sin FK (a propósito).
 - `saved_athletes`: Listas personales anteriores a las shortlists.
+- `saved_searches`: Ampliada en el Prompt 4 (búsqueda de talento) pese a la decisión de fusión: fase B1 de ARCHITECTURE-AUDIT.md.
 
 ## TO-BE · Modelo objetivo
 
