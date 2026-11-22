@@ -4,7 +4,7 @@ El repositorio **no usa la pila Docker de Supabase CLI**. Usa un Postgres 16 nor
 
 | Comando | Qué hace |
 |---|---|
-| `DATABASE_URL=postgres://postgres@localhost:5433/postgres npm run test:rls` | Crea una base temporal, aplica stub y migraciones, ejecuta las **412 pruebas** (roles, multitenant, menores, documentos, concurrencia, catálogo, RGPD) y borra la base. `SKIP_ERASURE=1` omite la de borrado RGPD; `KEEP_DB=1` conserva la base |
+| `DATABASE_URL=postgres://postgres@localhost:5433/postgres npm run test:rls` | Crea una base temporal, aplica stub y migraciones, ejecuta las **415 pruebas** (roles, multitenant, menores, documentos, concurrencia, catálogo, RGPD) y borra la base. `SKIP_ERASURE=1` omite la de borrado RGPD; `KEEP_DB=1` conserva la base |
 | `npm run diagnose:db` | Diagnóstico de arquitectura de solo lectura (`--data-only` contra staging) |
 | `npm run drift -- <archivo>` | Deriva entre el remoto y el repositorio |
 | `npm run erd` / `check:erd` | Regenera y comprueba los ERD y el catálogo de tablas |

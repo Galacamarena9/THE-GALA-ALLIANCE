@@ -14,7 +14,7 @@ Netlify despliega `main` y las *deploy previews* de cada PR. Si las dos tienen l
 ## Propuesta para introducir staging (antes del primer usuario real)
 
 1. **Convertir el proyecto actual en staging.** Ya tiene los datos de prueba y el historial; se pone al día con [migrations.md §3](migrations.md).
-2. **Crear un proyecto nuevo de producción** en eu-west-1 y en plan Pro (backups diarios), y aplicarle las 77 migraciones desde cero con `supabase db push`, ya con un historial limpio.
+2. **Crear un proyecto nuevo de producción** en eu-west-1 y en plan Pro (backups diarios), y aplicarle las 78 migraciones desde cero con `supabase db push`, ya con un historial limpio.
 3. **Separar las variables en Netlify por contexto de despliegue:**
    - *Production* → proyecto de producción;
    - *Deploy previews* y *Branch deploys* → proyecto de staging.

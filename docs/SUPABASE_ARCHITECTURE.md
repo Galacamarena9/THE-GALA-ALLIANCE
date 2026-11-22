@@ -2,7 +2,7 @@
 
 Fecha: 2026-11-20 · Parte del trabajo del Prompt 8 (ERD por dominios en `docs/erd/`, `DATA_ARCHITECTURE.md`).
 
-> **Actualizado el 22-11-2026:** la revisión contra el proyecto remoto real, el estado de cada entregable y los procedimientos están en [`docs/supabase/`](./supabase/README.md). Si este documento contradice esa carpeta, manda la carpeta (p. ej., §2: el proyecto remoto es plan Free y va 37 migraciones por detrás).
+> **Actualizado el 22-11-2026:** la revisión contra el proyecto remoto real, el estado de cada entregable y los procedimientos están en [`docs/supabase/`](./supabase/README.md). Si este documento contradice esa carpeta, manda la carpeta (p. ej., §2: el proyecto remoto es plan Free y va 38 migraciones por detrás).
 Secuencia seguida: **INSPECT → BACKUP → DESIGN → MIGRATE → SECURE → VALIDATE → TEST → DOCUMENT**.
 
 ## 1. Estado inspeccionado

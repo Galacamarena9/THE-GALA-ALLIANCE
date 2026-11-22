@@ -25,7 +25,7 @@ Todas las pruebas son directas contra PostgreSQL (`npm run test:rls`, 412 en ver
 | La agencia A no accede a la B | P12B-1/8, «Mis atletas: UUID ajeno», notas de agencia | ✅ |
 | El agente no accede a un atleta sin representación | P12B-2 (ni el dueño de la agencia), P12A (ser admin de la agencia no basta) | ✅ |
 | Gala AI respeta estos límites | Usa la sesión del usuario (hereda la RLS); filtro de otros atletas (10C) | ✅ |
-| **En un Supabase real** | — | ⛔ El remoto no tiene ninguna migración de Agents (va por la 40 de 77) |
+| **En un Supabase real** | — | ⛔ El remoto no tiene ninguna migración de Agents (va por la 40 de 78) |
 
 ## 2. Cambios de hoy (`20261209000400_12r_agents_review.sql`)
 

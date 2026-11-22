@@ -16,7 +16,7 @@ La fase Familia se construyó en los prompts 10 → 10D (ver [FAMILY.md](FAMILY.
 | Documento sin aprobación → denegado; aprobado → permitido; caducado o revocado → denegado | P10, FAM-SEC-004/005, P10C Storage, P10D | ✅ |
 | Universidad A ↔ B sobre el mismo documento | P10D (Club A sí, Club B no), P10C Storage | ✅ |
 | Transición a la mayoría de edad | P10 «mayoría de edad» (suspensión al vencer la revisión) | ✅ |
-| **En un Supabase real (staging)** | — | ⛔ El proyecto remoto no tiene ninguna migración de Familia (va por la 40 de 77). Ver [`supabase/README.md`](supabase/README.md) |
+| **En un Supabase real (staging)** | — | ⛔ El proyecto remoto no tiene ninguna migración de Familia (va por la 40 de 78). Ver [`supabase/README.md`](supabase/README.md) |
 
 Todas las pruebas se hacen sobre PostgreSQL con los roles reales `anon` y `authenticated` y con `auth.uid()`, no sobre la interfaz. Lo que falta es repetirlas en un proyecto Supabase real.
 
