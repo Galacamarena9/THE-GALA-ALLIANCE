@@ -182,7 +182,16 @@ const TOOLS: NavItem[] = [
   it('/app/ia', 'Gala IA', 'spark', 'Pregunta lo que quieras sobre el proceso, a cualquier hora.'),
   it('/app/calculator', 'Calculadora de coste', 'calc', 'Coste real a 4 años con viajes, seguro y subidas.'),
   it('/app/guia', 'Centro de información', 'book', 'Divisiones, requisitos, documentos y visado con fuentes oficiales.'),
+];
+
+/**
+ * En pausa (auditoría 22-nov-2026): siguen funcionando y se encuentran con el buscador (⌘K),
+ * pero no ocupan sitio en el menú hasta que el núcleo (agencias y familias) tenga clientes de pago.
+ */
+export const PAUSED: NavItem[] = [
   it('/app/news', 'Actualidad', 'news', 'Novedades de atletas, comunicados oficiales y cambios de normativa.'),
+  it('/app/showcase', 'Showcase Day', 'showcase', 'Jornada mensual ante universidades y clubes verificados.'),
+  it('/app/academia', 'Academia SAT/TOEFL', 'grad', 'Práctica con preguntas tipo examen y fechas oficiales.'),
 ];
 const ACCOUNT = (org: boolean): NavItem[] => [
   org ? it('/app/billing', 'Plan y facturación', 'tag', 'Tu plan, asientos, uso y facturas.') : it('/precios', 'Planes y servicios', 'tag', 'Gratis para atletas; Core, Elite y Signature para familias.'),
@@ -214,7 +223,6 @@ function agentMode(): NavMode {
       it('/app/portfolio/trials', 'Trials y programas', 'trophy', 'Trials de clubes y academias para tus representados.'),
       it('/app/universities', 'Universidades', 'campus', 'Directorio con datos oficiales del U.S. Department of Education.'),
       it('/app/universities/compare', 'Comparar universidades', 'compare', 'Hasta 5 universidades lado a lado.'),
-      it('/app/showcase', 'Showcase Day', 'showcase', 'Jornada mensual ante universidades y clubes verificados.'),
     ],
   });
   const home = it('/app', 'Hoy', 'home', 'Lo que toca hoy: vencidos, ofertas que caducan, documentos y respuestas.');
@@ -223,7 +231,7 @@ function agentMode(): NavMode {
     primary: [home, athletes, processes, opportunities, MESSAGES],
     more: [it('/app/organization', 'Agencia', 'building', 'Datos de la agencia, verificación y miembros.'), ...TOOLS, ...ACCOUNT(true)],
     tabs: [home, athletes, processes, MESSAGES],
-    extra: [],
+    extra: PAUSED,
   };
 }
 
@@ -246,7 +254,6 @@ function athleteMode(adult: boolean): NavMode {
       it('/app/universities', 'Universidades', 'campus', 'Directorio con datos oficiales.'),
       it('/app/shortlist', 'Mi shortlist', 'list', 'Tus universidades guardadas, listas para comparar.'),
       it('/app/universities/compare', 'Comparar universidades', 'compare', 'Hasta 5 universidades lado a lado.'),
-      it('/app/showcase', 'Showcase Day', 'showcase', 'Jornada mensual ante universidades y clubes verificados.'),
       ...(adult ? [it('/app/campaigns', 'Marcas y patrocinios', 'megaphone', 'Colaboraciones con marcas (solo mayores de edad).')] : []),
     ],
   });
@@ -259,7 +266,6 @@ function athleteMode(adult: boolean): NavMode {
       it('/app/requests', 'Solicitudes', 'shield', 'Universidades que te piden algo: tú decides qué compartes.'),
       it('/app/plan', 'Mi plan', 'tag', 'Informe del perfil, CV deportivo, lista de universidades y calendario.'),
       it('/app/athlete', 'Plazos por curso', 'path', 'Lo que toca según tu año.'),
-      it('/app/academia', 'Academia SAT/TOEFL', 'grad', 'Práctica con preguntas tipo examen y fechas oficiales.'),
     ],
   });
   return {
@@ -267,7 +273,7 @@ function athleteMode(adult: boolean): NavMode {
     primary: [home, profile, opportunities, journey, MESSAGES],
     more: [],
     tabs: [home, { ...opportunities, label: 'Oportun.' }, journey, MESSAGES],
-    extra: [...TOOLS, ...ACCOUNT(false).filter((i) => i.href !== '/app/settings')],
+    extra: [...TOOLS, ...ACCOUNT(false).filter((i) => i.href !== '/app/settings'), ...PAUSED],
   };
 }
 
@@ -281,7 +287,6 @@ function familyMode(): NavMode {
       it('/app/plan', 'Plan familiar', 'tag', 'Informe, lista de universidades y calendario.'),
       it('/app/opportunities', 'Becas', 'trophy', 'Ofertas de organizaciones verificadas.'),
       it('/app/universities', 'Universidades', 'campus', 'Directorio con datos oficiales.'),
-      it('/app/academia', 'Academia SAT/TOEFL', 'grad', 'Práctica con preguntas tipo examen.'),
     ],
   });
   const costs = it('/app/family/costs', 'Costes', 'scale', 'Coste publicado, ayuda confirmada y lo que falta, opción por opción.', {
@@ -302,7 +307,7 @@ function familyMode(): NavMode {
     primary: [home, journey, costs, approvals, MESSAGES],
     more: [it('/app/share', 'Compartir su perfil', 'megaphone', 'Enlaces privados de reclutamiento.'), ...TOOLS, ...ACCOUNT(false)],
     tabs: [home, journey, costs, approvals],
-    extra: [],
+    extra: PAUSED,
   };
 }
 
@@ -334,7 +339,6 @@ function universityMode(club: boolean, isCoach: boolean): NavMode {
       it('/app/opportunities?view=mine', 'Publicadas', 'trophy', 'Gestiona lo que habéis publicado.'),
       it('/app/opportunities/new', 'Publicar', 'megaphone', 'Sale al momento si pasa los controles automáticos.'),
       it('/app/recruit/trials', 'Trials', 'trophy', 'Inscripciones, plazas y asistencia.'),
-      it('/app/showcase', 'Showcase Day', 'showcase', 'Jornada mensual de atletas inscritos.'),
     ],
   });
   return {
@@ -344,7 +348,7 @@ function universityMode(club: boolean, isCoach: boolean): NavMode {
       ...(isCoach ? [it('/app/verify', 'Mi verificación', 'shield', 'Correo institucional, afiliación y cargo.'), it('/app/club', 'Portal de club', 'users', 'Plantilla, validación de estadísticas y colocaciones.')] : []),
       ...TOOLS, ...ACCOUNT(true)],
     tabs: [home, discover, lists, processes],
-    extra: [],
+    extra: PAUSED,
   };
 }
 
@@ -359,7 +363,7 @@ function brandMode(): NavMode {
     more: [it('/app/campaigns/new', 'Nueva campaña', 'megaphone', 'Publica una campaña para atletas mayores de edad.'),
       it('/app/organization', 'Marca', 'building', 'Datos de la marca, verificación y equipo.'), ...TOOLS, ...ACCOUNT(true)],
     tabs: [home, talent, lists, MESSAGES],
-    extra: [],
+    extra: PAUSED,
   };
 }
 

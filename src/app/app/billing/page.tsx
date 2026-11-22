@@ -33,6 +33,8 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
   const session = await requireSession(['agent', 'coach', 'university', 'brand']);
   const sp = await searchParams;
   void logEvent('billing_viewed');
+  // Solo se ofrece «Contratar» si el pago online está configurado en este entorno (sin claves: nunca un botón roto).
+  const canPay = Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_WEBHOOK_SECRET);
   const supabase = await createClient();
   const orgs = (await myOrganizations(session.userId)).filter((o) => ['owner', 'admin'].includes(o.member_role as string));
   if (!orgs.length) return (<><PageHeader kicker="Cuenta" title="Facturación" /><EmptyState title="Nada que facturar">La facturación la gestiona quien dirige la organización.</EmptyState></>);
@@ -90,8 +92,8 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
                     <li key={p.code} className="rounded-xl border border-line p-3">
                       <p className="font-semibold text-paper">{p.name}</p>
                       <p className="text-sm text-muted">{p.price_cents ? `${eur(p.price_cents as number, p.currency as string)}/${p.billing_interval === 'year' ? 'año' : 'mes'}` : 'Precio a medida'} · {p.seats_included} asiento{p.seats_included === 1 ? '' : 's'}</p>
-                      {p.stripe_price_id
-                        ? <form action={startSubscription} className="mt-2"><input type="hidden" name="org_id" value={o.id} /><input type="hidden" name="plan_code" value={p.code as string} /><button className={buttonClass('primary', 'md')}>Contratar</button></form>
+                      {canPay && (p.stripe_price_id || (p.price_cents as number | null))
+                        ? <form action={startSubscription} className="mt-2"><input type="hidden" name="org_id" value={o.id} /><input type="hidden" name="plan_code" value={p.code as string} /><button className={buttonClass('primary', 'md')}>{p.audience === 'agent' ? 'Empezar 30 días gratis' : 'Contratar'}</button></form>
                         : <p className="mt-2 text-xs text-faint">Contratación online próximamente.</p>}
                     </li>
                   ))}
