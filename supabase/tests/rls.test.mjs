@@ -3604,6 +3604,48 @@ try {
     await expectError(() => as(null, `select public.ensure_my_profile()`), /permission denied/);
   });
 
+  await check('P10 revisión · avisos familiares: oferta y proceso a tutores activos con permiso; silenciables; sin datos sensibles', async () => {
+    const famN = async (who, kind) => (await db.query(`select count(*)::int n from notifications where user_id = $1 and kind = $2`, [who, kind])).rows[0].n;
+    // Tutora de otra familia, sin vínculo con «kid» (otherMom sí lo tiene por una prueba de invitación anterior).
+    const stranger = randomUUID();
+    await db.query(`insert into auth.users (id, email) values ($1, 'stranger-guardian@fam.test')`, [stranger]);
+    await db.query(`insert into parent_athlete_links (parent_id, athlete_id, invited_by, status, approved_at, relationship, guardian_consent_given, verification_status)
+      values ($1, $2, $1, 'approved', now(), 'mother', true, 'athlete_confirmed')`, [stranger, fam.other]);
+    const before = { mom: await famN(fam.mom, 'family.offer'), dad: await famN(fam.dad, 'family.offer'), other: await famN(stranger, 'family.offer') };
+    await as(fam.kid, `insert into athlete_offers (athlete_id, university_name, annual_cost_usd, aid_amount_usd, created_by) values ($1, 'Secret University', 40000, 25000, $1)`, [fam.kid]);
+    eq(await famN(fam.mom, 'family.offer'), before.mom + 1, 'mamá avisada');
+    eq(await famN(fam.dad, 'family.offer'), before.dad + 1, 'papá (permiso de proceso) avisado');
+    eq(await famN(stranger, 'family.offer'), before.other, 'otra familia no');
+    const last = (await db.query(`select title, body from notifications where user_id = $1 and kind = 'family.offer' order by created_at desc limit 1`, [fam.mom])).rows[0];
+    eq(/Secret|40000|25000|40\.000/.test(last.title + last.body), false, 'sin universidad ni importes en el aviso');
+    // Mayoría de edad vencida sin confirmar: el vínculo de mamá con «grown» no avisa.
+    const grownBefore = await famN(fam.mom, 'family.offer');
+    await as(fam.grown, `insert into athlete_offers (athlete_id, university_name, created_by) values ($1, 'Otra Universidad', $1)`, [fam.grown]);
+    eq(await famN(fam.mom, 'family.offer'), grownBefore, 'vínculo caducado por mayoría de edad: sin aviso');
+    // Silenciar ofertas familiares: mamá deja de recibirlas; papá no.
+    await as(fam.mom, `insert into notification_preferences (user_id, category, in_app) values ($1, 'family_offers', false)`, [fam.mom]);
+    const m2 = await famN(fam.mom, 'family.offer'); const d2 = await famN(fam.dad, 'family.offer');
+    await as(fam.kid, `insert into athlete_offers (athlete_id, university_name, created_by) values ($1, 'Tercera Universidad', $1)`, [fam.kid]);
+    eq(await famN(fam.mom, 'family.offer'), m2, 'mamá silenció');
+    eq(await famN(fam.dad, 'family.offer'), d2 + 1, 'papá sigue');
+    // Lo esencial no se silencia.
+    eq((await db.query(`select public.notification_category('family.info_request') c`)).rows[0].c, 'essential');
+    eq((await db.query(`select public.notification_category('contact.guardian_review') c`)).rows[0].c, 'essential');
+    // Proceso: cambio de estado de una candidatura de otro atleta al que vinculamos temporalmente a papá.
+    const app = (await db.query(`select id, athlete_id, status::text s from applications limit 1`)).rows[0];
+    if (!app) throw new Error('no hay candidaturas de prueba');
+    const next = (await db.query(`select v::text from unnest(enum_range(null::application_status)) v where v::text <> $1 limit 1`, [app.s])).rows[0].v;
+    const tmp = (await db.query(`insert into parent_athlete_links (parent_id, athlete_id, invited_by, status, approved_at, relationship, guardian_consent_given, verification_status)
+      values ($1, $2, $1, 'approved', now(), 'father', false, 'athlete_confirmed') returning id`, [fam.dad, app.athlete_id])).rows[0].id;
+    const p1 = await famN(fam.dad, 'family.process');
+    await db.query(`update applications set status = $2::application_status where id = $1`, [app.id, next]);
+    eq(await famN(fam.dad, 'family.process'), p1 + 1, 'papá avisado del cambio');
+    await db.query(`update parent_athlete_links set status = 'revoked', revoked_at = now() where id = $1`, [tmp]);
+    await db.query(`update applications set status = $2::application_status where id = $1`, [app.id, app.s]);
+    eq(await famN(fam.dad, 'family.process'), p1 + 1, 'tutor revocado: sin aviso');
+    await expectError(() => as(fam.mom, `select * from public.active_guardians_with($1, 'offers')`, [fam.kid]), /permission denied/);
+  });
+
   if (!process.env.SKIP_ERASURE) await check('RGPD: toda cuenta y toda organización se puede borrar (anonimiza auditoría, no bloquea)', async () => {
     await db.query(`select set_config('request.jwt.claims', '{}', false)`);
     const fails = [];

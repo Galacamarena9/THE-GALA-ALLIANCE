@@ -13,7 +13,7 @@
 
 ## 2. Flujo
 
-Local (`test:rls`, 408 pruebas) → CI (`rls`, `app`, `e2e`) → **staging** (aplicar, advisors, `diagnose:db -- --data-only`, regenerar tipos, e2e contra staging) → **producción** con backup previo y tu aprobación.
+Local (`test:rls`, 409 pruebas) → CI (`rls`, `app`, `e2e`) → **staging** (aplicar, advisors, `diagnose:db -- --data-only`, regenerar tipos, e2e contra staging) → **producción** con backup previo y tu aprobación.
 
 ## 3. Aplicar en un proyecto remoto cuyo historial no coincide (caso actual)
 
@@ -23,7 +23,7 @@ El proyecto remoto registró las migraciones con versiones propias (`20261113160
 3. **Reescribir solo el historial**, sin tocar el schema:
    - marcar como `reverted` las 43 versiones que solo existen en el remoto (`supabase migration repair <versión> --status reverted`). Si no, `db push` se niega porque el remoto tiene versiones que no están en local;
    - marcar como `applied` las 40 locales cuyo contenido ya está en el remoto (`supabase migration repair <versión> --status applied`).
-4. **Aplicar las pendientes:** `supabase db push`, que ahora solo enviará las 34 restantes, en orden.
+4. **Aplicar las pendientes:** `supabase db push`, que ahora solo enviará las 35 restantes, en orden.
 5. **Validar:** advisors de seguridad y rendimiento, `diagnose:db -- --data-only`, conteos de tablas críticas antes y después, y la prueba manual de login, alta y subida de un documento.
 6. **Regenerar los tipos** (ver [local-development.md](local-development.md)).
 
