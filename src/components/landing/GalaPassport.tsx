@@ -38,7 +38,7 @@ function Readiness({ value }: { value: number }) {
     <div className="relative h-[72px] w-[72px] shrink-0" role="img" aria-label={`Recruiting Readiness ${value} de 100`}>
       <svg viewBox="0 0 36 36" className="h-full w-full -rotate-90" aria-hidden>
         <circle cx="18" cy="18" r={r} fill="none" stroke="rgb(255 255 255 / 0.12)" strokeWidth="2.6" />
-        <circle cx="18" cy="18" r={r} fill="none" stroke="#c8f03c" strokeWidth="2.6" strokeLinecap="round" strokeDasharray="100" className="ring-fill" style={{ ['--ring-offset' as string]: 100 - value, strokeDashoffset: 100 - value }} />
+        <circle cx="18" cy="18" r={r} fill="none" stroke="var(--color-lime)" strokeWidth="2.6" strokeLinecap="round" strokeDasharray="100" className="ring-fill" style={{ ['--ring-offset' as string]: 100 - value, strokeDashoffset: 100 - value }} />
       </svg>
       <span className="absolute inset-0 flex items-center justify-center font-display text-2xl font-bold" aria-hidden>{value}</span>
     </div>
