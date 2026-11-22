@@ -57,7 +57,8 @@ export async function sendMessage(_prev: FormState, formData: FormData): Promise
   return { ok: true };
 }
 
-const REASONS = ['child_safety', 'harassment', 'fake_or_misleading', 'spam', 'illegal_content', 'privacy', 'other'] as const;
+const REASONS = ['child_safety', 'harassment', 'fake_or_misleading', 'spam', 'illegal_content', 'privacy', 'other',
+  'impersonation', 'unauthorized_representation', 'misleading_fees', 'payment_request', 'unauthorized_document_use'] as const;
 const ENTITIES = ['athlete_profile', 'opportunity', 'campaign', 'organization', 'contact_request', 'news_post', 'institution', 'athlete_update'] as const;
 
 export async function reportContent(_prev: FormState, formData: FormData): Promise<FormState> {

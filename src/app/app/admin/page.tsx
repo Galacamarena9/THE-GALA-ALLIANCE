@@ -16,7 +16,9 @@ import { decideReport, resolveDataRequest, reviewCampaign, reviewOpportunity, re
 
 export const metadata: Metadata = { title: 'Revisión' };
 
-const REASON: Record<string, string> = { child_safety: 'Seguridad infantil', harassment: 'Acoso', fake_or_misleading: 'Falso / engañoso', spam: 'Spam', illegal_content: 'Ilegal', privacy: 'Privacidad', other: 'Otro' };
+const REASON: Record<string, string> = { child_safety: 'Seguridad infantil', harassment: 'Acoso', fake_or_misleading: 'Falso / engañoso', spam: 'Spam', illegal_content: 'Ilegal', privacy: 'Privacidad', other: 'Otro',
+  impersonation: 'Suplantación', unauthorized_representation: 'Representación no autorizada', misleading_fees: 'Honorarios engañosos',
+  payment_request: 'Pago sospechoso', unauthorized_document_use: 'Uso no autorizado de documentos' };
 
 export default async function AdminPage({ searchParams }: { searchParams: Promise<{ view?: string }> }) {
   // Verificación y Moderación son dos destinos de Operaciones Gala sobre la misma página.

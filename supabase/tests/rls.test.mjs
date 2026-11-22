@@ -3646,6 +3646,36 @@ try {
     await expectError(() => as(fam.mom, `select * from public.active_guardians_with($1, 'offers')`, [fam.kid]), /permission denied/);
   });
 
+  await check('P12 revisión · notas internas de agencia: viewer y scout no las leen por la API; asignado como primary/secondary sí', async () => {
+    const mk = async (email) => { const id = randomUUID(); await db.query(`insert into auth.users (id, email) values ($1, $2)`, [id, email]); return id; };
+    const viewer = await mk('agency-viewer@test.dev'); const scout = await mk('agency-scout@test.dev'); const mgr = await mk('agency-manager@test.dev');
+    await db.query(`insert into organization_members (organization_id, user_id, agency_role) values ($1, $2, 'viewer'), ($1, $3, 'scout'), ($1, $4, 'manager')`, [agencyId, viewer, scout, mgr]);
+    const total = (await db.query(`select count(*)::int n from agency_athlete_notes where agency_id = $1`, [agencyId])).rows[0].n;
+    if (!total) throw new Error('sin notas de prueba');
+    eq((await as(viewer, `select count(*)::int n from agency_athlete_notes where agency_id = $1`, [agencyId])).rows[0].n, 0, 'viewer');
+    eq((await as(scout, `select count(*)::int n from agency_athlete_notes where agency_id = $1`, [agencyId])).rows[0].n, 0, 'scout');
+    eq((await as(mgr, `select count(*)::int n from agency_athlete_notes where agency_id = $1`, [agencyId])).rows[0].n, total, 'manager');
+    // Asignado al atleta como secondary: lee las notas de ESE atleta, no las de otros.
+    const rep = (await db.query(`select id, athlete_id from agent_representations where agency_id = $1 and status = 'active' limit 1`, [agencyId])).rows[0];
+    if (!rep) throw new Error('sin representación activa de prueba');
+    await db.query(`insert into representation_assignments (representation_id, agency_id, user_id, role) values ($1, $2, $3, 'secondary')`, [rep.id, agencyId, viewer]);
+    const forAthlete = (await db.query(`select count(*)::int n from agency_athlete_notes where agency_id = $1 and athlete_id = $2`, [agencyId, rep.athlete_id])).rows[0].n;
+    eq((await as(viewer, `select count(*)::int n from agency_athlete_notes where agency_id = $1`, [agencyId])).rows[0].n, forAthlete, 'viewer asignado: solo su atleta');
+    // Al terminar la asignación, deja de verlas en la siguiente consulta.
+    await db.query(`update representation_assignments set ended_at = now() where user_id = $1`, [viewer]);
+    eq((await as(viewer, `select count(*)::int n from agency_athlete_notes where agency_id = $1`, [agencyId])).rows[0].n, 0, 'asignación terminada');
+    // Fuera de la agencia, la función no da nada aunque se llame directamente.
+    eq((await as(agent2, `select public.agency_can_read_notes($1, $2) ok`, [agencyId, rep.athlete_id])).rows[0].ok, false, 'otra agencia');
+  });
+
+  await check('P12 revisión · denunciar a una agencia por representación no autorizada o pago sospechoso entra con prioridad alta', async () => {
+    const r = (await as(u.adult, `insert into content_reports (entity_type, entity_id, reason) values ('organization', $1, 'payment_request') returning priority`, [agencyId])).rows[0];
+    eq(r.priority, 1, 'pago sospechoso');
+    const r2 = (await as(u.adult, `insert into content_reports (entity_type, entity_id, reason) values ('organization', $1, 'misleading_fees') returning priority`, [agencyId])).rows[0];
+    eq(r2.priority, 2, 'honorarios: prioridad normal');
+    await expectError(() => as(u.adult, `insert into content_reports (entity_type, entity_id, reason) values ('organization', $1, 'invented_reason')`, [agencyId]), /check constraint/);
+  });
+
   if (!process.env.SKIP_ERASURE) await check('RGPD: toda cuenta y toda organización se puede borrar (anonimiza auditoría, no bloquea)', async () => {
     await db.query(`select set_config('request.jwt.claims', '{}', false)`);
     const fails = [];
