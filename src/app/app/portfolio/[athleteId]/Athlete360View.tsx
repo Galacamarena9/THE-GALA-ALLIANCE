@@ -363,8 +363,13 @@ function DocumentsTab({ data, messageHref }: { data: Athlete360; messageHref: st
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-paper">{d.title}</p>
                       <p className="text-xs text-muted">{d.when} · {d.why}</p>
+                      {d.neededFor && d.neededFor.length > 0 && <p className="mt-0.5 text-xs text-brass" data-testid="needed-for">Lo necesita: {d.neededFor.join(', ')}</p>}
                     </div>
-                    <span className="shrink-0 text-right text-xs text-muted">{DOC_STATE_LABEL[d.state]}</span>
+                    <span className="shrink-0 text-right text-xs text-muted">
+                      {DOC_STATE_LABEL[d.state]}
+                      {d.verification === 'verified' && <span className="block text-ok">Respalda el dato del perfil</span>}
+                      {d.due && d.state !== 'shared' && <span className="block text-faint">Tenerlo antes del {new Date(`${d.due}T00:00:00Z`).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })}</span>}
+                    </span>
                   </li>
                 );
               })}

@@ -4,7 +4,7 @@ import { loadAthleteWorkspace } from '@/lib/data/portfolio';
 import { loadAgencyCases, type CaseRow } from '@/lib/data/agency-cases';
 import { loadAgentSources } from '@/lib/data/agent-home';
 import { loadOffers, type OfferView } from '@/lib/data/offers';
-import { DOC_CHECKLIST } from '@/content/documents';
+import { DOC_CHECKLIST, suggestedDueDate, type DocKind } from '@/content/documents';
 import { buildAttention, matchingOpportunities, type HomeOpportunity } from '@/lib/domain/agent-home';
 import { stageLabel } from '@/lib/domain/agency-cases';
 import { verificationText } from '@/lib/domain/athletes-crm';
@@ -118,7 +118,11 @@ export async function loadAthlete360(userId: string, athleteId: string, now: Dat
     cases,
     offers,
     opportunities: me && input ? matchingOpportunities(input.opportunities, [{ ...me, status: 'active' }], today).map((x) => x.o).slice(0, 10) : [],
-    documents: documentChecklist(DOC_CHECKLIST, docs, requests, access.documents),
+    documents: documentChecklist(DOC_CHECKLIST, docs, requests, access.documents, {
+      dueOf: (k) => suggestedDueDate(k as DocKind, e.graduationYear),
+      gradeSource: acad?.gpa_source, englishSource: acad?.english_source,
+      cases: cases.filter((c) => c.stage !== 'closed').map((c) => ({ institution: c.institutionName, stage: c.stage })),
+    }),
     evidence: evidenceSignals({
       verifiedStats: dir ? Boolean(dir.has_verified_stats) : null, video: dir ? Boolean(dir.has_video) : null,
       gradeSource: acad?.gpa_source, englishSource: acad?.english_source, academicsVisible: Boolean(acad),

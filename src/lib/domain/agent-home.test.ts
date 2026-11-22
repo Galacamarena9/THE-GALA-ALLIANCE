@@ -89,7 +89,7 @@ test('el resumen cuadra con las fuentes (recuento independiente)', () => {
 
 test('pipeline en 6 fases: los cerrados no cuentan y el total cuadra', () => {
   const p = pipelineCounts(base().cases);
-  assert.deepEqual(p.map((x) => x.label), ['Descubrimiento', 'Introducción', 'Evaluación', 'Visita', 'Oferta', 'Colocado']);
+  assert.deepEqual(p.map((x) => x.label), ['Introducción', 'Evaluación', 'Visita o prueba', 'Oferta', 'Decisión o colocado']);
   assert.equal(p.reduce((n, x) => n + x.count, 0), base().cases.filter((c) => c.stage !== 'closed').length);
 });
 

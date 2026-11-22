@@ -3,7 +3,7 @@
  * activityProjection, a360Access) sobre la cartera de ejemplo.
  */
 import type { Athlete360, Workspace } from '@/lib/data/athlete-360';
-import { DOC_CHECKLIST } from '@/content/documents';
+import { DOC_CHECKLIST, suggestedDueDate, type DocKind } from '@/content/documents';
 import { buildAttention, matchingOpportunities } from '@/lib/domain/agent-home';
 import { stageLabel } from '@/lib/domain/agency-cases';
 import { verificationText } from '@/lib/domain/athletes-crm';
@@ -69,7 +69,11 @@ export function previewAthlete360(variant: Preview360 = 'full'): Athlete360 {
       { key: 'ext:o1', id: 'o1', source: 'external', title: 'Lakeshore College', orgName: 'Lakeshore College', costUsd: 52000, aidUsd: 18000, netUsd: 34000, deadline: new Date(now + 2 * 864e5).toISOString().slice(0, 10), status: null, trust: null, flags: [{ code: 'external', severity: 'medium', text: 'Recibida fuera de la plataforma: comprueba que el email llega de un dominio .edu de la universidad.' }], missing: [], renewable: 'unknown' },
     ],
     opportunities: me && variant !== 'empty' ? matchingOpportunities(input.opportunities, [me], new Date().toISOString().slice(0, 10)).map((x) => x.o) : [],
-    documents: documentChecklist(DOC_CHECKLIST, docs, requests, access.documents),
+    documents: documentChecklist(DOC_CHECKLIST, docs, requests, access.documents, {
+      dueOf: (k) => suggestedDueDate(k as DocKind, current.graduationYear),
+      gradeSource: 'documented', englishSource: 'self_reported',
+      cases: cases.filter((c) => c.stage !== 'closed').map((c) => ({ institution: c.institutionName, stage: c.stage })),
+    }),
     evidence: evidenceSignals({ verifiedStats: variant === 'empty' ? null : true, video: variant === 'empty' ? null : true, gradeSource: 'documented', englishSource: 'self_reported', academicsVisible: variant !== 'empty' }),
     activity: activityProjection({ entries: [current], notes, caseActivities: acts, cases: cases.map((c) => ({ id: c.id, institution: c.institutionName })), stageLabel, noteBodies: access.noteBodies, nameOf }),
     conversation: variant === 'empty' ? null : { id: 'cr1', status: 'accepted' },

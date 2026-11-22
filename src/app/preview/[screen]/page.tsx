@@ -14,6 +14,9 @@ import { previewOutreach } from '@/lib/preview/outreach';
 import { DEFAULT_OUTREACH } from '@/lib/domain/outreach';
 import { previewPortfolio, previewSports, previewCases } from '@/lib/preview/fixtures';
 import { PipelineBoard } from '@/components/agency/PipelineBoard';
+import { previewPipelineActions } from '@/lib/preview/pipeline';
+import { previewInbox, previewThreadContext } from '@/lib/preview/inbox';
+import { AgentInboxView, ThreadContext } from '@/components/inbox/AgentInbox';
 import { ROLE_SHORTCUTS, RoleHero, ShortcutTiles } from '@/components/RoleHero';
 import { PlanUnlocks } from '@/components/PlanUnlocks';
 import { AthleteCard } from '@/components/AthleteCard';
@@ -84,7 +87,7 @@ const demoPublicOpp: PublicOpportunity = {
  */
 export const metadata: Metadata = { title: 'Probador interno', robots: { index: false, follow: false } };
 
-const SCREENS = ['agent-discovery', 'agent-discovery-eligible', 'agent-discovery-empty', 'agent-discovery-forbidden', 'agent-discovery-error', 'agent-discovery-pick', 'admin-difusion', 'admin-difusion-empty', 'difusion-respuesta', 'difusion-hecho', 'athlete-360', 'athlete-360-empty', 'athlete-360-viewer', 'athlete-360-locked', 'portfolio-100', 'portfolio-empty', 'agent-home', 'agent-home-empty', 'agent-home-partial', 'agent-home-no-agency', 'agent-home-error', 'portfolio', 'athlete-home', 'coach-home', 'pipeline', 'pipeline-table', 'match', 'opportunity', 'passport', 'galamatch', 'command-center', 'athlete-pipeline', 'club-trials', 'trial-club', 'trial-athlete', 'family-trials', 'program-athlete', 'family-home', 'family-costs', 'family-welcome', 'shell-agent', 'shell-athlete', 'shell-university', 'shell-operations'] as const;
+const SCREENS = ['agent-inbox', 'agent-thread', 'agent-thread-revoked', 'agent-discovery', 'agent-discovery-eligible', 'agent-discovery-empty', 'agent-discovery-forbidden', 'agent-discovery-error', 'agent-discovery-pick', 'admin-difusion', 'admin-difusion-empty', 'difusion-respuesta', 'difusion-hecho', 'athlete-360', 'athlete-360-empty', 'athlete-360-viewer', 'athlete-360-locked', 'portfolio-100', 'portfolio-empty', 'agent-home', 'agent-home-empty', 'agent-home-partial', 'agent-home-no-agency', 'agent-home-error', 'portfolio', 'athlete-home', 'coach-home', 'pipeline', 'pipeline-table', 'match', 'opportunity', 'passport', 'galamatch', 'command-center', 'athlete-pipeline', 'club-trials', 'trial-club', 'trial-athlete', 'family-trials', 'program-athlete', 'family-home', 'family-costs', 'family-welcome', 'shell-agent', 'shell-athlete', 'shell-university', 'shell-operations'] as const;
 
 // Gala Match con el motor real y datos ficticios: un Passport completo y otro con muchos datos ausentes.
 const demoOpp = { sport_id: 'basketball', position_ids: [1], graduation_years: [2027], division: 'ncaa_d2' as const, min_gpa_4: 2.5, english_required: 'TOEFL 80', annual_cost_usd: 40000, aid_amount_usd: 30000 };
@@ -107,6 +110,15 @@ export default async function PreviewPage({ params, searchParams }: { params: Pr
   return (
     <div className="min-h-dvh bg-ink px-5 py-8 sm:px-8 lg:px-10">
       <div className="mx-auto max-w-6xl">
+        {screen === 'agent-inbox' && <AgentInboxView groups={previewInbox()} />}
+        {(screen === 'agent-thread' || screen === 'agent-thread-revoked') && (
+          <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+            <div><h1 className="text-4xl text-paper">Norte Sports Management</h1><p className="mt-2 text-sm text-muted">Conversación de ejemplo (probador).</p>
+              {screen === 'agent-thread-revoked' ? <p className="mt-6 text-sm text-muted" data-testid="composer-locked">No puedes escribir en esta conversación: la representación ya no está activa.</p> : <p className="mt-6 text-sm text-muted" data-testid="composer">Escribe un mensaje…</p>}
+            </div>
+            <ThreadContext d={previewThreadContext(screen === 'agent-thread-revoked' ? 'revoked' : 'ok')} />
+          </div>
+        )}
         {screen.startsWith('agent-discovery') && (() => {
           const roster = previewDiscoveryRoster;
           const sports = [{ id: 'basketball', name: 'Baloncesto' }, { id: 'soccer', name: 'Fútbol' }];
@@ -122,7 +134,7 @@ export default async function PreviewPage({ params, searchParams }: { params: Pr
           );
         })()}
         {(screen === 'pipeline' || screen === 'pipeline-table') && (
-          <PipelineBoard cases={previewCases} view={screen === 'pipeline' ? 'board' : 'table'} sportName={new Map(previewSports.map((s) => [s.id, s.name_es]))} writableAgencies={new Set(['org-1'])} />
+          <PipelineBoard cases={previewCases} view={screen === 'pipeline' ? 'board' : 'table'} sportName={new Map(previewSports.map((s) => [s.id, s.name_es]))} actions={previewPipelineActions()} />
         )}
         {screen.startsWith('agent-home') && <AgentHomeView displayName="Carlos Ruiz" data={previewAgentHome(({ 'agent-home': 'full', 'agent-home-empty': 'empty', 'agent-home-partial': 'partial', 'agent-home-no-agency': 'no_agency', 'agent-home-error': 'error' } as const)[screen as 'agent-home'])} />}
         {(screen === 'athlete-home' || screen === 'coach-home') && (

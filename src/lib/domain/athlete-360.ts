@@ -208,7 +208,35 @@ export const DOC_STATE_LABEL: Record<DocState, string> = {
 export interface DocDefinition { kind: string; title: string; when: string; why: string }
 export interface VisibleDocument { id: string; kind: string; title: string; uploadedAt: string | null }
 export interface DocRequest { kind: string; status: string; documentKind: string | null; createdAt: string }
-export interface ChecklistRow { kind: string; title: string; when: string; why: string; state: DocState; group: 'process' | 'arrival'; sharedTitle: string | null }
+export interface ChecklistRow {
+  kind: string; title: string; when: string; why: string; state: DocState; group: 'process' | 'arrival'; sharedTitle: string | null;
+  /** Fecha recomendada para tenerlo (calendario por promoción). */
+  due?: string | null;
+  /** Respaldo del dato en Evidence: el documento respalda la nota o el inglés del perfil. */
+  verification?: 'verified' | 'uploaded' | null;
+  /** Procesos abiertos que lo necesitan ahora (se calcula; el documento vive una sola vez en el perfil del atleta). */
+  neededFor?: string[];
+}
+
+/** Contexto opcional para la lista: promoción, fuentes de Evidence y procesos abiertos (atleta × organización). */
+export interface ChecklistContext {
+  dueOf?: (kind: string) => string | null;
+  gradeSource?: string | null;
+  englishSource?: string | null;
+  cases?: { institution: string; stage: string }[];
+}
+const DOC_NEEDED_FROM: Record<string, string[]> = {
+  highlight_video: ['contacted', 'response_received', 'active_conversation', 'academic_review', 'evaluation_visit'],
+  transcript: ['active_conversation', 'academic_review', 'evaluation_visit', 'offer_discussion', 'decision_pending'],
+  translation: ['academic_review', 'offer_discussion', 'decision_pending'],
+  english_test: ['academic_review', 'offer_discussion', 'decision_pending'],
+  sat_act: ['academic_review'],
+  passport: ['offer_discussion', 'decision_pending', 'committed'],
+  graduation_proof: ['committed'],
+  financial: ['decision_pending', 'committed'],
+  i20: ['committed'], sevis_receipt: ['committed'], ds160: ['committed'], medical: ['committed'],
+};
+const documented = (s: string | null | undefined) => s === 'documented' || s === 'club_verified';
 
 /** Tipos de petición de información (info_requests.kind) que equivalen a un documento de la lista. */
 const REQUEST_TO_DOC: Record<string, string> = { transcript: 'transcript', english_certificate: 'english_test', full_game_video: 'highlight_video' };
@@ -218,15 +246,20 @@ const ARRIVAL = new Set(['i20', 'sevis_receipt', 'ds160', 'financial', 'medical'
  * Lista de documentos tal y como la ve la agencia. Solo cuenta lo que la RLS deja leer (concesiones vigentes
  * y peticiones de la propia agencia): nunca afirma que un documento «falta», solo que no se ha compartido.
  */
-export function documentChecklist(defs: DocDefinition[], docs: VisibleDocument[], requests: DocRequest[], canView: boolean): ChecklistRow[] {
+export function documentChecklist(defs: DocDefinition[], docs: VisibleDocument[], requests: DocRequest[], canView: boolean, ctx: ChecklistContext = {}): ChecklistRow[] {
   return defs.map((d) => {
     const group = ARRIVAL.has(d.kind) ? 'arrival' as const : 'process' as const;
-    if (!canView) return { ...d, group, state: 'locked' as const, sharedTitle: null };
+    const extra = {
+      due: ctx.dueOf?.(d.kind) ?? null,
+      neededFor: [...new Set((ctx.cases ?? []).filter((c) => (DOC_NEEDED_FROM[d.kind] ?? []).includes(c.stage)).map((c) => c.institution))].sort((a, b) => a.localeCompare(b, 'es')),
+    };
+    if (!canView) return { ...d, group, ...extra, verification: null, state: 'locked' as const, sharedTitle: null };
     const doc = docs.find((x) => x.kind === d.kind && x.uploadedAt);
-    if (doc) return { ...d, group, state: 'shared' as const, sharedTitle: doc.title };
+    const backed = (d.kind === 'transcript' && documented(ctx.gradeSource)) || (d.kind === 'english_test' && documented(ctx.englishSource));
+    if (doc) return { ...d, group, ...extra, verification: backed ? 'verified' as const : 'uploaded' as const, state: 'shared' as const, sharedTitle: doc.title };
     const mine = requests.filter((r) => (r.documentKind ?? REQUEST_TO_DOC[r.kind]) === d.kind).sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
     const state: DocState = !mine ? 'not_shared' : mine.status === 'pending' || mine.status === 'pending_guardian' ? 'requested' : mine.status === 'declined' ? 'declined' : 'not_shared';
-    return { ...d, group, state, sharedTitle: null };
+    return { ...d, group, ...extra, verification: null, state, sharedTitle: null };
   });
 }
 

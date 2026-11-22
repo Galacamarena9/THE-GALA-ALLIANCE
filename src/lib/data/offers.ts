@@ -26,7 +26,7 @@ export async function loadOffers(athleteId: string): Promise<OfferView[]> {
   const supabase = await createClient();
   const [{ data: apps }, { data: ext }] = await Promise.all([
     supabase.from('applications')
-      .select('id, status, opportunities(id, title, description, deadline, annual_cost_usd, aid_amount_usd, financial_source, reviewed_by, updated_at, status, organizations(name, verification_status, website, type))')
+      .select('id, status, opportunities(id, title, description, deadline, annual_cost_usd, aid_amount_usd, financial_source, is_reviewed, updated_at, status, organizations(name, verification_status, website, type))')
       .eq('athlete_id', athleteId).not('status', 'in', '(withdrawn,declined)'),
     supabase.from('athlete_offers').select('id, university_name, annual_cost_usd, aid_amount_usd, renewable, in_writing, deadline, source_text').eq('athlete_id', athleteId).order('created_at'),
   ]);

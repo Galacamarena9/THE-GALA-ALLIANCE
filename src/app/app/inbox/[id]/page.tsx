@@ -7,6 +7,8 @@ import { Card, PageHeader, cx } from '@/components/ui';
 import { MessageForm, ReportButton } from '@/components/forms';
 import { BlockButton } from '@/components/BlockButton';
 import { LiveThread } from '@/components/LiveThread';
+import { loadThreadContext } from '@/lib/data/inbox';
+import { ThreadContext } from '@/components/inbox/AgentInbox';
 
 export const metadata: Metadata = { title: 'Conversación' };
 
@@ -17,7 +19,7 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
   const supabase = await createClient();
   const { data: req } = await supabase
     .from('contact_requests')
-    .select('id, status, message, athlete_id, requested_by, is_minor_at_request, organizations(name)')
+    .select('id, status, message, athlete_id, requested_by, is_minor_at_request, organization_id, organizations(name)')
     .eq('id', id)
     .maybeSingle();
   if (!req) notFound();
@@ -35,9 +37,15 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
     supabase.rpc('has_block_with', { p_other: otherId }),
   ]);
   const otherName = otherProfile?.display_name ?? (onAthleteSide ? 'esta persona' : 'este atleta');
+  // Agente: panel de contexto (fase, siguiente acción, documentos) y la misma regla de permiso que aplica la base de datos.
+  const ctx = !onAthleteSide && session.roles.includes('agent')
+    ? await loadThreadContext(session.userId, req.athlete_id, req.organization_id as string, otherProfile?.display_name ?? 'Atleta')
+    : null;
+  const canWrite = ctx ? ctx.canMessage : true;
 
   return (
-    <>
+    <div className={ctx ? 'grid gap-6 lg:grid-cols-[1fr_320px]' : undefined}>
+     <div className="min-w-0">
       <PageHeader kicker="Conversación" title={org?.name ?? 'Organización'} description={req.is_minor_at_request ? 'Conversación con un menor: la familia vinculada la ve. No se permiten emails, teléfonos ni redes.' : undefined} />
       <Card className="mb-4">
         <p className="text-xs text-faint">Mensaje inicial</p>
@@ -60,7 +68,7 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
       </ul>
       {blocked ? (
         <p className="rounded-xl border border-line bg-surface-2 px-4 py-3 text-sm text-muted">Hay un bloqueo entre vosotros: no se pueden enviar mensajes. Si lo pusiste tú, puedes quitarlo en Ajustes.</p>
-      ) : req.status === 'accepted' ? <MessageForm requestId={id} isMinor={req.is_minor_at_request} /> : <p className="text-sm text-muted">La conversación no está abierta.</p>}
+      ) : req.status === 'accepted' && canWrite ? <MessageForm requestId={id} isMinor={req.is_minor_at_request} /> : req.status === 'accepted' ? <p className="text-sm text-muted">No puedes escribir en esta conversación: la representación ya no está activa.</p> : <p className="text-sm text-muted">La conversación no está abierta.</p>}
       <div className="mt-6 flex flex-wrap items-start justify-between gap-4">
         <Link href="/app/inbox" className="text-sm text-muted hover:text-paper">← Mensajes</Link>
         <div className="flex flex-wrap items-start gap-4">
@@ -68,6 +76,8 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
           <ReportButton entityType="contact_request" entityId={id} label="Denunciar esta conversación" />
         </div>
       </div>
-    </>
+     </div>
+      {ctx && <ThreadContext d={ctx} />}
+    </div>
   );
 }
