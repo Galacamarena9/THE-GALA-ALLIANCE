@@ -225,6 +225,9 @@ html:not(.js) .reveal { opacity: 1; transform: none; }
 @media print {
   .no-print { display: none !important; }
   html, body { background: #fff !important; color: #111 !important; }
+  /* Fichas oscuras (carbón) en papel: mismos componentes, tinta sobre blanco. */
+  .carbon { --color-ink: #fff; --color-surface: #fff; --color-surface-2: #f4f2ec; --color-line: #ddd6c8; --color-line-strong: #c9bfa8;
+    --color-paper: #10182b; --color-muted: #4a5164; --color-faint: #5a6072; --color-brass: #10182b; background: #fff !important; }
 }
 
 /* =============================================================================
