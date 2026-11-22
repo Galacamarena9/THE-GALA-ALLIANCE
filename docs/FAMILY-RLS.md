@@ -116,3 +116,46 @@ Las funciones de autorización (`has_family_link`, `is_active_guardian`, `guardi
 Ataques directos (sustitución de IDs, scopes inventados, sesión antigua tras revocar, Storage, Gala AI) contra todo lo anterior.
 
 > Pentest (10C): ver [FAMILY-PENTEST.md](FAMILY-PENTEST.md) — 8 hallazgos corregidos con pruebas de regresión.
+
+## Revisión del Prompt 10B (22-11-2026)
+
+### Inspección del catálogo real (las 77 migraciones aplicadas en una base temporal)
+
+| Comprobación | Resultado |
+|---|---|
+| Tablas sin RLS | 0 de 160 |
+| Políticas `USING (true)` | 12, todas sobre catálogos públicos o de configuración (`sports`, `sport_positions`, `sport_stat_definitions`, `sports_seasons`, `age_categories`, `territory_regions`, `institutions`, `institution_programs`, `showcase_events`, `feature_flags`, `family_policies`) y `opportunity_questions` INSERT. Esta última está protegida por el trigger `opportunity_questions_guard`, que fija el autor y limita a 10 preguntas al día. **Ninguna sobre datos familiares** |
+| Funciones ejecutables por `authenticated` que leen el presupuesto (`athlete_finances`, `annual_budget`) | 0. El presupuesto solo se lee por tabla, con `athlete.family_budget.view` |
+| Vistas que incluyan presupuesto, notas familiares, notas de organización o notas de agencia | 0 |
+| Buckets públicos | 0 (`athlete-documents`, `athlete-photos` y `verification-evidence`, todos privados) |
+| Storage `athlete-documents` | Dueño, tutor con permiso o concesión vigente de la organización, la misma regla que en la tabla. La ruta no autoriza: `document_owner(name)` y la fila del documento deciden |
+| Storage `verification-evidence` | Solo quien la sube y admins. Coaches, universidades y tutores, no |
+| `content_reports` | El denunciante ve las suyas y el admin todas. La persona denunciada no ve la denuncia ni quién la hizo |
+| Realtime | Solo `contact_messages`, con la misma RLS de participantes y tutores con permiso |
+
+### Criterio final (§40) → pruebas
+
+| Criterio | Pruebas |
+|---|---|
+| El atleta consulta sus datos; el tutor A, los recursos autorizados de A | P10A matriz, P10B proceso |
+| El tutor A no consulta al atleta B | P10, P10C IDOR (9 recursos) |
+| El tutor restringido solo ve sus alcances; el revocado pierde el acceso | P10 varios tutores, P10A presupuesto, FAM-SEC-006, P10C sesión revocada |
+| Coach A solo con lo de la universidad A; coach B sin las concesiones de A | P10D, P10B concesiones, P10C Storage |
+| Ningún coach ve el presupuesto; la familia no ve las notas internas del coach | P10 presupuesto privado, P10A (notas del club) |
+| Documentos privados y Storage sin atajos | P10C Storage (ruta adivinada, otra familia, otro club, caducada, revocada) |
+| Consentimiento caducado y concesión revocada no sirven | FAM-SEC-004, P10 consentimiento revocado, P10B consentimientos |
+| La mayoría de edad revisa los accesos | P10 mayoría de edad + **P10B revisión (hoy)** |
+| Realtime respeta la RLS | La tabla publicada tiene RLS probada. No hay prueba con un cliente Realtime real, porque el stub local no lo tiene |
+| Gala AI respeta la RLS | Usa la sesión del usuario; filtro de otros atletas en 10C |
+| Edge Functions y service role | No hay Edge Functions; la service role no se usa como atajo (`docs/supabase/edge-functions.md`) |
+
+### Cambio de hoy: `20261209000500_10r_majority_review_notify.sql`
+
+Hasta ahora la revisión por mayoría de edad era **pasiva**. El acceso del tutor se suspendía al vencer la ventana, pero nadie recibía aviso y no quedaba constancia de que la revisión se había abierto. Ahora una tarea diaria idempotente (`family_open_majority_reviews`, con pg_cron si está disponible):
+- **Avisa al atleta** que acaba de cumplir 18 años: le da la fecha límite para confirmar y cuántos documentos suyos siguen compartidos con organizaciones, para que los revise.
+- **Avisa al tutor** de que su acceso necesita la confirmación del atleta.
+- **Registra** `family_link.majority_review_opened` en la auditoría, que también impide repetir el aviso.
+
+No cambia permisos y solo la ejecuta el sistema (prueba «P10B revisión · mayoría de edad»).
+
+**Pendiente:** que la revisión retire automáticamente los consentimientos que dio el tutor cuando el atleta era menor. Hoy siguen vigentes hasta que caducan o los retira el atleta. Cambiarlo es una decisión de política (§26 «según policy»), no técnica.
