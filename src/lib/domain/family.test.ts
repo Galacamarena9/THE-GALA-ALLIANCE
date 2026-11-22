@@ -52,3 +52,14 @@ test('revisión al cumplir 18: no aplica a menores ni a vínculos de adulto; ven
   assert.equal(guardianReview({ ...base, dob: '2007-11-10', lastReviewed: '2025-06-01T10:00:00Z' }).state, 'lapsed', 'revisión anterior a los 18 no cuenta');
   assert.equal(guardianReview({ ...base, dob: '2000-01-01', minorLink: false }).state, 'none', 'vínculo creado siendo adulto');
 });
+
+test('bandeja de Aprobaciones: seguridad primero (contacto → documentos → participación)', async () => {
+  const { sortApprovals } = await import('./family.ts');
+  const out = sortApprovals([
+    { kind: 'participation' as const, athleteName: 'Ana' },
+    { kind: 'document' as const, athleteName: 'Ana' },
+    { kind: 'contact' as const, athleteName: 'Luis' },
+    { kind: 'contact' as const, athleteName: 'Ana' },
+  ]);
+  assert.deepEqual(out.map((a) => `${a.kind}:${a.athleteName}`), ['contact:Ana', 'contact:Luis', 'document:Ana', 'participation:Ana']);
+});

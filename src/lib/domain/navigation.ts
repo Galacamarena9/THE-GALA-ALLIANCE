@@ -290,9 +290,10 @@ function familyMode(): NavMode {
       it('/app/offers', 'Comparar ofertas', 'scale', 'Coste neto, riesgos y memo de decisión.'),
     ],
   });
-  const approvals = it('/app/requests', 'Aprobaciones', 'shield', 'Lo que espera tu permiso: solicitudes de información y quién puede contactar.', {
+  const approvals = it('/app/family/approvals', 'Aprobaciones', 'shield', 'Todo lo que espera tu permiso: contactos, documentos y actividades, en una sola lista.', {
     children: [
-      it('/app/requests', 'Solicitudes', 'shield', 'Peticiones de universidades sobre tu hijo o hija: tú decides.'),
+      it('/app/family/approvals', 'Pendientes', 'shield', 'Contactos, documentos y actividades que esperan tu decisión.'),
+      it('/app/requests', 'Solicitudes de información', 'shield', 'Peticiones de universidades sobre tu hijo o hija: tú decides qué compartir.'),
       it('/app/family/safety', 'Seguridad y permisos', 'shield', 'Quién puede contactar y ver a tu hijo o hija.'),
     ],
   });

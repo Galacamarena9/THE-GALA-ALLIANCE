@@ -98,10 +98,11 @@ export async function loadFamilyChild(session: SessionContext, link: GuardianLin
       kind: 'document' as const, athleteName: name, href: '/app/requests',
       what: `${(r.organizations as unknown as { name: string } | null)?.name ?? 'Una organización'} pide información`,
     })),
-    ...[...(regs.data ?? []), ...(enrs.data ?? [])].map((r) => ({
+    ...(['registration', 'enrollment'] as const).flatMap((type) => ((type === 'registration' ? regs.data : enrs.data) ?? []).map((r) => ({
       kind: 'participation' as const, athleteName: name, href: `/app/opportunities/${r.opportunity_id}`,
       what: `${opp(r)?.title ?? 'Una actividad'} · ${opp(r)?.organizations?.name ?? ''}`.trim(),
-    })),
+      ref: { type, id: r.id as string, opportunity: r.opportunity_id as string },
+    }))),
   ];
 
   const deadlines: FamilyDeadline[] = [

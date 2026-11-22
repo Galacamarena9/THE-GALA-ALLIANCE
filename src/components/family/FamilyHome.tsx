@@ -66,7 +66,7 @@ export function FamilyHome({ links, current, home, action, today, switchHref }: 
             <Link href={action.href} className="mt-3 inline-flex min-h-11 items-center rounded-full bg-brass px-5 text-sm font-semibold text-ink">
               {action.urgent ? 'Revisar ahora' : 'Abrir'}
             </Link>
-            {home.approvals.length > 1 && <p className="mt-2 text-xs text-muted">{home.approvals.length} decisiones esperan a la familia.</p>}
+            {home.approvals.length > 1 && <p className="mt-2 text-xs text-muted">{home.approvals.length} decisiones esperan a la familia. <Link href="/app/family/approvals" className="font-semibold text-paper underline">Verlas todas</Link></p>}
           </section>
 
           <div className="grid gap-5 lg:grid-cols-3">
