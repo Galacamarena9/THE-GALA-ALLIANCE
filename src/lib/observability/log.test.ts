@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import { log, redact } from './log.ts';
 
 test('19 · los logs nunca llevan emails, teléfonos, claves ni tokens', () => {
-  const r = redact('fallo para ana@club.es (+34 657 21 61 37) con sk_live_abcdefghijk y eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.abcdefghij');
+  const r = redact('fallo para ana@club.es (+34 600 123 456) con sk_live_abcdefghijk y eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.abcdefghij');
   assert.doesNotMatch(r, /ana@club\.es/);
-  assert.doesNotMatch(r, /657/);
+  assert.doesNotMatch(r, /600 123/);
   assert.doesNotMatch(r, /sk_live/);
   assert.match(r, /\[email\].*\[phone\].*\[secret\].*\[jwt\]/);
 });
