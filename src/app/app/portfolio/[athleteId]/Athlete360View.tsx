@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import {
+  FileText,
   ArrowLeft, ArrowRight, CalendarClock, Check, CircleDashed, Clock, ExternalLink, FileCheck2, Lock, MapPin, MessageSquare,
   MoreHorizontal, RotateCcw, Search, ShieldCheck, StickyNote, Trash2, Video,
 } from 'lucide-react';
@@ -94,6 +95,7 @@ export function Athlete360View({ data, tab, userId, now = new Date() }: { data: 
               </summary>
               <div className="absolute right-0 z-20 mt-1 w-64 space-y-0.5 rounded-xl border border-line bg-surface p-1 shadow-[var(--shadow-elevated)]">
                 <MenuLink href={`/athletes/${e.athleteId}`}><ExternalLink className="h-4 w-4" aria-hidden /> Perfil público</MenuLink>
+                {access.active && <MenuLink href={`/print/informe-familia?a=${e.athleteId}`}><FileText className="h-4 w-4" aria-hidden /> Informe mensual para la familia</MenuLink>}
                 {ws.detail.videoUrl && <MenuLink href={ws.detail.videoUrl} external><Video className="h-4 w-4" aria-hidden /> Vídeo</MenuLink>}
                 {access.write && <MenuLink href={a360Href(e.athleteId, 'actividad', 'nota')}><StickyNote className="h-4 w-4" aria-hidden /> Añadir nota</MenuLink>}
                 {access.pipeline && access.write && <MenuLink href={`/app/pipeline?athlete=${e.athleteId}`}><ArrowRight className="h-4 w-4" aria-hidden /> Abrir un proceso</MenuLink>}
