@@ -8,7 +8,7 @@ import { AgentHomeSkeleton, AthletesPreview, AttentionList, PipelineStrip, Summa
 import { logEvent } from '@/lib/events';
 
 /**
- * Prompt 5 · Inicio del agente (Command Center): Hoy → Mis atletas → Pipeline.
+ * Inicio del agente «Hoy» (reforma 180°): lo que toca hoy → mis atletas → procesos por fase.
  * Todo sale de `loadAgentHome` (proyección segura con la sesión del agente; ver docs/AGENT-HOME.md).
  */
 export function AgentHome({ session }: { session: SessionContext }) {
@@ -96,10 +96,12 @@ export function AgentHomeView({ displayName, data, today = new Date().toISOStrin
 
 function Header({ first, date, agency }: { first: string; date: string; agency?: AgentHomeData['agency'] }) {
   return (
-    <header className="flex flex-wrap items-end justify-between gap-3">
+    <header className="flex flex-wrap items-end justify-between gap-4">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted">{date}{agency ? ` · ${agency.name}${agency.verified ? ' ✓' : ''}` : ''}</p>
-        <h1 className="mt-1 font-display text-[34px] font-bold uppercase leading-none text-paper sm:text-[40px]">Hola, {first}</h1>
+        <p className="eyebrow text-gold">Agencia · Hoy</p>
+        <h1 className="mt-2 font-display text-4xl text-paper sm:text-5xl">Hola, {first}</h1>
+        <p className="mt-2 text-muted">Tus atletas, sus procesos y lo que hay que mover hoy. Nada más.</p>
+        <p className="mt-1 text-xs text-faint"><span className="inline-block first-letter:uppercase">{date}</span>{agency ? ` · ${agency.name}${agency.verified ? ' ✓' : ''}` : ''}</p>
       </div>
       <Link href="/app/discover" className={buttonClass('primary')}><Search className="h-4 w-4" aria-hidden /> Buscar talento</Link>
     </header>
