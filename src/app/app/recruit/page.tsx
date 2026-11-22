@@ -35,7 +35,7 @@ export default async function RecruitHome({ searchParams }: { searchParams: Prom
 
   return (
     <>
-      <PageHeader kicker="Coach & University Portal" title={`Hola, ${session.displayName.split(' ')[0]}`} description="Qué necesita tu atención hoy, con datos reales de tu organización." />
+      <PageHeader kicker="Club o universidad · Hoy" title={`Hola, ${session.displayName.split(' ')[0]}`} description="Qué perfiles necesitas, quién encaja y en qué punto va cada candidato. Con datos reales de tu organización." />
       <RecruitShell org={org} orgs={orgs} active="/app/recruit">
         {org && home && (
           <div className="space-y-6">

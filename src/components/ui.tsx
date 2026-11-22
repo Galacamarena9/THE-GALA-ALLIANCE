@@ -73,8 +73,8 @@ export function PageHeader({ kicker, title, description, action }: { kicker?: st
   return (
     <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div className="max-w-2xl">
-        {kicker && <p className="mb-2 text-sm font-semibold text-brass">{kicker}</p>}
-        <h1 className="font-display text-4xl font-bold uppercase leading-[0.95] text-paper sm:text-5xl">{title}</h1>
+        {kicker && <p className="eyebrow mb-3 text-gold">{kicker}</p>}
+        <h1 className="font-display text-4xl leading-[1.05] text-paper sm:text-5xl">{title}</h1>
         {description && <p className="mt-3 text-base leading-relaxed text-muted">{description}</p>}
       </div>
       {action}
