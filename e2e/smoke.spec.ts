@@ -11,7 +11,7 @@ const PUBLIC = [
 const PREVIEW = ['agent-home', 'portfolio', 'athlete-home', 'coach-home', 'pipeline', 'pipeline-table', 'match', 'opportunity', 'passport', 'galamatch', 'command-center', 'athlete-pipeline', 'club-trials', 'trial-club', 'trial-athlete', 'family-trials', 'program-athlete', 'family-home', 'family-costs'];
 const PROTECTED = [
   '/app', '/app/pipeline', '/app/pipeline/team', '/app/contacts', '/app/portfolio', '/app/athlete/passport',
-  '/app/discover', '/app/lists', '/app/inbox', '/app/agents', '/app/invitar', '/app/collaborations', '/app/trust', '/app/billing', '/app/support', '/app/admin/panel', '/app/plan', '/onboarding',
+  '/app/discover', '/app/opportunities/discover', '/app/lists', '/app/inbox', '/app/agents', '/app/invitar', '/app/collaborations', '/app/trust', '/app/billing', '/app/support', '/app/admin/panel', '/app/plan', '/onboarding',
   '/app/match', '/app/shortlist', '/app/process', '/app/recruit', '/app/recruit/discover', '/app/requests', '/app/universities',
   '/app/portfolio/trials', '/app/ia', '/app/admin', '/app/admin/ops', '/app/verify', '/app/verify/start', '/app/recruit/trials', '/app/family', '/app/family/costs', '/app/family/safety',
 ];

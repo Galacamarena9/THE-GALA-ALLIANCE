@@ -39,6 +39,7 @@ export default async function ListsPage({ searchParams }: { searchParams: Promis
       .from('saved_searches')
       .select('id, label, filters, alerts_enabled, last_seen_at')
       .eq('owner_id', session.userId)
+      .eq('scope', 'talent')
       .order('created_at', { ascending: false }),
   ]);
   const saved = savedRes.data ?? [];

@@ -8,6 +8,7 @@ import type { Division, Opportunity, OpportunityType } from '@/lib/types';
 import { OpportunityCard, type OpportunityCardData } from '@/components/OpportunityCard';
 import { ButtonLink, EmptyState, PageHeader, inputClass, cx } from '@/components/ui';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 
 function ViewTabs({ current }: { current: 'mine' | 'all' }) {
   return (
@@ -30,6 +31,8 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
   const supabase = await createClient();
   const isRecruiter = session.roles.includes('university') || session.roles.includes('coach');
   const isAthlete = session.roles.includes('athlete');
+  // El agente busca siempre PARA un atleta: su entrada es el buscador explicado.
+  if (session.roles.includes('agent') && !isRecruiter && !isAthlete) redirect('/app/opportunities/discover');
 
   // Universidad / coach: oportunidades de sus organizaciones (todos los estados).
   if (isRecruiter && sp.view === 'mine') {

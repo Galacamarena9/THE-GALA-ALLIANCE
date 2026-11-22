@@ -46,7 +46,7 @@ test.describe('Ficha 360 del atleta', () => {
     await expect(h).toContainText(/Datos clave: \d de 8/);
     const actions = page.getByRole('group', { name: 'Acciones del atleta' });
     await expect(actions.getByRole('link', { name: 'Mensaje' })).toHaveAttribute('href', '/app/inbox/cr1');
-    await expect(actions.getByRole('link', { name: 'Buscar oportunidades' })).toHaveAttribute('href', '/app/portfolio/a1?tab=oportunidades');
+    await expect(actions.getByRole('link', { name: 'Buscar oportunidades' })).toHaveAttribute('href', '/app/opportunities/discover?athlete=a1');
     await actions.getByText('Más').click();
     await expect(actions.getByRole('link', { name: 'Perfil público' })).toBeVisible();
   });

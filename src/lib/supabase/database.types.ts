@@ -8684,6 +8684,8 @@ export type Database = {
           label: string
           last_seen_at: string
           owner_id: string
+          scope: string
+          subject_id: string | null
         }
         Insert: {
           alerts_enabled?: boolean
@@ -8693,6 +8695,8 @@ export type Database = {
           label: string
           last_seen_at?: string
           owner_id: string
+          scope?: string
+          subject_id?: string | null
         }
         Update: {
           alerts_enabled?: boolean
@@ -8702,6 +8706,8 @@ export type Database = {
           label?: string
           last_seen_at?: string
           owner_id?: string
+          scope?: string
+          subject_id?: string | null
         }
         Relationships: [
           {
@@ -9955,6 +9961,10 @@ export type Database = {
         Returns: boolean
       }
       agency_manages: { Args: { p_agency: string }; Returns: boolean }
+      agent_discovery_athlete: {
+        Args: { p_athlete: string }
+        Returns: Json
+      }
       agent_can: {
         Args: {
           p_athlete: string

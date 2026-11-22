@@ -87,7 +87,7 @@ export function Athlete360View({ data, tab, userId, now = new Date() }: { data: 
               <ButtonLink href={messageHref} variant="secondary" size="sm"><MessageSquare className="h-4 w-4" aria-hidden /> Mensaje</ButtonLink>
             )}
             {access.active && (
-              <ButtonLink href={a360Href(e.athleteId, 'oportunidades')} variant="secondary" size="sm"><Search className="h-4 w-4" aria-hidden /> Buscar oportunidades</ButtonLink>
+              <ButtonLink href={`/app/opportunities/discover?athlete=${e.athleteId}`} variant="secondary" size="sm"><Search className="h-4 w-4" aria-hidden /> Buscar oportunidades</ButtonLink>
             )}
             <details className="relative">
               <summary className={cx(buttonClass('ghost', 'sm'), 'cursor-pointer list-none')} aria-label={`Más acciones para ${e.name}`}>
