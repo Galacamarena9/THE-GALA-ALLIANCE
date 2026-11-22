@@ -16,7 +16,8 @@
     "check:secrets": "node scripts/check-secrets.mjs",
     "check:erd": "node scripts/erd/check.mjs",
     "diagnose:db": "node scripts/erd/diagnose.mjs",
-    "drift": "node scripts/supabase/drift.mjs"
+    "drift": "node scripts/supabase/drift.mjs",
+    "schema:fingerprint": "node scripts/supabase/fingerprint.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",

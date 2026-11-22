@@ -41,11 +41,11 @@ Matrices completas por dominio: [`../FAMILY-RLS.md`](../FAMILY-RLS.md), [`../CLU
 
 En la migración que la crea, encima de la política: tabla, operación, roles, condición, funciones usadas y motivo. La prueba asociada en `supabase/tests/rls.test.mjs` lleva el mismo nombre de dominio. Nombre de la política: `<tabla>_<operación>[_<actor>]`.
 
-## 4. `SECURITY DEFINER` ejecutables sin sesión (20, revisadas el 22-11)
+## 4. `SECURITY DEFINER` ejecutables sin sesión (22, revisadas el 22-11 en local y en staging)
 
 Todas son helpers que las propias políticas de `anon` necesitan, o RPCs públicas por diseño:
 - **Helpers de políticas:** `athlete_age`, `can_view_athlete`, `can_see_shortlist`, `can_edit_shortlist`, `is_admin`, `is_org_member`, `org_can`, `org_can_scope`, `org_has_document_grant`, `program_in_org`, `team_in_org`, `opportunity_is_public`, `flag_enabled`, `verified_credentials`, `viewer_is_minor`.
-- **Públicas por diseño** (protegidas por token o datos ya públicos): `get_recruiting_card`, `preview_roster_invitation`, `outreach_preview`, `outreach_respond`, `record_passport_view`.
+- **Públicas por diseño** (protegidas por token o datos ya públicos): `get_recruiting_card`, `preview_roster_invitation`, `preview_family_invitation`, `preview_organization_invitation`, `outreach_preview`, `outreach_respond`, `record_passport_view`.
 
 Todas devuelven solo lo que la persona sin sesión ya puede ver, o `null`. Hoy se ha cerrado `is_listed_adult_profile` (era un oráculo de minoría de edad). Una prueba falla si vuelve a estar abierta a `anon`.
 
