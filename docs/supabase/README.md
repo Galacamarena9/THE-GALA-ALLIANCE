@@ -1,5 +1,18 @@
 # Supabase & PostgreSQL · The Gala Alliance
 
+> **Actualización 22-11-2026 (tarde) · STAGING al día.** El proyecto `fkbnznccsoqdniaqviev` es ahora **STAGING** y tiene las **80 migraciones** del repositorio. Se aplicaron una a una, cada una en su transacción y comprobando el hash del archivo. Además, `20261210000100_staging_reconcile.sql` eliminó la deriva: la tabla `application_tracking`, la columna `athlete_documents.expires_on` y 23 funciones con cuerpo antiguo. Resultado:
+> - **Esquema:** idéntico al repositorio (`schema-fingerprint.json`): 160 tablas, 0 sin RLS y 351 políticas iguales.
+> - **Storage:** 3 buckets privados.
+> - **Tareas programadas:** 14.
+> - **Datos:** se conservan intactos (la cuenta admin y los catálogos).
+> - **Tipos:** regenerados en `src/lib/supabase/database.types.ts`.
+>
+> **Pendiente:**
+> - **Producción:** el plan Pro y la creación del proyecto de producción (ver [environments.md](environments.md)).
+> - **Limpieza:** borrar el esquema temporal `migration_tmp` y la extensión `http` usados para aplicar (ver [migrations.md §3](migrations.md)).
+>
+> Lo que sigue más abajo es la foto de la mañana, antes de ponerlo al día.
+
 Revisión del Prompt 9 del **22-11-2026** sobre el repositorio y el proyecto Supabase reales. El 20-11 ya se hizo una primera pasada, documentada en [`../SUPABASE_ARCHITECTURE.md`](../SUPABASE_ARCHITECTURE.md). Esta revisión comprueba qué sigue siendo cierto, mira por primera vez el proyecto remoto y cierra los huecos.
 
 | Documento | Contenido |

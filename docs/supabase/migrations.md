@@ -37,3 +37,17 @@ Si algo falla en el paso 4, se para. Cada migración es transaccional, así que 
 - cuántas migraciones quedan por aplicar.
 
 Ejecutarlo antes de cada lote y después de él. Instantánea del 22-11: `remote-tables-2026-11-22.txt`.
+
+
+## 5. Cómo se puso al día STAGING (22-11-2026) y cómo se hará en producción
+
+Sin la contraseña de la base ni la CLI enlazada, se aplicó con el conector de Supabase, sin copiar SQL a mano:
+1. **Reconciliación previa:** se comparó la huella del remoto con la del repositorio en la migración 40. Coincidían las políticas; había una tabla, una columna y funciones antiguas que no salían de ninguna migración.
+2. **Copia previa:** conteos y filas de las tablas con datos (1 usuario admin, catálogos), guardados fuera del repositorio.
+3. **Aplicación:** una función temporal (`migration_tmp.apply`) descarga cada archivo de GitHub fijado a un commit, comprueba su **md5** y lo ejecuta en su propia transacción. Después lo registra en `supabase_migrations.schema_migrations` **con la versión del repositorio**, así que el historial nuevo ya coincide con el repo. Si una falla, no se aplica nada de ella y el proceso se para.
+4. **Reconciliación:** `20261210000100_staging_reconcile.sql` (condicional: solo borra lo que está vacío).
+5. **Validación:** la huella (`npm run schema:fingerprint` → `schema-fingerprint.json`) es igual a la del remoto, y los advisors coinciden con lo revisado en local.
+6. **Limpieza pendiente:** el conector pide confirmación para sentencias `DROP` y nadie respondió a tiempo. Falta ejecutar en STAGING:
+   `drop function migration_tmp.apply(text, text); drop function migration_tmp.apply(text, text, text); drop schema migration_tmp; drop extension http;`
+
+El historial anterior (43 versiones con marcas de tiempo propias) sigue en la tabla. Para usar `supabase db push` en staging, primero hay que marcarlas como `reverted` (§3).

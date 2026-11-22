@@ -6,14 +6,15 @@
 |---|---|---|
 | Local | Sí | Postgres 16 + stub; base desechable por ejecución |
 | CI | Sí | Mismo arnés en GitHub Actions (`rls`, `app`, `e2e`) |
-| Staging | **No** | — |
-| Producción | **No** como tal | Hay un único proyecto Supabase (`the-gala-alliance`, plan Free) con 1 usuario y sin datos de negocio. Hoy hace de entorno de pruebas |
+| Staging | **Sí (desde el 22-11)** | `the-gala-alliance` (`fkbnznccsoqdniaqviev`, eu-west-1). Al día con las 80 migraciones y sin deriva |
+| Producción | **Pendiente** | Se crea cuando la organización pase a plan Pro (ver abajo) |
 
 Netlify despliega `main` y las *deploy previews* de cada PR. Si las dos tienen las mismas variables, las dos apuntan al único proyecto. Mientras no haya datos reales no hay riesgo, pero **el día que haya usuarios reales una preview podría escribir en producción**. No he podido revisar las variables de Netlify; la comprobación queda pendiente.
 
-## Propuesta para introducir staging (antes del primer usuario real)
+## Pasos para tener producción (decididos el 22-11)
 
-1. **Convertir el proyecto actual en staging.** Ya tiene los datos de prueba y el historial; se pone al día con [migrations.md §3](migrations.md).
+1. ✅ **El proyecto actual es staging** y está al día.
+0. **Tú:** pasar la organización de Supabase a **Pro** desde el panel (Organization → Billing → Change plan). Necesita tu tarjeta; yo no puedo hacerlo.
 2. **Crear un proyecto nuevo de producción** en eu-west-1 y en plan Pro (backups diarios), y aplicarle las 79 migraciones desde cero con `supabase db push`, ya con un historial limpio.
 3. **Separar las variables en Netlify por contexto de despliegue:**
    - *Production* → proyecto de producción;
