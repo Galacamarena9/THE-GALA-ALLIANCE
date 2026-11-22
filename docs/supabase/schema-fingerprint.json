@@ -1,6 +1,6 @@
 {
- "migrations": 79,
- "last": "20261209000700_11r_opportunity_trust.sql",
+ "migrations": 80,
+ "last": "20261210000100_staging_reconcile.sql",
  "columns": {
   "academy_attempts": "1b2205",
   "academy_program_details": "084d94",
