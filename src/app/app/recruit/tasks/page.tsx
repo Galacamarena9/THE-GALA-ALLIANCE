@@ -40,7 +40,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
                 <ul className="divide-y divide-line">
                   {(tasks ?? []).map((t) => (
                     <li key={t.id} className="flex items-center gap-3 p-3">
-                      <form action={toggleOrgTask}><input type="hidden" name="id" value={t.id} /><input type="hidden" name="done" value={t.status === 'done' ? '0' : '1'} /><button aria-label={t.status === 'done' ? `Reabrir ${t.title}` : `Marcar hecha ${t.title}`} className={`grid h-7 w-7 place-items-center rounded-md border ${t.status === 'done' ? 'border-brass bg-brass text-white' : 'border-line'}`}>{t.status === 'done' ? '✓' : ''}</button></form>
+                      <form action={toggleOrgTask}><input type="hidden" name="id" value={t.id} /><input type="hidden" name="done" value={t.status === 'done' ? '0' : '1'} /><button aria-label={t.status === 'done' ? `Reabrir ${t.title}` : `Marcar hecha ${t.title}`} className={`grid h-7 w-7 place-items-center rounded-md border ${t.status === 'done' ? 'border-brass bg-brass text-ink' : 'border-line'}`}>{t.status === 'done' ? '✓' : ''}</button></form>
                       <div className="min-w-0 flex-1">
                         <p className={`text-sm ${t.status === 'done' ? 'text-muted line-through' : 'text-paper'}`}>{t.title}</p>
                         <p className="text-xs text-muted">{t.athlete_id && names.get(t.athlete_id) ? <Link href={`/app/recruit/candidates/${t.athlete_id}`} className="text-brass">{names.get(t.athlete_id)}</Link> : null}{t.assignee_id ? ` · ${memberName.get(t.assignee_id) ?? ''}` : ' · Sin asignar'}</p>

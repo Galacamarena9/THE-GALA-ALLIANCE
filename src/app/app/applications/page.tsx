@@ -77,7 +77,7 @@ export default async function ApplicationsPage() {
                             <form action={moveApplication} className="mt-3">
                               <input type="hidden" name="id" value={a.id} />
                               <input type="hidden" name="status" value={next} />
-                              <button className="w-full rounded-xl bg-brass px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-brass-soft">Pasar a «{PIPELINE_STATUS_LABEL[next]}»</button>
+                              <button className="w-full rounded-xl bg-brass px-3 py-2 text-sm font-semibold text-ink transition-colors hover:bg-brass-soft">Pasar a «{PIPELINE_STATUS_LABEL[next]}»</button>
                             </form>
                           )}
                           <details className="group mt-2">

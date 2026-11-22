@@ -82,7 +82,7 @@ export default async function ProcessDetailPage({ params, searchParams }: { para
                     {edit ? (
                       <form action={toggleTask}>
                         <input type="hidden" name="task" value={t.id} /><input type="hidden" name="id" value={p.id} /><input type="hidden" name="athlete" value={A} /><input type="hidden" name="done" value={t.done_at ? '0' : '1'} />
-                        <button aria-label={t.done_at ? `Reabrir: ${t.title}` : `Marcar hecha: ${t.title}`} className={`grid h-6 w-6 place-items-center rounded-md border ${t.done_at ? 'border-brass bg-brass text-white' : 'border-line'}`}>{t.done_at ? '✓' : ''}</button>
+                        <button aria-label={t.done_at ? `Reabrir: ${t.title}` : `Marcar hecha: ${t.title}`} className={`grid h-6 w-6 place-items-center rounded-md border ${t.done_at ? 'border-brass bg-brass text-ink' : 'border-line'}`}>{t.done_at ? '✓' : ''}</button>
                       </form>
                     ) : <span className={`h-5 w-5 rounded border ${t.done_at ? 'bg-brass' : ''}`} aria-hidden />}
                     <span className={`flex-1 text-sm ${t.done_at ? 'text-muted line-through' : 'text-paper'}`}>{t.title}</span>

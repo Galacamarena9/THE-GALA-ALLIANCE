@@ -227,7 +227,7 @@ export function AthleteCommandCenter({ d, firstName, isMinor }: { d: AthleteDash
             <ol className="-mx-1 flex snap-x gap-1 overflow-x-auto px-1 pb-1 lg:grid lg:grid-cols-7 lg:overflow-visible" aria-label="Etapas del recruiting">
               {d.journey.map((s, i) => (
                 <li key={s.key} className="min-w-[84px] shrink-0 snap-start text-center lg:min-w-0" aria-current={s.current ? 'step' : undefined}>
-                  <span className={`mx-auto grid h-8 w-8 place-items-center rounded-full border text-xs font-bold ${s.done ? 'border-brass bg-brass text-white' : s.current ? 'border-brass text-brass ring-4 ring-brass/10' : 'border-line text-faint'}`}>
+                  <span className={`mx-auto grid h-8 w-8 place-items-center rounded-full border text-xs font-bold ${s.done ? 'border-brass bg-brass text-ink' : s.current ? 'border-brass text-brass ring-4 ring-brass/10' : 'border-line text-faint'}`}>
                     {s.done ? <CheckCircle2 className="h-4 w-4" aria-hidden /> : i + 1}
                   </span>
                   <span className={`mt-1.5 block text-xs ${s.current ? 'font-semibold text-brass' : s.done ? 'text-muted' : 'text-faint'}`}>{s.label}</span>

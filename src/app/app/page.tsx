@@ -157,7 +157,7 @@ export default async function HomePage() {
                 return (
                   <li key={s.label}>
                     <Link href={s.href} className={`group flex items-center gap-3 rounded-xl border p-3 transition-colors ${current ? 'border-brass/50 bg-brass/5' : 'border-line hover:border-brass/40'}`}>
-                      <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full border text-xs font-bold ${s.done ? 'border-brass bg-brass text-white' : current ? 'border-brass text-brass' : 'border-line text-faint'}`}>
+                      <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full border text-xs font-bold ${s.done ? 'border-brass bg-brass text-ink' : current ? 'border-brass text-brass' : 'border-line text-faint'}`}>
                         {s.done ? <CheckCircle2 className="h-4 w-4" aria-hidden /> : i + 1}
                       </span>
                       <span className={`text-sm font-semibold ${s.done ? 'text-muted line-through decoration-faint/60' : 'text-paper group-hover:text-brass'}`}>{s.label}</span>

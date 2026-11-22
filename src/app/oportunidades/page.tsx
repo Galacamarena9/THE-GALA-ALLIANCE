@@ -78,7 +78,7 @@ export default async function PublicOpportunitiesPage({ searchParams }: { search
                   key={v.key ?? 'all'}
                   href={v.key ? `/oportunidades?v=${v.key}` : '/oportunidades'}
                   aria-current={on ? 'page' : undefined}
-                  className={cx('rounded-full border px-4 py-2 text-sm font-medium transition-colors', on ? 'border-brass bg-brass text-white' : 'border-line bg-surface text-muted hover:border-brass/50 hover:text-paper')}
+                  className={cx('rounded-full border px-4 py-2 text-sm font-medium transition-colors', on ? 'border-brass bg-brass text-ink' : 'border-line bg-surface text-muted hover:border-brass/50 hover:text-paper')}
                 >
                   {v.name}
                 </Link>

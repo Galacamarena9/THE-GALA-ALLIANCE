@@ -50,7 +50,7 @@ export function PipelineBoard({ cases, view, sportName, writableAgencies }: {
                           <form action={moveCase} className="mt-3">
                             <input type="hidden" name="id" value={c.id} />
                             <input type="hidden" name="stage" value={next} />
-                            <button className="w-full rounded-xl bg-brass px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-brass-soft">Pasar a «{stageLabel(next)}»</button>
+                            <button className="w-full rounded-xl bg-brass px-3 py-2 text-sm font-semibold text-ink transition-colors hover:bg-brass-soft">Pasar a «{stageLabel(next)}»</button>
                           </form>
                         )}
                       </li>

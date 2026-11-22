@@ -5,6 +5,7 @@ import { ButtonLink } from '@/components/ui';
 import { MobileMenu } from '@/components/PublicMobileMenu';
 import { ACTORS } from '@/lib/domain/roles';
 import { BRAND } from '@/content/brand';
+import { ScrollSolid } from '@/components/landing/elite/Motion';
 
 /** Navegación pública (Master Plan 2.0): Oportunidades · Para quién · Herramientas · Recursos · Precios · Seguridad. */
 const NAV = [
@@ -15,11 +16,15 @@ const NAV = [
   { href: '/seguridad', label: 'Seguridad' },
 ];
 
-/** Cabecera pública fija con desenfoque, como en la versión de Lovable. */
-export function PublicHeader() {
+/**
+ * Cabecera pública fija. Con `overlay` (portada) empieza transparente sobre la foto y se vuelve sólida al hacer scroll;
+ * en el resto de páginas es sólida desde el principio y deja su hueco.
+ */
+export function PublicHeader({ overlay = false }: { overlay?: boolean }) {
+  const solid = 'border-b border-line/70 bg-ink/90 backdrop-blur-xl';
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-brass/20 bg-ink/85 backdrop-blur-xl">
+      <ScrollSolid className={`fixed inset-x-0 top-0 z-50 transition-[background-color,border-color] duration-500 ${overlay ? 'border-b border-transparent' : solid}`} solidClass={solid}>
         <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-[100] focus:rounded-md focus:bg-brass focus:px-4 focus:py-2 focus:text-sm focus:text-ink">
           Saltar al contenido
         </a>
@@ -59,12 +64,12 @@ export function PublicHeader() {
           </nav>
           <div className="hidden items-center gap-2 md:flex">
             <ButtonLink href="/login" variant="ghost" className="h-9 px-3 text-[13px]">Iniciar sesión</ButtonLink>
-            <ButtonLink href="/#para-quien" className="h-9 px-4 text-[13px] font-bold">Empezar gratis</ButtonLink>
+            <ButtonLink href="/#para-quien" className="h-9 rounded-full px-5 text-[13px] font-bold">Empezar gratis</ButtonLink>
           </div>
           <MobileMenu items={[...NAV, { href: '/inversores', label: 'Inversores' }, ...ACTORS.map((a) => ({ href: `/para/${a.slug}`, label: `Para ${a.plural.toLowerCase()}` }))]} />
         </div>
-      </header>
-      <div className="h-16" aria-hidden />
+      </ScrollSolid>
+      {overlay ? null : <div className="h-16" aria-hidden />}
     </>
   );
 }
