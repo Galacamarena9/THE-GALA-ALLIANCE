@@ -1,7 +1,7 @@
 <!-- Generado por scripts/erd/generate.mjs a partir de las migraciones. No editar a mano: `npm run erd`. -->
 # 13 · IA, academia, analítica y auditoría
 
-Tablas: **18** · RLS activada en 18/18.
+Tablas: **21** · RLS activada en 21/21.
 Se relaciona con: `auth_users`, `organizations` (05), `profiles` (01), `safety_cases` (11).
 
 ## AS-IS · Modelo actual
@@ -29,6 +29,9 @@ erDiagram
   AUTH_USERS |o--o{ BREAK_GLASS_GRANTS : "reviewed_by"
   AUTH_USERS ||--o{ BREAK_GLASS_GRANTS : "subject_user"
   AUTH_USERS |o--o{ FEATURE_FLAGS : "updated_by"
+  PROFILES |o--o{ OUTREACH_CONTACTS : "created_by"
+  PROFILES |o--o{ OUTREACH_EVENTS : "actor_id"
+  OUTREACH_CONTACTS ||--o{ OUTREACH_EVENTS : "contact_id"
   PROFILES |o--o{ PRODUCT_EVENTS : "user_id"
   AUTH_USERS ||--o{ RATE_LIMIT_EVENTS : "user_id"
   AUTH_USERS ||--o{ REFERRAL_CODES : "user_id"
@@ -159,6 +162,38 @@ erDiagram
     int4 version
     timestamptz updated_at
   }
+  OUTREACH_CONTACTS {
+    uuid id PK
+    text segment
+    text organization_name
+    text country
+    text website
+    text channel
+    text email
+    text role_title
+    text source_url
+    text notes
+    text status
+    text invite_token_hash
+    timestamptz invite_expires_at
+    timestamptz invited_at
+    timestamptz responded_at
+    uuid created_by FK
+    timestamptz created_at
+    timestamptz updated_at
+  }
+  OUTREACH_EVENTS {
+    int8 id PK
+    uuid contact_id FK
+    text kind
+    text detail
+    uuid actor_id FK
+    timestamptz created_at
+  }
+  OUTREACH_SUPPRESSIONS {
+    text email_hash PK
+    timestamptz created_at
+  }
   PRODUCT_EVENTS {
     int8 id PK
     uuid user_id FK
@@ -204,6 +239,9 @@ erDiagram
 | `break_glass_grants` | Interna | — | persona (admin_id) → se borra<br>persona (reviewed_by) → se anonimiza<br>persona (subject_user) → se borra | Mientras exista la organización | No: Acceso de emergencia de Gala: auditoría interna | KEEP |
 | `feature_flags` | Pública | — | persona (updated_by) → se anonimiza | Mientras esté publicado o vigente | — | KEEP |
 | `metric_definitions` | Interna | — | No depende de personas | Mientras exista la organización | — | KEEP |
+| `outreach_contacts` | Interna | — | persona (created_by) → se anonimiza | Mientras exista la organización | No: Lista interna de Operaciones: solo organizaciones con contacto público, no usuarios | KEEP |
+| `outreach_events` | Interna | — | persona (actor_id) → se anonimiza | Mientras exista la organización | No: Registro interno de Operaciones sobre organizaciones, no sobre usuarios | KEEP |
+| `outreach_suppressions` | Interna | — | No depende de personas | Indefinida: es la prueba de que no se debe volver a escribir | No: Solo el hash sha256 del correo dado de baja | KEEP |
 | `product_events` | Personal | — | persona (user_id) → se borra | 13 meses | Sí | KEEP |
 | `rate_limit_events` | Interna | — | persona (user_id) → se borra | 7 días | No: Contadores técnicos anti-spam (7 días) | KEEP |
 | `referral_codes` | Personal | — | persona (user_id) → se borra | Mientras exista la cuenta | Sí | KEEP |
@@ -211,6 +249,9 @@ erDiagram
 
 - `feature_flags`: Interruptores de funcionalidad; no sustituyen permisos.
 - `metric_definitions`: Definición escrita y versionada de cada métrica.
+- `outreach_contacts`: Lista de difusión. Solo admins (RLS). Invitación única que pide permiso (LSSI art. 21).
+- `outreach_events`: Historial de la lista de difusión.
+- `outreach_suppressions`: Lista de exclusión de la difusión.
 - `referral_codes`: Código de invitación (no para menores).
 - `referrals`: Una atribución por persona; quien invita solo ve el número.
 

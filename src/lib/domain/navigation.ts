@@ -366,7 +366,8 @@ function operationsMode(): NavMode {
   return {
     id: 'operations', label: 'Operaciones Gala',
     primary: [verification, compliance, trust, moderation, support],
-    more: [it('/app/admin/panel', 'Panel de mando', 'chart', 'Métricas, embudo, automatizaciones y ventas.'),
+    more: [it('/app/admin/difusion', 'Difusión', 'compass', 'Agencias, universidades y federaciones a las que invitar, con su respuesta.'),
+      it('/app/admin/panel', 'Panel de mando', 'chart', 'Métricas, embudo, automatizaciones y ventas.'),
       it('/app/admin/analytics', 'Analítica', 'chart', 'Liquidez, activación y retención, con sus definiciones.'), MESSAGES, ...TOOLS],
     tabs: [verification, moderation, trust, support],
     extra: [],
