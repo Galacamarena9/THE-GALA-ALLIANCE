@@ -23,7 +23,7 @@ Proyecto `the-gala-alliance` (`fkbnznccsoqdniaqviev`, eu-west-1, Postgres 17), e
 
 | Elemento | Remoto | Repositorio |
 |---|---|---|
-| Migraciones | 43 aplicadas; la última es `verification_discovery_shortlists` (20-11) | 74 |
+| Migraciones | 43 aplicadas; la última es `verification_discovery_shortlists` (20-11) | 75 |
 | Tablas `public` | 108, todas con RLS | 160 |
 | Datos | 1 usuario, 1 perfil, 0 organizaciones, 0 atletas, 0 candidaturas | — |
 | Buckets | `athlete-documents` y `athlete-photos` (privados) | 3 (falta `verification-evidence`) |
@@ -31,7 +31,7 @@ Proyecto `the-gala-alliance` (`fkbnznccsoqdniaqviev`, eu-west-1, Postgres 17), e
 | pg_cron | Activo, 8 tareas | 13 tareas definidas |
 | Realtime | Solo `contact_messages` | Igual |
 
-**Conclusión:** el remoto se ha quedado en la migración 40 de 74. Le faltan **34 migraciones**: 11A–11E (clubs y academias), la revisión del Prompt 9 del 20-11, Family, Agents, Brands, Trust & Safety, Billing, Analytics, Rendimiento, Observabilidad, Growth, la búsqueda de talento, la lista de difusión y las dos de hoy. Como está casi vacío, aplicarlas no pone datos en riesgo. Aun así es el único proyecto que existe, y la decisión es tuya (ver §4).
+**Conclusión:** el remoto se ha quedado en la migración 40 de 75. Le faltan **35 migraciones**: 11A–11E (clubs y academias), la revisión del Prompt 9 del 20-11, Family, Agents, Brands, Trust & Safety, Billing, Analytics, Rendimiento, Observabilidad, Growth, la búsqueda de talento, la lista de difusión y las tres de hoy (Prompt 9 y avisos de familia). Como está casi vacío, aplicarlas no pone datos en riesgo. Aun así es el único proyecto que existe, y la decisión es tuya (ver §4).
 
 ### Advisors de seguridad del remoto
 
@@ -49,7 +49,7 @@ Proyecto `the-gala-alliance` (`fkbnznccsoqdniaqviev`, eu-west-1, Postgres 17), e
 
 - **`application_tracking`** existe en el remoto (0 filas, RLS con 4 políticas), pero **ninguna migración del repositorio la crea**. Alguien la aplicó directamente en el remoto. Al aplicar las migraciones pendientes, la tabla seguirá ahí sin que nada la use.
   - **Recomendación:** no borrarla en caliente. Primero confirmar en el remoto que sigue con 0 filas; después, una migración `contract` que la elimine, con rollback documentado.
-- **El historial de versiones no coincide.** El remoto registra las migraciones con marcas de tiempo propias (`20261113160830_foundation_part1`…) y algunas partidas en dos. Si se ejecuta `supabase db push`, intentará aplicar de nuevo las 74. El procedimiento seguro está en [migrations.md §3](migrations.md).
+- **El historial de versiones no coincide.** El remoto registra las migraciones con marcas de tiempo propias (`20261113160830_foundation_part1`…) y algunas partidas en dos. Si se ejecuta `supabase db push`, intentará aplicar de nuevo las 75. El procedimiento seguro está en [migrations.md §3](migrations.md).
 - `opportunity_event_details`, `trial_registrations` y `trial_registration_events` desaparecen con 11A, que las sustituye por el modelo de participación. En el remoto tienen 0 filas, así que no se pierde nada.
 
 ## 2. Estado de los entregables del Prompt 9
@@ -59,12 +59,12 @@ Proyecto `the-gala-alliance` (`fkbnznccsoqdniaqviev`, eu-west-1, Postgres 17), e
 | # | Entregable | Estado | Evidencia o motivo |
 |---|---|---|---|
 | 1 | Arquitectura Supabase documentada | ✅ | Esta carpeta y `SUPABASE_ARCHITECTURE.md` |
-| 2 | Schema PostgreSQL definitivo | 🟡 | 160 tablas en el repositorio; el remoto va 34 migraciones por detrás |
-| 3 | Migraciones SQL versionadas | ✅ | 74 en `supabase/migrations/`, cada una con bloque ROLLBACK |
+| 2 | Schema PostgreSQL definitivo | 🟡 | 160 tablas en el repositorio; el remoto va 35 migraciones por detrás |
+| 3 | Migraciones SQL versionadas | ✅ | 75 en `supabase/migrations/`, cada una con bloque ROLLBACK |
 | 4 | Estrategia de entornos | 🟡 | [environments.md](environments.md). **No existe staging**; se propone cómo crearlo |
 | 5 | Backup y plan de rollback | ⛔ | [backup-recovery.md](backup-recovery.md). Plan Free: sin backups automáticos ni PITR. Rollback por migración sí existe; la restauración no se ha probado |
 | 6 | Matriz RLS | ✅ | [rls.md](rls.md) + `FAMILY-RLS.md`, `CLUBS-ACADEMIES-RLS.md`, `AGENT-RLS.md` |
-| 7 | Policies implementadas | ✅ | RLS en 160/160; 407 pruebas |
+| 7 | Policies implementadas | ✅ | RLS en 160/160; 409 pruebas |
 | 8 | Roles y permisos | 🟡 | `user_roles` + `organization_members` + capacidades por rol (`org_role_caps`) + alcance por programa. No hay tabla `permissions` editable: las capacidades están fijadas en SQL (decisión: menos superficie) |
 | 9 | Functions PostgreSQL | ✅ | Todas con `search_path` fijo (prueba P9) |
 | 10 | Triggers documentados | 🟡 | Documentados en la cabecera de cada migración; no hay un índice único de triggers |
@@ -82,7 +82,7 @@ Proyecto `the-gala-alliance` (`fkbnznccsoqdniaqviev`, eu-west-1, Postgres 17), e
 | 22 | Sistema de auditoría | ✅ | `audit_logs` |
 | 23 | Analítica de producto separada | ✅ | `product_events` (retención de 13 meses) |
 | 24 | Tipos TypeScript regenerados | ⛔ | Generarlos ahora daría tipos de la migración 40. Se generan después de aplicar las pendientes |
-| 25 | Tests de base de datos | ✅ | `npm run test:rls`: **407 OK** |
+| 25 | Tests de base de datos | ✅ | `npm run test:rls`: **409 OK** |
 | 26 | Tests de RLS | ✅ | Roles: anónimo, adulto, menor, tutor, coach sin verificar y verificado, admin de organización, agencia y admin de Gala |
 | 27 | Tests cross-tenant | ✅ | Universidad A ↔ B, Club A ↔ B, agencia A ↔ B, baja inmediata |
 | 28 | Tests de concurrencia | 🟡 | Candidatura doble y representación (12A.1). Faltan shortlist simultánea y doble aprobación de verificación |
@@ -104,7 +104,7 @@ Proyecto `the-gala-alliance` (`fkbnznccsoqdniaqviev`, eu-west-1, Postgres 17), e
 
 ## 4. Decisiones que necesito de ti
 
-1. **Aplicar las 34 migraciones pendientes al proyecto remoto.** Como no hay staging, el remoto hace de staging (tiene 1 usuario y ningún dato). Pasos:
+1. **Aplicar las 35 migraciones pendientes al proyecto remoto.** Como no hay staging, el remoto hace de staging (tiene 1 usuario y ningún dato). Pasos:
    1. Exportar antes el schema.
    2. Aplicar en orden.
    3. Pasar advisors y `diagnose:db -- --data-only`.

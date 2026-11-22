@@ -73,6 +73,6 @@ RLS (P10): otras familias (incluido cambiar el `athlete_id`), varios tutores con
 ## Pendiente (siguientes prompts)
 
 - 10A/10B/10C: matriz RLS completa de familia, políticas y pentest (incluye `contact_requests`, que todavía no aplica el permiso «quién contacta»).
-- Preferencias de notificación por categoría familiar y correos familiares.
+- ~~Preferencias de notificación por categoría familiar~~: hechas el 22-11 (ver [FAMILY-REVIEW.md](FAMILY-REVIEW.md)). Correos familiares: pendientes de Resend.
 - Conversión de moneda con tipo documentado.
 - Centro de seguridad propio (hoy: bloque «Quién contacta» + bandeja + bloqueos en Ajustes).

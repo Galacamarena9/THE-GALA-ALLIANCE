@@ -43,12 +43,14 @@ export async function toggleNotificationRead(formData: FormData) {
 }
 
 const CATEGORIES = ['messages', 'applications', 'deadlines', 'matches', 'platform'] as const;
+const FAMILY_CATEGORIES = ['family_process', 'family_offers'] as const;
 
 /** Preferencias de avisos: cada categoría se activa o silencia. Lo esencial (familia, seguridad) no se puede silenciar. */
 export async function saveNotificationPreferences(formData: FormData) {
   const session = await requireSession();
   const supabase = await createClient();
-  const rows = CATEGORIES.map((c) => ({ user_id: session.userId, category: c, in_app: formData.get(c) === 'on', updated_at: new Date().toISOString() }));
+  const cats = [...CATEGORIES, ...(session.roles.includes('parent') ? FAMILY_CATEGORIES : [])];
+  const rows = cats.map((c) => ({ user_id: session.userId, category: c, in_app: formData.get(c) === 'on', updated_at: new Date().toISOString() }));
   await supabase.from('notification_preferences').upsert(rows);
   revalidatePath('/app/notifications');
 }

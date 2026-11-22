@@ -21,7 +21,7 @@
 
 ## 2. Matriz de tablas sensibles (resumen)
 
-Extraída de `pg_policies` tras aplicar las 74 migraciones (22-11):
+Extraída de `pg_policies` tras aplicar las 74 migraciones (antes de los avisos de familia) (22-11):
 
 | Tabla | SELECT | INSERT | UPDATE | DELETE |
 |---|---|---|---|---|

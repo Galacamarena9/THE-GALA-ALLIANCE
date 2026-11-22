@@ -12,6 +12,8 @@ const fmt = new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short', h
 
 /** Misma clasificación que public.notification_category() en la base de datos. */
 function category(kind: string) {
+  const family: Record<string, string> = { 'family.offer': 'family_offers', 'family.process': 'family_process', 'family.deadline': 'family_deadlines', 'family.cost': 'family_costs' };
+  if (family[kind]) return family[kind];
   if (/^(contact|family|security|account)\./.test(kind)) return 'essential';
   if (kind.startsWith('message.')) return 'messages';
   if (kind.startsWith('application') || kind.startsWith('offer')) return 'applications';
@@ -22,8 +24,11 @@ function category(kind: string) {
 const CAT: Record<string, string> = {
   essential: 'Familia y seguridad', messages: 'Mensajes', applications: 'Candidaturas y ofertas',
   deadlines: 'Plazos', matches: 'Universidades y oportunidades', platform: 'Plataforma',
+  family_process: 'Familia · proceso', family_offers: 'Familia · ofertas',
 };
 const PREF_CATS = ['messages', 'applications', 'deadlines', 'matches', 'platform'] as const;
+/** Avisos de la familia que se pueden silenciar. Consentimientos, documentos y seguridad llegan siempre. */
+const FAMILY_PREF_CATS = ['family_process', 'family_offers'] as const;
 
 export default async function NotificationsPage({ searchParams }: { searchParams: Promise<{ f?: string }> }) {
   const session = await requireSession();
@@ -84,9 +89,9 @@ export default async function NotificationsPage({ searchParams }: { searchParams
         </div>
         <Card>
           <h2 className="font-display text-lg font-bold text-paper">Qué avisos recibir</h2>
-          <p className="mt-1 text-xs text-muted">Los avisos de familia y seguridad llegan siempre.</p>
+          <p className="mt-1 text-xs text-muted">Las aprobaciones, las solicitudes de documentos y los avisos de seguridad llegan siempre.</p>
           <form action={saveNotificationPreferences} className="mt-4 space-y-3">
-            {PREF_CATS.map((c) => (
+            {[...PREF_CATS, ...(session.roles.includes('parent') ? FAMILY_PREF_CATS : [])].map((c) => (
               <label key={c} className="flex items-center justify-between gap-3 text-sm text-paper">
                 {CAT[c]}
                 <input type="checkbox" name={c} defaultChecked={!muted.has(c)} className="h-4 w-4 accent-[var(--color-brass)]" />
