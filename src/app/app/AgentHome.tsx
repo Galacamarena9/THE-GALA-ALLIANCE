@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { MessageSquare, RotateCw, Search } from 'lucide-react';
 import type { SessionContext } from '@/lib/session';
 import { loadAgentHome, type AgentHomeData } from '@/lib/data/agent-home';
-import { EmptyState, Notice, buttonClass, cx } from '@/components/ui';
+import { EmptyState, Notice, buttonClass, cx, PageHeader } from '@/components/ui';
 import { AgentHomeSkeleton, AthletesPreview, AttentionList, PipelineStrip, SummaryStrip } from '@/components/agent/HomeParts';
 import { logEvent } from '@/lib/events';
 
@@ -96,14 +96,11 @@ export function AgentHomeView({ displayName, data, today = new Date().toISOStrin
 
 function Header({ first, date, agency }: { first: string; date: string; agency?: AgentHomeData['agency'] }) {
   return (
-    <header className="flex flex-wrap items-end justify-between gap-4">
-      <div>
-        <p className="eyebrow text-gold">Agencia · Hoy</p>
-        <h1 className="mt-2 font-display text-4xl text-paper sm:text-5xl">Hola, {first}</h1>
-        <p className="mt-2 text-muted">Tus atletas, sus procesos y lo que hay que mover hoy. Nada más.</p>
-        <p className="mt-1 text-xs text-faint"><span className="inline-block first-letter:uppercase">{date}</span>{agency ? ` · ${agency.name}${agency.verified ? ' ✓' : ''}` : ''}</p>
-      </div>
-      <Link href="/app/discover" className={buttonClass('primary')}><Search className="h-4 w-4" aria-hidden /> Buscar talento</Link>
-    </header>
+    <PageHeader
+      kicker="Agencia · Hoy"
+      title={`Hola, ${first}`}
+      description={<>Tus atletas, sus procesos y lo que hay que mover hoy. Nada más.<span className="mt-1 block text-xs text-faint"><span className="inline-block first-letter:uppercase">{date}</span>{agency ? ` · ${agency.name}${agency.verified ? ' ✓' : ''}` : ''}</span></>}
+      action={<Link href="/app/discover" className={buttonClass('primary')}><Search className="h-4 w-4" aria-hidden /> Buscar talento</Link>}
+    />
   );
 }

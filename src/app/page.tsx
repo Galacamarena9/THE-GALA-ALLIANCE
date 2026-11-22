@@ -17,10 +17,10 @@ import { CountUp, DrawLine, MotionRoot, ParallaxMedia, Rise, Tilt, WordsIn } fro
 
 const ROLES = [
   { key: 'agente', name: 'Agente', kicker: 'Para agencias', promise: 'Todos tus atletas, procesos y familias en un solo sitio.', cta: 'Ver la demo', href: '/demo/agente', img: '/media/agent-workspace.webp' },
-  { key: 'atleta', name: 'Atleta', kicker: 'Gratis siempre', promise: 'Un perfil verificado que abre puertas.', cta: 'Crear mi perfil', href: '/signup?role=athlete', img: '/media/founder-portrait-sm.webp' },
-  { key: 'familia', name: 'Familia', kicker: 'Con tu permiso', promise: 'El coste real de cada opción. Nada sin tu firma.', cta: 'Entrar como familia', href: '/signup?role=parent', img: '/media/hero-athletes-sm.webp' },
-  { key: 'club', name: 'Club', kicker: 'Clubes y academias', promise: 'Pruebas llenas de jugadores que sí quieren venir.', cta: 'Registrar mi club', href: '/para/coaches', img: '/media/club-training-sm.webp' },
-  { key: 'universidad', name: 'Universidad', kicker: 'NCAA y Europa', promise: 'Talento internacional con datos comprobables.', cta: 'Registrar mi universidad', href: '/para/universidades', img: '/media/university-campus-sm.webp' },
+  { key: 'atleta', name: 'Atleta', kicker: 'Gratis siempre', promise: 'Un perfil verificado que abre puertas.', cta: 'Crear mi perfil', href: '/signup?role=athlete', img: '/media/founder-portrait.webp' },
+  { key: 'familia', name: 'Familia', kicker: 'Con tu permiso', promise: 'El coste real de cada opción. Nada sin tu firma.', cta: 'Entrar como familia', href: '/signup?role=parent', img: '/media/hero-athletes.webp' },
+  { key: 'club', name: 'Club', kicker: 'Clubes y academias', promise: 'Pruebas llenas de jugadores que sí quieren venir.', cta: 'Registrar mi club', href: '/para/coaches', img: '/media/club-training.webp' },
+  { key: 'universidad', name: 'Universidad', kicker: 'NCAA y Europa', promise: 'Talento internacional con datos comprobables.', cta: 'Registrar mi universidad', href: '/para/universidades', img: '/media/university-campus.webp' },
 ];
 
 const STEPS = [
@@ -139,7 +139,7 @@ export default function Home() {
                   <Rise delay={i * 0.06} className="h-full">
                     <Tilt className="h-full">
                       <Link href={r.href} className={`role-card group relative flex h-full flex-col justify-end overflow-hidden rounded-[22px] border border-line ${i === 0 ? 'min-h-[440px]' : 'min-h-[300px]'}`}>
-                        <img src={r.img} alt="" aria-hidden loading="lazy" className="absolute inset-0 -z-0 h-full w-full object-cover opacity-75 grayscale-[35%] transition-all duration-700 group-hover:scale-105 group-hover:opacity-90 group-hover:grayscale-0" />
+                        <img src={r.img} srcSet={`${r.img.replace('.webp', '-sm.webp')} 720w, ${r.img} 1600w`} sizes="(min-width: 1024px) 40vw, 100vw" alt="" aria-hidden loading="lazy" decoding="async" className="photo-grade absolute inset-0 -z-0 h-full w-full object-cover opacity-75 grayscale-[35%] transition-all duration-700 group-hover:scale-105 group-hover:opacity-90 group-hover:grayscale-0" />
                         <span className="tile-elite absolute inset-0" aria-hidden />
                         <span className="absolute inset-x-0 top-0 h-[2px] origin-left scale-x-0 bg-brass transition-transform duration-500 group-hover:scale-x-100" aria-hidden />
                         <div className="relative p-6 sm:p-8">
