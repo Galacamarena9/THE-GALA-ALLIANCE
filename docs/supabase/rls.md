@@ -27,7 +27,7 @@ Extraída de `pg_policies` tras aplicar las 74 migraciones (antes de los avisos 
 |---|---|---|---|---|
 | `org_shortlists` | `org_can(org,'shortlist',programa)` y (dueño o visibilidad de equipo o programa); nunca las `deleted` | Igual, siendo el dueño | Igual | Sin política: se borra con `status = 'deleted'` |
 | `org_notes` | `org_can(org,'notes')` | Igual, siendo el autor | Autor con `notes` | Autor con `notes` |
-| `agency_athlete_notes` | **Cualquier miembro de la agencia** (ver §6) | Autor agente, miembro y con relación con el atleta | Autor | Autor |
+| `agency_athlete_notes` | Roles con trabajo sobre atletas o asignado al atleta (`agency_can_read_notes`); nunca `viewer`/`scout` sin asignación | Autor agente, miembro y con relación con el atleta | Autor | Autor |
 | `applications` | Atleta, tutor con `view_applications`, `org_can_opp(…,'candidates')`, admin | El propio atleta (rol `athlete`) | Atleta o `org_can_opp(…,'pipeline')` | Sin política: no se borra |
 | `athlete_offers` | Atleta, tutor con alcance `athlete.offers.view`, organización emisora si es su candidato, agente con `offers.view` | Atleta o tutor con alcance | Igual | Igual |
 | `athlete_documents` | Dueño, tutor con `view_documents`, concesión vigente (`org_has_document_grant`), acceso de emergencia auditado | Dueño o tutor con `edit_profile` | Igual | Igual |
@@ -53,12 +53,12 @@ Todas devuelven solo lo que la persona sin sesión ya puede ver, o `null`. Hoy s
 
 Universidad A ↔ B (shortlists, notas, candidatos, documentos, oportunidades), Club A ↔ B, agencia A ↔ B, coach sin permiso de programa, baja de staff con efecto inmediato y `organization_id` manipulado en la petición. La RLS lo impone; no depende de los filtros del frontend.
 
-## 6. Hallazgo de esta revisión
+## 6. Hallazgo de esta revisión (corregido)
 
 **`agency_athlete_notes`: un miembro `viewer` o `scout` de la agencia puede leer el texto de las notas pidiéndolo directamente a la API.** La ficha 360 se lo oculta, pero eso es ocultarlo solo en la interfaz, algo que nuestras reglas prohíben.
 - **Riesgo:** medio. Es dentro de la misma agencia; no cruza tenants.
 - **Arreglo propuesto:** la política SELECT exige un `agency_role` distinto de `viewer` y `scout`, o un rol de representación primario, secundario u operaciones, igual que `a360Access`.
-- **Estado:** no aplicado hoy, porque cambia lo que ven roles reales de la agencia y quiero tu OK.
+- **Estado:** **corregido** en `20261209000400_12r_agents_review.sql` (revisión del Prompt 12), con prueba.
 
 ## 7. Pendiente
 

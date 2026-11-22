@@ -8,6 +8,8 @@ import { REP_PERMISSIONS, REP_TYPE_LABEL, repStatusDetail, toRepStatus } from '@
 import { RepPermissionsForm } from '@/components/agency/RepPermissionsForm';
 import { InviteAgencyForm } from '@/components/agency/InviteAgencyForm';
 import { CASE_STAGES, stageLabel } from '@/lib/domain/agency-cases';
+import { ReportButton } from '@/components/forms';
+import { AGENT_REPORT_REASONS } from '@/lib/domain/reports';
 
 export const metadata: Metadata = { title: 'Agentes' };
 
@@ -16,7 +18,7 @@ export default async function AthleteAgentsPage() {
   const supabase = await createClient();
   const { data: reps } = await supabase
     .from('agent_representations')
-    .select('id, status, message, created_at, representation_type, start_date, end_date, organizations(name, website, verification_status), representation_coverage(dimension, value), representation_permissions(permission, status)')
+    .select('id, status, message, created_at, representation_type, start_date, end_date, agency_id, organizations(name, website, verification_status), representation_coverage(dimension, value), representation_permissions(permission, status)')
     .eq('athlete_id', session.userId)
     .order('created_at', { ascending: false });
   const { data: verifiedAgencies } = await supabase.from('organizations').select('id, name')
@@ -71,6 +73,7 @@ export default async function AthleteAgentsPage() {
                     <p className="mt-2 text-sm text-muted">Si aceptas, podrá: {REP_PERMISSIONS.filter((p) => perms.includes(p.id)).map((p) => p.label.toLowerCase()).join(' · ')}. Podrás quitar cualquiera después.</p>
                   )}
                   {org?.website && <a href={org.website} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-sm text-brass hover:underline">Web de la agencia ↗</a>}
+                  <div className="mt-2"><ReportButton entityType="organization" entityId={r.agency_id} label="Denunciar a esta agencia" reasons={AGENT_REPORT_REASONS} /></div>
                   <div className="mt-4 flex gap-2">
                     {r.status === 'requested' && (
                       <>

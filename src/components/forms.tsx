@@ -82,7 +82,9 @@ const REPORT_REASONS = [
   ['other', 'Otro'],
 ] as const;
 
-export function ReportButton({ entityType, entityId, label = 'Denunciar' }: { entityType: string; entityId: string; label?: string }) {
+export function ReportButton({ entityType, entityId, label = 'Denunciar', reasons = REPORT_REASONS }: {
+  entityType: string; entityId: string; label?: string; reasons?: readonly (readonly [string, string])[];
+}) {
   const [open, setOpen] = useState(false);
   if (!open) return <button onClick={() => setOpen(true)} className="text-xs text-faint underline-offset-2 hover:text-danger hover:underline">{label}</button>;
   return (
@@ -93,7 +95,7 @@ export function ReportButton({ entityType, entityId, label = 'Denunciar' }: { en
           <input type="hidden" name="entity_id" value={entityId} />
           <Field label="Motivo" htmlFor={`reason-${entityId}`}>
             <select id={`reason-${entityId}`} name="reason" className={inputClass}>
-              {REPORT_REASONS.map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              {reasons.map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
           </Field>
           <Field label="Detalles (opcional)" htmlFor={`details-${entityId}`}>
