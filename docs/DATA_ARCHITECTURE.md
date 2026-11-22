@@ -10,7 +10,7 @@ Los diagramas están en [`docs/erd/`](./erd/00-MASTER.md) y se generan solos a p
 | Qué sale en la descarga RGPD | `src/lib/privacy/export-tables.ts` | A mano |
 | Check de CI | `npm run check:erd` (job `app`) | Falla si una tabla nueva no está catalogada o documentada, o si la exportación no cuadra |
 
-Estado actual: **107 tablas, 13 dominios, RLS en 107/107**.
+Estado actual (22-11-2026): **160 tablas, 14 dominios, RLS en 160/160**. La auditoría actualizada, con problemas, duplicados y el plan de migración vigente, está en [`ARCHITECTURE-AUDIT.md`](./ARCHITECTURE-AUDIT.md). Si algo de este documento contradice esa auditoría, manda la auditoría. El diagnóstico de solo lectura se ejecuta con `npm run diagnose:db`.
 
 ---
 
@@ -109,7 +109,7 @@ Lo que se ha cambiado:
 - Nueva prueba: al final de la batería, **todas las cuentas y organizaciones de prueba se borran sin error** y la auditoría queda anonimizada.
 - La exportación RGPD pasa de 26 a 61 secciones, y una prueba comprueba que cada sección es legible por su titular (menor, adulto, coach y familia). Faltaban, entre otras, la trayectoria, los objetivos, los vídeos, los procesos, los trials, la IA, la verificación y los mensajes enviados.
 
-**Fase 1 · Fusiones sin riesgo** (una migración por fusión, con copia de datos, vista de compatibilidad y prueba RLS):
+**Fase 1 · Fusiones sin riesgo** (a 22-11 ninguna está hecha; el orden vigente está en [`ARCHITECTURE-AUDIT.md §4`](./ARCHITECTURE-AUDIT.md)) (una migración por fusión, con copia de datos, vista de compatibilidad y prueba RLS):
 1. `institution_claims` → `verification_requests`: copiar, rellenar `legacy_claim_id` y que `/app/verify` escriba solo en `verification_requests`. La tabla antigua queda en solo lectura durante un ciclo.
 2. `saved_athletes` → shortlist privada por persona y organización. Hay que convertir antes la pantalla «Mis listas».
 3. `saved_searches` → `org_saved_searches` para el staff. Las búsquedas de atletas, si las hay, se quedan donde están.
