@@ -10,27 +10,35 @@ const mode = (roles: AppRole[], primaryRole?: AppRole, x: { isMinor?: boolean; c
 const labels = (m: NavMode) => m.primary.map((i) => i.label);
 const ROOT = join(import.meta.dirname, '../../..');
 
-test('Agent OS: Inicio, Atletas, Oportunidades, Recruiting, Mensajes, Más (≤ 6 destinos)', () => {
+test('Agencia: Hoy, Atletas, Procesos, Oportunidades, Mensajes + Más (≤ 6 destinos)', () => {
   const m = mode(['agent']);
-  assert.deepEqual(labels(m), ['Inicio', 'Atletas', 'Oportunidades', 'Recruiting', 'Mensajes']);
+  assert.deepEqual(labels(m), ['Hoy', 'Atletas', 'Procesos', 'Oportunidades', 'Mensajes']);
   assert.ok(m.more.length > 0);
   assert.ok(topLevelCount(m) <= 6, String(topLevelCount(m)));
 });
 
-test('Athlete OS: exactamente 5 destinos, sin «Más»', () => {
+test('Atleta: exactamente 5 destinos, sin «Más»', () => {
   for (const isMinor of [false, true]) {
     const m = mode(['athlete'], 'athlete', { isMinor });
-    assert.deepEqual(labels(m), ['Inicio', 'Oportunidades', 'Mi camino', 'Mensajes', 'Perfil']);
+    assert.deepEqual(labels(m), ['Hoy', 'Mi perfil', 'Oportunidades', 'Mi proceso', 'Mensajes']);
     assert.equal(topLevelCount(m), 5);
   }
 });
 
-test('University OS: Inicio, Descubrir, Candidatos, Oportunidades, Recruiting, Más', () => {
+test('Club o universidad: Hoy, Buscar atletas, Mis listas, Procesos, Becas y pruebas + Más', () => {
   for (const r of ['university', 'coach'] as AppRole[]) {
     const m = mode([r]);
-    assert.deepEqual(labels(m), ['Inicio', 'Descubrir', 'Candidatos', 'Oportunidades', 'Recruiting']);
+    assert.deepEqual(labels(m), ['Hoy', 'Buscar atletas', 'Mis listas', 'Procesos', 'Becas y pruebas']);
     assert.ok(topLevelCount(m) <= 6);
   }
+});
+
+test('Familia: Hoy, Su proceso, Costes, Aprobaciones, Mensajes', () => {
+  assert.deepEqual(labels(mode(['parent'])), ['Hoy', 'Su proceso', 'Costes', 'Aprobaciones', 'Mensajes']);
+});
+
+test('cinco secciones como máximo en el primer nivel para cada actor', () => {
+  for (const r of ['agent', 'athlete', 'parent', 'university', 'coach', 'brand', 'admin'] as AppRole[]) assert.ok(mode([r]).primary.length <= 5, r);
 });
 
 test('Operaciones Gala: Verificación, Cumplimiento, Confianza, Moderación, Soporte', () => {

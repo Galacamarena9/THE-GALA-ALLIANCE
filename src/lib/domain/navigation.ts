@@ -192,44 +192,53 @@ const ACCOUNT = (org: boolean): NavItem[] => [
   it('/app/invitar', 'Invitar', 'spark', 'Comparte The Gala Alliance con tu equipo.'),
 ];
 
-/** Agent OS: Inicio, Atletas, Oportunidades, Recruiting, Mensajes, Más. */
+/** Agencia (reforma 180°): Hoy · Atletas · Procesos · Oportunidades · Mensajes. Cuenta y herramientas en «Más». */
 function agentMode(): NavMode {
   const athletes = it('/app/portfolio', 'Atletas', 'users', 'Tu cartera: representados, propuestas, notas y seguimientos.', {
     children: [
       it('/app/portfolio', 'Mis atletas', 'users', 'Representados y propuestas, con su estado y siguiente paso.'),
       it('/app/discover', 'Buscar talento', 'search', 'Filtra por deporte, posición, físico, nacionalidad, promoción, nivel e idioma.'),
       it('/app/lists', 'Listas', 'list', 'Atletas guardados y búsquedas con alertas.'),
-      it('/app/portfolio/trials', 'Trials y programas', 'trophy', 'Trials de clubes y academias para tus representados.'),
     ],
   });
-  const opportunities = it('/app/opportunities', 'Oportunidades', 'trophy', 'Becas, universidades y jornadas para tus atletas.', {
+  const processes = it('/app/pipeline', 'Procesos', 'pipeline', 'Cada atleta con cada universidad o club: fase, responsable, tareas e historial.', {
+    children: [
+      it('/app/pipeline', 'Tablero de procesos', 'pipeline', 'Tablero y tabla de procesos con plazos y responsables.'),
+      it('/app/contacts', 'Universidades y coaches', 'campus', 'Contactos de programas, privados de tu agencia.'),
+      it('/app/pipeline/team', 'Equipo', 'users', 'Quién lleva cada proceso en tu agencia.'),
+    ],
+  });
+  const opportunities = it('/app/opportunities', 'Oportunidades', 'trophy', 'Becas, pruebas de clubes y universidades para tus atletas.', {
     children: [
       it('/app/opportunities', 'Becas y oportunidades', 'trophy', 'Ofertas de organizaciones verificadas con sello de confianza y coste neto.'),
+      it('/app/portfolio/trials', 'Trials y programas', 'trophy', 'Trials de clubes y academias para tus representados.'),
       it('/app/universities', 'Universidades', 'campus', 'Directorio con datos oficiales del U.S. Department of Education.'),
       it('/app/universities/compare', 'Comparar universidades', 'compare', 'Hasta 5 universidades lado a lado.'),
       it('/app/showcase', 'Showcase Day', 'showcase', 'Jornada mensual ante universidades y clubes verificados.'),
     ],
   });
-  const recruiting = it('/app/pipeline', 'Recruiting', 'pipeline', 'Cada atleta con cada universidad: fase, responsable, tareas e historial.', {
-    children: [
-      it('/app/pipeline', 'Procesos', 'pipeline', 'Tablero y tabla de procesos con plazos y responsables.'),
-      it('/app/contacts', 'Universidades y coaches', 'campus', 'Contactos de programas, privados de tu agencia.'),
-      it('/app/pipeline/team', 'Equipo', 'users', 'Quién lleva cada proceso en tu agencia.'),
-    ],
-  });
-  const home = it('/app', 'Inicio', 'home', 'Hoy: vencidos, ofertas que caducan, documentos y respuestas.');
+  const home = it('/app', 'Hoy', 'home', 'Lo que toca hoy: vencidos, ofertas que caducan, documentos y respuestas.');
   return {
     id: 'agent', label: 'Agencia',
-    primary: [home, athletes, opportunities, recruiting, MESSAGES],
+    primary: [home, athletes, processes, opportunities, MESSAGES],
     more: [it('/app/organization', 'Agencia', 'building', 'Datos de la agencia, verificación y miembros.'), ...TOOLS, ...ACCOUNT(true)],
-    tabs: [home, { ...athletes, label: 'Atletas' }, { ...recruiting, label: 'Procesos' }, MESSAGES],
+    tabs: [home, athletes, processes, MESSAGES],
     extra: [],
   };
 }
 
-/** Athlete OS: Inicio, Oportunidades, Mi camino, Mensajes, Perfil (exactamente 5, sin «Más»). */
+/** Atleta (reforma 180°): Hoy · Mi perfil · Oportunidades · Mi proceso · Mensajes (exactamente 5, sin «Más»). */
 function athleteMode(adult: boolean): NavMode {
-  const home = it('/app', 'Inicio', 'home', 'Tu siguiente paso, tus plazos y quién te ha visto.');
+  const home = it('/app', 'Hoy', 'home', 'Tu siguiente paso, tus plazos y quién te ha visto.');
+  const profile = it('/app/athlete/passport', 'Mi perfil', 'id', 'Tu Passport: lo que ven universidades, clubes y agentes.', {
+    children: [
+      it('/app/athlete/passport', 'Mi Passport', 'id', 'Tu perfil deportivo y académico.'),
+      it('/app/share', 'Compartir mi perfil', 'megaphone', 'Enlace privado para coaches y quién lo abre.'),
+      it('/app/agents', 'Agentes', 'handshake', 'Agentes que quieren representarte y los que aceptaste.'),
+      ...(adult ? [it('/app/collaborations', 'Colaboraciones', 'megaphone', 'Tus colaboraciones con marcas.')] : []),
+      it('/app/settings', 'Privacidad y datos', 'shield', 'Quién ve cada bloque, descarga de datos y baja.'),
+    ],
+  });
   const opportunities = it('/app/opportunities', 'Oportunidades', 'trophy', 'Becas, universidades que encajan contigo y tu shortlist.', {
     children: [
       it('/app/match', 'Gala Match', 'compass', 'Las universidades y oportunidades que más encajan contigo, con las razones.'),
@@ -241,7 +250,7 @@ function athleteMode(adult: boolean): NavMode {
       ...(adult ? [it('/app/campaigns', 'Marcas y patrocinios', 'megaphone', 'Colaboraciones con marcas (solo mayores de edad).')] : []),
     ],
   });
-  const journey = it('/app/process', 'Mi camino', 'path', 'Tus procesos, candidaturas, ofertas, documentos y plan.', {
+  const journey = it('/app/process', 'Mi proceso', 'path', 'Tus procesos, candidaturas, ofertas, documentos y plan.', {
     children: [
       it('/app/process', 'Mis procesos', 'pipeline', 'Cada universidad que sigues: etapa, siguiente paso, tareas y documentos.'),
       it('/app/applications', 'Candidaturas', 'inbox', 'Estado de cada beca a la que te has apuntado.'),
@@ -253,97 +262,94 @@ function athleteMode(adult: boolean): NavMode {
       it('/app/academia', 'Academia SAT/TOEFL', 'grad', 'Práctica con preguntas tipo examen y fechas oficiales.'),
     ],
   });
-  const profile = it('/app/athlete/passport', 'Perfil', 'id', 'Tu Passport: lo que ven universidades, clubes y agentes.', {
-    children: [
-      it('/app/athlete/passport', 'Mi Passport', 'id', 'Tu perfil deportivo y académico.'),
-      it('/app/share', 'Compartir mi perfil', 'megaphone', 'Enlace privado para coaches y quién lo abre.'),
-      it('/app/agents', 'Agentes', 'handshake', 'Agentes que quieren representarte y los que aceptaste.'),
-      ...(adult ? [it('/app/collaborations', 'Colaboraciones', 'megaphone', 'Tus colaboraciones con marcas.')] : []),
-      it('/app/settings', 'Privacidad y datos', 'shield', 'Quién ve cada bloque, descarga de datos y baja.'),
-    ],
-  });
   return {
     id: 'athlete', label: 'Atleta',
-    primary: [home, opportunities, journey, MESSAGES, profile],
+    primary: [home, profile, opportunities, journey, MESSAGES],
     more: [],
     tabs: [home, { ...opportunities, label: 'Oportun.' }, journey, MESSAGES],
     extra: [...TOOLS, ...ACCOUNT(false).filter((i) => i.href !== '/app/settings')],
   };
 }
 
-/** Familia: el proceso de su hijo/a, el coste y su aprobación. */
+/** Familia (reforma 180°): Hoy · Su proceso · Costes · Aprobaciones · Mensajes. */
 function familyMode(): NavMode {
-  const home = it('/app', 'Inicio', 'home', 'Panel familiar: lo que necesita vuestra decisión y los plazos.', { aliases: ['/app/family'] });
-  const costs = it('/app/family/costs', 'Coste real', 'scale', 'Coste publicado, ayuda confirmada y lo que falta, opción por opción.');
-  const journey = it('/app/process', 'Su camino', 'path', 'Procesos, ofertas, documentos y plan de tu hijo o hija.', {
+  const home = it('/app', 'Hoy', 'home', 'Panel familiar: lo que necesita vuestra decisión y los plazos.', { aliases: ['/app/family'] });
+  const journey = it('/app/process', 'Su proceso', 'path', 'Procesos, ofertas, documentos y plan de tu hijo o hija.', {
     children: [
       it('/app/process', 'Procesos', 'pipeline', 'Los procesos de recruiting y qué toca hacer en cada uno.'),
-      it('/app/offers', 'Ofertas', 'scale', 'Coste neto, riesgos y memo de decisión.'),
       it('/app/documents', 'Documentos', 'doc', 'Checklist y archivos privados del proceso.'),
-      it('/app/requests', 'Solicitudes', 'shield', 'Peticiones de universidades: tú decides.'),
       it('/app/plan', 'Plan familiar', 'tag', 'Informe, lista de universidades y calendario.'),
+      it('/app/opportunities', 'Becas', 'trophy', 'Ofertas de organizaciones verificadas.'),
+      it('/app/universities', 'Universidades', 'campus', 'Directorio con datos oficiales.'),
       it('/app/academia', 'Academia SAT/TOEFL', 'grad', 'Práctica con preguntas tipo examen.'),
     ],
   });
-  const safety = it('/app/family/safety', 'Seguridad', 'shield', 'Quién puede contactar y ver a tu hijo o hija.');
+  const costs = it('/app/family/costs', 'Costes', 'scale', 'Coste publicado, ayuda confirmada y lo que falta, opción por opción.', {
+    children: [
+      it('/app/family/costs', 'Coste real', 'scale', 'Coste neto por opción. Solo lo ve la familia.'),
+      it('/app/offers', 'Comparar ofertas', 'scale', 'Coste neto, riesgos y memo de decisión.'),
+    ],
+  });
+  const approvals = it('/app/requests', 'Aprobaciones', 'shield', 'Lo que espera tu permiso: solicitudes de información y quién puede contactar.', {
+    children: [
+      it('/app/requests', 'Solicitudes', 'shield', 'Peticiones de universidades sobre tu hijo o hija: tú decides.'),
+      it('/app/family/safety', 'Seguridad y permisos', 'shield', 'Quién puede contactar y ver a tu hijo o hija.'),
+    ],
+  });
   return {
     id: 'family', label: 'Familia',
-    primary: [home, costs, journey, MESSAGES],
-    more: [safety, it('/app/share', 'Compartir su perfil', 'megaphone', 'Enlaces privados de reclutamiento.'),
-      it('/app/opportunities', 'Becas', 'trophy', 'Ofertas de organizaciones verificadas.'), it('/app/universities', 'Universidades', 'campus', 'Directorio con datos oficiales.'),
-      ...TOOLS, ...ACCOUNT(false)],
-    tabs: [{ ...home, label: 'Hoy' }, { ...costs, label: 'Costes' }, { ...journey, label: 'Su camino' }, MESSAGES],
+    primary: [home, journey, costs, approvals, MESSAGES],
+    more: [it('/app/share', 'Compartir su perfil', 'megaphone', 'Enlaces privados de reclutamiento.'), ...TOOLS, ...ACCOUNT(false)],
+    tabs: [home, journey, costs, approvals],
     extra: [],
   };
 }
 
-/** University OS (universidades, colleges, clubes y academias): Inicio, Descubrir, Candidatos, Oportunidades, Recruiting, Más. */
+/** Club o universidad (reforma 180°): Hoy · Buscar atletas · Mis listas · Procesos · Becas y pruebas. */
 function universityMode(club: boolean, isCoach: boolean): NavMode {
-  const home = it('/app', 'Inicio', 'home', 'Recruiting: qué necesita atención, plazas por posición y agenda.', { aliases: ['/app/recruit'] });
-  const discover = it('/app/recruit/discover', 'Descubrir', 'search', 'Búsqueda con privacidad y encaje con tus necesidades.', {
+  const home = it('/app', 'Hoy', 'home', 'Recruiting: qué necesita atención, necesidades por posición y agenda.', { aliases: ['/app/recruit'] });
+  const discover = it('/app/recruit/discover', 'Buscar atletas', 'search', 'Búsqueda con privacidad y encaje con tus necesidades.', {
     children: [
       it('/app/recruit/discover', 'Descubrir atletas', 'search', 'Búsqueda que respeta la privacidad, con encaje.'),
       it('/app/recruit/compare', 'Comparar', 'compare', 'Candidatos lado a lado.'),
+      it('/app/recruit/needs', 'Necesidades', 'chart', 'Plazas por posición, temporada y promoción.'),
     ],
   });
-  const candidates = it('/app/recruit/candidates', 'Candidatos', 'users', 'Por etapa interna, asignados y con historial.', {
+  const lists = it('/app/recruit/shortlists', 'Mis listas', 'list', 'Listas privadas o de equipo, con revisión y notas.', {
     children: [
-      it('/app/recruit/candidates', 'Procesos', 'pipeline', 'Candidatos por etapa interna.'),
       it('/app/recruit/shortlists', 'Listas de seguimiento', 'list', 'Listas privadas o de equipo, con revisión y notas.'),
-      it('/app/applications', 'Candidaturas recibidas', 'inbox', 'Quién se ha apuntado a cada oportunidad.'),
+      it('/app/lists', 'Listas personales', 'list', 'Atletas guardados y búsquedas con alertas.'),
     ],
   });
-  const opportunities = it('/app/opportunities?view=mine', 'Oportunidades', 'trophy', 'Vuestras becas, trials y programas publicados.', {
+  const processes = it('/app/recruit/candidates', 'Procesos', 'pipeline', 'Candidatos por etapa interna, asignados y con historial.', {
+    children: [
+      it('/app/recruit/candidates', 'Candidatos', 'pipeline', 'Candidatos por etapa interna.'),
+      it('/app/applications', 'Candidaturas recibidas', 'inbox', 'Quién se ha apuntado a cada oportunidad.'),
+      it('/app/recruit/tasks', 'Tareas del equipo', 'list', 'Quién hace qué y para cuándo.'),
+    ],
+  });
+  const published = it('/app/opportunities?view=mine', 'Becas y pruebas', 'trophy', 'Vuestras becas, trials y programas publicados.', {
     children: [
       it('/app/opportunities?view=mine', 'Publicadas', 'trophy', 'Gestiona lo que habéis publicado.'),
       it('/app/opportunities/new', 'Publicar', 'megaphone', 'Sale al momento si pasa los controles automáticos.'),
       it('/app/recruit/trials', 'Trials', 'trophy', 'Inscripciones, plazas y asistencia.'),
-    ],
-  });
-  const recruiting = it('/app/recruit/needs', 'Recruiting', 'chart', 'Necesidades por posición y tareas del equipo.', {
-    children: [
-      it('/app/recruit/needs', 'Necesidades', 'chart', 'Plazas por posición, temporada y promoción.'),
-      it('/app/recruit/tasks', 'Tareas del equipo', 'list', 'Quién hace qué y para cuándo.'),
       it('/app/showcase', 'Showcase Day', 'showcase', 'Jornada mensual de atletas inscritos.'),
     ],
   });
   return {
     id: 'university', label: club ? 'Club / academia' : 'Universidad',
-    primary: [home, discover, candidates, opportunities, recruiting],
+    primary: [home, discover, lists, processes, published],
     more: [MESSAGES, it('/app/organization', club ? 'Club / academia' : 'Universidad y equipo', 'building', 'Datos, verificación y miembros.'),
       ...(isCoach ? [it('/app/verify', 'Mi verificación', 'shield', 'Correo institucional, afiliación y cargo.'), it('/app/club', 'Portal de club', 'users', 'Plantilla, validación de estadísticas y colocaciones.')] : []),
-      it('/app/lists', 'Listas personales', 'list', 'Atletas guardados y búsquedas con alertas.'),
       ...TOOLS, ...ACCOUNT(true)],
-    tabs: club
-      ? [{ ...home, label: 'Inicio' }, { ...discover, label: 'Descubrir' }, it('/app/recruit/shortlists', 'Listas', 'list'), it('/app/recruit/trials', 'Trials', 'trophy')]
-      : [{ ...home, label: 'Inicio' }, { ...discover, label: 'Descubrir' }, { ...candidates, label: 'Candidatos' }, { ...opportunities, label: 'Oportun.' }],
+    tabs: [home, discover, lists, processes],
     extra: [],
   };
 }
 
 /** Marca: campañas (su inicio), talento y listas. Las colaboraciones viven dentro de cada campaña. */
 function brandMode(): NavMode {
-  const home = it('/app', 'Inicio', 'home', 'Tus campañas y sus candidaturas.', { aliases: ['/app/campaigns'] });
+  const home = it('/app', 'Hoy', 'home', 'Tus campañas y sus candidaturas.', { aliases: ['/app/campaigns'] });
   const talent = it('/app/discover', 'Talento', 'search', 'Atletas mayores de edad que aceptan colaboraciones.');
   const lists = it('/app/lists', 'Listas', 'list', 'Atletas que te interesan, agrupados en listas.');
   return {
@@ -386,7 +392,7 @@ export function navModeFor({ roles, primaryRole, isMinor = false, clubStaff = fa
     case 'university': case 'coach': return withOtherRoles(universityMode(clubStaff, roles.includes('coach')), roles, primary);
     case 'brand': return withOtherRoles(brandMode(), roles, primary);
     case 'admin': return operationsMode();
-    default: return { id: 'athlete', label: 'Cuenta', primary: [it('/app', 'Inicio', 'home'), MESSAGES], more: [...TOOLS, ...ACCOUNT(false)], tabs: [it('/app', 'Inicio', 'home'), MESSAGES], extra: [] };
+    default: return { id: 'athlete', label: 'Cuenta', primary: [it('/app', 'Hoy', 'home'), MESSAGES], more: [...TOOLS, ...ACCOUNT(false)], tabs: [it('/app', 'Hoy', 'home'), MESSAGES], extra: [] };
   }
 }
 
