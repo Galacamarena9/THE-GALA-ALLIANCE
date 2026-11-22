@@ -78,11 +78,10 @@ export function AthleteCommandCenter({ d, firstName, isMinor }: { d: AthleteDash
     <div className="space-y-6">
       {/* 1. Saludo, etapa y NEXT BEST ACTION. */}
       <section aria-labelledby="cc-hello" className="relative overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface p-5 sm:p-7">
-        <div className="glow-gold pointer-events-none absolute -right-24 -top-24 h-72 w-72" aria-hidden />
-        <div className="relative grid gap-6 lg:grid-cols-[1fr_340px] lg:items-center">
+                <div className="relative grid gap-6 lg:grid-cols-[1fr_340px] lg:items-center">
           <div>
-            <p className="eyebrow text-brass">Etapa · {stage.label}</p>
-            <h1 id="cc-hello" className="mt-2 font-display text-3xl font-bold uppercase leading-[0.95] text-paper sm:text-4xl">Hola, {firstName}</h1>
+            <p className="eyebrow text-gold">Hoy · {stage.label}</p>
+            <h1 id="cc-hello" className="mt-2 font-display text-4xl leading-[1.05] text-paper sm:text-5xl">Hola, {firstName}</h1>
             <p className="mt-2 max-w-xl text-sm text-muted">{stage.focus}</p>
             {nba ? (
               <div className="mt-5 rounded-2xl border border-brass/40 bg-brass/5 p-4">
