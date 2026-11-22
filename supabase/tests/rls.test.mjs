@@ -3527,6 +3527,39 @@ try {
     eq((await db.query(`select count(*)::int n from applications where opportunity_id = $1 and athlete_id = $2`, [opp, u.adult])).rows[0].n, 1);
   });
 
+  results.push('\nLista de difusión');
+  await check('Difusión: solo administradores leen o crean contactos; anónimos y otros roles no ven nada', async () => {
+    await as(u.admin, `insert into outreach_contacts (segment, organization_name, channel, email, source_url) values ('agency', 'Agencia Prueba', 'email', 'hola@agencia-prueba.test', 'https://agencia-prueba.test')`);
+    eq((await as(u.admin, `select count(*)::int n from outreach_contacts`)).rows[0].n > 0, true, 'admin');
+    for (const who of [u.agent, u.adult, u.uni]) {
+      eq((await as(who, `select count(*)::int n from outreach_contacts`)).rows[0].n, 0, String(who));
+    }
+    await expectError(() => as(null, `select count(*) from outreach_contacts`), /permission denied/);
+    await expectError(() => as(u.agent, `insert into outreach_contacts (segment, organization_name, channel, email, source_url) values ('agency', 'Intruso', 'email', 'x@y.test', 'https://y.test')`), /row-level security|permission/);
+    await expectError(() => as(u.admin, `insert into outreach_contacts (segment, organization_name, channel, source_url) values ('agency', 'Sin correo', 'email', 'https://z.test')`), /outreach_email_channel/);
+  });
+  await check('Difusión: el estado y el token los pone el servidor, no el panel', async () => {
+    const id = (await as(u.admin, `insert into outreach_contacts (segment, organization_name, channel, email, source_url, status) values ('university', 'Uni Prueba', 'email', 'coach@uni-prueba.test', 'https://uni-prueba.test', 'accepted') returning id, status`)).rows[0];
+    eq(id.status, 'new', 'el estado inicial lo fija el servidor');
+    await expectError(() => as(u.admin, `update outreach_contacts set status = 'accepted' where id = $1`, [id.id]), /bad_transition/);
+    await expectError(() => as(u.agent, `select outreach_issue_invite($1)`, [id.id]), /forbidden/);
+  });
+  await check('Difusión: invitación de un solo uso; aceptar avisa a los admins; la baja es definitiva y bloquea reinsertar', async () => {
+    const c = (await as(u.admin, `select id from outreach_contacts where email = 'hola@agencia-prueba.test'`)).rows[0].id;
+    const token = (await as(u.admin, `select outreach_issue_invite($1) t`, [c])).rows[0].t;
+    eq(/^[a-f0-9]{64}$/.test(token), true, 'token');
+    await expectError(() => as(u.admin, `select outreach_issue_invite($1)`, [c]), /not_invitable/);
+    eq((await as(null, `select valid from outreach_preview($1)`, [token])).rows[0].valid, true, 'preview anónimo');
+    eq((await as(null, `select count(*)::int n from outreach_preview($1)`, ['0'.repeat(64)])).rows[0].n, 0, 'token falso');
+    eq((await as(null, `select outreach_respond($1, 'accept') r`, [token])).rows[0].r, 'accepted');
+    eq((await as(null, `select outreach_respond($1, 'decline') r`, [token])).rows[0].r, 'expired', 'un solo uso');
+    eq((await as(u.admin, `select count(*)::int n from notifications where user_id = $1 and kind = 'outreach_accepted'`, [u.admin])).rows[0].n, 1, 'aviso a Gala');
+    eq((await as(null, `select outreach_respond($1, 'unsubscribe') r`, [token])).rows[0].r, 'unsubscribed', 'baja siempre');
+    await as(u.admin, `delete from outreach_contacts where id = $1`, [c]);
+    await expectError(() => as(u.admin, `insert into outreach_contacts (segment, organization_name, channel, email, source_url) values ('agency', 'Agencia Prueba 2', 'email', 'HOLA@agencia-prueba.test', 'https://agencia-prueba.test')`), /suppressed/);
+    eq((await as(u.admin, `select count(*)::int n from outreach_suppressions`).catch(() => ({ rows: [{ n: -1 }] }))).rows[0].n, -1, 'la supresión no se lee desde la API');
+  });
+
   await check('P9 catálogo · RLS en todas las tablas, FKs indexadas, search_path fijo y triggers fuera de la API', async () => {
     const one = async (sql) => (await db.query(sql)).rows.map((r) => Object.values(r)[0]);
     const noRls = await one(`select relname from pg_class where relnamespace = 'public'::regnamespace and relkind = 'r' and not relrowsecurity`);

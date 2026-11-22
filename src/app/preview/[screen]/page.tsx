@@ -8,6 +8,10 @@ import { DEFAULT_CRM } from '@/lib/domain/athletes-crm';
 import { Athlete360View } from '@/app/app/portfolio/[athleteId]/Athlete360View';
 import { previewAthlete360 } from '@/lib/preview/athlete-360';
 import { parseA360Tab } from '@/lib/domain/athlete-360';
+import { OutreachView } from '@/app/app/admin/difusion/OutreachView';
+import { OutreachResponseView } from '@/app/difusion/[token]/OutreachResponseView';
+import { previewOutreach } from '@/lib/preview/outreach';
+import { DEFAULT_OUTREACH } from '@/lib/domain/outreach';
 import { previewPortfolio, previewSports, previewCases } from '@/lib/preview/fixtures';
 import { PipelineBoard } from '@/components/agency/PipelineBoard';
 import { ROLE_SHORTCUTS, RoleHero, ShortcutTiles } from '@/components/RoleHero';
@@ -78,7 +82,7 @@ const demoPublicOpp: PublicOpportunity = {
  */
 export const metadata: Metadata = { title: 'Probador interno', robots: { index: false, follow: false } };
 
-const SCREENS = ['athlete-360', 'athlete-360-empty', 'athlete-360-viewer', 'athlete-360-locked', 'portfolio-100', 'portfolio-empty', 'agent-home', 'agent-home-empty', 'agent-home-partial', 'agent-home-no-agency', 'agent-home-error', 'portfolio', 'athlete-home', 'coach-home', 'pipeline', 'pipeline-table', 'match', 'opportunity', 'passport', 'galamatch', 'command-center', 'athlete-pipeline', 'club-trials', 'trial-club', 'trial-athlete', 'family-trials', 'program-athlete', 'family-home', 'family-costs', 'family-welcome', 'shell-agent', 'shell-athlete', 'shell-university', 'shell-operations'] as const;
+const SCREENS = ['admin-difusion', 'admin-difusion-empty', 'difusion-respuesta', 'difusion-hecho', 'athlete-360', 'athlete-360-empty', 'athlete-360-viewer', 'athlete-360-locked', 'portfolio-100', 'portfolio-empty', 'agent-home', 'agent-home-empty', 'agent-home-partial', 'agent-home-no-agency', 'agent-home-error', 'portfolio', 'athlete-home', 'coach-home', 'pipeline', 'pipeline-table', 'match', 'opportunity', 'passport', 'galamatch', 'command-center', 'athlete-pipeline', 'club-trials', 'trial-club', 'trial-athlete', 'family-trials', 'program-athlete', 'family-home', 'family-costs', 'family-welcome', 'shell-agent', 'shell-athlete', 'shell-university', 'shell-operations'] as const;
 
 // Gala Match con el motor real y datos ficticios: un Passport completo y otro con muchos datos ausentes.
 const demoOpp = { sport_id: 'basketball', position_ids: [1], graduation_years: [2027], division: 'ncaa_d2' as const, min_gpa_4: 2.5, english_required: 'TOEFL 80', annual_cost_usd: 40000, aid_amount_usd: 30000 };
@@ -94,6 +98,9 @@ export default async function PreviewPage({ params, searchParams }: { params: Pr
     const role = ({ 'shell-agent': 'agent', 'shell-athlete': 'athlete', 'shell-university': 'university', 'shell-operations': 'admin' } as const)[screen as 'shell-agent'];
     const people = role === 'agent' ? [...new Map(d.entries.map((e) => [e.athleteId, e])).values()].map((e) => ({ href: `/app/portfolio/${e.athleteId}`, label: e.name, kind: 'Atleta', desc: e.sportName ?? '' })) : [];
     return <ShellPreview role={role} people={people} />;
+  }
+  if (screen === 'difusion-respuesta' || screen === 'difusion-hecho') {
+    return <OutreachResponseView token={'a'.repeat(64)} preview={{ organizationName: 'Agencia de ejemplo', status: 'invited', valid: true }} ask="accept" done={screen === 'difusion-hecho' ? 'accepted' : null} demo />;
   }
   return (
     <div className="min-h-dvh bg-ink px-5 py-8 sm:px-8 lg:px-10">
@@ -150,6 +157,9 @@ export default async function PreviewPage({ params, searchParams }: { params: Pr
           <div className="grid gap-5 md:grid-cols-2">
             {[demoFull, demoThin].map((m, i) => <section key={i} className="rounded-[var(--radius-card)] border border-line bg-surface p-6"><MatchBreakdown match={m} editHref="#" /></section>)}
           </div>
+        )}
+        {screen.startsWith('admin-difusion') && (
+          <OutreachView rows={screen === 'admin-difusion-empty' ? [] : previewOutreach()} filters={DEFAULT_OUTREACH} aviso={null} emailReady={false} demo />
         )}
         {screen.startsWith('athlete-360') && (
           <Athlete360View
