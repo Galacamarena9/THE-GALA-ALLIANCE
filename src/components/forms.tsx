@@ -309,7 +309,7 @@ export function AthleteLinkForm() {
           <Field label="Tipo" htmlFor="link_kind">
             <select id="link_kind" name="kind" className={inputClass}>{Object.entries(LINK_KIND_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
           </Field>
-          <Field label="Enlace oficial" htmlFor="link_url"><input id="link_url" name="url" placeholder="https://" className={inputClass} /></Field>
+          <Field label="Enlace oficial" hint="Mejor tu ficha de la federación, de FIBA, de la NCAA o de la Euroliga: se marca como fuente oficial." htmlFor="link_url"><input id="link_url" name="url" placeholder="https://" className={inputClass} /></Field>
           <SubmitButton variant="secondary">Añadir</SubmitButton>
         </>
       )}

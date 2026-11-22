@@ -8,6 +8,7 @@ import {
   PROVENANCE_LABEL, SCHOLARSHIP_LABEL, SCHOOL_SIZE_LABEL, SPORT_LEVEL_LABEL, VIDEO_KIND_LABEL, VISIBILITY_LABEL,
 } from '@/lib/domain/passport';
 import { LINK_KIND_LABEL, domainOf } from '@/lib/domain/labels';
+import { classifyOfficialLink } from '@/lib/domain/official-sources';
 import { initials } from '@/lib/domain/portfolio';
 
 /**
@@ -358,7 +359,7 @@ export function PassportView({ d, actions, mode = 'public' }: { d: PassportViewD
             <ul className="mt-4 space-y-2">
               {d.links.map((l) => (
                 <li key={l.id} className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 px-4 py-3 text-sm">
-                  <span className="text-white/80">{LINK_KIND_LABEL[l.kind] ?? l.kind}</span>
+                  <span className="text-white/80">{classifyOfficialLink(l.url)?.label ?? LINK_KIND_LABEL[l.kind] ?? l.kind}{classifyOfficialLink(l.url) && <span className="ml-2 rounded-full border border-white/20 px-2 py-0.5 text-[11px] text-white/70">Fuente oficial</span>}</span>
                   <a href={l.url} target="_blank" rel="noopener noreferrer nofollow" className="flex min-w-0 items-center gap-2 truncate text-lime hover:underline">{domainOf(l.url)} ↗ {l.verified ? <BadgeCheck className="h-4 w-4" aria-label="Enlace verificado" /> : <span className="text-white/60">(sin verificar)</span>}</a>
                 </li>
               ))}

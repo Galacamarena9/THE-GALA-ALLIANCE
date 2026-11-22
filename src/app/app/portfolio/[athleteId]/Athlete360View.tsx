@@ -229,6 +229,7 @@ function SummaryTab({ data, steps }: { data: Athlete360; steps: ReturnType<typeo
             </details>
           )}
         </Panel>
+        <OfficialSourcesPanel data={data} />
         <Panel title="Seguimientos" action={<Link href={a360Href(e.athleteId, 'actividad')} className="text-xs font-medium text-brass hover:underline">Ver actividad</Link>}>
           <NextStepsList steps={steps.slice(0, 3)} showAthlete={false} empty="Sin seguimientos abiertos. Programa uno desde Actividad." />
         </Panel>
@@ -479,6 +480,45 @@ function MyNotes({ data, userId }: { data: Athlete360; userId: string }) {
           );
         })}
       </ul>
+    </Panel>
+  );
+}
+
+// ─── Fuentes oficiales ──────────────────────────────────────────────────────
+
+/** Enlaces oficiales del atleta (FIBA, NCAA, ESPN, federación) y búsqueda de su nombre en esas fuentes. Se enlaza; no se copia. */
+function OfficialSourcesPanel({ data }: { data: Athlete360 }) {
+  const official = data.links.filter((l) => l.official);
+  const other = data.links.filter((l) => !l.official);
+  return (
+    <Panel title="Fuentes oficiales">
+      <div className="px-2" data-a360="official">
+        {official.length ? (
+          <ul className="space-y-1.5" aria-label="Enlaces oficiales del atleta">
+            {official.map((l) => (
+              <li key={l.id} className="flex items-center justify-between gap-2 text-sm">
+                <a href={l.url} target="_blank" rel="noopener noreferrer nofollow" className="min-w-0 truncate text-paper hover:text-brass">{l.official!.label} ↗</a>
+                <span className={cx('shrink-0 text-xs', l.verified ? 'text-ok' : 'text-faint')}>{l.verified ? 'Verificado' : 'Sin verificar'}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-muted">Aún no ha enlazado ninguna ficha oficial. Pídele su ficha de la federación o de FIBA.</p>
+        )}
+        {other.length > 0 && <p className="mt-2 text-xs text-faint">{other.length} {other.length === 1 ? 'enlace más' : 'enlaces más'} de otras webs (vídeo, club, redes).</p>}
+        {data.officialSearch.length > 0 && (
+          <div className="mt-3 border-t border-line pt-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-faint">Buscar su nombre en</p>
+            <ul className="mt-1.5 flex flex-wrap gap-1.5" aria-label="Buscar en fuentes oficiales">
+              {data.officialSearch.map((s) => (
+                <li key={s.id}>
+                  <a href={s.href} target="_blank" rel="noopener noreferrer nofollow" title={s.note} className="inline-flex rounded-full border border-line px-2.5 py-1 text-xs text-paper hover:border-brass/50">{s.label} ↗</a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
     </Panel>
   );
 }
