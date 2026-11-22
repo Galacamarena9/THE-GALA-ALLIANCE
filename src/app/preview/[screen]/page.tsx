@@ -55,6 +55,8 @@ const demoPassport: PassportViewData = {
   links: [], recs: [], sportName: 'Baloncesto', position: 'Base', position2: 'Escolta',
 };
 import { PublicOpportunityView } from '@/app/oportunidades/[id]/View';
+import { DiscoveryView } from '@/app/app/opportunities/discover/DiscoveryView';
+import { previewDiscoveryCards, previewDiscoveryRoster } from '@/lib/preview/discovery';
 import { TrialsBoard } from '@/components/trials/TrialsBoard';
 import { TrialPanel } from '@/components/trials/TrialPanel';
 import { FamilyTrialCenter } from '@/components/trials/FamilyTrialCenter';
@@ -82,7 +84,7 @@ const demoPublicOpp: PublicOpportunity = {
  */
 export const metadata: Metadata = { title: 'Probador interno', robots: { index: false, follow: false } };
 
-const SCREENS = ['admin-difusion', 'admin-difusion-empty', 'difusion-respuesta', 'difusion-hecho', 'athlete-360', 'athlete-360-empty', 'athlete-360-viewer', 'athlete-360-locked', 'portfolio-100', 'portfolio-empty', 'agent-home', 'agent-home-empty', 'agent-home-partial', 'agent-home-no-agency', 'agent-home-error', 'portfolio', 'athlete-home', 'coach-home', 'pipeline', 'pipeline-table', 'match', 'opportunity', 'passport', 'galamatch', 'command-center', 'athlete-pipeline', 'club-trials', 'trial-club', 'trial-athlete', 'family-trials', 'program-athlete', 'family-home', 'family-costs', 'family-welcome', 'shell-agent', 'shell-athlete', 'shell-university', 'shell-operations'] as const;
+const SCREENS = ['agent-discovery', 'agent-discovery-eligible', 'agent-discovery-empty', 'agent-discovery-forbidden', 'agent-discovery-error', 'agent-discovery-pick', 'admin-difusion', 'admin-difusion-empty', 'difusion-respuesta', 'difusion-hecho', 'athlete-360', 'athlete-360-empty', 'athlete-360-viewer', 'athlete-360-locked', 'portfolio-100', 'portfolio-empty', 'agent-home', 'agent-home-empty', 'agent-home-partial', 'agent-home-no-agency', 'agent-home-error', 'portfolio', 'athlete-home', 'coach-home', 'pipeline', 'pipeline-table', 'match', 'opportunity', 'passport', 'galamatch', 'command-center', 'athlete-pipeline', 'club-trials', 'trial-club', 'trial-athlete', 'family-trials', 'program-athlete', 'family-home', 'family-costs', 'family-welcome', 'shell-agent', 'shell-athlete', 'shell-university', 'shell-operations'] as const;
 
 // Gala Match con el motor real y datos ficticios: un Passport completo y otro con muchos datos ausentes.
 const demoOpp = { sport_id: 'basketball', position_ids: [1], graduation_years: [2027], division: 'ncaa_d2' as const, min_gpa_4: 2.5, english_required: 'TOEFL 80', annual_cost_usd: 40000, aid_amount_usd: 30000 };
@@ -105,6 +107,20 @@ export default async function PreviewPage({ params, searchParams }: { params: Pr
   return (
     <div className="min-h-dvh bg-ink px-5 py-8 sm:px-8 lg:px-10">
       <div className="mx-auto max-w-6xl">
+        {screen.startsWith('agent-discovery') && (() => {
+          const roster = previewDiscoveryRoster;
+          const sports = [{ id: 'basketball', name: 'Baloncesto' }, { id: 'soccer', name: 'Fútbol' }];
+          if (screen === 'agent-discovery-pick') return <DiscoveryView roster={roster} sports={sports} athlete={null} state="pick" demo />;
+          if (screen === 'agent-discovery-forbidden' || screen === 'agent-discovery-error') return <DiscoveryView roster={roster} sports={sports} athlete={roster[0]} state={screen === 'agent-discovery-error' ? 'error' : 'forbidden'} demo />;
+          const all = screen === 'agent-discovery-empty' ? [] : previewDiscoveryCards();
+          const eligibleOnly = screen === 'agent-discovery-eligible';
+          const cards = eligibleOnly ? all.filter((c) => c.eligible) : all;
+          return (
+            <DiscoveryView roster={roster} sports={sports} athlete={roster[0]} state="ok" demo cards={cards} hiddenIneligible={all.length - cards.length}
+              filters={{ sport: 'basketball', ...(eligibleOnly ? { eligible: true as const } : {}) }} activeSearchId="00000000-0000-4000-8000-00000000c001"
+              searches={[{ id: '00000000-0000-4000-8000-00000000c001', label: 'NCAA con beca', href: '#', newCount: cards.filter((c) => c.isNew).length }]} />
+          );
+        })()}
         {(screen === 'pipeline' || screen === 'pipeline-table') && (
           <PipelineBoard cases={previewCases} view={screen === 'pipeline' ? 'board' : 'table'} sportName={new Map(previewSports.map((s) => [s.id, s.name_es]))} writableAgencies={new Set(['org-1'])} />
         )}

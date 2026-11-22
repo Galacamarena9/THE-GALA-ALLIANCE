@@ -217,9 +217,9 @@ function agentMode(): NavMode {
       it('/app/pipeline/team', 'Equipo', 'users', 'Quién lleva cada proceso en tu agencia.'),
     ],
   });
-  const opportunities = it('/app/opportunities', 'Oportunidades', 'trophy', 'Becas, pruebas de clubes y universidades para tus atletas.', {
+  const opportunities = it('/app/opportunities/discover', 'Oportunidades', 'trophy', 'Elige un atleta y ve lo que encaja, por qué y qué falta saber.', {
     children: [
-      it('/app/opportunities', 'Becas y oportunidades', 'trophy', 'Ofertas de organizaciones verificadas con sello de confianza y coste neto.'),
+      it('/app/opportunities/discover', 'Buscar para un atleta', 'search', 'Recomendaciones explicadas para cada atleta que representas.'),
       it('/app/portfolio/trials', 'Trials y programas', 'trophy', 'Trials de clubes y academias para tus representados.'),
       it('/app/universities', 'Universidades', 'campus', 'Directorio con datos oficiales del U.S. Department of Education.'),
       it('/app/universities/compare', 'Comparar universidades', 'compare', 'Hasta 5 universidades lado a lado.'),

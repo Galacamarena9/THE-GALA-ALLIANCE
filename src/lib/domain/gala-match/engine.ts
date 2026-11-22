@@ -65,6 +65,16 @@ export interface AthleteContext {
   has_highlight: boolean;
   has_full_game: boolean;
   verified_stats: number;
+  /**
+   * Si el atleta compite como internacional para esa oportunidad (otro país). `undefined` = no se evalúa
+   * (vista del propio atleta, que lo ve en la ficha); `null` = no sabemos su país → requisito DESCONOCIDO.
+   */
+  is_international?: boolean | null;
+  /**
+   * Vista de agente: el presupuesto familiar es privado y nunca llega al agente, así que el factor «Presupuesto»
+   * no se evalúa (ni como desconocido: no es un dato que falte, es un dato que no le corresponde).
+   */
+  budget_private?: boolean;
 }
 
 export interface InstitutionTarget {
@@ -100,6 +110,8 @@ export interface OpportunityTarget {
   aid_amount_usd: number | null;
   aid_kind: 'full' | 'partial' | 'unknown' | null;
   financial_source: 'organization_provided' | 'platform_verified' | 'unverified' | null;
+  /** Si admiten atletas internacionales (publicado por la organización). */
+  international_eligible?: 'yes' | 'no' | 'conditional' | 'unknown' | null;
   /** Si la oportunidad pertenece a una universidad del directorio, su perfil completa ubicación y estudios. */
   institution?: Omit<InstitutionTarget, 'kind' | 'id' | 'name'> | null;
 }
@@ -115,7 +127,7 @@ export const MATCH_CONFIG = {
     country: 4, region: 5, campus: 4,
     budget: 12, scholarship: 6,
     size: 5,
-    grad_year: 10, deadline: 8,
+    grad_year: 10, deadline: 8, international: 10,
   },
   /** Cobertura mínima para mostrar un porcentaje; por debajo se muestra "datos insuficientes". */
   minCoverageForScore: 40,
@@ -274,7 +286,9 @@ function buildFactors(a: AthleteContext, t: MatchTarget, now: Date): Factor[] {
   const confirmedAid = t.kind === 'opportunity' && t.aid_amount_usd != null && (t.financial_source === 'organization_provided' || t.financial_source === 'platform_verified');
   const published = t.kind === 'opportunity' ? (t.annual_cost_usd ?? (inst ? estimatedIntlCost(inst) : null)) : estimatedIntlCost(t);
   const yourCost = published == null ? null : confirmedAid ? Math.max(0, published - (t as OpportunityTarget).aid_amount_usd!) : published;
-  if (a.annual_budget_usd == null) {
+  if (a.budget_private) {
+    // Sin factor de presupuesto: ver AthleteContext.budget_private.
+  } else if (a.annual_budget_usd == null) {
     f.push({ id: 'budget', dimension: 'financial', kind: 'soft', weight: W.budget, status: 'unknown', label: 'Presupuesto', detail: 'No has indicado tu presupuesto anual (es privado).', source: 'passport', missingSide: 'athlete', fix: { action: 'Indica tu presupuesto anual', href: `${P}?s=objetivos` } });
   } else if (yourCost == null) {
     f.push({ id: 'budget', dimension: 'financial', kind: 'soft', weight: W.budget, status: 'unknown', label: 'Coste frente a tu presupuesto', detail: 'No hay coste publicado.', source: 'official', missingSide: 'target' });
@@ -316,6 +330,16 @@ function buildFactors(a: AthleteContext, t: MatchTarget, now: Date): Factor[] {
       else {
         const ok = t.graduation_years.includes(a.graduation_year);
         f.push({ id: 'grad_year', dimension: 'timing', kind: 'hard', weight: W.grad_year, status: ok ? 'met' : 'unmet', label: 'Promoción', detail: ok ? `Buscan la promoción ${a.graduation_year}.` : `Buscan las promociones ${t.graduation_years.join(', ')}.`, source: 'organization' });
+      }
+    }
+    if (a.is_international !== undefined && (a.is_international === null || a.is_international)) {
+      const e = t.international_eligible ?? 'unknown';
+      if (a.is_international === null) {
+        f.push({ id: 'international', dimension: 'timing', kind: 'hard', weight: W.international, status: 'unknown', label: 'Plaza para internacionales', detail: 'No consta el país del atleta, así que no sabemos si cuenta como internacional.', source: 'passport', missingSide: 'athlete' });
+      } else if (e === 'yes' || e === 'no') {
+        f.push({ id: 'international', dimension: 'timing', kind: 'hard', weight: W.international, status: e === 'yes' ? 'met' : 'unmet', label: 'Plaza para internacionales', detail: e === 'yes' ? 'Admiten atletas internacionales.' : 'Esta oportunidad no admite atletas internacionales.', source: 'organization' });
+      } else {
+        f.push({ id: 'international', dimension: 'timing', kind: 'hard', weight: W.international, status: 'unknown', label: 'Plaza para internacionales', detail: e === 'conditional' ? 'Admiten internacionales con condiciones: hay que confirmarlas.' : 'La organización no ha dicho si admite internacionales.', source: 'organization', missingSide: 'target' });
       }
     }
     if (t.deadline) {

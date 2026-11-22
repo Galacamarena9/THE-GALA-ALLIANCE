@@ -3780,6 +3780,84 @@ try {
     eq(r2.priority, 2, 'coste incorrecto');
   });
 
+  // ---------------------------------------------------------------- Fase 8 · Buscador de oportunidades del agente
+  results.push('\nFase 8: buscador de oportunidades del agente (contexto mínimo, UUID ajenos, búsquedas guardadas)');
+  const d8 = await mkUser('disc-adulta', 'athlete', 19);
+  await db.query(`update profiles set country = 'ES' where id = $1`, [d8]);
+  await db.query(`insert into athlete_finances (athlete_id, annual_budget_usd) values ($1, 12345)`, [d8]);
+  await db.query(`insert into athlete_academics (athlete_id, gpa, gpa_scale) values ($1, 8.7, 10) on conflict (athlete_id) do update set gpa = 8.7, gpa_scale = 10`, [d8]);
+  const repD8 = await repRequest(u.agent, agencyId, d8);
+  await as(d8, `select representation_respond($1, true)`, [repD8]);
+  const ctxKeys = ['sport_id', 'primary_position_id', 'secondary_position_id', 'graduation_year', 'country', 'pathways', 'countries', 'regions', 'intended_majors',
+    'school_size', 'sport_level', 'campus_setting', 'scholarship_need', 'gpa', 'gpa_scale', 'education_system', 'has_english_certificate', 'has_highlight', 'has_full_game', 'verified_stats'];
+  await check('F8-1 el agente con passport.view recibe SOLO el contexto mínimo (sin presupuesto, nacimiento ni familia)', async () => {
+    const v = (await as(u.agent, `select agent_discovery_athlete($1) v`, [d8])).rows[0].v;
+    eq(JSON.stringify(Object.keys(v).sort()), JSON.stringify([...ctxKeys].sort()), 'claves:');
+    eq(v.sport_id, 'basketball'); eq(v.country, 'ES');
+    const raw = JSON.stringify(v);
+    eq(raw.includes('12345'), false, 'el presupuesto no sale');
+    eq(/birth|budget|guardian|note/i.test(raw), false, 'ningún campo protegido');
+  });
+  await check('F8-2 un UUID ajeno no devuelve nada: otra agencia, atleta no representado, anónimo', async () => {
+    await expectError(() => as(agent2, `select agent_discovery_athlete($1)`, [d8]), /not_authorized/);
+    const stranger = await mkUser('disc-ajena', 'athlete', 22);
+    await expectError(() => as(u.agent, `select agent_discovery_athlete($1)`, [stranger]), /not_authorized/);
+    await expectError(() => as(u.agent, `select agent_discovery_athlete($1)`, [randomUUID()]), /not_authorized/);
+    await expectError(() => as(null, `select agent_discovery_athlete($1)`, [d8]), /permission denied/);
+    await expectError(() => as(d8, `select agent_discovery_athlete($1)`, [d8]), /not_authorized/);
+  });
+  await check('F8-3 sin el permiso passport.view, o con un menor sin aprobación del tutor, tampoco', async () => {
+    const a = await mkUser('disc-sinperm', 'athlete', 21);
+    const r = await repRequest(u.agent, agencyId, a, { perms: ['pipeline.view'] });
+    await as(a, `select representation_respond($1, true)`, [r]);
+    await expectError(() => as(u.agent, `select agent_discovery_athlete($1)`, [a]), /not_authorized/);
+    // Menor: la atleta acepta, pero hasta que la familia aprueba, el agente no recibe nada.
+    const teen = await mkUser('disc-menor', 'athlete', 16); const mom = await mkUser('disc-madre', 'parent', 44);
+    const tk = (await as(mom, `insert into parent_athlete_links (parent_id, invited_by) values ($1, $1) returning invitation_token`, [mom])).rows[0].invitation_token;
+    await as(teen, `select accept_family_invitation($1)`, [tk]);
+    await as(mom, `select representation_invite($1, $2)`, [agencyId, teen]);
+    const rt = await repRequest(u.agent, agencyId, teen, { perms: ['passport.view', 'pipeline.view'] });
+    eq((await as(teen, `select representation_respond($1, true) s`, [rt])).rows[0].s, 'pending_guardian');
+    await expectError(() => as(u.agent, `select agent_discovery_athlete($1)`, [teen]), /not_authorized/);
+    eq((await as(mom, `select representation_guardian_decide($1, true) s`, [rt])).rows[0].s, 'active');
+    eq((await as(u.agent, `select (agent_discovery_athlete($1)->>'sport_id') s`, [teen])).rows[0].s, 'basketball', 'con aprobación del tutor sí');
+  });
+  await check('F8-4 la representación revocada corta el acceso al momento', async () => {
+    const a = await mkUser('disc-revoca', 'athlete', 24);
+    const r = await repRequest(u.agent, agencyId, a);
+    await as(a, `select representation_respond($1, true)`, [r]);
+    eq((await as(u.agent, `select (agent_discovery_athlete($1)->>'sport_id') s`, [a])).rows[0].s, 'basketball');
+    await as(a, `select representation_end($1, 'Cambio de agencia')`, [r]);
+    await expectError(() => as(u.agent, `select agent_discovery_athlete($1)`, [a]), /not_authorized/);
+  });
+  await check('F8-5 una oportunidad oculta (borrador de otra organización) no se lee por UUID', async () => {
+    const hidden = (await as(u.coach, `insert into opportunities (organization_id, created_by, type, title, description, sport_id)
+      values ($1, $2, 'tryout', 'Prueba interna F8', 'Prueba interna aún no anunciada a nadie.', 'basketball') returning id`, [uniId, u.coach])).rows[0].id;
+    eq((await as(u.agent, `select count(*)::int n from opportunities where id = $1`, [hidden])).rows[0].n, 0);
+    eq((await as(u.agent, `select count(*)::int n from opportunities where id = $1`, [oppId])).rows[0].n, 1, 'la publicada sí');
+  });
+  let searchD8;
+  await check('F8-6 búsquedas guardadas de oportunidades: solo para atletas representados y con claves permitidas', async () => {
+    searchD8 = (await as(u.agent, `insert into saved_searches (owner_id, label, filters, scope, subject_id) values ($1, 'NCAA D2 con beca', $2, 'opportunities', $3) returning id`,
+      [u.agent, { sport: 'basketball', level: 'ncaa_d2', aid: 'partial' }, d8])).rows[0].id;
+    const stranger = await mkUser('disc-ajena2', 'athlete', 22);
+    await expectError(() => as(u.agent, `insert into saved_searches (owner_id, label, filters, scope, subject_id) values ($1, 'Ajena', '{}', 'opportunities', $2)`, [u.agent, stranger]), /not_authorized/);
+    await expectError(() => as(agent2, `insert into saved_searches (owner_id, label, filters, scope, subject_id) values ($1, 'Robada', '{}', 'opportunities', $2)`, [agent2, d8]), /not_authorized/);
+    await expectError(() => as(u.agent, `insert into saved_searches (owner_id, label, filters, scope, subject_id) values ($1, 'Clave rara', $2, 'opportunities', $3)`, [u.agent, { budget: '1000' }, d8]), /saved_searches_filters_check|check constraint/);
+    await expectError(() => as(u.agent, `insert into saved_searches (owner_id, label, filters, scope) values ($1, 'Sin atleta', '{}', 'opportunities')`, [u.agent]), /saved_searches_scope_subject|check constraint|not_authorized/);
+    await expectError(() => as(u.brand, `insert into saved_searches (owner_id, label, filters, scope, subject_id) values ($1, 'Marca', '{}', 'opportunities', $2)`, [u.brand, d8]), /not_authorized/);
+  });
+  await check('F8-7 la búsqueda es privada y su atleta no se puede cambiar; las búsquedas de talento siguen igual', async () => {
+    eq((await as(agent2, `select count(*)::int n from saved_searches where id = $1`, [searchD8])).rows[0].n, 0, 'otro agente');
+    eq((await as(d8, `select count(*)::int n from saved_searches where id = $1`, [searchD8])).rows[0].n, 0, 'ni el propio atleta');
+    const other = await mkUser('disc-otra', 'athlete', 20);
+    await expectError(() => as(u.agent, `update saved_searches set subject_id = $2 where id = $1`, [searchD8, other]), /owner_immutable/);
+    await expectError(() => as(u.agent, `update saved_searches set scope = 'talent', subject_id = null where id = $1`, [searchD8]), /owner_immutable|check constraint/);
+    eq((await as(u.agent, `update saved_searches set last_seen_at = now() where id = $1`, [searchD8])).rowCount, 1, 'marcar como visto');
+    const t = (await as(u.agent, `insert into saved_searches (owner_id, label, filters) values ($1, 'Talento F8', $2) returning scope, subject_id`, [u.agent, { sport: 'basketball' }])).rows[0];
+    eq(t.scope, 'talent'); eq(t.subject_id, null);
+  });
+
   if (!process.env.SKIP_ERASURE) await check('RGPD: toda cuenta y toda organización se puede borrar (anonimiza auditoría, no bloquea)', async () => {
     await db.query(`select set_config('request.jwt.claims', '{}', false)`);
     const fails = [];
