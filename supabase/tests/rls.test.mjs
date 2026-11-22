@@ -3728,6 +3728,46 @@ try {
     await expectError(() => as(fam.mom, `select public.active_guardians_with($1, 'offers')`, [fam.other]), /permission denied/);
   });
 
+  await check('P11B revisión · lista de espera, asistencia, resultados, shortlist y recuentos: sin atajos desde el cliente', async () => {
+    const one = async (sql, p = []) => (await db.query(sql, p)).rows[0];
+    // Shortlist: el dueño no puede cambiar el atleta de un miembro para sustituirlo por otro.
+    const m = await one(`select m.shortlist_id, m.athlete_id, l.owner_id from org_shortlist_members m join org_shortlists l on l.id = m.shortlist_id limit 1`);
+    if (!m) throw new Error('sin miembros de shortlist de prueba');
+    const swapTo = (await one(`select user_id from athlete_profiles a where user_id <> $1 and not exists (select 1 from org_shortlist_members x where x.shortlist_id = $2 and x.athlete_id = a.user_id) limit 1`, [m.athlete_id, m.shortlist_id])).user_id;
+    await expectError(() => as(m.owner_id, `update org_shortlist_members set athlete_id = $3 where shortlist_id = $1 and athlete_id = $2`, [m.shortlist_id, m.athlete_id, swapTo]), /identity_fields_immutable/);
+    await expectError(() => as(m.owner_id, `update org_shortlist_members set organization_id = gen_random_uuid() where shortlist_id = $1 and athlete_id = $2`, [m.shortlist_id, m.athlete_id]), /identity_fields_immutable|foreign key|row-level/);
+    // Lo legítimo sigue funcionando: revisar o priorizar.
+    await as(m.owner_id, `update org_shortlist_members set priority = not priority where shortlist_id = $1 and athlete_id = $2`, [m.shortlist_id, m.athlete_id]);
+    // Candidatos: tampoco se cambia el atleta ni la organización.
+    const c = await one(`select c.id, c.athlete_id, m2.user_id from org_candidates c join organization_members m2 on m2.organization_id = c.organization_id and m2.member_role in ('owner', 'admin') limit 1`);
+    if (c) await expectError(() => as(c.user_id, `update org_candidates set athlete_id = $2 where id = $1`, [c.id, swapTo]), /identity_fields_immutable|row-level|duplicate/);
+    // Notas de agencia: el autor no las mueve a otro atleta (con el que la agencia quizá no tiene relación).
+    const note = await one(`select id, author_id from agency_athlete_notes limit 1`);
+    if (note) await expectError(() => as(note.author_id, `update agency_athlete_notes set athlete_id = $2 where id = $1`, [note.id, swapTo]), /note_immutable/);
+    // Lista heredada: tampoco se cambia el atleta guardado.
+    const sa = await one(`select owner_id, athlete_id, list_name from saved_athletes limit 1`);
+    if (sa) await expectError(() => as(sa.owner_id, `update saved_athletes set athlete_id = $2 where owner_id = $1 and athlete_id = $3 and list_name = $4`, [sa.owner_id, swapTo, sa.athlete_id, sa.list_name]), /identity_fields_immutable|duplicate/);
+    eq((await one(`select count(*)::int n from org_shortlist_members where shortlist_id = $1 and athlete_id = $2`, [m.shortlist_id, m.athlete_id])).n, 1, 'el miembro original sigue');
+    eq((await one(`select count(*)::int n from org_shortlist_members where shortlist_id = $1 and athlete_id = $2`, [m.shortlist_id, swapTo])).n, 0, 'no se sustituyó por otro atleta');
+    // Asistencia, resultados, inscripciones y matrículas: el atleta y su familia no escriben.
+    const att = await one(`select registration_id, athlete_id, opportunity_id from opportunity_attendance limit 1`);
+    if (!att) throw new Error('sin asistencia de prueba');
+    await expectError(() => as(att.athlete_id, `update opportunity_attendance set status = 'attended' where registration_id = $1`, [att.registration_id]), /permission denied/);
+    await expectError(() => as(att.athlete_id, `insert into opportunity_attendance (registration_id, opportunity_id, organization_id, athlete_id, status, source) select registration_id, opportunity_id, organization_id, athlete_id, 'attended', 'athlete' from opportunity_attendance where registration_id = $1`, [att.registration_id]), /permission denied/);
+    await expectError(() => as(att.athlete_id, `update opportunity_registrations set status = 'confirmed' where athlete_id = $1`, [att.athlete_id]), /permission denied/);
+    await expectError(() => as(att.athlete_id, `insert into program_enrollments (athlete_id) values ($1)`, [att.athlete_id]), /permission denied|null value|violates/);
+    // Nadie ve la asistencia, las inscripciones ni la lista de espera de otros atletas del mismo evento.
+    eq((await as(att.athlete_id, `select count(*)::int n from opportunity_attendance where athlete_id <> $1`, [att.athlete_id])).rows[0].n, 0, 'asistencia ajena');
+    eq((await as(att.athlete_id, `select count(*)::int n from opportunity_registrations where athlete_id <> $1`, [att.athlete_id])).rows[0].n, 0, 'inscripciones ajenas (incluida la lista de espera)');
+    // Resultados internos: ni el atleta ni su familia.
+    eq((await as(att.athlete_id, `select count(*)::int n from opportunity_outcomes`)).rows[0].n, 0, 'resultados internos');
+    // Recuentos: ninguna función que cuente candidaturas o inscripciones es ejecutable sin sesión.
+    const anonCounts = (await db.query(`select proname from pg_proc where pronamespace = 'public'::regnamespace and has_function_privilege('anon', oid, 'execute')
+      and prosrc ~* 'count\\(' and prosrc ~* '(opportunity_registrations|applications|program_enrollments)'`)).rows.map((r) => r.proname);
+    eq(anonCounts.join(','), '', 'funciones de recuento abiertas a anon');
+    await expectError(() => as(null, `select count(*)::int n from opportunity_registrations`), /permission denied/);
+  });
+
   if (!process.env.SKIP_ERASURE) await check('RGPD: toda cuenta y toda organización se puede borrar (anonimiza auditoría, no bloquea)', async () => {
     await db.query(`select set_config('request.jwt.claims', '{}', false)`);
     const fails = [];

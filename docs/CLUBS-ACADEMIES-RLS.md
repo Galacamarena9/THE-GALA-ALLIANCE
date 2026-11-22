@@ -155,3 +155,36 @@ revocar o acortar.
 
 Inventario → huecos → implementación local → pruebas automáticas → staging → producción, con la migración inversa
 preparada. Las políticas se **sustituyen** (drop y create) solo en las tablas con huecos. Las correctas no se tocan.
+
+## 12. Revisión del Prompt 11B (22-11-2026)
+
+He contrastado el criterio de aceptación (§80) con las pruebas y he atacado en local los puntos con más riesgo de haber quedado sin cubrir (prueba «P11B revisión»).
+
+| Criterio (§80) | Prueba | Estado |
+|---|---|---|
+| El club A no accede al club B (también cambiando `organization_id`) | 11B aislamiento | ✅ |
+| El scout del U18 no ve equipos sin permiso | 11B equipos | ✅ |
+| Un club sin verificar no tiene Discovery, invitaciones ni contacto | 11B suspensión y verificación, 7B | ✅ |
+| El atleta no cambia estados internos ni se acepta a sí mismo | 11B candidaturas; **hoy:** no escribe asistencia, inscripciones ni matrículas (sin `GRANT` de escritura: solo por funciones del club) | ✅ |
+| Un menor no recibe contacto prohibido | 11B suspensión y verificación, `minor_contact_mode` | ✅ |
+| El tutor ve solo según sus permisos | 11B familia | ✅ |
+| El club no recibe el presupuesto ni documentos sin concesión, y el club B no reutiliza concesiones del A | 11B documentos, P10C Storage, P10D | ✅ |
+| El atleta no consulta las notas del scout; nadie ve resultados internos | 11B familia; **hoy:** `opportunity_outcomes` = 0 filas para atleta y familia | ✅ |
+| Asistencia, inscripciones y lista de espera de otros atletas | **Hoy:** 0 filas; sin acceso anónimo a inscripciones | ✅ |
+| Recuentos públicos de candidaturas | **Hoy:** ninguna función que cuente candidaturas, inscripciones o matrículas es ejecutable sin sesión | ✅ |
+| **Shortlist: no se sustituye un candidato por UPDATE (§16, §56)** | **Hoy: fallaba → corregido (G-08)** | ✅ |
+| Gala AI y Storage no saltan los límites | 11D, P10C | ✅ |
+| Edge Functions con service role | No existen | ✅ |
+
+### G-08 · High · Shortlist y candidatos · El atleta de un miembro se podía cambiar por UPDATE
+
+| Campo | Detalle |
+|---|---|
+| Ataque | El dueño de una shortlist ejecuta `update org_shortlist_members set athlete_id = <otro atleta>` |
+| Esperado | Denegado: para cambiar de atleta hay que quitarlo y añadir otro, y entonces se comprueba si se puede ver |
+| Real | Se aplicaba. La política UPDATE solo pedía `can_edit_shortlist()`; la comprobación `can_view_athlete` estaba solo en INSERT |
+| Impacto | Meter en una lista a un atleta que el club no puede ver (por ejemplo, un menor oculto en Discovery), mover miembros entre listas o cambiar su `organization_id`. `org_candidates` y `saved_athletes` (heredada) tenían el mismo patrón |
+| Causa raíz | Comprobaciones de identidad solo en INSERT |
+| Fix | `20261209000600_11r_identity_immutable.sql`: trigger `guard_identity_immutable` con la lista explícita de columnas de identidad de cada tabla. Rechaza cambios de usuarios de la API; las funciones del servidor no se ven afectadas. `agency_athlete_notes` ya tenía su propia guarda (`note_immutable`) |
+| Retest | Cambiar `athlete_id` u `organization_id` → `identity_fields_immutable`. Priorizar o revisar sigue funcionando. 415 pruebas en verde, incluido el borrado RGPD |
+| Estado | FIXED |
