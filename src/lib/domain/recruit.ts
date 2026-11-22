@@ -153,7 +153,7 @@ export const REQUIRED_MATERIAL_LABEL: Record<string, string> = {
   passport: 'Opportunity Passport', highlight_video: 'Highlight reel', full_game_video: 'Partido completo',
   transcript: 'Expediente académico', english_certificate: 'Certificado de inglés', test_scores: 'SAT / ACT', application_form: 'Formulario de candidatura',
 };
-export const INTERNATIONAL_LABEL: Record<string, string> = { yes: 'Aceptan atletas internacionales', no: 'No aceptan atletas internacionales', unknown: 'No indicado si aceptan internacionales' };
+export const INTERNATIONAL_LABEL: Record<string, string> = { yes: 'Aceptan atletas internacionales', no: 'No aceptan atletas internacionales', conditional: 'Atletas internacionales: con condiciones', unknown: 'No indicado si aceptan internacionales' };
 export const CONTACT_METHOD_LABEL: Record<string, string> = { gala: 'Contacto y preguntas a través de Gala', application_only: 'Solo mediante candidatura' };
 
 export interface PublishFields {

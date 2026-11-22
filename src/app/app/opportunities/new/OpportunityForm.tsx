@@ -235,6 +235,9 @@ export function OpportunityForm({ orgs, catalog, needs = [] }: Props) {
                   {Object.entries(INTERNATIONAL_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                 </select>
               </Field>
+              <Field label="Condiciones para internacionales" htmlFor="international_conditions" hint="Obligatorio si eliges «con condiciones». No des por hecho visado, viaje ni alojamiento." error={fe.international_conditions}>
+                <input id="international_conditions" name="international_conditions" maxLength={1000} className={inputClass} />
+              </Field>
               <Field label="Contacto" htmlFor="contact_method">
                 <select id="contact_method" name="contact_method" defaultValue="gala" className={inputClass}>
                   {Object.entries(CONTACT_METHOD_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}

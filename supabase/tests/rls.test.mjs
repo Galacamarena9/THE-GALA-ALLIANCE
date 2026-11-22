@@ -3768,6 +3768,18 @@ try {
     await expectError(() => as(null, `select count(*)::int n from opportunity_registrations`), /permission denied/);
   });
 
+  await check('P11 revisión · internacionales «con condiciones» exige explicarlas; denunciar una garantía falsa entra con prioridad alta', async () => {
+    const o = (await db.query(`select o.id, o.created_by from opportunities o where o.created_by is not null and o.status = 'draft' limit 1`)).rows[0]
+      ?? (await db.query(`select id, created_by from opportunities where created_by is not null limit 1`)).rows[0];
+    await expectError(() => db.query(`update opportunities set international_eligible = 'conditional', international_conditions = null where id = $1`, [o.id]), /international_conditions_when_conditional/);
+    await db.query(`update opportunities set international_eligible = 'conditional', international_conditions = 'Visado a cargo del atleta; alojamiento no incluido.' where id = $1`, [o.id]);
+    await db.query(`update opportunities set international_eligible = 'unknown', international_conditions = null where id = $1`, [o.id]);
+    const r = (await as(u.adult, `insert into content_reports (entity_type, entity_id, reason) values ('opportunity', $1, 'false_guarantee') returning priority`, [o.id])).rows[0];
+    eq(r.priority, 1, 'garantía falsa');
+    const r2 = (await as(u.adult, `insert into content_reports (entity_type, entity_id, reason) values ('opportunity', $1, 'incorrect_cost') returning priority`, [o.id])).rows[0];
+    eq(r2.priority, 2, 'coste incorrecto');
+  });
+
   if (!process.env.SKIP_ERASURE) await check('RGPD: toda cuenta y toda organización se puede borrar (anonimiza auditoría, no bloquea)', async () => {
     await db.query(`select set_config('request.jwt.claims', '{}', false)`);
     const fails = [];
