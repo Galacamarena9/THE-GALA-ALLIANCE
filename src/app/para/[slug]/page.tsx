@@ -46,6 +46,7 @@ export default async function ForActorPage({ params }: { params: Promise<{ slug:
         <p className="mt-6 text-sm text-muted">Además, como todos los usuarios: escaparate de atletas, becas y oportunidades, directorio de universidades con datos oficiales, centro de información, calculadora de becas, mensajes seguros, Actualidad y Gala IA.</p>
         <div className="mt-10 flex flex-wrap gap-3">
           <ButtonLink href={`/signup?role=${a.role}`} className="px-6 py-3">Crear cuenta de {a.label.toLowerCase()}</ButtonLink>
+          {slug === 'agentes' && <ButtonLink href="/demo/agente" variant="secondary" className="px-6 py-3">Ver la demo sin registrarte</ButtonLink>}
           <ButtonLink href="/guia" variant="secondary" className="px-6 py-3">Leer la guía</ButtonLink>
         </div>
       </main>

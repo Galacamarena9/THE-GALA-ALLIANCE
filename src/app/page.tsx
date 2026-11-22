@@ -17,7 +17,7 @@ import { PLANS } from '@/content/plans';
 const ACTOR_CARDS = [
   { Icon: User, name: 'Atleta', promise: 'Consigue tu beca o tu equipo.', cta: 'Crear mi perfil gratis', href: '/signup?role=athlete' },
   { Icon: Users, name: 'Familia', promise: 'El coste real de cada opción, y nada sin tu permiso.', cta: 'Entrar como familia', href: '/signup?role=parent' },
-  { Icon: Briefcase, name: 'Agente', promise: 'Todos tus atletas y sus procesos en un solo sitio.', cta: 'Abrir mi agencia', href: '/para/agentes' },
+  { Icon: Briefcase, name: 'Agente', promise: 'Todos tus atletas y sus procesos en un solo sitio.', cta: 'Ver la demo', href: '/demo/agente' },
   { Icon: Shield, name: 'Club o academia', promise: 'Llena tus pruebas con jugadores que sí quieren venir.', cta: 'Registrar mi club', href: '/para/coaches' },
   { Icon: GraduationCap, name: 'Universidad', promise: 'Talento internacional con datos que puedes comprobar.', cta: 'Registrar mi universidad', href: '/para/universidades' },
 ];
@@ -55,7 +55,7 @@ export default function Home() {
       <JsonLd data={{ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: FAQ.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })) }} />
       <PublicHeader />
 
-      <main id="main-content" className="pt-16">
+      <main id="main-content">
         {/* 1 · La idea en 5 segundos */}
         <section aria-labelledby="hero-title" className="mx-auto grid max-w-6xl items-center gap-14 px-5 pb-20 pt-14 sm:px-8 lg:grid-cols-[1.15fr_1fr] lg:pb-28 lg:pt-24">
           <div>
