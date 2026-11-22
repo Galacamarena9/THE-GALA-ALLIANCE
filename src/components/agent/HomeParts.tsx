@@ -34,7 +34,7 @@ export function SummaryStrip({ s, className }: { s: AgentHomeSummary; className?
   );
 }
 
-/** «Hoy necesita tu atención»: una fila por elemento, exactamente un botón de acción por fila. */
+/** «Lo que toca hoy»: una fila por elemento, exactamente un botón de acción por fila. */
 export function AttentionList({ items, today, limit = 6, className }: { items: AttentionItem[]; today: string; limit?: number; className?: string }) {
   const actionable = items.filter((i) => i.rank <= 4);
   const head = items.slice(0, limit);
@@ -42,8 +42,8 @@ export function AttentionList({ items, today, limit = 6, className }: { items: A
   return (
     <section id="hoy" aria-labelledby="hoy-h" className={cx('scroll-mt-20 overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface', className)}>
       <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-3 sm:px-5">
-        <h2 id="hoy-h" className="text-base font-semibold text-paper">
-          Hoy necesita tu atención
+        <h2 id="hoy-h" className="font-display text-xl text-paper">
+          Lo que toca hoy
           {actionable.length > 0 && <span className="ml-2 rounded-full bg-danger/10 px-2 py-0.5 text-xs font-semibold text-danger">{actionable.length}</span>}
         </h2>
         <Link href="/app/pipeline" className="shrink-0 text-sm font-semibold text-brass hover:underline">Procesos</Link>
@@ -102,7 +102,7 @@ export function PipelineStrip({ stages, className }: { stages: { id: string; lab
   return (
     <section aria-labelledby="pipe-h" className={cx('rounded-[var(--radius-card)] border border-line bg-surface', className)}>
       <div className="flex items-center justify-between border-b border-line px-4 py-3 sm:px-5">
-        <h2 id="pipe-h" className="text-base font-semibold text-paper">Pipeline <span className="text-sm font-normal text-muted">· {total} {total === 1 ? 'proceso' : 'procesos'}</span></h2>
+        <h2 id="pipe-h" className="font-display text-xl text-paper">Procesos por fase <span className="text-sm font-normal text-muted">· {total} {total === 1 ? 'proceso' : 'procesos'}</span></h2>
         <Link href="/app/pipeline" className="text-sm font-semibold text-brass hover:underline">Tablero</Link>
       </div>
       <ol className="space-y-1 p-3">
@@ -131,7 +131,7 @@ export function AthletesPreview({ rows, total, today, className }: { rows: Athle
   return (
     <section aria-labelledby="ath-h" className={cx('overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface', className)}>
       <div className="flex items-center justify-between border-b border-line px-4 py-3 sm:px-5">
-        <h2 id="ath-h" className="text-base font-semibold text-paper">Mis atletas</h2>
+        <h2 id="ath-h" className="font-display text-xl text-paper">Mis atletas</h2>
         <Link href="/app/portfolio" className="inline-flex items-center gap-1 text-sm font-semibold text-brass hover:underline">Ver los {total} <ArrowRight className="h-4 w-4" aria-hidden /></Link>
       </div>
       <table className="w-full text-left text-sm">
