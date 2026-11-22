@@ -5,6 +5,8 @@
 @import "@fontsource-variable/inter";
 @import "@fontsource-variable/fraunces";
 @import "@fontsource-variable/fraunces/wght-italic.css";
+@import "@fontsource/anton/latin-400.css";
+@import "@fontsource/anton/latin-ext-400.css";
 
 /*
  * Identidad v3 «Editorial premium» (22-nov-2026): marfil, tinta azul noche y un toque dorado.
@@ -18,28 +20,29 @@
  * brass = color de acento (índigo en claro, lima en oscuro).
  */
 @theme {
-  --color-ink: #f6f3ec;
-  --color-surface: #ffffff;
-  --color-surface-2: #efeadf;
-  --color-line: #e6e0d3;
-  --color-line-strong: #d4cab5;
-  --color-paper: #10182b;
-  --color-muted: #4a5164;
-  --color-faint: #5a6072;
-  --color-brass: #10182b;
-  --color-brass-soft: #2b3652;
-  --color-brass-deep: #070d1a;
-  --color-trust: #1d6b4f;
-  --color-ok: #1d6b4f;
-  --color-warn: #8a5300;
-  --color-danger: #b3311a;
-  --color-gold: #8a6424;
+  /* Identidad v4 «Élite deportiva» (22-nov-2026): negro de estadio, marfil y oro. Oscura por defecto. */
+  --color-ink: #0b0d12;
+  --color-surface: #13161d;
+  --color-surface-2: #1b1f28;
+  --color-line: #262b36;
+  --color-line-strong: #3a4050;
+  --color-paper: #f4efe4;
+  --color-muted: #bab4a6;
+  --color-faint: #9d9789;
+  --color-brass: #e6cf8f;
+  --color-brass-soft: #f2e3b8;
+  --color-brass-deep: #c9a24a;
+  --color-trust: #6fcf9f;
+  --color-ok: #6fcf9f;
+  --color-warn: #f0c26b;
+  --color-danger: #f08a78;
+  --color-gold: #d9b867;
 
   /* Marca fija (no cambia con el tema). */
-  --color-night: #10182b;
-  --color-night-2: #1c2742;
+  --color-night: #07080b;
+  --color-night-2: #151821;
   /* «lime» se conserva como nombre: ahora es champán, el acento claro sobre tinta. */
-  --color-lime: #e9d9b4;
+  --color-lime: #e6cf8f;
   --color-lavender: #d8d2c2;
 
   /* Un color por deporte (texto blanco encima: contraste ≥ 5:1). */
@@ -53,13 +56,13 @@
 
   --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Fraunces Variable", Georgia, serif;
-  --font-display: "Fraunces Variable", Georgia, serif;
+  --font-display: "Anton", "Impact", "Arial Narrow", sans-serif;
 
   --radius-card: 14px;
 
-  --shadow-gold: 0 6px 20px rgb(16 24 43 / 0.14);
+  --shadow-gold: 0 10px 30px -10px rgb(201 162 74 / 0.45);
   --shadow-elevated: 0 1px 2px rgb(18 19 26 / 0.04), 0 6px 20px rgb(18 19 26 / 0.06);
-  --shadow-premium: 0 30px 60px -30px rgb(16 24 43 / 0.25);
+  --shadow-premium: 0 40px 80px -30px rgb(0 0 0 / 0.7);
 
   --animate-fade-in-up: fade-in-up 0.6s ease-out both;
   --animate-float: float 4s ease-in-out infinite;
@@ -82,29 +85,29 @@
 }
 
 html {
-  color-scheme: light;
+  color-scheme: dark;
   background: var(--color-ink);
 }
 
-/* Tema oscuro opcional ("Noche"): índigo profundo con acento lima. */
-html[data-theme="dark"] {
-  color-scheme: dark;
-  --color-ink: #0d1322;
-  --color-surface: #151d31;
-  --color-surface-2: #1c2640;
-  --color-line: #27314d;
-  --color-line-strong: #35405f;
-  --color-paper: #f6f3ec;
-  --color-muted: #bdb8ab;
-  --color-faint: #a29d90;
-  --color-brass: #e9d9b4;
-  --color-brass-soft: #f1e6c9;
-  --color-brass-deep: #cdb57e;
-  --color-trust: #6fcf9f;
-  --color-ok: #6fcf9f;
-  --color-warn: #f0c26b;
-  --color-danger: #f08a78;
-  --color-gold: #e2c58a;
+/* Tema claro opcional (editorial v3): marfil y tinta, para quien prefiera leer sobre claro. */
+html[data-theme="light"] {
+  color-scheme: light;
+  --color-ink: #f6f3ec;
+  --color-surface: #ffffff;
+  --color-surface-2: #efeadf;
+  --color-line: #e6e0d3;
+  --color-line-strong: #d4cab5;
+  --color-paper: #10182b;
+  --color-muted: #4a5164;
+  --color-faint: #5a6072;
+  --color-brass: #10182b;
+  --color-brass-soft: #2b3652;
+  --color-brass-deep: #070d1a;
+  --color-trust: #1d6b4f;
+  --color-ok: #1d6b4f;
+  --color-warn: #8a5300;
+  --color-danger: #b3311a;
+  --color-gold: #8a6424;
 }
 
 /* Alto contraste (accesibilidad, WCAG AAA en texto principal). */
@@ -134,17 +137,21 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Titulares editoriales: Fraunces, sin mayúsculas forzadas. Los h3 (títulos de tarjeta) siguen en Inter para leerse mejor en tamaños pequeños. */
+/* Titulares de marcador: Anton condensada en mayúsculas; las palabras en <em> pasan a Fraunces itálica dorada (firma de marca). */
 h1, h2, .font-display {
   font-family: var(--font-display);
-  font-weight: 500;
-  letter-spacing: -0.02em;
-  line-height: 1.08;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.005em;
+  line-height: 0.98;
 }
-.font-display.font-bold { font-weight: 600; }
-/* El estilo anterior escribía titulares en mayúsculas; en la identidad editorial van en tipo frase. */
-h1.uppercase, h2.uppercase, .font-display.uppercase { text-transform: none; }
-.font-display em, h1 em, h2 em { font-style: italic; color: var(--color-gold); }
+.font-display.font-bold, .font-display.font-medium { font-weight: 400; }
+.font-display em, h1 em, h2 em {
+  font-family: var(--font-serif); font-style: italic; font-weight: 400; text-transform: none;
+  letter-spacing: -0.02em; color: var(--color-gold);
+}
+/* Textos largos que heredan .font-display pero deben leerse en frase. */
+.font-display.normal-case { text-transform: none; }
 h3 {
   font-weight: 600;
   letter-spacing: -0.01em;
@@ -322,8 +329,8 @@ html:not(.js) .reveal { opacity: 1; transform: none; }
 }
 
 /* Tipografía editorial: titulares enormes, compactos, en mayúsculas. */
-.display-xl { font-family: var(--font-display); font-weight: 500; line-height: 1.02; letter-spacing: -0.025em; font-size: clamp(2.8rem, 6.4vw, 5.6rem); }
-.display-lg { font-family: var(--font-display); font-weight: 500; line-height: 1.04; letter-spacing: -0.02em; font-size: clamp(2.4rem, 5.4vw, 4.5rem); }
+.display-xl { font-family: var(--font-display); font-weight: 400; line-height: 0.92; text-transform: uppercase; font-size: clamp(3.4rem, 9vw, 8.5rem); }
+.display-lg { font-family: var(--font-display); font-weight: 400; line-height: 0.95; text-transform: uppercase; font-size: clamp(2.6rem, 6.2vw, 5.5rem); }
 .eyebrow { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; }
 
 /* Superficies de cristal muy sutiles. */
@@ -366,3 +373,34 @@ html:not(.js) .reveal { opacity: 1; transform: none; }
 
 /* Cinta de datos (sin interacción). */
 .ticker { animation: marquee 50s linear infinite; }
+
+/* =============================================================================
+   Identidad v4 «Élite deportiva»: velos, grano de película, cortes diagonales y botón con barrido.
+   ============================================================================= */
+.elite-hero-shade {
+  background:
+    linear-gradient(180deg, rgb(7 8 11 / 0.55) 0%, rgb(7 8 11 / 0.2) 30%, rgb(7 8 11 / 0.75) 72%, var(--color-ink) 100%),
+    linear-gradient(90deg, rgb(7 8 11 / 0.7) 0%, transparent 70%),
+    radial-gradient(70% 60% at 80% 30%, rgb(201 162 74 / 0.16), transparent 70%);
+}
+.hero-video { filter: saturate(0.55) contrast(1.1) sepia(0.18); }
+.tile-elite { background: linear-gradient(0deg, rgb(7 8 11 / 0.96) 0%, rgb(7 8 11 / 0.55) 45%, rgb(7 8 11 / 0.1) 100%); }
+.role-card { isolation: isolate; background: var(--color-night); }
+.role-card > *:not(img) { z-index: 1; }
+
+/* Grano de película (SVG inline, sin peticiones). */
+.grain {
+  pointer-events: none; opacity: 0.16; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Corte diagonal superior de sección. */
+.diagonal-top { clip-path: polygon(0 4.5rem, 100% 0, 100% 100%, 0 100%); }
+
+/* Botón principal: relleno marfil que barre de izquierda a derecha. */
+.btn-sweep { position: relative; overflow: hidden; isolation: isolate; transition: color 0.35s ease, box-shadow 0.35s ease; box-shadow: var(--shadow-gold); }
+.btn-sweep::before {
+  content: ""; position: absolute; inset: 0; z-index: 0; background: var(--color-paper);
+  transform: scaleX(0); transform-origin: left; transition: transform 0.5s cubic-bezier(.16,1,.3,1);
+}
+.btn-sweep:hover::before { transform: scaleX(1); }

@@ -45,7 +45,7 @@ export default async function ShowcasePage() {
             <span />
             <label className="text-xs text-muted">Empieza<input type="datetime-local" name="starts_at" required className={inputClass} /></label>
             <label className="text-xs text-muted">Termina (máx. 7 días)<input type="datetime-local" name="ends_at" required className={inputClass} /></label>
-            <button className="self-end rounded-xl bg-brass px-4 py-2.5 text-sm font-semibold text-white hover:bg-brass-soft">Programar</button>
+            <button className="self-end rounded-xl bg-brass px-4 py-2.5 text-sm font-semibold text-ink hover:bg-brass-soft">Programar</button>
           </form>
         </Card>
       )}

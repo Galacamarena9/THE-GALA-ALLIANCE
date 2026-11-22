@@ -187,7 +187,7 @@ export default async function CandidatePage({ params, searchParams }: { params: 
                   <ul className="mb-3 space-y-1.5 text-sm">
                     {d.tasks.map((t) => (
                       <li key={t.id} className="flex items-center gap-2">
-                        <form action={toggleOrgTask}><input type="hidden" name="id" value={t.id} /><input type="hidden" name="athlete" value={athleteId} /><input type="hidden" name="done" value={t.status === 'done' ? '0' : '1'} /><button aria-label={t.status === 'done' ? 'Reabrir' : 'Hecha'} className={`grid h-6 w-6 place-items-center rounded-md border ${t.status === 'done' ? 'border-brass bg-brass text-white' : 'border-line'}`}>{t.status === 'done' ? '✓' : ''}</button></form>
+                        <form action={toggleOrgTask}><input type="hidden" name="id" value={t.id} /><input type="hidden" name="athlete" value={athleteId} /><input type="hidden" name="done" value={t.status === 'done' ? '0' : '1'} /><button aria-label={t.status === 'done' ? 'Reabrir' : 'Hecha'} className={`grid h-6 w-6 place-items-center rounded-md border ${t.status === 'done' ? 'border-brass bg-brass text-ink' : 'border-line'}`}>{t.status === 'done' ? '✓' : ''}</button></form>
                         <span className={`flex-1 ${t.status === 'done' ? 'text-muted line-through' : 'text-paper'}`}>{t.title}</span>
                         <span className="text-xs text-muted">{t.assignee_id ? memberName.get(t.assignee_id) : ''} {t.due_date ?? ''}</span>
                       </li>

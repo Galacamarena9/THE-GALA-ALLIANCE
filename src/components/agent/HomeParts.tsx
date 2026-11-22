@@ -86,7 +86,7 @@ function AttentionRow({ i, today }: { i: AttentionItem; today: string }) {
         data-cta="primary"
         className={cx(
           'inline-flex h-11 shrink-0 items-center justify-center rounded-lg px-3.5 text-[13px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass sm:h-10',
-          primary ? 'bg-brass text-white hover:bg-brass-deep' : 'border border-line-strong text-paper hover:border-brass hover:text-brass',
+          primary ? 'bg-brass text-ink hover:bg-brass-deep' : 'border border-line-strong text-paper hover:border-brass hover:text-brass',
         )}
       >
         {i.cta.label}

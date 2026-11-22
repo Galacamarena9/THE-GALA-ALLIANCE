@@ -37,7 +37,7 @@ export function PlanUnlocks({ plan }: { plan: AnyFamilyPlan }) {
           return (
             <li key={f.key} className="group relative bg-surface p-5 transition-colors hover:bg-surface-2/70">
               <div className="flex items-start justify-between gap-3">
-                <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${open ? 'bg-brass text-white' : 'bg-surface-2 text-muted'}`}><Icon className="h-5 w-5" aria-hidden /></span>
+                <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${open ? 'bg-brass text-ink' : 'bg-surface-2 text-muted'}`}><Icon className="h-5 w-5" aria-hidden /></span>
                 {open ? (
                   <span className="rounded-full bg-ok/10 px-2.5 py-1 text-xs font-semibold text-ok">Incluido</span>
                 ) : (

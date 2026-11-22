@@ -71,7 +71,7 @@ export function AthletesCrm({ rows, initial, agency, partial = [] }: { rows: Crm
                     className={cx('relative flex shrink-0 items-center gap-2 px-3 pb-2.5 pt-2 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-brass', on ? 'font-semibold text-paper' : 'text-muted hover:text-paper')}
                   >
                     {v.label}
-                    <span className={cx('rounded-full px-1.5 text-xs tabular-nums', on ? 'bg-brass text-white' : 'bg-surface-2 text-muted', v.id === 'attention' && counts.attention > 0 && !on && 'bg-danger/10 text-danger')}>{counts[v.id]}</span>
+                    <span className={cx('rounded-full px-1.5 text-xs tabular-nums', on ? 'bg-brass text-ink' : 'bg-surface-2 text-muted', v.id === 'attention' && counts.attention > 0 && !on && 'bg-danger/10 text-danger')}>{counts[v.id]}</span>
                     {on && <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-brass" aria-hidden />}
                   </button>
                 );

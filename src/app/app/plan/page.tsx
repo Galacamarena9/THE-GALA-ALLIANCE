@@ -26,7 +26,7 @@ function Locked({ plan, children }: { plan: 'family_core' | 'family_elite'; chil
       <div className="absolute inset-0 flex flex-col items-start justify-center gap-2 bg-gradient-to-r from-surface via-surface/90 to-surface/40 p-4 text-sm text-muted">
         <span className="inline-flex items-center gap-1 rounded-full bg-night px-2.5 py-1 text-xs font-semibold text-lime">🔒 {p?.name}</span>
         <p className="max-w-md">{children}</p>
-        <Link href="/precios" className="rounded-lg bg-brass px-3 py-1.5 text-xs font-semibold text-white hover:bg-brass-soft">Desbloquear por {p?.price}</Link>
+        <Link href="/precios" className="rounded-lg bg-brass px-3 py-1.5 text-xs font-semibold text-ink hover:bg-brass-soft">Desbloquear por {p?.price}</Link>
       </div>
     </div>
   );
