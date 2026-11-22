@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Logo } from '@/components/Logo';
 import { ButtonLink } from '@/components/ui';
+import { PrintButton } from '@/components/autonomy';
 import { ContactRequestForm, RepresentationForm, ReportButton } from '@/components/forms';
 import { PassportView } from '@/components/passport/PassportView';
 import { createClient } from '@/lib/supabase/server';
@@ -80,10 +81,15 @@ export async function AthletePassportPage({ id }: { id: string }) {
 
   return (
     <div className="carbon min-h-dvh">
-      <header className="border-b border-white/10">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
+      <header className="no-print border-b border-white/10">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-5 py-4">
           <Logo href={session ? '/app' : '/'} />
-          {session ? <ButtonLink href="/app/discover" variant="ghost">← Escaparate</ButtonLink> : <ButtonLink href="/signup">Crear mi Passport</ButtonLink>}
+          {session ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <PrintButton label="Imprimir ficha" />
+              <ButtonLink href="/app/discover" variant="ghost">← Escaparate</ButtonLink>
+            </div>
+          ) : <ButtonLink href="/signup">Crear mi Passport</ButtonLink>}
         </div>
       </header>
       <main id="main-content" className="mx-auto max-w-6xl px-3 py-6 sm:px-5 sm:py-10">

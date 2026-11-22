@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { ACTORS, actorBySlug } from '@/lib/domain/roles';
 import { ButtonLink } from '@/components/ui';
 import { PublicFooter, PublicHeader } from '@/components/PublicShell';
+import { PLANS } from '@/content/plans';
 
 /** Qué problema del sistema actual resolvemos para cada actor (tesis del TFG, en lenguaje de producto). */
 const PAIN: Record<string, { problem: string; answer: string }> = {
@@ -29,6 +30,7 @@ export default async function ForActorPage({ params }: { params: Promise<{ slug:
   const a = actorBySlug(slug);
   if (!a) notFound();
   const pain = PAIN[slug];
+  const agentPlan = PLANS.find((p) => p.code === 'agent_solo');
   return (
     <>
       <PublicHeader />
@@ -43,6 +45,11 @@ export default async function ForActorPage({ params }: { params: Promise<{ slug:
         <ul className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {a.services.map((s) => <li key={s} className="rounded-xl border border-line bg-surface p-4 text-paper">{s}</li>)}
         </ul>
+        {slug === 'agentes' && agentPlan && (
+          <p className="mt-8 rounded-[var(--radius-card)] border border-line bg-surface p-5 text-paper">
+            <strong className="font-semibold">{agentPlan.name}: {agentPlan.price}</strong>{agentPlan.priceNote ? ` · ${agentPlan.priceNote}` : ''}. Sin comisiones ni cobro por contactar. <a href="/precios" className="font-semibold underline underline-offset-4">Ver todos los planes</a>
+          </p>
+        )}
         <p className="mt-6 text-sm text-muted">Además, como todos los usuarios: escaparate de atletas, becas y oportunidades, directorio de universidades con datos oficiales, centro de información, calculadora de becas, mensajes seguros, Actualidad y Gala IA.</p>
         <div className="mt-10 flex flex-wrap gap-3">
           <ButtonLink href={`/signup?role=${a.role}`} className="px-6 py-3">Crear cuenta de {a.label.toLowerCase()}</ButtonLink>
