@@ -29,6 +29,10 @@ export const getSession = cache(async (): Promise<SessionContext | null> => {
     supabase.from('private_profile_data').select('date_of_birth').eq('user_id', user.id).maybeSingle(),
   ]);
 
+  // Recuperación (Prompt 9 §6): si falta el perfil, se crea la fila mínima. Idempotente y solo para auth.uid().
+  // Sin perfil, onboardingCompleted queda en false y el usuario vuelve al onboarding.
+  if (!profile) await supabase.rpc('ensure_my_profile');
+
   const age = priv?.date_of_birth ? ageOn(priv.date_of_birth) : null;
   return {
     userId: user.id,
