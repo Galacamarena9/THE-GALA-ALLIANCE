@@ -7,6 +7,7 @@ import { DOC_CHECKLIST } from '@/content/documents';
 import { buildAttention, matchingOpportunities } from '@/lib/domain/agent-home';
 import { stageLabel } from '@/lib/domain/agency-cases';
 import { verificationText } from '@/lib/domain/athletes-crm';
+import { classifyOfficialLink, officialSearchLinks } from '@/lib/domain/official-sources';
 import { a360Access, activityProjection, currentJourney, documentChecklist, evidenceSignals, keyCompleteness } from '@/lib/domain/athlete-360';
 import { previewAgentHomeInput } from './agent-home';
 import { previewCases, previewPortfolio } from './fixtures';
@@ -72,6 +73,12 @@ export function previewAthlete360(variant: Preview360 = 'full'): Athlete360 {
     evidence: evidenceSignals({ verifiedStats: variant === 'empty' ? null : true, video: variant === 'empty' ? null : true, gradeSource: 'documented', englishSource: 'self_reported', academicsVisible: variant !== 'empty' }),
     activity: activityProjection({ entries: [current], notes, caseActivities: acts, cases: cases.map((c) => ({ id: c.id, institution: c.institutionName })), stageLabel, noteBodies: access.noteBodies, nameOf }),
     conversation: variant === 'empty' ? null : { id: 'cr1', status: 'accepted' },
+    links: variant === 'empty' ? [] : [
+      { id: 'l1', kind: 'federation_stats', url: 'https://www.feb.es/jugador/ejemplo', verified: true },
+      { id: 'l2', kind: 'ranking', url: 'https://www.fiba.basketball/en/players/000000-ejemplo', verified: false },
+      { id: 'l3', kind: 'highlight_video', url: 'https://video.ejemplo.test/partido', verified: false },
+    ].map((l) => ({ ...l, official: classifyOfficialLink(l.url) })),
+    officialSearch: officialSearchLinks({ name: current.name, country: current.country }),
     partial: [],
   };
 }

@@ -51,6 +51,18 @@ test.describe('Ficha 360 del atleta', () => {
     await expect(actions.getByRole('link', { name: 'Perfil público' })).toBeVisible();
   });
 
+  test('fuentes oficiales: enlaces reconocidos y búsqueda en federación, FIBA, NCAA, ESPN y EuroLeague', async ({ page }) => {
+    await open(page, '/preview/athlete-360');
+    const panel = page.locator('[data-a360="official"]');
+    await expect(panel.getByRole('list', { name: 'Enlaces oficiales del atleta' }).getByRole('listitem')).toHaveCount(2);
+    await expect(panel).toContainText('Federación (España)');
+    await expect(panel).toContainText('Ficha en FIBA');
+    await expect(panel).toContainText('1 enlace más');
+    const search = panel.getByRole('list', { name: 'Buscar en fuentes oficiales' }).getByRole('link');
+    await expect(search).toHaveText([/Federación \(España\)/, /FIBA/, /NCAA/, /ESPN/, /EuroLeague/]);
+    for (let i = 0; i < 5; i++) await expect(search.nth(i)).toHaveAttribute('rel', /noopener/);
+  });
+
   test('pestañas accesibles y con URL propia', async ({ page }) => {
     await open(page, '/preview/athlete-360?tab=documentos');
     const nav = tabs(page);

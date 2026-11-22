@@ -8,6 +8,7 @@ import { DOC_CHECKLIST } from '@/content/documents';
 import { buildAttention, matchingOpportunities, type HomeOpportunity } from '@/lib/domain/agent-home';
 import { stageLabel } from '@/lib/domain/agency-cases';
 import { verificationText } from '@/lib/domain/athletes-crm';
+import { classifyOfficialLink, officialSearchLinks, type OfficialLink, type OfficialSearch } from '@/lib/domain/official-sources';
 import {
   a360Access, activityProjection, currentJourney, documentChecklist, evidenceSignals, keyCompleteness,
   type A360Access, type ActivityItem, type CaseActivity, type ChecklistRow, type Evidence, type Journey,
@@ -34,6 +35,9 @@ export interface Athlete360 {
   evidence: Evidence[];
   activity: ActivityItem[];
   conversation: { id: string; status: string } | null;
+  /** Enlaces del atleta (los que la RLS deja ver) con la fuente oficial reconocida, y búsquedas en fuentes oficiales. */
+  links: { id: string; url: string; kind: string; verified: boolean; official: OfficialLink | null }[];
+  officialSearch: OfficialSearch[];
   partial: string[];
 }
 
@@ -53,7 +57,7 @@ export async function loadAthlete360(userId: string, athleteId: string, now: Dat
   const caseIds = cases.map((c) => c.id);
   const partial: string[] = [...(src?.partial ?? [])];
 
-  const [dirRes, acadRes, docsRes, reqRes, actRes, convRes, offers] = await Promise.all([
+  const [dirRes, acadRes, docsRes, reqRes, actRes, convRes, offers, linksRes] = await Promise.all([
     supabase.from('athlete_directory').select('user_id, has_verified_stats, has_video').eq('user_id', athleteId).maybeSingle(),
     supabase.from('athlete_academics').select('gpa_source, english_source').eq('athlete_id', athleteId).maybeSingle(),
     access.documents
@@ -70,6 +74,7 @@ export async function loadAthlete360(userId: string, athleteId: string, now: Dat
       : Promise.resolve({ data: [], error: null }),
     supabase.from('contact_requests').select('id, status').eq('athlete_id', athleteId).eq('organization_id', e.agencyId).order('created_at', { ascending: false }).limit(1).maybeSingle(),
     access.offers ? loadOffers(athleteId).catch(() => { partial.push('ofertas'); return [] as OfferView[]; }) : Promise.resolve(null),
+    supabase.from('athlete_links').select('id, kind, url, verified').eq('athlete_id', athleteId).order('created_at'),
   ]);
   if (docsRes.error || reqRes.error) partial.push('documentos');
   if (actRes.error) partial.push('actividad');
@@ -122,6 +127,8 @@ export async function loadAthlete360(userId: string, athleteId: string, now: Dat
       entries: ws.history, notes: ws.notes, caseActivities: acts, cases: cases.map((c) => ({ id: c.id, institution: c.institutionName })),
       stageLabel, noteBodies: access.noteBodies, nameOf, limit: 60,
     }),
+    links: ((linksRes.data ?? []) as { id: string; kind: string; url: string; verified: boolean }[]).map((l) => ({ ...l, official: classifyOfficialLink(l.url) })),
+    officialSearch: officialSearchLinks({ name: e.name, country: e.country }),
     conversation: convRes.data ? { id: convRes.data.id as string, status: convRes.data.status as string } : null,
     partial: [...new Set(partial)],
   };

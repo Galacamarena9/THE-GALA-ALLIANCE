@@ -6,6 +6,7 @@ import { requireSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
 import { ORG_TYPE_LABEL, LINK_KIND_LABEL, daysSince, domainOf, usd } from '@/lib/domain/labels';
 import type { OrgType } from '@/lib/types';
+import { classifyOfficialLink } from '@/lib/domain/official-sources';
 import { Badge, Card, CardTitle, PageHeader, inputClass, buttonClass } from '@/components/ui';
 import { ScorecardImportForm } from '@/components/forms';
 import { ScorecardBulkImport } from '@/components/ScorecardBulkImport';
@@ -169,7 +170,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             <ul className="divide-y divide-line text-sm">
               {(links.data ?? []).map((l) => (
                 <li key={l.id} className="flex items-center justify-between gap-3 py-2.5">
-                  <span className="min-w-0"><span className="text-paper">{LINK_KIND_LABEL[l.kind]}</span> · <a href={l.url} target="_blank" rel="noopener noreferrer" className="text-brass">{domainOf(l.url)} ↗</a></span>
+                  <span className="min-w-0"><span className="text-paper">{LINK_KIND_LABEL[l.kind]}</span>{classifyOfficialLink(l.url) ? <span className="text-ok"> · {classifyOfficialLink(l.url)!.sourceName} (fuente oficial)</span> : <span className="text-faint"> · fuente no oficial</span>} · <a href={l.url} target="_blank" rel="noopener noreferrer" className="text-brass">{domainOf(l.url)} ↗</a></span>
                   <form action={verifyAthleteLink}><input type="hidden" name="id" value={l.id} /><button className="text-xs text-ok">Verificar</button></form>
                 </li>
               ))}
