@@ -43,7 +43,7 @@ export default async function PassportEditPage({ searchParams }: { searchParams:
             <div className="relative h-24 w-24 shrink-0" role="img" aria-label={`Recruiting Readiness ${r.score} de 100`}>
               <svg viewBox="0 0 36 36" className="h-full w-full -rotate-90" aria-hidden>
                 <circle cx="18" cy="18" r="15.9155" fill="none" stroke="rgb(255 255 255 / 0.12)" strokeWidth="2.6" />
-                <circle cx="18" cy="18" r="15.9155" fill="none" stroke="#c8f03c" strokeWidth="2.6" strokeLinecap="round" strokeDasharray="100" className="ring-fill" style={{ ['--ring-offset' as string]: 100 - r.score, strokeDashoffset: 100 - r.score }} />
+                <circle cx="18" cy="18" r="15.9155" fill="none" stroke="var(--color-lime)" strokeWidth="2.6" strokeLinecap="round" strokeDasharray="100" className="ring-fill" style={{ ['--ring-offset' as string]: 100 - r.score, strokeDashoffset: 100 - r.score }} />
               </svg>
               <span className="absolute inset-0 flex flex-col items-center justify-center" aria-hidden><span className="font-display text-3xl font-bold leading-none text-white">{r.score}</span><span className="text-[10px] text-white/60">/ 100</span></span>
             </div>
