@@ -16,6 +16,7 @@ import { DIVISION_LABEL, OPPORTUNITY_STATUS_LABEL, OPPORTUNITY_TYPE_LABEL, domai
 import type { Opportunity } from '@/lib/types';
 import { Badge, Card, CardTitle, EmptyState, Notice, PageHeader, buttonClass } from '@/components/ui';
 import { ApplyOpportunityForm, ReportButton } from '@/components/forms';
+import { OPPORTUNITY_REPORT_REASONS } from '@/lib/domain/reports';
 import { deleteOpportunity, submitForReview } from '@/app/actions/opportunities';
 import { AnswerQuestionForm, AskQuestionForm } from '@/components/QuestionForms';
 import { ProgramPanel, type PanelEnrollment, type ProgramDetails } from '@/components/trials/ProgramPanel';
@@ -49,7 +50,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
   const preview = member && sp.view === 'athlete';
   const isMember = member && !preview;
   const isAthlete = session.roles.includes('athlete');
-  const extra = raw as unknown as { scholarship_status?: string; required_materials?: string[]; international_eligible?: string; contact_method?: string; expires_at?: string | null };
+  const extra = raw as unknown as { scholarship_status?: string; required_materials?: string[]; international_eligible?: string; international_conditions?: string | null; contact_method?: string; expires_at?: string | null };
   // Quién verá las candidaturas: roles del equipo con permiso sobre candidatos (espejo de org_role_caps).
   const { data: staff } = preview ? await supabase.from('organization_members').select('member_role').eq('organization_id', opp.organization_id) : { data: null };
   const reviewers = [...new Set((staff ?? []).map((m) => m.member_role as OrgRole).filter((r) => ROLE_CAPS[r]?.includes('candidates')))];
@@ -216,7 +217,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
             <CardTitle kicker="Antes de aplicar">Requisitos y proceso</CardTitle>
             <dl className="grid gap-4 text-sm sm:grid-cols-2">
               <div><dt className="text-faint">Beca</dt><dd className="text-paper">{SCHOLARSHIP_LABEL[extra.scholarship_status ?? 'not_provided']}</dd></div>
-              <div><dt className="text-faint">Atletas internacionales</dt><dd className="text-paper">{INTERNATIONAL_LABEL[extra.international_eligible ?? 'unknown']}</dd></div>
+              <div><dt className="text-faint">Atletas internacionales</dt><dd className="text-paper">{INTERNATIONAL_LABEL[extra.international_eligible ?? 'unknown']}{extra.international_eligible === 'conditional' && extra.international_conditions ? `: ${extra.international_conditions}` : ''}</dd></div>
               <div><dt className="text-faint">Contacto</dt><dd className="text-paper">{CONTACT_METHOD_LABEL[extra.contact_method ?? 'gala']}</dd></div>
               <div><dt className="text-faint">Activa hasta</dt><dd className="text-paper">{extra.expires_at ?? opp.deadline ?? 'No indicado'}</dd></div>
             </dl>
@@ -304,7 +305,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
           )}
 
           {!isAthlete && !isMember && <Notice tone="neutral">Las candidaturas las envían los atletas desde su Passport.</Notice>}
-          <div className="text-right"><ReportButton entityType="opportunity" entityId={opp.id} label="Denunciar esta oportunidad" /></div>
+          <div className="text-right"><ReportButton entityType="opportunity" entityId={opp.id} label="Denunciar esta oportunidad" reasons={OPPORTUNITY_REPORT_REASONS} /></div>
         </div>
       </div>
 

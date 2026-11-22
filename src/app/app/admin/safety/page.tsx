@@ -11,7 +11,8 @@ export const metadata: Metadata = { title: 'Trust & Safety' };
 const PRIORITY_TONE: Record<string, 'danger' | 'warn' | 'neutral'> = { critical: 'danger', high: 'warn', medium: 'neutral', low: 'neutral' };
 const REASON: Record<string, string> = { child_safety: 'Seguridad infantil', harassment: 'Acoso', fake_or_misleading: 'Falso o engañoso', spam: 'Spam', illegal_content: 'Contenido ilegal', privacy: 'Privacidad', other: 'Otro',
   impersonation: 'Suplantación', unauthorized_representation: 'Representación no autorizada', misleading_fees: 'Honorarios engañosos',
-  payment_request: 'Pago sospechoso', unauthorized_document_use: 'Uso no autorizado de documentos' };
+  payment_request: 'Pago sospechoso', unauthorized_document_use: 'Uso no autorizado de documentos',
+  false_guarantee: 'Garantía falsa', incorrect_cost: 'Coste incorrecto' };
 const date = (d: string) => new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(d));
 
 /**

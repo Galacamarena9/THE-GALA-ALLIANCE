@@ -67,11 +67,16 @@ const oppSchema = z
     aid_kind: z.enum(['full', 'partial', 'unknown']).default('unknown'),
     // Fase 07: beca honesta, requisitos visibles y caducidad.
     scholarship_status: z.enum(['not_provided', 'potentially_available', 'amount_stated']).default('not_provided'),
-    international_eligible: z.enum(['yes', 'no', 'unknown']).default('unknown'),
+    international_eligible: z.enum(['yes', 'no', 'conditional', 'unknown']).default('unknown'),
+    international_conditions: optText(1000),
     contact_method: z.enum(['gala', 'application_only']).default('gala'),
     expires_at: z.union([z.literal(''), z.string().regex(/^\d{4}-\d{2}-\d{2}$/)]).optional().transform((v) => v || null),
     need_id: z.union([z.literal(''), z.string().uuid()]).optional().transform((v) => v || null),
     submit: z.enum(['draft', 'review']),
+  })
+  .refine((d) => d.international_eligible !== 'conditional' || (d.international_conditions ?? '').length >= 10, {
+    message: 'Explica las condiciones para atletas internacionales (visado, viaje, alojamiento…)',
+    path: ['international_conditions'],
   })
   .refine((d) => d.aid_amount_usd == null || d.annual_cost_usd == null || d.aid_amount_usd <= d.annual_cost_usd, {
     message: 'La ayuda no puede superar el coste',
@@ -113,6 +118,7 @@ export async function createOpportunity(_prev: FormState, formData: FormData): P
     .from('opportunities')
     .insert({
       ...data,
+      international_conditions: data.international_eligible === 'conditional' ? data.international_conditions : null,
       position_ids: positionIds.data,
       graduation_years: gradYears.data,
       required_materials: materials.data,
