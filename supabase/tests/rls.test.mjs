@@ -3578,6 +3578,32 @@ try {
     eq(views.join(','), '', 'vistas sin security_invoker');
   });
 
+  await check('P9 revisión · sin sesión no se puede preguntar si un perfil es de adulto; con sesión el perfil adulto sigue visible', async () => {
+    const adultUser = (await db.query(`select p.id from public.profiles p where not exists (select 1 from public.athlete_profiles a where a.user_id = p.id) limit 1`)).rows[0]?.id;
+    await expectError(() => as(null, `select public.is_listed_adult_profile($1)`, [adultUser]), /permission denied/);
+    eq((await as(null, `select count(*)::int n from public.profiles where id = $1`, [adultUser])).rows[0].n, 0, 'anon no ve el perfil');
+    const other = (await db.query(`select id from public.profiles where id <> $1 limit 1`, [adultUser])).rows[0].id;
+    eq((await as(other, `select count(*)::int n from public.profiles where id = $1`, [adultUser])).rows[0].n, 1, "con sesión ve al adulto");
+    const anonDefiner = (await db.query(`select proname from pg_proc where pronamespace = 'public'::regnamespace and prosecdef
+      and has_function_privilege('anon', oid, 'execute') order by 1`)).rows.map((r) => r.proname);
+    eq(anonDefiner.includes('is_listed_adult_profile'), false, 'is_listed_adult_profile ejecutable por anon');
+    console.log(`  (info) SECURITY DEFINER ejecutables por anon: ${anonDefiner.length} → ${anonDefiner.join(', ')}`);
+  });
+
+  await check('P9 revisión · el alta con una fecha imposible no falla y el perfil se recupera de forma idempotente', async () => {
+    const u = randomUUID();
+    await db.query(`insert into auth.users (id, email, raw_user_meta_data) values ($1, 'bad-dob@test.dev', $2)`,
+      [u, { date_of_birth: '2003-02-30', display_name: 'bad dob' }]);
+    eq((await db.query(`select count(*)::int n from profiles where id = $1`, [u])).rows[0].n, 1, 'perfil creado');
+    eq((await db.query(`select count(*)::int n from private_profile_data where user_id = $1`, [u])).rows[0].n, 0, 'sin fecha imposible');
+    eq((await as(u, `select public.ensure_my_profile() ok`)).rows[0].ok, false, 'ya existía');
+    await db.query(`delete from profiles where id = $1`, [u]);
+    eq((await db.query(`select count(*)::int n from profiles where id = $1`, [u])).rows[0].n, 0, 'perfil borrado para la prueba');
+    eq((await as(u, `select public.ensure_my_profile() ok`)).rows[0].ok, true, 'recreado');
+    eq((await as(u, `select public.ensure_my_profile() ok`)).rows[0].ok, false, 'idempotente');
+    await expectError(() => as(null, `select public.ensure_my_profile()`), /permission denied/);
+  });
+
   if (!process.env.SKIP_ERASURE) await check('RGPD: toda cuenta y toda organización se puede borrar (anonimiza auditoría, no bloquea)', async () => {
     await db.query(`select set_config('request.jwt.claims', '{}', false)`);
     const fails = [];
