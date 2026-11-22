@@ -3676,6 +3676,28 @@ try {
     await expectError(() => as(u.adult, `insert into content_reports (entity_type, entity_id, reason) values ('organization', $1, 'invented_reason')`, [agencyId]), /check constraint/);
   });
 
+  await check('P10B revisión · mayoría de edad: se abre la revisión con aviso a atleta y tutor, auditoría e idempotencia', async () => {
+    const ath = randomUUID(); const g = randomUUID();
+    await db.query(`insert into auth.users (id, email) values ($1, 'just18@fam.test'), ($2, 'just18-mom@fam.test')`, [ath, g]);
+    await db.query(`insert into private_profile_data (user_id, date_of_birth) values ($1, current_date - interval '18 years' - interval '5 days')`, [ath]);
+    await db.query(`insert into athlete_profiles (user_id, sport_id, graduation_year) values ($1, 'basketball', 2026)`, [ath]);
+    const link = (await db.query(`insert into parent_athlete_links (parent_id, athlete_id, invited_by, status, approved_at, relationship, guardian_consent_given, verification_status)
+      values ($1, $2, $1, 'approved', now() - interval '2 years', 'mother', true, 'athlete_confirmed') returning id`, [g, ath])).rows[0].id;
+    const cnt = async (who) => (await db.query(`select count(*)::int n from notifications where user_id = $1 and kind = 'family.review'`, [who])).rows[0].n;
+    const kidLinks = (await db.query(`select count(*)::int n from audit_logs where action = 'family_link.majority_review_opened' and entity_id = $1`, [fam.momKid])).rows[0].n;
+    const opened = (await db.query(`select public.family_open_majority_reviews() n`)).rows[0].n;
+    if (opened < 1) throw new Error('no abrió ninguna revisión');
+    eq(await cnt(ath), 1, 'aviso al atleta'); eq(await cnt(g), 1, 'aviso al tutor');
+    eq((await db.query(`select count(*)::int n from audit_logs where action = 'family_link.majority_review_opened' and entity_id = $1`, [link])).rows[0].n, 1, 'auditado');
+    eq((await db.query(`select public.notification_category('family.review') c`)).rows[0].c, 'essential', 'no silenciable');
+    await db.query(`select public.family_open_majority_reviews()`);
+    eq(await cnt(ath), 1, 'idempotente: sin aviso repetido');
+    eq((await db.query(`select count(*)::int n from audit_logs where action = 'family_link.majority_review_opened' and entity_id = $1`, [fam.momKid])).rows[0].n, kidLinks, 'un menor no entra en revisión');
+    eq((await as(ath, `select public.has_family_link($1, 'view_profile') x`, [ath])).rows[0].x, false, 'sanity');
+    eq((await as(g, `select public.has_family_link($1, 'view_profile') x`, [ath])).rows[0].x, true, 'dentro de la ventana el tutor sigue');
+    await expectError(() => as(g, `select public.family_open_majority_reviews()`), /permission denied/);
+  });
+
   if (!process.env.SKIP_ERASURE) await check('RGPD: toda cuenta y toda organización se puede borrar (anonimiza auditoría, no bloquea)', async () => {
     await db.query(`select set_config('request.jwt.claims', '{}', false)`);
     const fails = [];
