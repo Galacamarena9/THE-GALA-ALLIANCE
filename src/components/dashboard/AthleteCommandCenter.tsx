@@ -81,7 +81,7 @@ export function AthleteCommandCenter({ d, firstName, isMinor }: { d: AthleteDash
                 <div className="relative grid gap-6 lg:grid-cols-[1fr_340px] lg:items-center">
           <div>
             <p className="eyebrow text-gold">Hoy · {stage.label}</p>
-            <h1 id="cc-hello" className="mt-2 font-display text-4xl leading-[1.05] text-paper sm:text-5xl">Hola, <em>{firstName}</em></h1>
+            <h1 id="cc-hello" className="mt-2 font-display text-4xl leading-[1.05] text-paper sm:text-5xl">Hola, {firstName}</h1>
             <p className="mt-2 max-w-xl text-sm text-muted">{stage.focus}</p>
             {nba ? (
               <div className="mt-5 rounded-2xl border border-brass/40 bg-brass/5 p-4">
