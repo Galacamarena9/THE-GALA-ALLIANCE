@@ -12,6 +12,7 @@ import { DIVISION_LABEL } from '@/lib/domain/labels';
 import { isOverdue, dueText as noteDueText, nextSteps, relativeTime, REP_PERMISSIONS, REP_TYPE_LABEL, repStatusDetail } from '@/lib/domain/portfolio';
 import { isCaseStale, stageLabel } from '@/lib/domain/agency-cases';
 import { PIPELINE_BUCKETS, dueText } from '@/lib/domain/agent-home';
+import { usReadiness, MILESTONE_STATE_LABEL, type MilestoneState } from '@/lib/domain/us-readiness';
 import { A360_TABS, DOC_STATE_LABEL, WAITING_LABEL, a360Href, type A360Tab, type ChecklistRow, type Journey } from '@/lib/domain/athlete-360';
 import type { Athlete360 } from '@/lib/data/athlete-360';
 import type { Division } from '@/lib/types';
@@ -334,11 +335,44 @@ const DOC_ICON: Record<ChecklistRow['state'], { icon: typeof Check; cls: string 
   not_shared: { icon: CircleDashed, cls: 'text-faint' }, locked: { icon: Lock, cls: 'text-faint' },
 };
 
+const MS_TONE: Record<MilestoneState, string> = {
+  done: 'text-ok', requested: 'text-warn', overdue: 'text-danger', pending: 'text-muted', later: 'text-faint', locked: 'text-faint', unknown: 'text-brass',
+};
+
+/** «Listo para EE. UU.»: los 6 hitos del puente Europa → NCAA, con estado y fecha recomendada. */
+function UsReadinessPanel({ data }: { data: Athlete360 }) {
+  const today = new Date().toISOString().slice(0, 10);
+  const r = usReadiness(data.documents, today, { committed: data.cases.some((c) => c.stage === 'committed') });
+  return (
+    <section aria-labelledby="us-ready" data-testid="us-readiness" className="mb-5 rounded-[var(--radius-card)] border border-line bg-surface p-5">
+      <div className="flex flex-wrap items-end justify-between gap-2">
+        <h2 id="us-ready" className="font-display text-2xl text-paper">Listo para <em>EE. UU.</em></h2>
+        <p className="text-sm text-muted"><span className="font-display text-2xl text-paper">{r.done}</span> de {r.total} hitos listos</p>
+      </div>
+      <ol className="mt-4 grid gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-2 lg:grid-cols-3">
+        {r.milestones.map((m, i) => (
+          <li key={m.key} data-milestone={m.key} data-milestone-state={m.state} className="bg-ink p-4">
+            <p className="flex items-baseline gap-2 text-sm font-semibold text-paper"><span aria-hidden className="text-[11px] text-brass">{String(i + 1).padStart(2, '0')}</span>{m.title}</p>
+            <p className="mt-1 text-xs text-muted">{m.why}</p>
+            <p className={cx('mt-2 text-xs font-semibold uppercase tracking-wide', MS_TONE[m.state])}>
+              {MILESTONE_STATE_LABEL[m.state]}
+              {m.due && !['done', 'later', 'locked'].includes(m.state) && <span className="ml-2 font-normal normal-case tracking-normal text-faint">antes del {new Date(`${m.due}T00:00:00Z`).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })}</span>}
+            </p>
+          </li>
+        ))}
+      </ol>
+      <p className="mt-3 text-xs text-faint">La elegibilidad la confirma el atleta en el NCAA Eligibility Center o en PlayNAIA. Solo cuenta lo que te ha compartido.</p>
+    </section>
+  );
+}
+
 function DocumentsTab({ data, messageHref }: { data: Athlete360; messageHref: string | null }) {
   const { access, documents, evidence } = data;
   const shared = documents.filter((d) => d.state === 'shared').length;
   const groups: { id: ChecklistRow['group']; title: string }[] = [{ id: 'process', title: 'Para el proceso' }, { id: 'arrival', title: 'Visado y llegada (tras aceptar una oferta)' }];
   return (
+    <>
+    <UsReadinessPanel data={data} />
     <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
       <Panel title="Documentos">
         {!access.documents ? (
@@ -389,6 +423,7 @@ function DocumentsTab({ data, messageHref }: { data: Athlete360; messageHref: st
         <p className="px-2 pb-1 pt-2 text-[11px] text-faint">«Validado» solo cuando lo respalda un club o un documento. Lo declarado por el atleta se indica como tal.</p>
       </Panel>
     </div>
+    </>
   );
 }
 
