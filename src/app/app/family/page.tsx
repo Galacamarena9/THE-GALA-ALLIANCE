@@ -32,7 +32,7 @@ export default async function FamilyPage({ searchParams }: { searchParams: Promi
   const header = (
     <PageHeader
       kicker="Familia · Hoy"
-      title="Lo que necesita vuestra atención"
+      title={<>Lo que necesita vuestra <em>atención</em></>}
       description="Su proceso, lo que espera tu aprobación y cuánto cuesta de verdad cada opción. Solo ves lo que tu hijo o hija decide compartir contigo."
     />
   );

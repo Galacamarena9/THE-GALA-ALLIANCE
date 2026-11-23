@@ -80,16 +80,16 @@ export function AthleteCommandCenter({ d, firstName, isMinor }: { d: AthleteDash
       <section aria-labelledby="cc-hello" className="relative overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface p-5 sm:p-7">
                 <div className="relative grid gap-6 lg:grid-cols-[1fr_340px] lg:items-center">
           <div>
-            <p className="eyebrow text-gold">Hoy · {stage.label}</p>
-            <h1 id="cc-hello" className="mt-2 font-display text-4xl leading-[1.05] text-paper sm:text-5xl">Hola, {firstName}</h1>
-            <p className="mt-2 max-w-xl text-sm text-muted">{stage.focus}</p>
+            <p className="eyebrow flex items-center gap-3 text-brass"><span aria-hidden className="h-px w-10 bg-brass" />Hoy · {stage.label}</p>
+            <h1 id="cc-hello" className="mt-4 font-display text-[2.8rem] leading-[0.95] text-paper sm:text-7xl">Hola, <em>{firstName}</em>.</h1>
+            <p className="mt-4 max-w-xl text-base text-paper/80">{stage.focus}</p>
             {nba ? (
               <div className="mt-5 rounded-2xl border border-brass/40 bg-brass/5 p-4">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-[11px] font-bold uppercase tracking-wide text-brass">Tu siguiente mejor acción</span>
                   <Badge tone={PRIORITY_TONE[nba.priority]}>{PRIORITY_LABEL[nba.priority]}</Badge>
                 </div>
-                <p className="mt-2 text-lg font-semibold text-paper">{nba.title}</p>
+                <p className="mt-2 flex gap-2 text-lg font-semibold text-paper"><span aria-hidden className="text-brass">→</span>{nba.title}</p>
                 <p className="mt-1 text-sm text-muted"><span className="font-semibold text-paper">Por qué:</span> {nba.reason}</p>
                 <div className="mt-3 flex flex-wrap items-center gap-3">
                   <ButtonLink href={nba.href}>{nba.cta} <ArrowRight className="h-4 w-4" aria-hidden /></ButtonLink>

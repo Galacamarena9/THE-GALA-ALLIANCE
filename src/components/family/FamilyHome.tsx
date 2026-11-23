@@ -60,8 +60,8 @@ export function FamilyHome({ links, current, home, action, today, switchHref }: 
       {current.active && home && (
         <>
           <section aria-labelledby="family-action" className={`rounded-2xl border p-5 ${action.urgent ? 'border-brass bg-brass/10' : 'border-line bg-surface'}`}>
-            <p className="text-xs font-semibold uppercase tracking-wider text-brass">Acción de la familia</p>
-            <h2 id="family-action" className="mt-1 text-lg font-semibold text-paper">{action.title}</h2>
+            <p className="eyebrow flex items-center gap-3 text-brass"><span aria-hidden className="h-px w-10 bg-brass" />Acción de la familia</p>
+            <h2 id="family-action" className="mt-3 flex gap-2 font-display text-3xl text-paper sm:text-4xl"><span aria-hidden className="text-brass">→</span>{action.title}</h2>
             <p className="mt-1 text-sm text-muted">{action.why}</p>
             <Link href={action.href} className="mt-3 inline-flex min-h-11 items-center rounded-full bg-brass px-5 text-sm font-semibold text-ink">
               {action.urgent ? 'Revisar ahora' : 'Abrir'}
