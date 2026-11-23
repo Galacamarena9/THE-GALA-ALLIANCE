@@ -11,7 +11,7 @@ const when = (iso: string) => new Date(iso).toLocaleDateString('es-ES', { day: '
 export function AgentInboxView({ groups, today = new Date().toISOString().slice(0, 10) }: { groups: InboxGroup[]; today?: string }) {
   return (
     <>
-      <PageHeader kicker="Mensajes" title="Mensajes" description="Una sola bandeja, ordenada por atleta. Cada conversación lleva su contexto: en qué fase está y qué toca hacer." />
+      <PageHeader kicker="Mensajes · Por atleta" title={<>Conversaciones que <em>avanzan</em></>} description="Una sola bandeja, ordenada por atleta. Cada conversación lleva su contexto: en qué fase está y qué toca hacer." />
       {!groups.length ? (
         <EmptyState title="Sin conversaciones todavía" action={<Link href="/app/portfolio" className="text-sm font-semibold text-brass underline underline-offset-4">Ir a mis atletas</Link>}>
           Cuando un atleta acepte tu representación o tu agencia abra una conversación, aparecerá aquí agrupada por atleta.

@@ -63,11 +63,11 @@ export function PipelineBoard({ cases, view, sportName, actions, today = new Dat
   return (
     <>
       <div className="-mx-1 grid snap-x auto-cols-[minmax(260px,1fr)] grid-flow-col gap-4 overflow-x-auto px-1 pb-4 xl:grid-flow-row xl:grid-cols-5">
-        {columns.map((col) => (
-          <section key={col.id} aria-labelledby={`ph-${col.id}`} data-testid={`phase-${col.id}`} className="flex min-w-0 snap-start flex-col rounded-[var(--radius-card)] border border-line bg-surface-2/40 p-3">
-            <header className="mb-3 flex items-center justify-between gap-2 px-1">
-              <h2 id={`ph-${col.id}`} className="text-xl text-paper">{col.label}</h2>
-              <span className="rounded-full bg-night px-2 py-0.5 text-xs font-bold text-brass">{col.items.length}</span>
+        {columns.map((col, ci) => (
+          <section key={col.id} aria-labelledby={`ph-${col.id}`} data-testid={`phase-${col.id}`} className="flex min-w-0 snap-start flex-col border-t border-line pt-4">
+            <header className="mb-4 flex items-end justify-between gap-2">
+              <h2 id={`ph-${col.id}`} className="flex items-baseline gap-2 text-xl text-paper"><span aria-hidden className="font-sans text-[11px] font-semibold tabular-nums text-brass">{String(ci + 1).padStart(2, '0')}</span>{col.label}</h2>
+              <span className="font-display text-3xl leading-none tabular-nums text-paper/40">{col.items.length}</span>
             </header>
             {col.items.length ? (
               <ul className="space-y-3">
@@ -75,7 +75,7 @@ export function PipelineBoard({ cases, view, sportName, actions, today = new Dat
                   const a = na(c);
                   const mine = a.actor === 'agent';
                   return (
-                    <li key={c.id} data-testid="case-card" data-state={a.state} className="rounded-2xl border border-line bg-surface p-4">
+                    <li key={c.id} data-testid="case-card" data-state={a.state} className="rounded-xl border border-line bg-surface p-4 transition-colors hover:border-brass/50">
                       <div className="flex items-start gap-3">
                         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-night font-display text-sm text-brass" aria-hidden>{initials(c.athleteName)}</span>
                         <div className="min-w-0">
@@ -91,11 +91,11 @@ export function PipelineBoard({ cases, view, sportName, actions, today = new Dat
                         </span>
                         <span className="text-xs text-muted">{TURN_LABEL[a.actor]}</span>
                       </div>
-                      <p className="mt-2 text-sm text-paper" data-testid="next-action">{a.action}</p>
+                      <p className="mt-3 flex gap-2 text-sm font-semibold text-paper"><span aria-hidden className="text-brass">→</span><span data-testid="next-action">{a.action}</span></p>
                       {a.blocker && <p className="mt-1 text-xs text-danger" data-testid="blocker">{a.blocker}</p>}
                       {a.due && <p className={`mt-1 text-xs ${a.state === 'overdue' ? 'text-danger' : 'text-faint'}`}>{dueText(a.due, today)}</p>}
                       <Link href={a.cta.href} data-testid="case-cta"
-                        className={`mt-3 inline-flex min-h-10 w-full items-center justify-center rounded-xl px-3 text-sm font-semibold ${mine && a.state !== 'done' ? 'bg-brass text-ink hover:bg-brass-soft' : 'border border-line-strong text-paper hover:border-brass'}`}>
+                        className={`mt-3 inline-flex min-h-10 w-full items-center justify-center rounded-full px-3 text-sm font-semibold ${mine && a.state !== 'done' ? 'bg-brass text-ink hover:bg-brass-soft' : 'border border-line-strong text-paper hover:border-brass'}`}>
                         {a.cta.label}
                       </Link>
                     </li>

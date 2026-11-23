@@ -24,10 +24,10 @@ export function SummaryStrip({ s, className }: { s: AgentHomeSummary; className?
   return (
     <section aria-label="Resumen" className={cx('grid grid-cols-2 overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface sm:grid-cols-5', className)}>
       {items.map((i, n) => (
-        <Link key={i.label} href={i.href} className={cx('group min-w-0 border-line px-4 py-3 transition-colors hover:bg-ink focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brass', n > 0 && 'sm:border-l', n % 2 === 1 && 'border-l sm:border-l', n >= 2 && 'border-t sm:border-t-0', n === 4 && 'col-span-2 sm:col-span-1')}>
-          <span className="block truncate text-xs font-semibold text-muted">{i.label}</span>
-          <span className={cx('block font-display text-[32px] font-bold leading-none tabular-nums', i.alert ? 'text-danger' : 'text-paper')}>{i.value}</span>
-          <span className="block truncate text-xs text-muted">{i.note}</span>
+        <Link key={i.label} href={i.href} className={cx('group min-w-0 border-line px-5 py-5 transition-colors hover:bg-ink focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brass', n > 0 && 'sm:border-l', n % 2 === 1 && 'border-l sm:border-l', n >= 2 && 'border-t sm:border-t-0', n === 4 && 'col-span-2 sm:col-span-1')}>
+          <span className="flex items-center gap-2 truncate text-[11px] font-semibold uppercase tracking-[0.16em] text-muted"><i aria-hidden className="not-italic tabular-nums text-brass">{String(n + 1).padStart(2, '0')}</i>{i.label}</span>
+          <span className={cx('mt-3 block font-display text-[48px] leading-none tabular-nums transition-colors', i.alert ? 'text-danger' : 'text-paper group-hover:text-brass')}>{i.value}</span>
+          <span className="mt-1 block truncate text-xs text-faint">{i.note}</span>
         </Link>
       ))}
     </section>
@@ -43,7 +43,7 @@ export function AttentionList({ items, today, limit = 6, className }: { items: A
     <section id="hoy" aria-labelledby="hoy-h" className={cx('scroll-mt-20 overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface', className)}>
       <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-3 sm:px-5">
         <h2 id="hoy-h" className="font-display text-xl text-paper">
-          Lo que toca hoy
+          Lo que toca <em>hoy</em>
           {actionable.length > 0 && <span className="ml-2 rounded-full bg-danger/10 px-2 py-0.5 text-xs font-semibold text-danger">{actionable.length}</span>}
         </h2>
         <Link href="/app/pipeline" className="shrink-0 text-sm font-semibold text-brass hover:underline">Procesos</Link>
@@ -102,7 +102,7 @@ export function PipelineStrip({ stages, className }: { stages: { id: string; lab
   return (
     <section aria-labelledby="pipe-h" className={cx('rounded-[var(--radius-card)] border border-line bg-surface', className)}>
       <div className="flex items-center justify-between border-b border-line px-4 py-3 sm:px-5">
-        <h2 id="pipe-h" className="font-display text-xl text-paper">Procesos por fase <span className="text-sm font-normal text-muted">· {total} {total === 1 ? 'proceso' : 'procesos'}</span></h2>
+        <h2 id="pipe-h" className="font-display text-xl text-paper">Procesos <em>por fase</em> <span className="text-sm font-normal text-muted">· {total} {total === 1 ? 'proceso' : 'procesos'}</span></h2>
         <Link href="/app/pipeline" className="text-sm font-semibold text-brass hover:underline">Tablero</Link>
       </div>
       <ol className="space-y-1 p-3">

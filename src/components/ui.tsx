@@ -69,12 +69,12 @@ export function Badge({ tone = 'neutral', children, className }: { tone?: Tone; 
   );
 }
 
-export function PageHeader({ kicker, title, description, action }: { kicker?: string; title: string; description?: ReactNode; action?: ReactNode }) {
+export function PageHeader({ kicker, title, description, action }: { kicker?: string; title: ReactNode; description?: ReactNode; action?: ReactNode }) {
   return (
-    <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <header className="mb-10 flex flex-col gap-5 border-b border-line pb-8 sm:flex-row sm:items-end sm:justify-between">
       <div className="max-w-2xl">
-        {kicker && <p className="eyebrow mb-3 text-gold">{kicker}</p>}
-        <h1 className="font-display text-4xl leading-[1.05] text-paper sm:text-5xl">{title}</h1>
+        {kicker && <p className="eyebrow mb-4 flex items-center gap-3 text-brass"><span aria-hidden className="h-px w-10 bg-brass" />{kicker}</p>}
+        <h1 className="font-display text-[2.6rem] leading-[0.95] text-paper sm:text-6xl">{title}</h1>
         {description && <p className="mt-3 text-base leading-relaxed text-muted">{description}</p>}
       </div>
       {action}
