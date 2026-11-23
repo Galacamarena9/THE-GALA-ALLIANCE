@@ -413,3 +413,10 @@ html:not(.js) .reveal { opacity: 1; transform: none; }
 .node-ring { animation: city-pulse 3.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
 .bridge-card { animation: float 6s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .route-flow, .city-pulse, .node-ring, .bridge-card { animation: none; } .route-flow { stroke-dasharray: none; opacity: 0.35; } }
+
+/* La portada siempre en oscuro, aunque la app esté en tema claro (contraste de secciones night y del SVG). */
+html[data-theme="light"] .landing-dark { --color-ink: #0b0d12; --color-night: #07080b; --color-surface: #13161d; --color-line: #262b36; --color-line-strong: #3a4050; --color-paper: #f4efe4; --color-muted: #bab4a6; --color-faint: #9d9789; --color-brass: #e6cf8f; --color-gold: #d9b867; }
+/* La cabecera fija no tapa el foco al tabular. */
+html { scroll-padding-top: 6rem; }
+/* Pausa de movimiento elegida por la persona (WCAG 2.2.2). */
+.motion-paused *, .motion-paused *::before, .motion-paused *::after { animation-play-state: paused !important; }

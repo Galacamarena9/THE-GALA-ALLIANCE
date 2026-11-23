@@ -36,7 +36,7 @@ function dots() {
 export function BridgeMap() {
   const grid = dots();
   return (
-    <figure className="relative" aria-label="Ilustración: rutas de atletas desde Europa hacia universidades de la NCAA">
+    <div className="relative">
       <svg viewBox="0 0 800 460" className="h-auto w-full" role="img" aria-labelledby="bridge-title">
         <title id="bridge-title">Rutas ilustrativas de atletas europeos hacia la NCAA</title>
         <defs>
@@ -47,7 +47,7 @@ export function BridgeMap() {
           <radialGradient id="glow"><stop offset="0" stopColor="#e6cf8f" stopOpacity="0.55" /><stop offset="1" stopColor="#e6cf8f" stopOpacity="0" /></radialGradient>
         </defs>
         {grid.map((d) => <circle key={`${d.x}-${d.y}`} cx={d.x} cy={d.y} r="1.6" fill="#f4efe4" opacity={d.o} />)}
-        <text x="400" y="404" textAnchor="middle" className="fill-paper/30 text-[11px] uppercase tracking-[0.4em]">Atlántico</text>
+        <text x="400" y="404" textAnchor="middle" className="fill-paper/55 text-[11px] uppercase tracking-[0.4em]">Atlántico</text>
         {ROUTES.map(([e, u], i) => {
           const a = EU[e]; const b = US[u];
           const mx = (a.x + b.x) / 2; const my = Math.min(a.y, b.y) - 120 - (i % 3) * 18;
@@ -73,7 +73,7 @@ export function BridgeMap() {
           </g>
         ))}
       </svg>
-    </figure>
+    </div>
   );
 }
 

@@ -7,7 +7,7 @@ const COLUMNS = [
   { phase: 'Evaluación', cards: [{ who: 'Hugo T.', where: 'Northfield Univ.', next: 'Expediente traducido' }] },
   { phase: 'Visita o prueba', cards: [{ who: 'Sofía M.', where: 'Westbrook State', next: 'Preparar visita oficial' }] },
   { phase: 'Oferta', cards: [{ who: 'Lucía M.', where: 'Harbor Tech', next: 'Decide la familia · 3 días', hot: true }] },
-  { phase: 'Firmado', cards: [{ who: 'Pablo R.', where: 'Lakeshore College', next: 'Visado F-1 en marcha' }] },
+  { phase: 'Decisión o colocado', cards: [{ who: 'Pablo R.', where: 'Lakeshore College', next: 'Visado F-1 en marcha' }] },
 ];
 
 export function AgentConsole() {
@@ -27,9 +27,9 @@ export function AgentConsole() {
             <ul className="mt-3 space-y-2">
               {col.cards.map((c) => (
                 <li key={c.who} className={`rounded-lg border p-2.5 ${'hot' in c ? 'border-brass/60 bg-brass/[0.08]' : 'border-line bg-surface'}`}>
-                  <p className="truncate text-[13px] font-semibold text-paper">{c.who}</p>
-                  <p className="truncate text-[11px] text-faint">{c.where}</p>
-                  <p className={`mt-2 truncate text-[11px] ${'hot' in c ? 'font-semibold text-brass' : 'text-muted'}`}>→ {c.next}</p>
+                  <p className="break-words text-[13px] font-semibold text-paper">{c.who}</p>
+                  <p className="break-words text-[11px] text-faint">{c.where}</p>
+                  <p className={`mt-2 break-words text-[11px] ${'hot' in c ? 'font-semibold text-brass' : 'text-muted'}`}><span aria-hidden>→ </span>{c.next}</p>
                 </li>
               ))}
             </ul>
