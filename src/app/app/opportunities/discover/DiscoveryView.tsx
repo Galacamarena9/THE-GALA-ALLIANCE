@@ -31,7 +31,7 @@ export function DiscoveryView(p: DiscoveryViewProps) {
     <>
       <PageHeader
         kicker="Oportunidades"
-        title="¿Para quién buscas?"
+        title={<>¿Para quién <em>buscas?</em></>}
         description="Elige a tu atleta y te enseñamos lo que encaja, por qué, y lo que falta saber. Lo que no cumple un requisito nunca aparece como elegible."
       />
 

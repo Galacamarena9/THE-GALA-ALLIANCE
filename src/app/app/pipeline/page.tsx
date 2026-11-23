@@ -57,8 +57,8 @@ export default async function PipelinePage({ searchParams }: { searchParams: SP 
   return (
     <>
       <PageHeader
-        kicker="Agencia"
-        title="Procesos"
+        kicker="Agencia · De la introducción a la firma"
+        title={<>Cada paso <em>cuenta</em></>}
         description="Cada atleta con cada universidad y temporada: en qué fase está, quién lo lleva y qué toca hacer."
         action={
           <div className="flex flex-wrap gap-2">
