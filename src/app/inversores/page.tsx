@@ -33,7 +33,7 @@ const REVENUE = [
   { who: 'Familias', what: 'Core 247 € y Elite 497 € (pago único, automáticos) · Signature a medida (1:1)', note: 'Ingresos desde el primer día con Stripe; sin coste de entrega.' },
   { who: 'Universidades y coaches', what: 'Recruit: gratis en el piloto; suscripción anual tras validar liquidez', note: 'Hipótesis de precio a validar con el piloto.' },
   { who: 'Academias y clubes', what: 'Portal de roster + afiliados por cada familia que contrata', note: 'Canal B2B2C: un acuerdo trae decenas de atletas.' },
-  { who: 'Agencias de recruiting', what: 'Agency Core: procesos atleta-universidad, contactos de programas, tareas e historial en equipo', note: 'Agente 29 €/mes · Agencia 79 €/mes (precio fundador, 30 días de prueba) · desde 249 €/mes para grandes. Producto construido; sin agencias de pago todavía. Sin comisiones ni cobro por contactar.' },
+  { who: 'Agencias de recruiting', what: 'Agency Core: procesos atleta-universidad, contactos de programas, tareas e historial en equipo', note: 'Agente 79 €/mes · Agencia 199 €/mes · desde 449 €/mes para grandes (precio fundador −40 % de por vida para las 15 primeras agencias, 30 días de prueba). Producto construido; sin agencias de pago todavía. Sin comisiones ni cobro por contactar.' },
   { who: 'Marcas', what: 'Campañas con atletas mayores de edad', note: 'Solo tras revisión legal de contratos, fiscalidad e inmigración.' },
 ];
 

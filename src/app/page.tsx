@@ -196,8 +196,8 @@ export default function Home() {
             <div className="mt-20 grid gap-6 rounded-[22px] border border-brass/40 bg-gradient-to-br from-brass/[0.10] to-transparent p-8 sm:p-10 lg:grid-cols-[1.2fr_1fr] lg:items-center">
               <div>
                 <p className="eyebrow text-brass">Precio fundador</p>
-                <p className="mt-3 font-display text-4xl text-paper sm:text-5xl">30 días gratis. El precio se queda <em>contigo</em>.</p>
-                <p className="mt-3 text-muted">Se mantiene mientras sigas suscrito. Para atletas, gratis siempre.</p>
+                <p className="mt-3 font-display text-4xl text-paper sm:text-5xl">−40 % de por vida para las <em>15 primeras</em>.</p>
+                <p className="mt-3 text-muted">Agente 47 €/mes y Agencia 119 €/mes mientras sigas suscrito, en lugar de 79 € y 199 €. 30 días gratis. Para atletas, gratis siempre.</p>
               </div>
               <div className="flex flex-wrap items-end gap-8 lg:justify-end">
                 {[{ name: 'Agente', price: solo }, { name: 'Agencia', price: team }].map((p) => (
