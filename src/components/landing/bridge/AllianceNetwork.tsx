@@ -35,7 +35,7 @@ export function AllianceNetwork() {
         <circle cx={c.x} cy={c.y} r="64" fill="#e6cf8f" />
         <text x={c.x} y={c.y + 10} textAnchor="middle" className="fill-night text-[30px] uppercase" style={{ fontFamily: 'var(--font-display)' }}>Atleta</text>
       </svg>
-      <ul className="sr-only">
+      <ul className="sr-only" aria-label="Conexiones con el atleta, en el centro">
         {NODES.map((n) => <li key={n.key}>{n.label}: {n.flow}</li>)}
       </ul>
     </div>

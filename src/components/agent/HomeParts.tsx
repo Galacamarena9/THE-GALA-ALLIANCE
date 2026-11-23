@@ -25,9 +25,9 @@ export function SummaryStrip({ s, className }: { s: AgentHomeSummary; className?
     <section aria-label="Resumen" className={cx('grid grid-cols-2 overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface sm:grid-cols-5', className)}>
       {items.map((i, n) => (
         <Link key={i.label} href={i.href} className={cx('group min-w-0 border-line px-5 py-5 transition-colors hover:bg-ink focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brass', n > 0 && 'sm:border-l', n % 2 === 1 && 'border-l sm:border-l', n >= 2 && 'border-t sm:border-t-0', n === 4 && 'col-span-2 sm:col-span-1')}>
-          <span className="flex items-center gap-2 truncate text-[11px] font-semibold uppercase tracking-[0.16em] text-muted"><i aria-hidden className="not-italic tabular-nums text-brass">{String(n + 1).padStart(2, '0')}</i>{i.label}</span>
+          <span className="flex flex-wrap items-center gap-x-2 break-words text-[11px] font-semibold uppercase tracking-[0.12em] text-muted"><i aria-hidden className="not-italic tabular-nums text-brass">{String(n + 1).padStart(2, '0')}</i>{i.label}</span>
           <span className={cx('mt-3 block font-display text-[48px] leading-none tabular-nums transition-colors', i.alert ? 'text-danger' : 'text-paper group-hover:text-brass')}>{i.value}</span>
-          <span className="mt-1 block truncate text-xs text-faint">{i.note}</span>
+          <span className="mt-1 block break-words text-xs text-faint">{i.note}</span>
         </Link>
       ))}
     </section>

@@ -67,7 +67,7 @@ export function PipelineBoard({ cases, view, sportName, actions, today = new Dat
           <section key={col.id} aria-labelledby={`ph-${col.id}`} data-testid={`phase-${col.id}`} className="flex min-w-0 snap-start flex-col border-t border-line pt-4">
             <header className="mb-4 flex items-end justify-between gap-2">
               <h2 id={`ph-${col.id}`} className="flex items-baseline gap-2 text-xl text-paper"><span aria-hidden className="font-sans text-[11px] font-semibold tabular-nums text-brass">{String(ci + 1).padStart(2, '0')}</span>{col.label}</h2>
-              <span className="font-display text-3xl leading-none tabular-nums text-paper/40">{col.items.length}</span>
+              <span className="relative font-display text-3xl leading-none tabular-nums text-paper/60"><span aria-hidden>{col.items.length}</span><span className="sr-only">{col.items.length} procesos</span></span>
             </header>
             {col.items.length ? (
               <ul className="space-y-3">

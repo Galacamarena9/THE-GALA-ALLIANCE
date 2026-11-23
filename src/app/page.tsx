@@ -9,6 +9,7 @@ import { CountUp, DrawLine, MotionRoot, ParallaxMedia, Rise, WordsIn } from '@/c
 import { BridgeMap, BridgePassport } from '@/components/landing/bridge/BridgeMap';
 import { AllianceNetwork } from '@/components/landing/bridge/AllianceNetwork';
 import { AgentConsole } from '@/components/landing/bridge/AgentConsole';
+import { MotionToggle } from '@/components/landing/bridge/MotionToggle';
 
 /*
  * Portada «La alianza» (v5, 23-nov-2026): la misión de la v1, el negro y oro de la v4 y el puente Europa → NCAA.
@@ -59,7 +60,7 @@ export default function Home() {
   const team = priceNumber('Agencia');
   return (
     <MotionRoot>
-      <div className="relative overflow-x-clip bg-ink">
+      <div className="landing-dark relative overflow-x-clip bg-ink">
         <JsonLd data={{ '@context': 'https://schema.org', '@type': 'Organization', name: BRAND.name, url: siteUrl(), description: BRAND.secondary, slogan: BRAND.claim }} />
         <JsonLd data={{ '@context': 'https://schema.org', '@type': 'WebSite', name: BRAND.name, url: siteUrl(), inLanguage: 'es' }} />
         <JsonLd data={{ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: FAQ.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })) }} />
@@ -85,7 +86,8 @@ export default function Home() {
                   </p>
                 </Rise>
                 <h1 id="hero-title" className="mt-6 text-[clamp(2.9rem,6.2vw,5.6rem)] leading-[0.9] text-paper">
-                  <WordsIn parts={['Si tienes nivel, tienes que poder', { em: 'optar.' }]} />
+                  <span className="sr-only">Si tienes nivel, tienes que poder optar.</span>
+                  <span aria-hidden><WordsIn parts={['Si tienes nivel, tienes que poder', { em: 'optar.' }]} /></span>
                 </h1>
                 <Rise delay={0.6}>
                   <p className="mt-4 font-serif text-[clamp(1.6rem,3vw,2.4rem)] italic leading-tight text-paper/75">Tengas o no los contactos.</p>
@@ -103,9 +105,10 @@ export default function Home() {
                       Soy atleta · gratis
                     </Link>
                   </div>
-                  <p className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-xs text-paper/60">
+                  <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3 text-xs text-paper/60">
                     <span>Gratis para atletas</span><span>Precios publicados</span><span>Menores protegidos por diseño</span>
-                  </p>
+                    <MotionToggle />
+                  </div>
                 </Rise>
               </div>
               <Rise delay={0.5} className="relative pb-6 sm:pb-24 lg:scale-110 lg:origin-left">
@@ -143,11 +146,11 @@ export default function Home() {
             </div>
             <DrawLine className="mt-14" />
             <ul className="grid gap-12 pt-12 md:grid-cols-3">
-              <li><Rise className="flex flex-col"><p className="mt-3 max-w-[26ch] text-sm text-muted">europeos en el baloncesto NCAA División I (2024-25)</p><p className="order-first font-display text-[clamp(5rem,10vw,8rem)] leading-none text-paper"><CountUp to={879} /></p></Rise></li>
-              <li><Rise delay={0.1} className="flex flex-col"><p className="mt-3 max-w-[26ch] text-sm text-muted">más que en 2009-10, cuando eran 291</p><p className="order-first font-display text-[clamp(5rem,10vw,8rem)] leading-none text-brass">×3</p></Rise></li>
-              <li><Rise delay={0.2} className="flex flex-col"><p className="mt-3 max-w-[26ch] text-sm text-muted">deportistas internacionales compiten hoy en la NCAA</p><p className="order-first font-display text-[clamp(5rem,10vw,8rem)] leading-none text-paper">25.000</p></Rise></li>
+              <li><Rise><p className="font-display text-[clamp(5rem,10vw,8rem)] leading-none text-paper"><CountUp to={879} /></p><p className="mt-3 max-w-[26ch] text-sm text-muted">europeos en el baloncesto NCAA División I (2024-25)</p></Rise></li>
+              <li><Rise delay={0.1}><p className="font-display text-[clamp(5rem,10vw,8rem)] leading-none text-brass"><span aria-hidden>×3</span><span className="sr-only">El triple</span></p><p className="mt-3 max-w-[26ch] text-sm text-muted">que en 2009-10, cuando eran 291</p></Rise></li>
+              <li><Rise delay={0.2}><p className="font-display text-[clamp(5rem,10vw,8rem)] leading-none text-paper">1.ª</p><p className="mt-3 max-w-[26ch] text-sm text-muted">Europa es la región fuera de EE. UU. que más jugadores aporta al baloncesto de División I</p></Rise></li>
             </ul>
-            <p className="mt-10 text-xs text-faint">Fuente: NCAA, «March Madness across the world» (marzo de 2025) y datos de participación internacional. La cifra de 25.000 es aproximada.</p>
+            <p className="mt-10 text-xs text-faint">Fuente: NCAA, «March Madness across the world: NCAA basketball's global impact» (18 de marzo de 2025).</p>
           </section>
 
           {/* 4 · La alianza: todos conectados alrededor del atleta */}
@@ -277,7 +280,7 @@ export default function Home() {
                     <Rise delay={i * 0.1} className="flex items-start gap-5">
                       <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full border border-brass/40 text-brass"><Icon className="h-5 w-5" strokeWidth={1.5} aria-hidden /></span>
                       <div>
-                        <p className="font-display text-2xl text-paper">{title}</p>
+                        <h3 className="font-display text-2xl text-paper">{title}</h3>
                         <p className="mt-2 text-sm leading-relaxed text-muted">{text}</p>
                       </div>
                     </Rise>
