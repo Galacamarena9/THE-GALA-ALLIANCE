@@ -52,7 +52,7 @@ export const LEGAL: LegalDoc[] = [
           'Menores en España: desde los 14 años pueden consentir por sí mismos cuando la base es el consentimiento; por debajo, se requiere el de quien ejerza la patria potestad o tutela (art. 7 LOPDGDD). No admitimos cuentas de menores de 13 años.',
         ],
       },
-      { heading: 'Con quién compartimos', body: ['Con las organizaciones verificadas que tú eliges (al aplicar, aceptar un contacto o una representación) y con proveedores encargados del tratamiento.'] },
+      { heading: 'Con quién compartimos', body: ['Con las organizaciones verificadas que tú eliges (al aplicar, aceptar un contacto o autorizar a una agencia) y con proveedores encargados del tratamiento.'] },
       {
         heading: 'Encargados del tratamiento',
         body: [

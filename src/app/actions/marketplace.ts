@@ -95,9 +95,12 @@ export async function moveCampaignApplication(formData: FormData) {
 export async function requestRepresentation(_prev: FormState, formData: FormData): Promise<FormState> {
   await requireSession(['agent']);
   const parsed = z
-    .object({ agency_id: z.string().uuid(), athlete_id: z.string().uuid(), message: z.string().trim().max(1000).optional() })
+    .object({ agency_id: z.string().uuid(), athlete_id: z.string().uuid(), message: z.string().trim().max(1000).optional(), fee_attestation: z.literal('on') })
     .safeParse(Object.fromEntries(formData));
-  if (!parsed.success) return { error: 'Solicitud no válida.' };
+  if (!parsed.success) {
+    if (formData.get('fee_attestation') !== 'on') return { error: 'Confirma que tus tarifas no dependen de la beca: protege la elegibilidad NCAA del atleta.' };
+    return { error: 'Solicitud no válida.' };
+  }
   const supabase = await createClient();
   // Propuesta por defecto, prudente: el deporte del atleta, sin exclusividad, 12 meses y solo lo necesario para
   // trabajar su proceso. El atleta (o su familia) ve el alcance exacto y puede recortarlo antes y después de aceptar.
@@ -121,7 +124,7 @@ export async function requestRepresentation(_prev: FormState, formData: FormData
     return { error: 'No se ha podido enviar la solicitud.' };
   }
   revalidatePath('/app/portfolio');
-  await logEvent('representation_requested', { type: 'non_exclusive' });
+  await logEvent('representation_requested', { type: 'non_exclusive', fee_attestation: true, attested_at: new Date().toISOString() });
   return { ok: true, message: 'Propuesta enviada: no exclusiva, 12 meses. El atleta ve el alcance y decide.' };
 }
 
