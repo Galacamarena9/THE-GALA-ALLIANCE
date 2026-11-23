@@ -37,7 +37,10 @@ export default async function AthleteAgentsPage() {
 
   return (
     <>
-      <PageHeader kicker="Agentes" title="Quién quiere representarte" description="Tú decides. Nadie te representa sin tu aceptación expresa, y puedes terminar la relación cuando quieras." />
+      <PageHeader kicker="Agencias" title={<>Quién quiere <em>acompañarte</em></>} description="Tú decides. Una agencia solo puede compartir tu perfil y acompañarte en el proceso si la autorizas, y puedes retirar la autorización cuando quieras." />
+      <Notice tone="warn">
+        <strong className="text-paper">Si vas a competir en la NCAA:</strong> no firmes acuerdos cuya tarifa dependa de conseguir una beca o de su importe, ni aceptes regalos o viajes de una agencia. Ante la duda, pregunta al departamento de cumplimiento (compliance) de la universidad. The Gala Alliance es software: no representa a atletas ni garantiza becas.
+      </Notice>
       {session.isMinor && <div className="mb-5"><Notice tone="neutral">Las agencias no pueden encontrarte mientras seas menor. Si quieres una propuesta, tu familia o tú podéis invitar a una agencia verificada, y nada se activa sin la aprobación de tu familia.</Notice></div>}
       <Card className="mb-5">
         <CardTitle kicker="Tú eliges">Invitar a una agencia</CardTitle>
@@ -77,7 +80,7 @@ export default async function AthleteAgentsPage() {
                   <div className="mt-4 flex gap-2">
                     {r.status === 'requested' && (
                       <>
-                        <form action={respondRepresentation}><input type="hidden" name="id" value={r.id} /><input type="hidden" name="status" value="active" /><button className={buttonClass('primary', 'sm')}>Aceptar</button></form>
+                        <form action={respondRepresentation}><input type="hidden" name="id" value={r.id} /><input type="hidden" name="status" value="active" /><button className={buttonClass('primary', 'sm')}>Autorizar</button></form>
                         <form action={respondRepresentation}><input type="hidden" name="id" value={r.id} /><input type="hidden" name="status" value="declined" /><button className={buttonClass('secondary', 'sm')}>Rechazar</button></form>
                       </>
                     )}

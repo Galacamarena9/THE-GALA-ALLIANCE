@@ -122,7 +122,7 @@ export default async function FamilySafetyPage({ searchParams }: { searchParams:
 
             {minorGuardian && (
               <Card>
-                <CardTitle kicker="Agencias">Quién representa a {current.name}</CardTitle>
+                <CardTitle kicker="Agencias">Quién acompaña a {current.name}</CardTitle>
                 {reps.length ? (
                   <ul className="divide-y divide-line">
                     {reps.map((r) => {
@@ -162,7 +162,7 @@ export default async function FamilySafetyPage({ searchParams }: { searchParams:
                     })}
                   </ul>
                 ) : (
-                  <p className="text-sm text-muted">Ninguna agencia representa a {current.name}. Las agencias no pueden encontrar a menores: si queréis una propuesta, invitad a una verificada.</p>
+                  <p className="text-sm text-muted">Ninguna agencia acompaña a {current.name}. Las agencias no pueden encontrar a menores: si queréis una propuesta, invitad a una verificada.</p>
                 )}
                 <div className="mt-4 border-t border-line pt-4"><InviteAgencyForm agencies={(verifiedAgencies ?? []) as { id: string; name: string }[]} athleteId={current.athleteId} /></div>
               </Card>

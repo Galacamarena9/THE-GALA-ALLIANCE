@@ -23,7 +23,7 @@ const ROLES = [
   { key: 'atleta', name: 'Atleta', kicker: 'Gratis siempre', promise: 'Un Passport verificado que abre puertas a este lado del Atlántico y al otro.', cta: 'Crear mi perfil', href: '/signup?role=athlete' },
   { key: 'familia', name: 'Familia', kicker: 'Con tu firma', promise: 'El coste real de cada opción y nada sin vuestro permiso.', cta: 'Entrar como familia', href: '/signup?role=parent' },
   { key: 'club', name: 'Club', kicker: 'Clubes y academias', promise: 'Confirma los datos de tus jugadores y lleva sus pruebas.', cta: 'Registrar mi club', href: '/para/coaches' },
-  { key: 'universidad', name: 'Universidad', kicker: 'Programas NCAA', promise: 'Talento europeo con datos comprobables y un agente al otro lado.', cta: 'Registrar mi universidad', href: '/para/universidades' },
+  { key: 'universidad', name: 'Universidad', kicker: 'Programas NCAA', promise: 'Talento europeo con datos comprobables y una agencia verificada al otro lado.', cta: 'Registrar mi universidad', href: '/para/universidades' },
 ];
 
 const AGENT_POINTS = [
@@ -45,6 +45,7 @@ const FAQ: [string, string][] = [
   ['¿Cuánto cuesta?', 'Para atletas es gratis para siempre. Las agencias tienen planes mensuales con precio fundador y las familias pueden contratar servicios de pago único. Todos los precios están publicados.'],
   ['¿Es solo para la NCAA?', 'La NCAA es nuestro foco, y también hay NAIA, JUCO, clubes y academias europeas. El mismo Passport sirve para todos.'],
   ['¿Pagar da más visibilidad?', 'No. Nadie compra prioridad: el orden depende del encaje con lo que busca cada organización.'],
+  ['¿Usar una agencia afecta a la elegibilidad NCAA?', 'Puede, si el acuerdo está mal planteado. Por eso en The Gala Alliance cada agencia confirma que sus tarifas no dependen de conseguir una beca ni de su importe, y el atleta solo la autoriza a compartir su perfil y acompañarle. Somos software: no representamos a atletas. Ante la duda, consultad con el departamento de cumplimiento de la universidad.'],
   ['¿Garantizáis una beca o un contrato?', 'No, y desconfía de quien lo haga. Organizamos la información y el proceso; la decisión es de la organización y de la familia.'],
   ['¿Es seguro para menores?', 'Sí, por diseño: perfiles privados, contacto solo de organizaciones verificadas, la familia siempre en el circuito y sin publicidad perfilada.'],
 ];

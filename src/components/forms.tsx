@@ -136,7 +136,7 @@ export function CampaignApplyForm({ campaignId }: { campaignId: string }) {
 export function RepresentationForm({ agencies, athleteId }: { agencies: { id: string; name: string }[]; athleteId: string }) {
   const [open, setOpen] = useState(false);
   if (!agencies.length) return null;
-  if (!open) return <Button variant="secondary" onClick={() => setOpen(true)}>Proponer representación</Button>;
+  if (!open) return <Button variant="secondary" onClick={() => setOpen(true)}>Proponer acompañamiento</Button>;
   return (
     <ActionForm action={requestRepresentation} className="space-y-3 rounded-xl border border-line bg-ink/40 p-4">
       {() => (
@@ -146,6 +146,10 @@ export function RepresentationForm({ agencies, athleteId }: { agencies: { id: st
             <select id="agency_id" name="agency_id" className={inputClass}>{agencies.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
           </Field>
           <Field label="Mensaje" htmlFor="rep_message"><textarea id="rep_message" name="message" rows={3} maxLength={1000} className={inputClass} /></Field>
+          <label className="flex items-start gap-2 text-sm text-muted">
+            <input type="checkbox" name="fee_attestation" required className="mt-1 h-4 w-4 accent-[var(--color-brass)]" />
+            <span>Confirmo que mis tarifas no dependen de que el atleta consiga una beca ni de su importe, y que no le daré regalos ni viajes.</span>
+          </label>
           <SubmitButton pendingText="Enviando…">Enviar propuesta</SubmitButton>
         </>
       )}
