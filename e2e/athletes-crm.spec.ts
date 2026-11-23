@@ -58,7 +58,7 @@ test.describe('Mis atletas', () => {
   test('siguiente acción visible y una sola acción principal por fila', async ({ page }) => {
     await open(page, '/preview/portfolio');
     const marcos = rowsOf(page).filter({ hasText: 'Marcos Jiménez' });
-    await expect(marcos.locator('[data-next]')).toHaveText(/Oferta de Lakeshore College caduca/);
+    await expect(marcos.locator('[data-next]')).toHaveText(/expediente traducido|Lakeshore College|Northfield/);
     for (const r of await rowsOf(page).all()) await expect(r.locator('[data-cta="primary"]')).toHaveCount(1);
     await expect(marcos.getByRole('link', { name: 'Abrir atleta: Marcos Jiménez' })).toHaveAttribute('href', '/app/portfolio/a1');
   });

@@ -21,15 +21,15 @@ test.describe('Ficha 360 del atleta', () => {
     await open(page, '/preview/athlete-360');
     const j = journey(page);
     await expect(j).toBeVisible();
-    await expect(j.locator('[data-journey-next]')).toHaveText('Oferta de Lakeshore College caduca');
+    await expect(j.locator('[data-journey-next]')).toHaveText('Pedir el expediente traducido');
     await expect(j).toContainText('Lakeshore College');
-    await expect(j).toContainText('Oferta');
-    await expect(j).toContainText('En 2 días');
-    await expect(j).toContainText('El atleta');
+    await expect(j).toContainText('Evaluación');
+    await expect(j).toContainText('Venció hace 2 días');
+    await expect(j).toContainText('Tu agencia');
     const cta = page.locator('[data-cta="primary"]');
     await expect(cta).toHaveCount(1);
     await expect(cta).toHaveText(/Resolver ahora/);
-    await expect(cta).toHaveAttribute('href', '/app/portfolio/a1?tab=oportunidades');
+    await expect(cta).toHaveAttribute('href', '/app/pipeline/c2');
     // Todo el recorrido cabe en la primera pantalla (sin scroll) a 1280×720.
     const box = await j.boundingBox();
     expect(box!.y + box!.height).toBeLessThanOrEqual(720);
