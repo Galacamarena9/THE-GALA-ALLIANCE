@@ -150,7 +150,7 @@ export default function Home() {
               <li><Rise delay={0.1}><p className="font-display text-[clamp(5rem,10vw,8rem)] leading-none text-brass"><span aria-hidden>×3</span><span className="sr-only">El triple</span></p><p className="mt-3 max-w-[26ch] text-sm text-muted">que en 2009-10, cuando eran 291</p></Rise></li>
               <li><Rise delay={0.2}><p className="font-display text-[clamp(5rem,10vw,8rem)] leading-none text-paper">1.ª</p><p className="mt-3 max-w-[26ch] text-sm text-muted">Europa es la región fuera de EE. UU. que más jugadores aporta al baloncesto de División I</p></Rise></li>
             </ul>
-            <p className="mt-10 text-xs text-faint">Fuente: NCAA, «March Madness across the world: NCAA basketball's global impact» (18 de marzo de 2025).</p>
+            <p className="mt-10 text-xs text-faint">Fuente: NCAA, «March Madness across the world: NCAA basketball&rsquo;s global impact» (18 de marzo de 2025).</p>
           </section>
 
           {/* 4 · La alianza: todos conectados alrededor del atleta */}
