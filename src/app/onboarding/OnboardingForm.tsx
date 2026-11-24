@@ -15,6 +15,7 @@ export function OnboardingForm({
   initialRole,
   invite,
   team,
+  next,
   existingRoles,
   isMinor,
   sports,
@@ -23,6 +24,7 @@ export function OnboardingForm({
   initialRole?: string;
   invite?: string;
   team?: string;
+  next?: string;
   existingRoles: string[];
   isMinor: boolean;
   sports: Sport[];
@@ -41,6 +43,7 @@ export function OnboardingForm({
     <form action={action} className="mt-8 space-y-8">
       {invite && <input type="hidden" name="invite" value={invite} />}
       {team && <input type="hidden" name="team" value={team} />}
+      {next && <input type="hidden" name="next" value={next} />}
       {state?.error && <Notice tone="danger">{state.error}</Notice>}
 
       <fieldset>

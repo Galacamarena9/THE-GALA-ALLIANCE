@@ -7,7 +7,7 @@ import { resendConfirmation, signUp, type FormState } from '@/app/actions/auth';
 import { Field, inputClass, Notice } from '@/components/ui';
 import { SubmitButton } from '@/components/SubmitButton';
 
-export function SignupForm({ role }: { role?: string }) {
+export function SignupForm({ role, next }: { role?: string; next?: string }) {
   const [state, action] = useActionState<FormState, FormData>(signUp, undefined);
 
   if (state?.ok) return <CheckEmail email={state.message ?? ''} />;
@@ -16,6 +16,7 @@ export function SignupForm({ role }: { role?: string }) {
   return (
     <form action={action} className="space-y-5" noValidate>
       {role && <input type="hidden" name="role" value={role} />}
+      {next && <input type="hidden" name="next" value={next} />}
       {state?.error && <Notice tone="danger">{state.error}</Notice>}
       <Field label="Nombre y apellidos" htmlFor="displayName" error={fe.displayName}>
         <input id="displayName" name="displayName" autoComplete="name" required className={inputClass} />
@@ -45,7 +46,7 @@ export function SignupForm({ role }: { role?: string }) {
       <Captcha />
       <SubmitButton className="w-full" pendingText="Creando cuenta…">Crear cuenta</SubmitButton>
       <p className="text-center text-sm text-muted">
-        ¿Ya tienes cuenta? <Link href="/login" className="text-brass hover:underline">Entrar</Link>
+        ¿Ya tienes cuenta? <Link href={next ? `/login?next=${encodeURIComponent(next)}` : '/login'} className="text-brass hover:underline">Entrar</Link>
       </p>
     </form>
   );

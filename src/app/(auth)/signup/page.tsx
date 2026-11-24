@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { ACTORS } from '@/lib/domain/roles';
 import { SignupForm } from './SignupForm';
 import { RefCapture } from '@/components/RefCapture';
+import { afterSignupPath } from '@/lib/domain/safe-path';
 
 export const metadata: Metadata = { title: 'Crear cuenta' };
 
@@ -15,8 +16,8 @@ const TAGLINE: Record<string, string> = {
   brand: 'Colaboraciones solo con atletas mayores de edad.',
 };
 
-export default async function SignupPage({ searchParams }: { searchParams: Promise<{ role?: string }> }) {
-  const { role } = await searchParams;
+export default async function SignupPage({ searchParams }: { searchParams: Promise<{ role?: string; next?: string }> }) {
+  const { role, next } = await searchParams;
   const actor = ACTORS.find((a) => a.role === role);
   return (
     <>
@@ -24,7 +25,7 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
       <h1 className="text-3xl text-paper">{actor ? actor.promise : 'Empieza en menos de un minuto'}</h1>
       <p className="mb-8 mt-3 text-sm text-muted">{TAGLINE[actor?.role ?? ''] ?? 'Gratis para atletas y familias.'}</p>
       <RefCapture />
-      <SignupForm role={actor?.role} />
+      <SignupForm role={actor?.role} next={afterSignupPath(next) ?? undefined} />
     </>
   );
 }

@@ -50,7 +50,7 @@ export default async function AgencyInvitePage({ params, searchParams }: { param
                   <ButtonLink href={`/signup?role=athlete&next=${encodeURIComponent(next)}`}>Crear mi perfil gratis</ButtonLink>
                   <ButtonLink href={`/login?next=${encodeURIComponent(next)}`} variant="secondary">Ya tengo cuenta</ButtonLink>
                 </div>
-                <p className="mt-3 text-xs text-faint">Si creas la cuenta ahora, confirma tu email y vuelve a abrir este mismo enlace.</p>
+                <p className="mt-3 text-xs text-faint">Si creas la cuenta ahora, al confirmar tu email y completar tu perfil volverás aquí para aceptar.</p>
                 </>
               ) : !session.roles.includes('athlete') ? (
                 <div className="mt-6"><Notice tone="warn">Esta invitación es para el atleta. Entra con la cuenta de atleta (si eres la familia, pídele que la abra él o ella).</Notice></div>

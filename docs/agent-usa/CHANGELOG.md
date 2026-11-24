@@ -64,6 +64,14 @@ Cambios: rama `feat/fee-attestation-founder-cap`; migración `20261217000100_fee
 Pruebas: unit 266/266; RLS 438/438 (C3-1, C3-2); e2e 370 OK + `founder-pricing.spec.ts`; build OK.
 Riesgos abiertos: representaciones anteriores sin declaración (se muestran con aviso «pídesela»); claves Stripe live y `free_until` (gate de Gala); validación legal NCAA del texto.
 
+## [Fase 1 auditoría] 2026-11-24 · Confianza para el piloto
+Origen: auditoría integral con el Agente Maestro PRO (hallazgos S1, S2, H2, S6).
+Cambios:
+- Migración `20261218000100_phase1_guardian_trust.sql`: un menor no puede tener roles de adulto vía API; un vínculo familiar aprobado exige tutor adulto y distinto del atleta; `has_family_link`, `is_guardian_of` y `minor_has_active_family` ignoran vínculos con tutor menor. ROLLBACK en la cabecera.
+- El alta conserva `next` (invitación de agencia) hasta el onboarding; `safeRedirectPath` en login, MFA y callback (rechaza `/\dominio`).
+Pruebas: unit 268/268; RLS 441/441 (F1-1…F1-3); e2e 374 OK con `signup-next.spec.ts`; build OK.
+Riesgo que queda: una cuenta que miente sobre su edad sigue pareciendo adulta → verificar al tutor (fase 5).
+
 ## Plantilla para próximos ciclos
 
 ```

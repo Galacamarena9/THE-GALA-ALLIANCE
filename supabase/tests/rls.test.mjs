@@ -3609,6 +3609,7 @@ try {
     // Tutora de otra familia, sin vínculo con «kid» (otherMom sí lo tiene por una prueba de invitación anterior).
     const stranger = randomUUID();
     await db.query(`insert into auth.users (id, email) values ($1, 'stranger-guardian@fam.test')`, [stranger]);
+    await db.query(`insert into private_profile_data (user_id, date_of_birth) values ($1, current_date - interval '40 years')`, [stranger]);
     await db.query(`insert into parent_athlete_links (parent_id, athlete_id, invited_by, status, approved_at, relationship, guardian_consent_given, verification_status)
       values ($1, $2, $1, 'approved', now(), 'mother', true, 'athlete_confirmed')`, [stranger, fam.other]);
     const before = { mom: await famN(fam.mom, 'family.offer'), dad: await famN(fam.dad, 'family.offer'), other: await famN(stranger, 'family.offer') };
@@ -3679,6 +3680,7 @@ try {
   await check('P10B revisión · mayoría de edad: se abre la revisión con aviso a atleta y tutor, auditoría e idempotencia', async () => {
     const ath = randomUUID(); const g = randomUUID();
     await db.query(`insert into auth.users (id, email) values ($1, 'just18@fam.test'), ($2, 'just18-mom@fam.test')`, [ath, g]);
+    await db.query(`insert into private_profile_data (user_id, date_of_birth) values ($1, current_date - interval '40 years')`, [g]);
     await db.query(`insert into private_profile_data (user_id, date_of_birth) values ($1, current_date - interval '18 years' - interval '5 days')`, [ath]);
     await db.query(`insert into athlete_profiles (user_id, sport_id, graduation_year) values ($1, 'basketball', 2026)`, [ath]);
     const link = (await db.query(`insert into parent_athlete_links (parent_id, athlete_id, invited_by, status, approved_at, relationship, guardian_consent_given, verification_status)
@@ -3699,7 +3701,7 @@ try {
   });
 
   await check('P10C bis · ataques a las superficies nuevas (avisos, preferencias, denuncias, notas de agencia, revisión de mayoría)', async () => {
-    const mk = async (email) => { const id = randomUUID(); await db.query(`insert into auth.users (id, email) values ($1, $2)`, [id, email]); return id; };
+    const mk = async (email) => { const id = randomUUID(); await db.query(`insert into auth.users (id, email) values ($1, $2)`, [id, email]); await db.query(`insert into private_profile_data (user_id, date_of_birth) values ($1, current_date - interval '40 years')`, [id]); return id; };
     const ins = (g, status, apps, costs) => db.query(`insert into parent_athlete_links (parent_id, athlete_id, invited_by, status, approved_at, relationship, guardian_consent_given, verification_status, can_view_applications, can_view_costs)
       values ($1, $2, $1, $3, now(), 'other_family', true, 'athlete_confirmed', $4, $5)`, [g, fam.kid, status, apps, costs]);
     const restricted = await mk('pentest-restricted@fam.test'); await ins(restricted, 'approved', false, false);
@@ -4034,6 +4036,48 @@ try {
     eq(std.plan_version, 4); eq(std.price_cents, 19900, 'tarifa sin cupo');
     await svc(`select billing_apply_event($1::jsonb)`, [ev('evt_c3_4', 'customer.subscription.deleted', T0 + 20, { ...sub, status: 'canceled' })]);
     eq((await as(null, `select taken from agency_founder_status()`)).rows[0].taken, before.taken, 'una baja libera la plaza');
+  });
+
+  // ---------------------------------------------------------------- Fase 1 · Confianza para el piloto
+  results.push('\nFase 1: un menor no puede ser tutor ni tener roles de adulto');
+  const mkAged = async (name, age) => {
+    const id = randomUUID();
+    await db.query(`insert into auth.users (id, email, raw_user_meta_data) values ($1, $2, $3)`, [id, `${name}-${id.slice(0, 6)}@f1.test`, { display_name: name }]);
+    await db.query(`insert into private_profile_data (user_id, date_of_birth) values ($1, $2)`, [id, yearsAgo(age)]);
+    return id;
+  };
+  await check('F1-1 un menor no se da roles de adulto por la API; un adulto sí', async () => {
+    const teen = await mkAged('f1-teen', 16);
+    for (const role of ['parent', 'agent', 'brand', 'coach']) {
+      await expectError(() => as(teen, `insert into user_roles (user_id, role) values ($1, $2)`, [teen, role]), /adult_role_required/);
+    }
+    await as(teen, `insert into user_roles (user_id, role) values ($1, 'athlete')`, [teen]);
+    const adult = await mkAged('f1-adult', 40);
+    await as(adult, `insert into user_roles (user_id, role) values ($1, 'parent')`, [adult]);
+  });
+  await check('F1-2 una segunda cuenta menor no puede aceptar ser tutora (ni con el rol puesto a mano)', async () => {
+    const kid = await mkAged('f1-kid', 15);
+    await db.query(`insert into user_roles (user_id, role) values ($1, 'athlete')`, [kid]);
+    await db.query(`insert into athlete_profiles (user_id, sport_id, graduation_year) values ($1, 'basketball', 2029)`, [kid]);
+    const fakeParent = await mkAged('f1-fake', 16);
+    await db.query(`insert into user_roles (user_id, role) values ($1, 'parent')`, [fakeParent]); // rol heredado de antes del cambio
+    const tok = (await as(kid, `select invitation_token t from parent_athlete_links where id = (select create_family_invitation('legal_guardian'))`).catch(() => ({ rows: [] }))).rows[0]?.t
+      ?? (await db.query(`insert into parent_athlete_links (athlete_id, invited_by, status, relationship, invitation_token, expires_at)
+            values ($1, $1, 'pending', 'legal_guardian', md5(random()::text) || md5(random()::text), now() + interval '7 days') returning invitation_token t`, [kid])).rows[0].t;
+    await expectError(() => as(fakeParent, `select accept_family_invitation($1)`, [tok]), /guardian_must_be_adult/);
+    await expectError(() => db.query(`insert into parent_athlete_links (parent_id, athlete_id, invited_by, status, approved_at, relationship, guardian_consent_given)
+      values ($1, $1, $1, 'approved', now(), 'legal_guardian', true)`, [kid]), /guardian_cannot_be_self/);
+  });
+  await check('F1-3 un vínculo antiguo con tutor menor ya no da permisos', async () => {
+    const kid = await mkAged('f1-kid2', 15);
+    const teenG = await mkAged('f1-teen-guardian', 17);
+    await db.query(`set session_replication_role = replica`); // simula un vínculo creado antes del cambio
+    await db.query(`insert into parent_athlete_links (parent_id, athlete_id, invited_by, status, approved_at, relationship, guardian_consent_given, verification_status)
+      values ($1, $2, $1, 'approved', now(), 'legal_guardian', true, 'athlete_confirmed')`, [teenG, kid]);
+    await db.query(`set session_replication_role = origin`);
+    eq((await as(teenG, `select is_guardian_of($1) g`, [kid])).rows[0].g, false, 'no es tutor');
+    eq((await as(teenG, `select has_family_link($1, 'active') g`, [kid])).rows[0].g, false, 'sin permisos de familia');
+    eq((await db.query(`select minor_has_active_family($1) g`, [kid])).rows[0].g, false, 'el menor sigue sin familia activa');
   });
 
   if (!process.env.SKIP_ERASURE) await check('RGPD: toda cuenta y toda organización se puede borrar (anonimiza auditoría, no bloquea)', async () => {
