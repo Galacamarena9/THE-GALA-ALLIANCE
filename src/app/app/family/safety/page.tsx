@@ -1,3 +1,4 @@
+import { attestationLine, feeAttestationMap } from '@/lib/domain/fee-attestation';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { requireSession } from '@/lib/session';
@@ -55,6 +56,10 @@ export default async function FamilySafetyPage({ searchParams }: { searchParams:
   ]) : [{ data: null }, { data: null }];
   type R = { id: string; status: string; representation_type: string; start_date: string; end_date: string; organizations: { name: string } | null; representation_permissions: { permission: string; status: string }[] };
   const reps = (repsRaw ?? []) as unknown as R[];
+  const { data: attRows } = reps.length
+    ? await supabase.from('representation_fee_attestations').select('representation_id, statement, statement_version, attested_at').in('representation_id', reps.map((r) => r.id)).order('attested_at', { ascending: false })
+    : { data: [] };
+  const attestations = feeAttestationMap(attRows);
   type G = { id: string; purpose: string; expires_at: string; revoked_at: string | null; athlete_documents: { title: string } | null; organizations: { name: string; verification_status: string } | null };
   const all = (grants ?? []) as unknown as G[];
   const active = all.filter((g) => !g.revoked_at && g.expires_at > now);
@@ -134,6 +139,10 @@ export default async function FamilySafetyPage({ searchParams }: { searchParams:
                             <Badge tone={r.status === 'active' ? 'ok' : 'warn'}>{r.status === 'active' ? 'Activa' : repStatusDetail(r.status) ?? 'Pendiente de su respuesta'}</Badge>
                           </div>
                           <p className="mt-1 text-xs text-muted">{REP_TYPE_LABEL[r.representation_type] ?? r.representation_type} · {date(r.start_date)} → {date(r.end_date)}</p>
+                          {(() => {
+                            const line = attestationLine(attestations.get(r.id));
+                            return <p data-testid="fee-attestation" className={`mt-1 text-xs ${line.tone === 'ok' ? 'text-muted' : 'text-warn'}`}>{line.tone === 'ok' ? '✓ ' : ''}{line.text}</p>;
+                          })()}
                           {r.status === 'pending_guardian' && (
                             <>
                               <p className="mt-2 text-xs text-muted">Podría: {REP_PERMISSIONS.filter((p) => perms.includes(p.id)).map((p) => p.label.toLowerCase()).join(' · ') || 'nada todavía'}. Quita lo que no quieras antes de aprobar.</p>

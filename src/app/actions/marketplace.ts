@@ -1,5 +1,6 @@
 'use server';
 
+import { FEE_STATEMENT_VERSION } from '@/lib/domain/fee-attestation';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
@@ -106,7 +107,7 @@ export async function requestRepresentation(_prev: FormState, formData: FormData
   // trabajar su proceso. El atleta (o su familia) ve el alcance exacto y puede recortarlo antes y después de aceptar.
   const { data: dir } = await supabase.from('athlete_directory').select('sport_id').eq('user_id', parsed.data.athlete_id).maybeSingle();
   const end = new Date(Date.now() + 365 * 864e5).toISOString().slice(0, 10);
-  const { error } = await supabase.rpc('representation_request', {
+  const { data: repId, error } = await supabase.rpc('representation_request', {
     p_agency: parsed.data.agency_id,
     p_athlete: parsed.data.athlete_id,
     p_type: 'non_exclusive',
@@ -123,8 +124,11 @@ export async function requestRepresentation(_prev: FormState, formData: FormData
     if (error.message.includes('blocked')) return { error: 'No es posible contactar con este atleta.' };
     return { error: 'No se ha podido enviar la solicitud.' };
   }
+  // Declaración de tarifas: queda guardada (sin poder editarse) y el atleta y su familia la ven en la propuesta.
+  const { error: attErr } = await supabase.rpc('representation_attest_fees', { p_representation: repId as string, p_version: FEE_STATEMENT_VERSION });
   revalidatePath('/app/portfolio');
-  await logEvent('representation_requested', { type: 'non_exclusive', fee_attestation: true, attested_at: new Date().toISOString() });
+  await logEvent('representation_requested', { type: 'non_exclusive', fee_attestation: !attErr });
+  if (attErr) return { error: 'La propuesta se ha enviado, pero no se ha podido guardar tu declaración de tarifas. Vuelve a enviarla para registrarla.' };
   return { ok: true, message: 'Propuesta enviada: no exclusiva, 12 meses. El atleta ve el alcance y decide.' };
 }
 

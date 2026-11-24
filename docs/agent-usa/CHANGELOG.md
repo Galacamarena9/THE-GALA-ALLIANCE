@@ -57,6 +57,13 @@ Pruebas: unit 264/264; RLS 436/436 (C2-1…C2-4: otra agencia, atleta, escritura
 Seguridad y menores: el email guarda el marcador, no el enlace; menores con nombre e inicial; tope de 100 emails/día por agencia; baja en cada email.
 Riesgos abiertos: envío por Resend con dominio propio (D-06); DPA de la agencia para contactos de coaches; revisión legal NCAA.
 
+## [Ciclo 3] 2026-11-24 · Declaración de tarifas auditable + cupo fundador + medición de suscripciones
+Evidencia de cliente: ninguna entrevista real todavía (riesgo regulatorio y de cobro, no de demanda).
+Problema atacado y predicción: la atestación solo vivía en `product_events` y el precio fundador se cobraba a todas. Métrica: % de propuestas con declaración (objetivo técnico 100 % de las nuevas) y suscripciones iniciadas por semana (línea base).
+Cambios: rama `feat/fee-attestation-founder-cap`; migración `20261217000100_fee_attestation_founder_cap.sql` (tabla `representation_fee_attestations` append-only, `representation_attest_fees`, `fee_statement`; catálogo v4 79/199 € y v3 fundador oculto; `agency_founder_status`, `checkout_plan`; `billing_apply_event` respeta `metadata.plan_version` y emite `subscription_started`; ROLLBACK en cabecera). Propuesta del atleta y de la familia muestran la declaración con fecha y versión; facturación y /precios muestran «quedan X de 15 plazas»; texto antiguo de /precios («gratis hasta 31-mar-2027, 50 %») corregido.
+Pruebas: unit 266/266; RLS 438/438 (C3-1, C3-2); e2e 370 OK + `founder-pricing.spec.ts`; build OK.
+Riesgos abiertos: representaciones anteriores sin declaración (se muestran con aviso «pídesela»); claves Stripe live y `free_until` (gate de Gala); validación legal NCAA del texto.
+
 ## Plantilla para próximos ciclos
 
 ```

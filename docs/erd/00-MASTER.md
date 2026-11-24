@@ -1,8 +1,8 @@
 <!-- Generado por scripts/erd/generate.mjs a partir de las migraciones. No editar a mano: `npm run erd`. -->
 # 00 · MASTER · Mapa de datos de The Gala Alliance
 
-**162 tablas** en 14 dominios, todas con RLS (162/162).
-Clasificación: Pública 19 · Interna 47 · Personal 67 · Sensible 29 · con posibles datos de menores: 51.
+**163 tablas** en 14 dominios, todas con RLS (163/163).
+Clasificación: Pública 19 · Interna 48 · Personal 67 · Sensible 29 · con posibles datos de menores: 52.
 
 Cómo leerlo: cada dominio tiene su fichero con el diagrama AS-IS (columnas reales), el inventario y el TO-BE. La arquitectura, las reglas y el plan están en [`docs/DATA_ARCHITECTURE.md`](../DATA_ARCHITECTURE.md).
 
@@ -21,7 +21,7 @@ flowchart LR
   D07["07 · Oportunidades, candidaturas y trials<br>5 tablas"]
   D08["08 · Pipeline del atleta y Gala Match<br>8 tablas"]
   D09["09 · Discovery, shortlists y pipeline del staff<br>15 tablas"]
-  D10["10 · Agencias y clubes<br>20 tablas"]
+  D10["10 · Agencias y clubes<br>21 tablas"]
   D11["11 · Comunicación, avisos y seguridad<br>12 tablas"]
   D12["12 · Marcas y negocio<br>15 tablas"]
   D13["13 · IA, academia, analítica y auditoría<br>21 tablas"]
@@ -164,7 +164,7 @@ erDiagram
 | [07 · Oportunidades, candidaturas y trials](./07-oportunidades.md) | 5 | — |
 | [08 · Pipeline del atleta y Gala Match](./08-pipeline-atleta.md) | 8 | `saved_items` |
 | [09 · Discovery, shortlists y pipeline del staff](./09-recruiting-staff.md) | 15 | `saved_athletes`, `saved_searches` |
-| [10 · Agencias y clubes](./10-agencias-clubes.md) | 20 | `club_roster_invites` |
+| [10 · Agencias y clubes](./10-agencias-clubes.md) | 21 | `club_roster_invites` |
 | [11 · Comunicación, avisos y seguridad](./11-comunicacion.md) | 12 | — |
 | [12 · Marcas y negocio](./12-marcas-negocio.md) | 15 | — |
 | [13 · IA, academia, analítica y auditoría](./13-ia-analitica.md) | 21 | — |

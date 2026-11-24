@@ -3994,6 +3994,48 @@ try {
     await expectError(() => as(u.agent, `select case_outreach_mark($1, 'sent')`, [draft]), /representation_required|not_allowed|contact_permission_required/);
   });
 
+  // ---------------------------------------------------------------- Ciclo 3 · Declaración de tarifas y cupo fundador
+  results.push('\nCiclo 3: declaración de tarifas auditable y cupo fundador de 15 agencias');
+  await check('C3-1 la agencia declara sus tarifas; el atleta lo ve; nadie lo edita; otra agencia y el atleta no declaran', async () => {
+    const F = await mkUser('c3-adulta', 'athlete', 22);
+    await as(F, `select representation_invite($1, $2)`, [agencyId, F]);
+    const rep = await repRequest(u.agent, agencyId, F);
+    const id = (await as(u.agent, `select representation_attest_fees($1) id`, [rep])).rows[0].id;
+    eq((await as(u.agent, `select representation_attest_fees($1) id`, [rep])).rows[0].id, id, 'idempotente');
+    const row = (await as(F, `select statement, statement_version from representation_fee_attestations where representation_id = $1`, [rep])).rows[0];
+    eq(row.statement_version, '2026-11'); eq(/no dependen de que el atleta consiga una beca/.test(row.statement), true, 'texto canónico');
+    eq((await as(agent2, `select count(*)::int n from representation_fee_attestations where id = $1`, [id])).rows[0].n, 0, 'otra agencia');
+    await expectError(() => as(agent2, `select representation_attest_fees($1)`, [rep]), /not_allowed/);
+    await expectError(() => as(F, `select representation_attest_fees($1)`, [rep]), /not_allowed/);
+    await expectError(() => as(u.agent, `select representation_attest_fees($1, '1999-01')`, [rep]), /unknown_statement/);
+    await expectError(() => as(u.agent, `insert into representation_fee_attestations (representation_id, agency_id, athlete_id, statement_version, statement) values ($1, $2, $3, '2026-11', 'Texto inventado por la agencia')`, [rep, agencyId, F]), /permission denied|row-level security/);
+    await expectError(() => db.query(`update representation_fee_attestations set statement = 'Cambiado después de firmar' where id = $1`, [id]), /attestation_append_only/);
+  });
+  await check('C3-2 cupo fundador: contador público; la versión fundadora solo si el pago la pide; «subscription_started» una vez', async () => {
+    const before = (await as(null, `select * from agency_founder_status()`)).rows[0];
+    eq(before.cap, 15);
+    eq((await as(u.agent, `select price_cents, founder from checkout_plan('agent_solo')`)).rows[0].price_cents, before.remaining > 0 ? 4700 : 7900, 'precio según cupo');
+    eq((await as(u.agent, `select price_cents from checkout_plan('agent_scale')`)).rows[0].price_cents, 44900, 'sin programa fundador');
+    await expectError(() => as(null, `select * from checkout_plan('agent_solo')`), /permission denied/);
+    const ag = await mkUser('c3-agencia', 'agent', 40);
+    const org = (await as(ag, `insert into organizations (name, type, created_by) values ('Founder Agency', 'agency', $1) returning id`, [ag])).rows[0].id;
+    const a = (await as(ag, `select billing_account_ensure($1) id`, [org])).rows[0].id;
+    await svc(`select billing_set_customer($1, 'cus_founder_1')`, [a]);
+    const evs0 = (await db.query(`select count(*)::int n from product_events where event = 'subscription_started'`)).rows[0].n;
+    const sub = { id: 'sub_founder_1', customer: 'cus_founder_1', status: 'trialing', metadata: { plan_code: 'agent_solo', plan_version: '3' }, items: { data: [{ quantity: 1 }] }, current_period_start: T0, current_period_end: T0 + 2592000 };
+    await svc(`select billing_apply_event($1::jsonb)`, [ev('evt_c3_1', 'customer.subscription.created', T0, sub)]);
+    await svc(`select billing_apply_event($1::jsonb)`, [ev('evt_c3_2', 'customer.subscription.updated', T0 + 10, { ...sub, status: 'active', metadata: { plan_code: 'agent_solo' } })]);
+    eq((await db.query(`select plan_version from subscriptions where stripe_subscription_id = 'sub_founder_1'`)).rows[0].plan_version, 3, 'conserva la versión fundadora');
+    eq((await as(null, `select taken from agency_founder_status()`)).rows[0].taken, before.taken + 1);
+    eq((await db.query(`select count(*)::int n from product_events where event = 'subscription_started'`)).rows[0].n, evs0 + 1, 'un solo evento');
+    const sub2 = { id: 'sub_std_1', customer: 'cus_founder_1', status: 'active', metadata: { plan_code: 'agent_team' }, items: { data: [{ quantity: 1 }] }, current_period_start: T0, current_period_end: T0 + 2592000 };
+    await svc(`select billing_apply_event($1::jsonb)`, [ev('evt_c3_3', 'customer.subscription.created', T0, sub2)]);
+    const std = (await db.query(`select s.plan_version, c.price_cents from subscriptions s join plan_catalog c on c.code = s.plan_code and c.version = s.plan_version where s.stripe_subscription_id = 'sub_std_1'`)).rows[0];
+    eq(std.plan_version, 4); eq(std.price_cents, 19900, 'tarifa sin cupo');
+    await svc(`select billing_apply_event($1::jsonb)`, [ev('evt_c3_4', 'customer.subscription.deleted', T0 + 20, { ...sub, status: 'canceled' })]);
+    eq((await as(null, `select taken from agency_founder_status()`)).rows[0].taken, before.taken, 'una baja libera la plaza');
+  });
+
   if (!process.env.SKIP_ERASURE) await check('RGPD: toda cuenta y toda organización se puede borrar (anonimiza auditoría, no bloquea)', async () => {
     await db.query(`select set_config('request.jwt.claims', '{}', false)`);
     const fails = [];

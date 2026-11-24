@@ -57,8 +57,9 @@ export async function startSubscription(formData: FormData) {
   if (!p.success) redirect('/app/billing?estado=error');
   const key = process.env.STRIPE_SECRET_KEY;
   const supabase = await createClient();
-  const { data: plan } = await supabase.from('plan_catalog').select('code, name, audience, stripe_price_id, price_cents, currency, billing_interval')
-    .eq('code', p.data.plan_code).eq('active', true).order('version', { ascending: false }).limit(1).maybeSingle();
+  // La base de datos decide el precio: el fundador mientras queden plazas (15 agencias), si no la tarifa.
+  const { data: plans } = await supabase.rpc('checkout_plan', { p_code: p.data.plan_code });
+  const plan = (plans as (CatalogPlan & { version: number; audience: string })[] | null)?.[0];
   const cents = plan?.price_cents as number | null | undefined;
   if (!key || !plan || !['month', 'year'].includes(plan.billing_interval as string) || (!plan.stripe_price_id && !(cents && cents > 0))) redirect('/app/billing?estado=no_disponible');
   const customer = await ensureCustomer(p.data.org_id, key);
@@ -72,6 +73,7 @@ export async function startSubscription(formData: FormData) {
     // Agencias: 30 días de prueba; no se cobra nada hasta que acaba.
     ...(plan.audience === 'agent' ? { 'subscription_data[trial_period_days]': '30' } : {}),
     'subscription_data[metadata][plan_code]': plan.code as string,
+    'subscription_data[metadata][plan_version]': String(plan.version),
     'subscription_data[metadata][organization_id]': p.data.org_id,
     'tax_id_collection[enabled]': 'true', 'automatic_tax[enabled]': 'true',
     // Con un cliente ya creado, Stripe necesita poder guardar nombre fiscal y dirección que se escriban en el pago.
