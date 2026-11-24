@@ -5,6 +5,7 @@ import { loadAgentSources } from '@/lib/data/agent-home';
 import { buildAttention } from '@/lib/domain/agent-home';
 import { crmRows, parseCrmFilters, type CrmRow, type CrmVerification } from '@/lib/domain/athletes-crm';
 import { AthletesCrm, CrmError, CrmNoAgency } from './AthletesCrm';
+import { PortfolioImport, type InviteRow } from './PortfolioImport';
 
 export const metadata: Metadata = { title: 'Mis atletas' };
 
@@ -17,7 +18,8 @@ export default async function PortfolioPage({ searchParams }: { searchParams: Pr
   const filters = parseCrmFilters(await searchParams);
   let rows: CrmRow[] = [];
   let partial: string[] = [];
-  let agency: { name: string; verified: boolean } | null = null;
+  let agency: { id?: string; name: string; verified: boolean } | null = null;
+  let invites: InviteRow[] = [];
   let state: 'ok' | 'no_agency' | 'error' = 'ok';
   try {
     const src = await loadAgentSources(session.userId);
@@ -33,11 +35,18 @@ export default async function PortfolioPage({ searchParams }: { searchParams: Pr
     const verification: CrmVerification[] = ((dir ?? []) as { user_id: string; has_verified_stats: boolean | null; has_video: boolean | null }[])
       .map((d) => ({ athleteId: d.user_id, verifiedStats: !!d.has_verified_stats, video: !!d.has_video }));
     rows = crmRows(src.entries, src.input, buildAttention(src.input), verification);
+    if (src.agency.id) {
+      const { data: inv } = await (await createClient()).from('agency_athlete_invites')
+        .select('id, full_name, email, sport, graduation_year, status, expires_at, created_at')
+        .eq('agency_id', src.agency.id).order('created_at', { ascending: false }).limit(300);
+      invites = (inv ?? []) as InviteRow[];
+    }
     }
   } catch {
     state = 'error';
   }
   if (state === 'no_agency') return <CrmNoAgency />;
   if (state === 'error') return <CrmError />;
-  return <AthletesCrm rows={rows} initial={filters} agency={agency} partial={partial} />;
+  const importPanel = agency?.id ? <PortfolioImport agencyId={agency.id} agencyName={agency.name} invites={invites} /> : null;
+  return <AthletesCrm rows={rows} initial={filters} agency={agency} partial={partial} importPanel={importPanel} />;
 }

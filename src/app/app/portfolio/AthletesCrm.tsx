@@ -23,7 +23,7 @@ const rel = (iso: string | null) => {
  * «Mis atletas»: filtros, búsqueda, orden y página viven en la URL (compartible y estable), pero se aplican en
  * memoria sobre la proyección que ya envió el servidor: el resultado aparece al teclear, sin ir y volver al servidor.
  */
-export function AthletesCrm({ rows, initial, agency, partial = [] }: { rows: CrmRow[]; initial: CrmFilters; agency: { name: string; verified: boolean } | null; partial?: string[] }) {
+export function AthletesCrm({ rows, initial, agency, partial = [], importPanel = null }: { rows: CrmRow[]; initial: CrmFilters; agency: { name: string; verified: boolean } | null; partial?: string[]; importPanel?: React.ReactNode }) {
   const [f, setF] = useState<CrmFilters>(initial);
   const set = (patch: Partial<CrmFilters>) => setF((cur) => ({ ...cur, ...patch, page: 'page' in patch ? patch.page! : 1 }));
   const result = useMemo(() => applyCrm(rows, f), [rows, f]);
@@ -50,12 +50,13 @@ export function AthletesCrm({ rows, initial, agency, partial = [] }: { rows: Crm
         action={<Link href="/app/discover" className={buttonClass('secondary')}><Search className="h-4 w-4" aria-hidden /> Buscar talento</Link>}
       />
       <div className="space-y-4">
-        {agency && !agency.verified && <Notice>Tu agencia está pendiente de verificación: los atletas verán tus propuestas cuando Gala la verifique.</Notice>}
+        {agency && !agency.verified && <Notice>Tu agencia está pendiente de verificación. Mientras tanto puedes importar tu cartera e invitar a tus atletas; podrás enviarles propuestas en cuanto Gala la verifique.</Notice>}
+        {importPanel}
         {partial.length > 0 && <Notice tone="warn">No hemos podido cargar {partial.join(', ')}: algunos recuentos pueden estar incompletos.</Notice>}
 
         {!rows.length ? (
           <EmptyState title="Tu cartera está vacía" action={<Link href="/app/discover" className={buttonClass('primary')}><Search className="h-4 w-4" aria-hidden /> Buscar talento</Link>}>
-            Busca atletas por deporte, posición, físico y nivel, y propón representarlos desde su perfil. Aparecerán aquí en cuanto envíes la propuesta.
+            Importa arriba tu cartera actual o busca atletas por deporte, posición y nivel. Aparecerán aquí en cuanto acepten tu propuesta.
           </EmptyState>
         ) : (
           <section aria-label="Mis atletas" className="overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface">

@@ -1,13 +1,16 @@
 <!-- Generado por scripts/erd/generate.mjs a partir de las migraciones. No editar a mano: `npm run erd`. -->
 # 10 · Agencias y clubes
 
-Tablas: **18** · RLS activada en 18/18.
+Tablas: **19** · RLS activada en 19/19.
 Se relaciona con: `athlete_documents` (03), `athlete_profiles` (03), `auth_users`, `institutions` (05), `opportunities` (07), `organizations` (05), `profiles` (01), `sports` (04), `verification_requests` (06).
 
 ## AS-IS · Modelo actual
 
 ```mermaid
 erDiagram
+  ORGANIZATIONS ||--o{ AGENCY_ATHLETE_INVITES : "agency_id"
+  AUTH_USERS |o--o{ AGENCY_ATHLETE_INVITES : "claimed_by"
+  AUTH_USERS ||--o{ AGENCY_ATHLETE_INVITES : "invited_by"
   ORGANIZATIONS ||--o{ AGENCY_ATHLETE_NOTES : "agency_id"
   ATHLETE_PROFILES ||--o{ AGENCY_ATHLETE_NOTES : "athlete_id"
   PROFILES ||--o{ AGENCY_ATHLETE_NOTES : "author_id"
@@ -64,6 +67,22 @@ erDiagram
   PROFILES |o--o{ REPRESENTATION_PERMISSIONS : "granted_by"
   AGENT_REPRESENTATIONS ||--o{ REPRESENTATION_PERMISSIONS : "representation_id"
   PROFILES |o--o{ REPRESENTATION_PERMISSIONS : "revoked_by"
+  AGENCY_ATHLETE_INVITES {
+    uuid id PK
+    uuid agency_id FK
+    uuid invited_by FK
+    text full_name
+    text email
+    text sport
+    int4 graduation_year
+    text token_hash
+    text status
+    timestamptz opened_at
+    timestamptz claimed_at
+    uuid claimed_by FK
+    timestamptz expires_at
+    timestamptz created_at
+  }
   AGENCY_ATHLETE_NOTES {
     uuid id PK
     uuid agency_id FK
@@ -294,6 +313,7 @@ erDiagram
 
 | Tabla | Clasificación | Menores | Al borrar | Retención | Exportación RGPD | Decisión |
 |---|---|---|---|---|---|---|
+| `agency_athlete_invites` | Interna | Sí | organización (agency_id) → se borra<br>persona (claimed_by) → se anonimiza<br>persona (invited_by) → se borra | Mientras exista la organización | No: Invitación de la agencia a un atleta de su cartera (solo hash del enlace) | KEEP |
 | `agency_athlete_notes` | Interna | — | organización (agency_id) → se borra<br>atleta (athlete_id) → se borra<br>persona (author_id) → se borra | Mientras exista la organización | No: Nota interna de la agencia sobre el atleta | KEEP |
 | `agency_contacts` | Interna | — | organización (agency_id) → se borra<br>persona (created_by) → se anonimiza | Mientras exista la organización | — | KEEP |
 | `agent_representations` | Sensible | Sí | organización (agency_id) → se borra<br>persona (agent_id) → se borra<br>atleta (athlete_id) → se borra<br>persona (guardian_approved_by) → se anonimiza<br>persona (revoked_by) → se anonimiza | Mientras exista la cuenta | Sí | KEEP |

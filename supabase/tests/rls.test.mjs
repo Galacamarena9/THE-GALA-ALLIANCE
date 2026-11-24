@@ -3902,6 +3902,47 @@ try {
     eq((await as(u.agent, `update athlete_documents set title = 'cambiado' where athlete_id = $1`, [u.adult])).rowCount, 0);
   });
 
+  // ---------------------------------------------------------------- Ciclo 1 · Importar cartera e invitar a reclamarla
+  results.push('\nCiclo 1: la agencia importa su cartera y cada atleta la reclama con un enlace');
+  await check('C1-1 la agencia crea invitaciones; solo guarda el hash; otra agencia y el atleta no las ven', async () => {
+    const inv = (await as(u.agent, `select * from agency_invite_create($1, 'Lucía Marín', 'lucia@example.com', 'Baloncesto', 2027)`, [agencyId])).rows[0];
+    eq(inv.token.length, 64, 'token de 64 hex');
+    const row = (await as(u.agent, `select token_hash, status from agency_athlete_invites where id = $1`, [inv.id])).rows[0];
+    eq(row.status, 'sent'); eq(row.token_hash === inv.token, false, 'no guarda el token en claro');
+    eq((await as(agent2, `select count(*)::int n from agency_athlete_invites where agency_id = $1`, [agencyId])).rows[0].n, 0, 'otra agencia');
+    eq((await as(u.adult, `select count(*)::int n from agency_athlete_invites`)).rows[0].n, 0, 'atleta');
+    eq((await as(null, `select count(*)::int n from agency_athlete_invites`).catch(() => ({ rows: [{ n: 0 }] }))).rows[0].n, 0, 'anónimo');
+  });
+  await check('C1-2 nadie escribe la tabla directamente ni crea invitaciones de otra agencia', async () => {
+    await expectError(() => as(u.agent, `insert into agency_athlete_invites (agency_id, invited_by, full_name, token_hash) values ($1, $2, 'X', 'h')`, [agencyId, u.agent]), /permission denied|row-level security/);
+    await expectError(() => as(agent2, `select * from agency_invite_create($1, 'Intruso')`, [agencyId]), /not_allowed/);
+    await expectError(() => as(u.adult, `select * from agency_invite_create($1, 'Atleta')`, [agencyId]), /not_allowed/);
+  });
+  await check('C1-3 el atleta reclama: se abre la invitación de representación y la agencia ya puede proponer', async () => {
+    const a = await mkUser('claim-adulta', 'athlete', 20);
+    const inv = (await as(u.agent, `select * from agency_invite_create($1, 'Claim Adulta')`, [agencyId])).rows[0];
+    const pv = (await as(null, `select * from agency_invite_preview($1)`, [inv.token])).rows[0];
+    eq(pv.valid, true); eq(pv.agency_name, 'Top Agency');
+    await as(a, `select * from agency_invite_preview($1)`, [inv.token]);
+    eq((await as(u.agent, `select status from agency_athlete_invites where id = $1`, [inv.id])).rows[0].status, 'opened', 'vista');
+    await as(a, `select agency_invite_claim($1)`, [inv.token]);
+    eq((await as(u.agent, `select status from agency_athlete_invites where id = $1`, [inv.id])).rows[0].status, 'claimed');
+    eq((await as(a, `select count(*)::int n from representation_invitations where agency_id = $1 and athlete_id = $2 and status = 'open'`, [agencyId, a])).rows[0].n, 1);
+    const r = await repRequest(u.agent, agencyId, a);
+    eq(typeof r, 'string', 'propuesta creada');
+    await expectError(() => as(a, `select agency_invite_claim($1)`, [inv.token]), /invitation_invalid/);
+  });
+  await check('C1-4 solo una cuenta de atleta reclama; un enlace revocado o reemitido deja de valer', async () => {
+    const inv = (await as(u.agent, `select * from agency_invite_create($1, 'Revocable')`, [agencyId])).rows[0];
+    await expectError(() => as(u.parent, `select agency_invite_claim($1)`, [inv.token]), /athlete_role_required/);
+    const fresh = (await as(u.agent, `select agency_invite_reissue($1) t`, [inv.id])).rows[0].t;
+    const a = await mkUser('claim-viejo', 'athlete', 22);
+    await expectError(() => as(a, `select agency_invite_claim($1)`, [inv.token]), /invitation_invalid/);
+    await as(u.agent, `select agency_invite_revoke($1)`, [inv.id]);
+    await expectError(() => as(a, `select agency_invite_claim($1)`, [fresh]), /invitation_invalid/);
+    eq((await as(null, `select valid from agency_invite_preview($1)`, [fresh])).rows[0].valid, false);
+  });
+
   if (!process.env.SKIP_ERASURE) await check('RGPD: toda cuenta y toda organización se puede borrar (anonimiza auditoría, no bloquea)', async () => {
     await db.query(`select set_config('request.jwt.claims', '{}', false)`);
     const fails = [];

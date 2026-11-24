@@ -29,7 +29,7 @@ export interface AgentHomeData {
 const EMPTY_SUMMARY: AgentHomeSummary = { athletes: 0, needAttention: 0, activeOpportunities: 0, offers: 0, deadlinesToday: 0 };
 
 export interface AgentSources {
-  agency: { name: string; verified: boolean };
+  agency: { id?: string; name: string; verified: boolean };
   input: AgentHomeInput;
   partial: AgentHomeData['partial'];
   entries: PortfolioEntry[];
@@ -44,7 +44,7 @@ export async function loadAgentSources(userId: string, now: Date = new Date()): 
     const portfolio = await loadPortfolio(userId);
     const ag = portfolio.agencies[0];
     if (!ag) return null;
-    const agency = { name: ag.name, verified: ag.verification_status === 'verified' };
+    const agency = { id: ag.id, name: ag.name, verified: ag.verification_status === 'verified' };
     const partial: AgentHomeData['partial'] = [];
     const supabase = await createClient();
 

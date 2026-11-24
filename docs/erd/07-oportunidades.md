@@ -123,6 +123,7 @@ erDiagram
     uuid updated_by FK
     text source
     timestamptz archived_at
+    text international_conditions
   }
   OPPORTUNITY_QUESTIONS {
     uuid id PK

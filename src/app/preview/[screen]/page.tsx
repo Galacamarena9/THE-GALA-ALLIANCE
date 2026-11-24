@@ -4,6 +4,13 @@ import { ShellPreview } from '../ShellPreview';
 import { previewAgentHome, previewCrmRows } from '@/lib/preview/agent-home';
 import { AgentHomeView } from '@/app/app/AgentHome';
 import { AthletesCrm } from '@/app/app/portfolio/AthletesCrm';
+import { PortfolioImport, type InviteRow } from '@/app/app/portfolio/PortfolioImport';
+
+const PREVIEW_INVITES: InviteRow[] = [
+  { id: 'i1', full_name: 'Lucía Marín', email: 'lucia@ejemplo.com', sport: 'Baloncesto', graduation_year: 2027, status: 'claimed', expires_at: '2027-01-01', created_at: '2026-11-20' },
+  { id: 'i2', full_name: 'Pablo Ruiz', email: null, sport: 'Fútbol', graduation_year: 2027, status: 'opened', expires_at: '2027-01-01', created_at: '2026-11-20' },
+  { id: 'i3', full_name: 'Irene Soler', email: 'irene@ejemplo.com', sport: 'Voleibol', graduation_year: 2028, status: 'sent', expires_at: '2027-01-01', created_at: '2026-11-21' },
+];
 import { DEFAULT_CRM } from '@/lib/domain/athletes-crm';
 import { Athlete360View } from '@/app/app/portfolio/[athleteId]/Athlete360View';
 import { previewAthlete360 } from '@/lib/preview/athlete-360';
@@ -196,7 +203,7 @@ export default async function PreviewPage({ params, searchParams }: { params: Pr
             userId="me"
           />
         )}
-        {screen.startsWith('portfolio') && <AthletesCrm rows={screen === 'portfolio-100' ? previewCrmRows(100) : screen === 'portfolio-empty' ? [] : previewCrmRows()} initial={DEFAULT_CRM} agency={{ name: 'Norte Sports Management', verified: true }} />}
+        {screen.startsWith('portfolio') && <AthletesCrm rows={screen === 'portfolio-100' ? previewCrmRows(100) : screen === 'portfolio-empty' ? [] : previewCrmRows()} initial={DEFAULT_CRM} agency={{ name: 'Norte Sports Management', verified: true }} importPanel={<PortfolioImport agencyId="00000000-0000-4000-8000-000000000001" agencyName="Norte Sports Management" invites={screen === 'portfolio-empty' ? [] : PREVIEW_INVITES} />} />}
       </div>
     </div>
   );
