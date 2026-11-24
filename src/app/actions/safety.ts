@@ -1,5 +1,6 @@
 'use server';
 
+import { must } from '@/lib/supabase/must';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
@@ -66,7 +67,7 @@ export async function revertModeration(formData: FormData) {
   const p = z.object({ id: uuid, reason: z.string().trim().min(3).max(2000) }).safeParse(Object.fromEntries(formData));
   if (!p.success) return;
   const supabase = await createClient();
-  await supabase.rpc('moderation_revert', { p_action: p.data.id, p_reason: p.data.reason });
+  must(await supabase.rpc('moderation_revert', { p_action: p.data.id, p_reason: p.data.reason }), 'rpc.moderation_revert');
   revalidatePath('/app/admin/safety');
 }
 

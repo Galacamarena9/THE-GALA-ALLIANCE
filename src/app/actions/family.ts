@@ -1,5 +1,6 @@
 'use server';
 
+import { must } from '@/lib/supabase/must';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
@@ -48,11 +49,11 @@ export async function revokeFamilyLink(formData: FormData) {
   const id = z.string().uuid().parse(formData.get('id'));
   if (formData.get('confirm') !== 'yes') return; // 10D: dejar de seguir siempre pasa por la confirmación
   const supabase = await createClient();
-  await supabase
+  must(await supabase
     .from('parent_athlete_links')
     .update({ status: 'revoked' })
     .eq('id', id)
-    .or(`parent_id.eq.${session.userId},athlete_id.eq.${session.userId}`);
+    .or(`parent_id.eq.${session.userId},athlete_id.eq.${session.userId}`), 'parent_athlete_links.update');
   revalidatePath('/app/family');
   revalidatePath('/app/settings');
 }
@@ -63,7 +64,7 @@ export async function updateFamilyPermissions(formData: FormData) {
   const id = z.string().uuid().parse(formData.get('id'));
   const on = (k: string) => formData.get(k) === 'on';
   const supabase = await createClient();
-  await supabase
+  must(await supabase
     .from('parent_athlete_links')
     .update({
       can_view_profile: on('can_view_profile'),
@@ -77,7 +78,7 @@ export async function updateFamilyPermissions(formData: FormData) {
       can_view_messages: on('can_view_messages'),
     })
     .eq('id', id)
-    .eq('athlete_id', session.userId);
+    .eq('athlete_id', session.userId), 'parent_athlete_links.update');
   revalidatePath('/app/settings');
 }
 
@@ -87,7 +88,7 @@ export async function reviewFamilyLink(formData: FormData) {
   const id = z.string().uuid().parse(formData.get('id'));
   const keep = formData.get('keep') === 'yes';
   const supabase = await createClient();
-  await supabase.rpc('family_link_review', { p_link: id, p_keep: keep });
+  must(await supabase.rpc('family_link_review', { p_link: id, p_keep: keep }), 'rpc.family_link_review');
   revalidatePath('/app/settings');
 }
 
@@ -96,7 +97,7 @@ export async function restrictFamilyLink(formData: FormData) {
   await requireSession(['athlete']);
   const id = z.string().uuid().parse(formData.get('id'));
   const supabase = await createClient();
-  await supabase.rpc('family_link_restrict', { p_link: id, p_restrict: formData.get('restrict') === 'yes', p_reason: null });
+  must(await supabase.rpc('family_link_restrict', { p_link: id, p_restrict: formData.get('restrict') === 'yes', p_reason: null }), 'rpc.family_link_restrict');
   revalidatePath('/app/settings');
 }
 
@@ -120,7 +121,7 @@ export async function deleteFamilyNote(formData: FormData) {
   await requireSession(['parent', 'athlete']);
   const id = z.string().uuid().parse(formData.get('id'));
   const supabase = await createClient();
-  await supabase.from('family_notes').delete().eq('id', id);
+  must(await supabase.from('family_notes').delete().eq('id', id), 'family_notes.delete');
   revalidatePath('/app/family');
 }
 
@@ -155,7 +156,7 @@ export async function deleteCostScenario(formData: FormData) {
   await requireSession(['parent', 'athlete']);
   const id = z.string().uuid().parse(formData.get('id'));
   const supabase = await createClient();
-  await supabase.from('family_cost_scenarios').delete().eq('id', id);
+  must(await supabase.from('family_cost_scenarios').delete().eq('id', id), 'family_cost_scenarios.delete');
   revalidatePath('/app/family/costs');
 }
 

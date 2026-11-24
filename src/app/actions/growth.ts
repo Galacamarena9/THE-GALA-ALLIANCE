@@ -1,5 +1,6 @@
 'use server';
 
+import { must, bestEffort } from '@/lib/supabase/must';
 import { logEvent } from '@/lib/events';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
@@ -22,9 +23,9 @@ export async function toggleAcademyTopic(formData: FormData) {
   if (!parsed.success || !topicIds.has(parsed.data.topic_id)) return;
   const supabase = await createClient();
   if (parsed.data.done === '1') {
-    await supabase.from('academy_progress').delete().eq('user_id', session.userId).eq('exam', parsed.data.exam).eq('topic_id', parsed.data.topic_id);
+    must(await supabase.from('academy_progress').delete().eq('user_id', session.userId).eq('exam', parsed.data.exam).eq('topic_id', parsed.data.topic_id), 'academy_progress.delete');
   } else {
-    await supabase.from('academy_progress').upsert({ user_id: session.userId, exam: parsed.data.exam, topic_id: parsed.data.topic_id }, { ignoreDuplicates: true });
+    must(await supabase.from('academy_progress').upsert({ user_id: session.userId, exam: parsed.data.exam, topic_id: parsed.data.topic_id }, { ignoreDuplicates: true }), 'academy_progress.upsert');
   }
   revalidatePath('/app/academia');
 }
@@ -80,7 +81,7 @@ export async function deleteSearch(formData: FormData) {
   const id = z.string().uuid().safeParse(formData.get('id'));
   if (!id.success) return;
   const supabase = await createClient();
-  await supabase.from('saved_searches').delete().eq('id', id.data).eq('owner_id', session.userId);
+  must(await supabase.from('saved_searches').delete().eq('id', id.data).eq('owner_id', session.userId), 'saved_searches.delete');
   revalidatePath('/app/lists');
 }
 
@@ -89,7 +90,7 @@ export async function markSearchSeen(formData: FormData) {
   const id = z.string().uuid().safeParse(formData.get('id'));
   if (!id.success) return;
   const supabase = await createClient();
-  await supabase.from('saved_searches').update({ last_seen_at: new Date().toISOString() }).eq('id', id.data).eq('owner_id', session.userId);
+  bestEffort(await supabase.from('saved_searches').update({ last_seen_at: new Date().toISOString() }).eq('id', id.data).eq('owner_id', session.userId), 'saved_searches.update');
   revalidatePath('/app/lists');
 }
 
@@ -122,7 +123,7 @@ export async function deleteAthleteUpdate(formData: FormData) {
   const id = z.string().uuid().safeParse(formData.get('id'));
   if (!id.success) return;
   const supabase = await createClient();
-  await supabase.from('athlete_updates').delete().eq('id', id.data).eq('athlete_id', session.userId);
+  must(await supabase.from('athlete_updates').delete().eq('id', id.data).eq('athlete_id', session.userId), 'athlete_updates.delete');
   revalidatePath('/app/athlete/passport');
 }
 
@@ -130,7 +131,7 @@ export async function deleteAthleteUpdate(formData: FormData) {
 export async function markNotificationsRead() {
   const session = await requireSession();
   const supabase = await createClient();
-  await supabase.from('notifications').update({ read_at: new Date().toISOString() }).eq('user_id', session.userId).is('read_at', null);
+  must(await supabase.from('notifications').update({ read_at: new Date().toISOString() }).eq('user_id', session.userId).is('read_at', null), 'notifications.update');
   revalidatePath('/app', 'layout');
 }
 
@@ -168,7 +169,7 @@ export async function updateServiceRequest(formData: FormData) {
   }).safeParse({ id: formData.get('id'), status: formData.get('status'), admin_note: formData.get('admin_note') ?? undefined });
   if (!parsed.success) return;
   const supabase = await createClient();
-  await supabase.from('service_requests').update({ status: parsed.data.status, admin_note: parsed.data.admin_note || null }).eq('id', parsed.data.id);
+  must(await supabase.from('service_requests').update({ status: parsed.data.status, admin_note: parsed.data.admin_note || null }).eq('id', parsed.data.id), 'service_requests.update');
   revalidatePath('/app/admin');
 }
 

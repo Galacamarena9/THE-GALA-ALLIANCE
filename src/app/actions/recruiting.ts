@@ -1,5 +1,6 @@
 'use server';
 
+import { must } from '@/lib/supabase/must';
 import { revalidatePath } from 'next/cache';
 import { captchaToken } from '@/lib/captcha';
 import { z } from 'zod';
@@ -51,7 +52,7 @@ export async function revokeRecruitingLink(formData: FormData) {
   const id = z.string().uuid().safeParse(formData.get('id'));
   if (!id.success) return;
   const supabase = await createClient();
-  await supabase.from('recruiting_links').update({ revoked_at: new Date().toISOString() }).eq('id', id.data).is('revoked_at', null);
+  must(await supabase.from('recruiting_links').update({ revoked_at: new Date().toISOString() }).eq('id', id.data).is('revoked_at', null), 'recruiting_links.update');
   revalidatePath('/app/share');
 }
 

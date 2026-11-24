@@ -1,5 +1,6 @@
 'use server';
 
+import { must, bestEffort } from '@/lib/supabase/must';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { requireSession } from '@/lib/session';
@@ -61,7 +62,7 @@ export async function quickMove(formData: FormData) {
   const athlete = await editableAthlete(formData);
   const t = z.object({ id: uuid, status: z.enum(['discovered', 'saved', 'applied', 'contacted', 'call', 'offer', 'decision']) }).parse(Object.fromEntries(formData));
   const supabase = await createClient();
-  await supabase.from('saved_items').update({ status: t.status }).eq('id', t.id).eq('athlete_id', athlete);
+  must(await supabase.from('saved_items').update({ status: t.status }).eq('id', t.id).eq('athlete_id', athlete), 'saved_items.update');
   await logEvent('pipeline_stage_changed', { stage: t.status });
   refresh(t.id);
 }
@@ -88,7 +89,7 @@ export async function setNextAction(_prev: FormState, formData: FormData): Promi
   const parsed = z.object({ id: uuid, next_action: z.string().trim().max(200), next_action_due: optDate }).safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: 'Revisa el siguiente paso (máx. 200 caracteres).' };
   const supabase = await createClient();
-  await supabase.from('saved_items').update({ next_action: parsed.data.next_action || null, next_action_due: parsed.data.next_action ? parsed.data.next_action_due : null }).eq('id', parsed.data.id).eq('athlete_id', athlete);
+  must(await supabase.from('saved_items').update({ next_action: parsed.data.next_action || null, next_action_due: parsed.data.next_action ? parsed.data.next_action_due : null }).eq('id', parsed.data.id).eq('athlete_id', athlete), 'saved_items.update');
   refresh(parsed.data.id);
   return { ok: true, message: 'Siguiente paso guardado' };
 }
@@ -97,7 +98,7 @@ export async function setArchived(formData: FormData) {
   const athlete = await editableAthlete(formData);
   const t = z.object({ id: uuid, archive: z.enum(['1', '0']) }).parse(Object.fromEntries(formData));
   const supabase = await createClient();
-  await supabase.from('saved_items').update({ archived_at: t.archive === '1' ? new Date().toISOString() : null }).eq('id', t.id).eq('athlete_id', athlete);
+  must(await supabase.from('saved_items').update({ archived_at: t.archive === '1' ? new Date().toISOString() : null }).eq('id', t.id).eq('athlete_id', athlete), 'saved_items.update');
   refresh(t.id);
 }
 
@@ -129,7 +130,7 @@ export async function deleteEvent(formData: FormData) {
   await editableAthlete(formData);
   const t = z.object({ event: z.coerce.number().int().positive(), id: uuid }).parse(Object.fromEntries(formData));
   const supabase = await createClient();
-  await supabase.from('pipeline_events').delete().eq('id', t.event);
+  must(await supabase.from('pipeline_events').delete().eq('id', t.event), 'pipeline_events.delete');
   refresh(t.id);
 }
 
@@ -150,7 +151,7 @@ export async function toggleTask(formData: FormData) {
   const supabase = await createClient();
   const { data } = await supabase.from('pipeline_tasks').update({ done_at: t.done === '1' ? new Date().toISOString() : null }).eq('id', t.task).eq('athlete_id', athlete).select('title, process_id').maybeSingle();
   if (t.done === '1' && data?.process_id) {
-    await supabase.from('pipeline_events').insert({ athlete_id: athlete, process_id: data.process_id, kind: 'task_done', source: 'user', title: `Tarea hecha: ${data.title}`.slice(0, 200) });
+    bestEffort(await supabase.from('pipeline_events').insert({ athlete_id: athlete, process_id: data.process_id, kind: 'task_done', source: 'user', title: `Tarea hecha: ${data.title}`.slice(0, 200) }), 'pipeline_events.insert');
     await logEvent('task_completed', { task: 'pipeline', priority: 'personal' });
   }
   refresh(t.id || undefined);
@@ -160,7 +161,7 @@ export async function deleteTask(formData: FormData) {
   const athlete = await editableAthlete(formData);
   const t = z.object({ task: uuid, id: z.union([uuid, z.literal('')]).optional() }).parse(Object.fromEntries(formData));
   const supabase = await createClient();
-  await supabase.from('pipeline_tasks').delete().eq('id', t.task).eq('athlete_id', athlete);
+  must(await supabase.from('pipeline_tasks').delete().eq('id', t.task).eq('athlete_id', athlete), 'pipeline_tasks.delete');
   refresh(t.id || undefined);
 }
 
@@ -185,7 +186,7 @@ export async function deleteContact(formData: FormData) {
   const athlete = await editableAthlete(formData);
   const t = z.object({ contact: uuid, id: uuid }).parse(Object.fromEntries(formData));
   const supabase = await createClient();
-  await supabase.from('pipeline_contacts').delete().eq('id', t.contact).eq('athlete_id', athlete);
+  must(await supabase.from('pipeline_contacts').delete().eq('id', t.contact).eq('athlete_id', athlete), 'pipeline_contacts.delete');
   refresh(t.id);
 }
 
@@ -199,9 +200,9 @@ export async function setProcessDocument(formData: FormData) {
     document_id: z.union([uuid, z.literal('')]).optional(),
   }).parse(Object.fromEntries(formData));
   const supabase = await createClient();
-  if (t.op === 'remove') await supabase.from('process_documents').delete().eq('process_id', t.id).eq('kind', t.kind);
-  else if (t.op === 'add') await supabase.from('process_documents').upsert({ process_id: t.id, athlete_id: athlete, kind: t.kind });
-  else if (t.op === 'link') await supabase.from('process_documents').update({ document_id: t.document_id || null }).eq('process_id', t.id).eq('kind', t.kind);
+  if (t.op === 'remove') must(await supabase.from('process_documents').delete().eq('process_id', t.id).eq('kind', t.kind), 'process_documents.delete');
+  else if (t.op === 'add') must(await supabase.from('process_documents').upsert({ process_id: t.id, athlete_id: athlete, kind: t.kind }), 'process_documents.upsert');
+  else if (t.op === 'link') must(await supabase.from('process_documents').update({ document_id: t.document_id || null }).eq('process_id', t.id).eq('kind', t.kind), 'process_documents.update');
   else await supabase.from('process_documents').update({ sent_at: t.op === 'sent' ? new Date().toISOString().slice(0, 10) : null }).eq('process_id', t.id).eq('kind', t.kind);
   refresh(t.id);
 }
@@ -237,9 +238,9 @@ export async function setOfferStatus(formData: FormData) {
   const athlete = await editableAthlete(formData);
   const t = z.object({ offer: uuid, id: uuid, status: z.enum(['pending', 'accepted', 'declined', 'expired']) }).parse(Object.fromEntries(formData));
   const supabase = await createClient();
-  await supabase.from('athlete_offers').update({ status: t.status }).eq('id', t.offer).eq('athlete_id', athlete);
+  must(await supabase.from('athlete_offers').update({ status: t.status }).eq('id', t.offer).eq('athlete_id', athlete), 'athlete_offers.update');
   if (t.status !== 'pending') {
-    await supabase.from('pipeline_events').insert({ athlete_id: athlete, process_id: t.id, kind: 'decision', source: 'user', title: t.status === 'accepted' ? 'Oferta aceptada' : t.status === 'declined' ? 'Oferta rechazada' : 'Oferta caducada' });
+    bestEffort(await supabase.from('pipeline_events').insert({ athlete_id: athlete, process_id: t.id, kind: 'decision', source: 'user', title: t.status === 'accepted' ? 'Oferta aceptada' : t.status === 'declined' ? 'Oferta rechazada' : 'Oferta caducada' }), 'pipeline_events.insert');
   }
   refresh(t.id);
 }

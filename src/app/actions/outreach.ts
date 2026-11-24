@@ -1,5 +1,6 @@
 'use server';
 
+import { must, bestEffort } from '@/lib/supabase/must';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
@@ -48,7 +49,7 @@ export async function addOutreachContact(formData: FormData) {
   }).select('id').single();
   if (error) back(/suppressed/.test(error.message) ? 'Ese correo pidió no recibir más mensajes: no se puede volver a añadir.'
     : /duplicate|unique/.test(error.message) ? 'Esa organización o ese correo ya están en la lista.' : 'No se ha podido guardar.');
-  await supabase.from('outreach_events').insert({ contact_id: data!.id, kind: 'created', actor_id: session.userId });
+  bestEffort(await supabase.from('outreach_events').insert({ contact_id: data!.id, kind: 'created', actor_id: session.userId }), 'outreach_events.insert');
   revalidatePath(PATH);
   back(`Añadida: ${d.organization_name}.`);
 }
@@ -95,7 +96,7 @@ export async function sendOutreachInvites(formData: FormData) {
     });
     const res = await sendEmail({ to: r.email!, subject: mail.subject, html: mail.html, text: mail.text, replyTo: outreachReplyTo() });
     if (res === 'sent') { sent += 1; continue; }
-    await supabase.rpc('outreach_revert_invite', { p_id: r.id });
+    must(await supabase.rpc('outreach_revert_invite', { p_id: r.id }), 'rpc.outreach_revert_invite');
     if (res === 'not_configured') {
       revalidatePath(PATH);
       back('El envío de correo no está configurado (faltan RESEND_API_KEY y EMAIL_FROM). No se ha enviado nada.');
@@ -117,7 +118,7 @@ export async function setOutreachStatus(formData: FormData) {
   const supabase = await createClient();
   const { error } = await supabase.from('outreach_contacts').update({ status: p.data!.status }).eq('id', p.data!.id);
   if (error) back('Ese cambio de estado no está permitido.');
-  await supabase.from('outreach_events').insert({ contact_id: p.data!.id, kind: p.data!.status, actor_id: session.userId, detail: p.data!.detail || null });
+  bestEffort(await supabase.from('outreach_events').insert({ contact_id: p.data!.id, kind: p.data!.status, actor_id: session.userId, detail: p.data!.detail || null }), 'outreach_events.insert');
   revalidatePath(PATH);
   back('Estado actualizado.');
 }
@@ -127,7 +128,7 @@ export async function deleteOutreachContact(formData: FormData) {
   const id = z.string().uuid().safeParse(formData.get('id'));
   if (!id.success) back('Contacto no válido.');
   const supabase = await createClient();
-  await supabase.from('outreach_contacts').delete().eq('id', id.data!);
+  must(await supabase.from('outreach_contacts').delete().eq('id', id.data!), 'outreach_contacts.delete');
   revalidatePath(PATH);
   back('Contacto eliminado.');
 }

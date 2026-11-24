@@ -1,5 +1,6 @@
 'use server';
 
+import { must, bestEffort } from '@/lib/supabase/must';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
@@ -35,7 +36,7 @@ export async function seedDocumentChecklist(formData: FormData) {
   const rows = DOC_CHECKLIST.filter((d) => !have.has(d.kind)).map((d) => ({
     athlete_id: athleteId.data, kind: d.kind, title: d.title, due_date: suggestedDueDate(d.kind, ap?.graduation_year ?? null),
   }));
-  if (rows.length) await supabase.from('athlete_documents').insert(rows);
+  if (rows.length) must(await supabase.from('athlete_documents').insert(rows), 'athlete_documents.insert');
   revalidatePath('/app/documents');
 }
 
@@ -44,7 +45,7 @@ export async function setDocumentDueDate(formData: FormData) {
     .safeParse({ id: formData.get('id'), athlete_id: formData.get('athlete_id'), due_date: formData.get('due_date') });
   if (!parsed.success || !(await canManage(parsed.data.athlete_id))) return;
   const supabase = await createClient();
-  await supabase.from('athlete_documents').update({ due_date: parsed.data.due_date || null }).eq('id', parsed.data.id);
+  must(await supabase.from('athlete_documents').update({ due_date: parsed.data.due_date || null }).eq('id', parsed.data.id), 'athlete_documents.update');
   revalidatePath('/app/documents');
 }
 
@@ -63,7 +64,7 @@ export async function recordDocumentUpload(input: { id: string; athleteId: strin
   const { data: blob } = await supabase.storage.from('athlete-documents').download(parsed.data.path);
   const bytes = blob ? new Uint8Array(await blob.arrayBuffer()) : null;
   if (!bytes || !uploadMatches(bytes, { mime: parsed.data.mime, size: parsed.data.size })) {
-    await supabase.storage.from('athlete-documents').remove([parsed.data.path]);
+    bestEffort(await supabase.storage.from('athlete-documents').remove([parsed.data.path]), 'storage.athlete-documents.remove');
     return { ok: false, reason: 'invalid_file' as const };
   }
   const contentSha256 = createHash('sha256').update(bytes).digest('hex');
@@ -73,7 +74,7 @@ export async function recordDocumentUpload(input: { id: string; athleteId: strin
     content_sha256: contentSha256, uploaded_by: session.userId, uploaded_at: new Date().toISOString(),
   }).eq('id', parsed.data.id).eq('athlete_id', parsed.data.athleteId);
   if (!error && prev?.storage_path && prev.storage_path !== parsed.data.path) {
-    await supabase.storage.from('athlete-documents').remove([prev.storage_path]);
+    bestEffort(await supabase.storage.from('athlete-documents').remove([prev.storage_path]), 'storage.athlete-documents.remove');
   }
   if (!error) await logEvent('document_uploaded', { kind: 'file' });
   revalidatePath('/app/documents');
@@ -85,8 +86,8 @@ export async function removeDocumentFile(formData: FormData) {
   if (!parsed.success || !(await canManage(parsed.data.athlete_id))) return;
   const supabase = await createClient();
   const { data } = await supabase.from('athlete_documents').select('storage_path').eq('id', parsed.data.id).maybeSingle();
-  if (data?.storage_path) await supabase.storage.from('athlete-documents').remove([data.storage_path]);
-  await supabase.from('athlete_documents').update({ storage_path: null, mime_type: null, size_bytes: null, content_sha256: null, uploaded_at: null, uploaded_by: null }).eq('id', parsed.data.id);
+  if (data?.storage_path) bestEffort(await supabase.storage.from('athlete-documents').remove([data.storage_path]), 'storage.athlete-documents.remove');
+  must(await supabase.from('athlete_documents').update({ storage_path: null, mime_type: null, size_bytes: null, content_sha256: null, uploaded_at: null, uploaded_by: null }).eq('id', parsed.data.id), 'athlete_documents.update');
   revalidatePath('/app/documents');
 }
 
@@ -122,7 +123,7 @@ export async function revokeRosterInvite(formData: FormData) {
   const id = z.string().uuid().safeParse(formData.get('id'));
   if (!id.success) return;
   const supabase = await createClient();
-  await supabase.from('club_roster_invites').update({ status: 'revoked' }).eq('id', id.data);
+  must(await supabase.from('club_roster_invites').update({ status: 'revoked' }).eq('id', id.data), 'club_roster_invites.update');
   revalidatePath('/app/club');
 }
 
@@ -142,7 +143,7 @@ export async function verifyStatisticAsClub(formData: FormData) {
   const parsed = z.object({ stat_id: z.string().uuid(), organization_id: z.string().uuid() }).safeParse({ stat_id: formData.get('stat_id'), organization_id: formData.get('organization_id') });
   if (!parsed.success) return;
   const supabase = await createClient();
-  await supabase.rpc('club_verify_statistic', { p_stat: parsed.data.stat_id, p_org: parsed.data.organization_id });
+  must(await supabase.rpc('club_verify_statistic', { p_stat: parsed.data.stat_id, p_org: parsed.data.organization_id }), 'rpc.club_verify_statistic');
   revalidatePath('/app/club');
 }
 
@@ -151,7 +152,7 @@ export async function leaveRoster(formData: FormData) {
   const parsed = z.object({ organization_id: z.string().uuid(), season: z.string() }).safeParse({ organization_id: formData.get('organization_id'), season: formData.get('season') });
   if (!parsed.success) return;
   const supabase = await createClient();
-  await supabase.from('club_roster').update({ status: 'left' }).eq('athlete_id', session.userId).eq('organization_id', parsed.data.organization_id).eq('season', parsed.data.season);
+  must(await supabase.from('club_roster').update({ status: 'left' }).eq('athlete_id', session.userId).eq('organization_id', parsed.data.organization_id).eq('season', parsed.data.season), 'club_roster.update');
   revalidatePath('/app/athlete');
 }
 
@@ -164,7 +165,7 @@ export async function deleteMyAccount(_prev: FormState, formData: FormData): Pro
   // Primero los archivos privados (la BD no puede borrar objetos de Storage).
   const { data: docs } = await supabase.from('athlete_documents').select('storage_path').eq('athlete_id', session.userId).not('storage_path', 'is', null);
   const paths = (docs ?? []).map((d) => d.storage_path as string);
-  if (paths.length) await supabase.storage.from('athlete-documents').remove(paths);
+  if (paths.length) bestEffort(await supabase.storage.from('athlete-documents').remove(paths), 'storage.athlete-documents.remove');
   const { error } = await supabase.rpc('delete_my_account', { p_confirm: 'ELIMINAR' });
   if (error) {
     if (error.message.includes('transfer_organizations_first')) return { error: 'Antes de borrar tu cuenta, transfiere o cierra las organizaciones que creaste.' };
@@ -218,7 +219,7 @@ export async function runRetentionNow() {
   const session = await requireSession(['admin']);
   if (!session.roles.includes('admin')) return;
   const supabase = await createClient();
-  await supabase.rpc('run_retention');
+  must(await supabase.rpc('run_retention'), 'rpc.run_retention');
   revalidatePath('/app/admin/panel');
 }
 
@@ -256,6 +257,6 @@ export async function deleteExternalOffer(formData: FormData) {
   const parsed = z.object({ id: z.string().uuid(), athlete_id: z.string().uuid() }).safeParse({ id: formData.get('id'), athlete_id: formData.get('athlete_id') });
   if (!parsed.success || !(await canManage(parsed.data.athlete_id))) return;
   const supabase = await createClient();
-  await supabase.from('athlete_offers').delete().eq('id', parsed.data.id);
+  must(await supabase.from('athlete_offers').delete().eq('id', parsed.data.id), 'athlete_offers.delete');
   revalidatePath('/app/offers');
 }

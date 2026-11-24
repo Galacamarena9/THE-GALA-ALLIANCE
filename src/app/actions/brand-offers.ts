@@ -1,5 +1,6 @@
 'use server';
 
+import { must } from '@/lib/supabase/must';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { logEvent } from '@/lib/events';
@@ -81,7 +82,7 @@ export async function respondBrandOffer(formData: FormData) {
   const p = idOnly.extend({ accept: z.enum(['yes', 'no']), reason: z.string().trim().max(500).optional() }).safeParse(Object.fromEntries(formData));
   if (!p.success) return;
   const supabase = await createClient();
-  await supabase.rpc('campaign_offer_respond', { p_offer: p.data.id, p_accept: p.data.accept === 'yes', p_reason: p.data.reason || null });
+  must(await supabase.rpc('campaign_offer_respond', { p_offer: p.data.id, p_accept: p.data.accept === 'yes', p_reason: p.data.reason || null }), 'rpc.campaign_offer_respond');
   if (p.data.accept === 'yes') await logEvent('brand_offer_accepted', {}, `offer:${p.data.id}`);
   revalidatePath('/app/collaborations');
 }
@@ -91,7 +92,7 @@ export async function withdrawBrandOffer(formData: FormData) {
   const p = idOnly.extend({ campaign_id: z.string().uuid() }).safeParse(Object.fromEntries(formData));
   if (!p.success) return;
   const supabase = await createClient();
-  await supabase.rpc('campaign_offer_withdraw', { p_offer: p.data.id });
+  must(await supabase.rpc('campaign_offer_withdraw', { p_offer: p.data.id }), 'rpc.campaign_offer_withdraw');
   revalidatePath(`/app/campaigns/${p.data.campaign_id}`);
 }
 
@@ -125,7 +126,7 @@ export async function updateBrandPayment(formData: FormData) {
   const p = idOnly.extend({ status: z.enum(['paid_declared', 'confirmed', 'disputed']), campaign_id: z.string().uuid().optional() }).safeParse(Object.fromEntries(formData));
   if (!p.success) return;
   const supabase = await createClient();
-  await supabase.rpc('campaign_payment_update', { p_offer: p.data.id, p_status: p.data.status });
+  must(await supabase.rpc('campaign_payment_update', { p_offer: p.data.id, p_status: p.data.status }), 'rpc.campaign_payment_update');
   revalidatePath('/app/collaborations');
   if (p.data.campaign_id) revalidatePath(`/app/campaigns/${p.data.campaign_id}`);
 }

@@ -1,5 +1,6 @@
 'use server';
 
+import { must } from '@/lib/supabase/must';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
@@ -51,7 +52,7 @@ export async function saveAiPreferences(formData: FormData) {
     save_history: z.enum(['on', 'off']).optional(),
   }).parse(Object.fromEntries(formData));
   const supabase = await createClient();
-  await supabase.from('ai_preferences').upsert({ user_id: session.userId, language: p.language, answer_style: p.answer_style, save_history: p.save_history === 'on' });
+  must(await supabase.from('ai_preferences').upsert({ user_id: session.userId, language: p.language, answer_style: p.answer_style, save_history: p.save_history === 'on' }), 'ai_preferences.upsert');
   revalidatePath('/app/ia');
 }
 
@@ -60,7 +61,7 @@ export async function deleteAiConversation(formData: FormData) {
   await requireSession();
   const id = z.string().uuid().parse(formData.get('id'));
   const supabase = await createClient();
-  await supabase.from('ai_conversations').delete().eq('id', id);
+  must(await supabase.from('ai_conversations').delete().eq('id', id), 'ai_conversations.delete');
   revalidatePath('/app/ia');
   redirect('/app/ia');
 }
@@ -69,7 +70,7 @@ export async function deleteAiConversation(formData: FormData) {
 export async function deleteAllAiConversations() {
   const session = await requireSession();
   const supabase = await createClient();
-  await supabase.from('ai_conversations').delete().eq('user_id', session.userId);
+  must(await supabase.from('ai_conversations').delete().eq('user_id', session.userId), 'ai_conversations.delete');
   revalidatePath('/app/ia');
   redirect('/app/ia');
 }

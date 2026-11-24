@@ -1,5 +1,6 @@
 'use server';
 
+import { must } from '@/lib/supabase/must';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
@@ -28,7 +29,7 @@ export async function updateSupportCase(formData: FormData) {
     .safeParse(Object.fromEntries(formData));
   if (!p.success) return;
   const supabase = await createClient();
-  await supabase.rpc('support_case_update', { p_case: p.data.id, p_status: p.data.status, p_note: p.data.note || null, p_public: p.data.public === 'on' });
+  must(await supabase.rpc('support_case_update', { p_case: p.data.id, p_status: p.data.status, p_note: p.data.note || null, p_public: p.data.public === 'on' }), 'rpc.support_case_update');
   revalidatePath('/app/admin/ops');
 }
 
@@ -46,7 +47,7 @@ export async function resolveConflict(formData: FormData) {
   const p = z.object({ id: z.string().uuid(), resolution: z.string().trim().min(10).max(1000), activate: z.string().uuid().optional().or(z.literal('')) }).safeParse(Object.fromEntries(formData));
   if (!p.success) return;
   const supabase = await createClient();
-  await supabase.rpc('representation_conflict_resolve', { p_conflict: p.data.id, p_resolution: p.data.resolution, p_activate: p.data.activate || null });
+  must(await supabase.rpc('representation_conflict_resolve', { p_conflict: p.data.id, p_resolution: p.data.resolution, p_activate: p.data.activate || null }), 'rpc.representation_conflict_resolve');
   revalidatePath('/app/admin/ops');
 }
 

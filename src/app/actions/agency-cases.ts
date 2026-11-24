@@ -1,5 +1,6 @@
 'use server';
 
+import { must } from '@/lib/supabase/must';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
@@ -79,7 +80,7 @@ export async function moveCase(formData: FormData) {
   const parsed = z.object({ id: z.string().uuid(), stage: z.enum(stageIds) }).safeParse(Object.fromEntries(formData));
   if (!parsed.success) return;
   const supabase = await createClient();
-  await supabase.from('recruiting_cases').update({ stage: parsed.data.stage }).eq('id', parsed.data.id);
+  must(await supabase.from('recruiting_cases').update({ stage: parsed.data.stage }).eq('id', parsed.data.id), 'recruiting_cases.update');
   revalidatePath('/app/pipeline');
   revalidatePath(`/app/pipeline/${parsed.data.id}`);
 }
@@ -89,7 +90,7 @@ export async function toggleShare(formData: FormData) {
   const parsed = z.object({ id: z.string().uuid(), shared: z.enum(['true', 'false']) }).safeParse(Object.fromEntries(formData));
   if (!parsed.success) return;
   const supabase = await createClient();
-  await supabase.from('recruiting_cases').update({ shared_with_athlete: parsed.data.shared === 'true' }).eq('id', parsed.data.id);
+  must(await supabase.from('recruiting_cases').update({ shared_with_athlete: parsed.data.shared === 'true' }).eq('id', parsed.data.id), 'recruiting_cases.update');
   revalidatePath(`/app/pipeline/${parsed.data.id}`);
 }
 
@@ -139,7 +140,7 @@ export async function toggleTask(formData: FormData) {
     .safeParse(Object.fromEntries(formData));
   if (!parsed.success) return;
   const supabase = await createClient();
-  await supabase.from('recruiting_case_tasks').update({ done: parsed.data.done === 'true' }).eq('id', parsed.data.id);
+  must(await supabase.from('recruiting_case_tasks').update({ done: parsed.data.done === 'true' }).eq('id', parsed.data.id), 'recruiting_case_tasks.update');
   revalidatePath(`/app/pipeline/${parsed.data.case_id}`);
 }
 
@@ -170,7 +171,7 @@ export async function deleteContact(formData: FormData) {
   const parsed = z.object({ id: z.string().uuid() }).safeParse(Object.fromEntries(formData));
   if (!parsed.success) return;
   const supabase = await createClient();
-  await supabase.from('agency_contacts').delete().eq('id', parsed.data.id);
+  must(await supabase.from('agency_contacts').delete().eq('id', parsed.data.id), 'agency_contacts.delete');
   revalidatePath('/app/contacts');
 }
 
@@ -183,8 +184,8 @@ export async function setAgencyRole(formData: FormData) {
     .safeParse(Object.fromEntries(formData));
   if (!parsed.success) return;
   const supabase = await createClient();
-  await supabase.from('organization_members').update({ agency_role: parsed.data.agency_role })
-    .eq('organization_id', parsed.data.organization_id).eq('user_id', parsed.data.user_id);
+  must(await supabase.from('organization_members').update({ agency_role: parsed.data.agency_role })
+    .eq('organization_id', parsed.data.organization_id).eq('user_id', parsed.data.user_id), 'organization_members.update');
   revalidatePath('/app/pipeline/team');
 }
 

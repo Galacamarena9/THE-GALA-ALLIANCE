@@ -1,5 +1,6 @@
 'use server';
 
+import { must } from '@/lib/supabase/must';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
@@ -17,10 +18,10 @@ export async function reviewOrganization(formData: FormData) {
   const parsed = z.object({ id: z.string().uuid(), status: z.enum(['verified', 'rejected']), institution_id: z.string().uuid().optional().or(z.literal('')) }).safeParse(Object.fromEntries(formData));
   if (!parsed.success) return;
   const supabase = await createClient();
-  await supabase
+  must(await supabase
     .from('organizations')
     .update({ verification_status: parsed.data.status, ...(parsed.data.institution_id ? { institution_id: parsed.data.institution_id } : {}) })
-    .eq('id', parsed.data.id);
+    .eq('id', parsed.data.id), 'organizations.update');
   revalidatePath('/app/admin');
 }
 
@@ -29,7 +30,7 @@ export async function reviewOpportunity(formData: FormData) {
   const parsed = z.object({ id: z.string().uuid(), status: z.enum(['published', 'rejected']), review_note: z.string().max(1000).optional() }).safeParse(Object.fromEntries(formData));
   if (!parsed.success) return;
   const supabase = await createClient();
-  await supabase.from('opportunities').update({ status: parsed.data.status, review_note: parsed.data.review_note || null }).eq('id', parsed.data.id);
+  must(await supabase.from('opportunities').update({ status: parsed.data.status, review_note: parsed.data.review_note || null }).eq('id', parsed.data.id), 'opportunities.update');
   revalidatePath('/app/admin');
 }
 
@@ -38,7 +39,7 @@ export async function reviewCampaign(formData: FormData) {
   const parsed = z.object({ id: z.string().uuid(), status: z.enum(['published', 'rejected']), review_note: z.string().max(1000).optional() }).safeParse(Object.fromEntries(formData));
   if (!parsed.success) return;
   const supabase = await createClient();
-  await supabase.from('brand_campaigns').update({ status: parsed.data.status, review_note: parsed.data.review_note || null }).eq('id', parsed.data.id);
+  must(await supabase.from('brand_campaigns').update({ status: parsed.data.status, review_note: parsed.data.review_note || null }).eq('id', parsed.data.id), 'brand_campaigns.update');
   revalidatePath('/app/admin');
 }
 
@@ -47,7 +48,7 @@ export async function decideReport(formData: FormData) {
   const parsed = z.object({ id: z.string().uuid(), status: z.enum(['actioned', 'dismissed', 'reviewing']), decision_reason: z.string().max(2000).optional() }).safeParse(Object.fromEntries(formData));
   if (!parsed.success) return;
   const supabase = await createClient();
-  await supabase.from('content_reports').update({ status: parsed.data.status, decision_reason: parsed.data.decision_reason || null }).eq('id', parsed.data.id);
+  must(await supabase.from('content_reports').update({ status: parsed.data.status, decision_reason: parsed.data.decision_reason || null }).eq('id', parsed.data.id), 'content_reports.update');
   revalidatePath('/app/admin');
 }
 
@@ -56,7 +57,7 @@ export async function verifyAthleteLink(formData: FormData) {
   const session = await requireSession();
   const id = z.string().uuid().parse(formData.get('id'));
   const supabase = await createClient();
-  await supabase.from('athlete_links').update({ verified: true, verified_by: session.userId, verified_at: new Date().toISOString() }).eq('id', id);
+  must(await supabase.from('athlete_links').update({ verified: true, verified_by: session.userId, verified_at: new Date().toISOString() }).eq('id', id), 'athlete_links.update');
   revalidatePath('/app/admin');
 }
 
@@ -65,10 +66,10 @@ export async function resolveDataRequest(formData: FormData) {
   const parsed = z.object({ id: z.string().uuid(), status: z.enum(['in_progress', 'completed', 'rejected']) }).safeParse(Object.fromEntries(formData));
   if (!parsed.success) return;
   const supabase = await createClient();
-  await supabase
+  must(await supabase
     .from('data_subject_requests')
     .update({ status: parsed.data.status, resolved_at: parsed.data.status === 'in_progress' ? null : new Date().toISOString() })
-    .eq('id', parsed.data.id);
+    .eq('id', parsed.data.id), 'opportunities.update');
   revalidatePath('/app/admin');
 }
 
@@ -286,6 +287,6 @@ export async function importScorecardBatch(startPage: number): Promise<Scorecard
 export async function expireOpportunitiesNow() {
   await requireAdmin();
   const supabase = await createClient();
-  await supabase.rpc('expire_stale_opportunities');
+  must(await supabase.rpc('expire_stale_opportunities'), 'rpc.expire_stale_opportunities');
   revalidatePath('/app/admin');
 }

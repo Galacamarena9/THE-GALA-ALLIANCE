@@ -1,5 +1,6 @@
 'use server';
 
+import { must, bestEffort } from '@/lib/supabase/must';
 import { logEvent } from '@/lib/events';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
@@ -132,10 +133,10 @@ export async function completeOnboarding(_prev: FormState, formData: FormData): 
   }
 
   // 3. Consentimientos con versión (prueba de aceptación), solo la primera vez.
-  if (!addingRole) await supabase.from('consents').insert([
+  if (!addingRole) must(await supabase.from('consents').insert([
     { user_id: session.userId, purpose: 'terms', document_version: LEGAL_VERSION, granted: true },
     { user_id: session.userId, purpose: 'privacy_notice', document_version: LEGAL_VERSION, granted: true },
-  ]);
+  ]), 'consents.insert');
 
   // 4. Perfil completado.
   const { error: profileError } = await supabase
@@ -150,7 +151,7 @@ export async function completeOnboarding(_prev: FormState, formData: FormData): 
   // 20 · Atribución de la invitación (si llegó con ?ref=): una vez, nunca a uno mismo; lo valida la base de datos.
   const ref = (await cookies()).get('tga_ref')?.value;
   if (!addingRole && ref && /^[a-z0-9]{8}$/.test(ref)) {
-    try { await supabase.rpc('referral_claim', { p_code: ref }); } catch { /* nunca bloquea el alta */ }
+    bestEffort(await supabase.rpc('referral_claim', { p_code: ref }), 'rpc.referral_claim'); // nunca bloquea el alta
   }
   const after = afterSignupPath(typeof raw.next === 'string' ? raw.next : null);
   redirect(pendingInvite ? `/invite/${pendingInvite}` : teamInvite ? `/join/${teamInvite}` : after ?? roleHome(data.role));

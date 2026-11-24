@@ -1,5 +1,6 @@
 'use server';
 
+import { must } from '@/lib/supabase/must';
 import { revalidatePath } from 'next/cache';
 import { planLimitMessage } from '@/lib/domain/plan-limits';
 import { redirect } from 'next/navigation';
@@ -59,7 +60,7 @@ export async function revokeInvite(formData: FormData) {
   await requireSession(['agent']);
   const id = z.string().uuid().safeParse(formData.get('id'));
   if (!id.success) return;
-  await (await createClient()).rpc('agency_invite_revoke', { p_id: id.data });
+  must(await (await createClient()).rpc('agency_invite_revoke', { p_id: id.data }), 'rpc.agency_invite_revoke');
   revalidatePath('/app/portfolio');
 }
 

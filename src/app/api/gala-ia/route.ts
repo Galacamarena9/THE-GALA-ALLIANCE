@@ -1,3 +1,4 @@
+import { bestEffort } from '@/lib/supabase/must';
 import Anthropic from '@anthropic-ai/sdk';
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
@@ -104,7 +105,7 @@ export async function POST(request: NextRequest) {
       const { data: created } = await supabase.from('ai_conversations').insert({ user_id: session.userId, title: question.replace(/\s+/g, ' ').trim().slice(0, 120) || 'Conversación' }).select('id').single();
       conversationId = created?.id ?? null;
     }
-    if (conversationId) await supabase.from('ai_messages').insert({ conversation_id: conversationId, user_id: session.userId, role: 'user', content: question.slice(0, 8000) });
+    if (conversationId) bestEffort(await supabase.from('ai_messages').insert({ conversation_id: conversationId, user_id: session.userId, role: 'user', content: question.slice(0, 8000) }), 'ai_messages.insert');
   }
 
   const encoder = new TextEncoder();
@@ -120,14 +121,14 @@ export async function POST(request: NextRequest) {
           if (ev.type === 'text') answer += ev.delta;
           send(ev);
           if (ev.type === 'done' && conversationId && answer.trim()) {
-            await supabase.from('ai_messages').insert({ conversation_id: conversationId, user_id: session.userId, role: 'assistant', content: answer.slice(0, 8000) });
+            bestEffort(await supabase.from('ai_messages').insert({ conversation_id: conversationId, user_id: session.userId, role: 'assistant', content: answer.slice(0, 8000) }), 'ai_messages.insert');
           }
           if (ev.type === 'done' && meta) {
-            await supabase.rpc('log_ai_event', {
+            bestEffort(await supabase.rpc('log_ai_event', {
               p_id: meta.requestId, p_intent: meta.intent, p_mode: meta.mode, p_outcome: ev.usage.outcome,
               p_provider: meta.mode === 'model' ? provider.name : null, p_model: meta.mode === 'model' ? meta.model ?? provider.model : null,
               p_input: ev.usage.input, p_output: ev.usage.output, p_tools: ev.usage.tools, p_latency: ev.usage.latencyMs, p_page: parsed.data.page ?? null,
-            });
+            }), 'rpc.log_ai_event');
           }
         }
       } catch {

@@ -1,5 +1,6 @@
 'use server';
 
+import { must, bestEffort } from '@/lib/supabase/must';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { requireSession } from '@/lib/session';
@@ -16,7 +17,7 @@ const target = z.object({
 
 async function signal(athleteId: string, kind: string, id: string, s: string, score: number | null) {
   const supabase = await createClient();
-  await supabase.from('match_signals').insert({ athlete_id: athleteId, target_kind: kind, target_id: id, signal: s, match_score: score, engine_version: GALA_MATCH_VERSION });
+  bestEffort(await supabase.from('match_signals').insert({ athlete_id: athleteId, target_kind: kind, target_id: id, signal: s, match_score: score, engine_version: GALA_MATCH_VERSION }), 'match_signals.insert');
 }
 
 /** Guardar / quitar (base del Opportunity Pipeline). */
@@ -26,7 +27,7 @@ export async function toggleSaved(formData: FormData) {
   const supabase = await createClient();
   const { data: existing } = await supabase.from('saved_items').select('id').eq('athlete_id', session.userId).eq('target_kind', t.kind).eq('target_id', t.id).maybeSingle();
   if (existing) {
-    await supabase.from('saved_items').delete().eq('id', existing.id);
+    must(await supabase.from('saved_items').delete().eq('id', existing.id), 'saved_items.delete');
     await signal(session.userId, t.kind, t.id, 'unsaved', t.score);
   } else {
     // El encaje al guardar lo calcula el servidor (no se fía del valor que envía el navegador).
@@ -53,7 +54,7 @@ export async function setShortlistTier(formData: FormData) {
   const session = await requireSession(['athlete']);
   const p = tierSchema.parse(Object.fromEntries(formData));
   const supabase = await createClient();
-  await supabase.from('saved_items').update({ shortlist_tier: p.tier || null }).eq('id', p.id).eq('athlete_id', session.userId);
+  must(await supabase.from('saved_items').update({ shortlist_tier: p.tier || null }).eq('id', p.id).eq('athlete_id', session.userId), 'saved_items.update');
   revalidatePath('/app', 'layout');
 }
 

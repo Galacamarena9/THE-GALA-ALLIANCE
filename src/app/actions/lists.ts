@@ -1,5 +1,6 @@
 'use server';
 
+import { must } from '@/lib/supabase/must';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
@@ -16,7 +17,7 @@ export async function saveAthlete(formData: FormData) {
   if (!parsed.success) return;
   const supabase = await createClient();
   // La RLS solo permite guardar a quien puedes ver (p. ej. una marca nunca guarda a un menor).
-  await supabase.from('saved_athletes').upsert({ owner_id: session.userId, ...parsed.data }, { onConflict: 'owner_id,athlete_id,list_name', ignoreDuplicates: true });
+  must(await supabase.from('saved_athletes').upsert({ owner_id: session.userId, ...parsed.data }, { onConflict: 'owner_id,athlete_id,list_name', ignoreDuplicates: true }), 'saved_athletes.upsert');
   revalidatePath('/app/discover');
   revalidatePath('/app/lists');
 }
@@ -26,7 +27,7 @@ export async function removeSavedAthlete(formData: FormData) {
   const parsed = saveSchema.safeParse({ athlete_id: formData.get('athlete_id'), list_name: formData.get('list_name') || 'Shortlist' });
   if (!parsed.success) return;
   const supabase = await createClient();
-  await supabase.from('saved_athletes').delete().eq('owner_id', session.userId).eq('athlete_id', parsed.data.athlete_id).eq('list_name', parsed.data.list_name);
+  must(await supabase.from('saved_athletes').delete().eq('owner_id', session.userId).eq('athlete_id', parsed.data.athlete_id).eq('list_name', parsed.data.list_name), 'saved_athletes.delete');
   revalidatePath('/app/lists');
   revalidatePath('/app/discover');
 }
@@ -38,12 +39,12 @@ export async function updateSavedNote(formData: FormData) {
     .safeParse(Object.fromEntries(formData));
   if (!parsed.success) return;
   const supabase = await createClient();
-  await supabase
+  must(await supabase
     .from('saved_athletes')
     .update({ private_note: parsed.data.private_note || null })
     .eq('owner_id', session.userId)
     .eq('athlete_id', parsed.data.athlete_id)
-    .eq('list_name', parsed.data.list_name);
+    .eq('list_name', parsed.data.list_name), 'saved_athletes.upsert');
   revalidatePath('/app/lists');
 }
 
@@ -55,8 +56,8 @@ export async function copyToList(formData: FormData) {
     .safeParse({ athlete_id: formData.get('athlete_id'), target: formData.get('target') });
   if (!parsed.success) return;
   const supabase = await createClient();
-  await supabase
+  must(await supabase
     .from('saved_athletes')
-    .upsert({ owner_id: session.userId, athlete_id: parsed.data.athlete_id, list_name: parsed.data.target }, { onConflict: 'owner_id,athlete_id,list_name', ignoreDuplicates: true });
+    .upsert({ owner_id: session.userId, athlete_id: parsed.data.athlete_id, list_name: parsed.data.target }, { onConflict: 'owner_id,athlete_id,list_name', ignoreDuplicates: true }), 'saved_athletes.upsert');
   revalidatePath('/app/lists');
 }

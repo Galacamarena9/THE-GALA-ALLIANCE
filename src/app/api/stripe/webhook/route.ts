@@ -1,3 +1,4 @@
+import { must, bestEffort } from '@/lib/supabase/must';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import { planByCode } from '@/content/plans';
@@ -74,8 +75,8 @@ export async function POST(req: Request) {
     const rows = users.map((u) => ({ user_id: u, plan_code: plan.code, source: 'stripe', reference: u === userId ? s.id : `${s.id}:${u}` }));
     const { error } = await db.from('entitlements').upsert(rows, { onConflict: 'source,reference', ignoreDuplicates: true });
     if (error) return new Response('db error', { status: 500 }); // Stripe reintentará.
-    await db.from('audit_logs').insert({ actor_id: null, action: 'entitlement.granted', entity: 'entitlements', details: { plan: plan.code, checkout: s.id, users: users.length } });
-    await db.from('notifications').insert(users.map((u) => ({ user_id: u, kind: 'system', title: `Plan ${plan.name} activado`, body: 'Ya tienes acceso a todo lo incluido. Empieza en Mi plan.', link: '/app/plan' })));
+    bestEffort(await db.from('audit_logs').insert({ actor_id: null, action: 'entitlement.granted', entity: 'entitlements', details: { plan: plan.code, checkout: s.id, users: users.length } }), 'audit_logs.insert');
+    bestEffort(await db.from('notifications').insert(users.map((u) => ({ user_id: u, kind: 'system', title: `Plan ${plan.name} activado`, body: 'Ya tienes acceso a todo lo incluido. Empieza en Mi plan.', link: '/app/plan' }))), 'notifications.insert');
     return Response.json({ granted: users.length });
   }
 
@@ -91,8 +92,8 @@ export async function POST(req: Request) {
     const list = (await res.json()) as { data?: { id: string }[] };
     const sessionId = list.data?.[0]?.id;
     if (!sessionId) return Response.json({ ignored: true });
-    await db.from('entitlements').update({ revoked_at: new Date().toISOString() }).eq('source', 'stripe').or(`reference.eq.${sessionId},reference.like.${sessionId}:%`);
-    await db.from('audit_logs').insert({ actor_id: null, action: 'entitlement.revoked', entity: 'entitlements', details: { checkout: sessionId, reason: 'refund' } });
+    must(await db.from('entitlements').update({ revoked_at: new Date().toISOString() }).eq('source', 'stripe').or(`reference.eq.${sessionId},reference.like.${sessionId}:%`), 'entitlements.update');
+    bestEffort(await db.from('audit_logs').insert({ actor_id: null, action: 'entitlement.revoked', entity: 'entitlements', details: { checkout: sessionId, reason: 'refund' } }), 'audit_logs.insert');
     return Response.json({ revoked: true });
   }
 
