@@ -49,6 +49,14 @@ Ninguna medida en este ciclo (sin acceso a datos de producción/staging).
 
 ---
 
+## [Ciclo 2] 2026-11-24 · Escribir a coaches y saber quién responde
+Evidencia de cliente: ninguna entrevista real todavía (hipótesis del `PROBLEM_LEDGER.md`, problema nº 2).
+Problema atacado y predicción: el agente no tiene dónde escribir al coach ni saber si abrió el perfil. Métrica: tasa de respuesta por proceso contactado y procesos `contacted → response_received` por agencia/semana. Primero línea base; sin objetivo inventado.
+Cambios: rama `feat/coach-outreach`; migración `20261216000100_coach_outreach.sql` (tabla `case_outreach` sin escrituras directas; RPC `case_outreach_create/mark/list`; `guard_recruiting_link` admite la RPC; eventos `coach_outreach_sent`, `coach_reply_logged`; ROLLBACK en cabecera). Plantilla en inglés (`coach-outreach.ts`), panel «Escribir al coach» en cada proceso, aviso NCAA orientativo, «Necesita atención» a los 10 días sin respuesta.
+Pruebas: unit 264/264; RLS 436/436 (C2-1…C2-4: otra agencia, atleta, escritura directa, sin permiso, sin aprobar, representación terminada); e2e completo + `coach-outreach.spec.ts` con axe; build OK.
+Seguridad y menores: el email guarda el marcador, no el enlace; menores con nombre e inicial; tope de 100 emails/día por agencia; baja en cada email.
+Riesgos abiertos: envío por Resend con dominio propio (D-06); DPA de la agencia para contactos de coaches; revisión legal NCAA.
+
 ## Plantilla para próximos ciclos
 
 ```

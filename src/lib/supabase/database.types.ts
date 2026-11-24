@@ -2482,6 +2482,60 @@ export type Database = {
           },
         ]
       }
+      case_outreach: {
+        Row: {
+          agency_id: string
+          body: string
+          case_id: string
+          contact_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          link_id: string | null
+          note: string | null
+          replied_at: string | null
+          sent_at: string | null
+          status: string
+          subject: string
+          to_email: string
+          updated_at: string
+        }
+        Insert: {
+          agency_id: string
+          body: string
+          case_id: string
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          link_id?: string | null
+          note?: string | null
+          replied_at?: string | null
+          sent_at?: string | null
+          status?: string
+          subject: string
+          to_email: string
+          updated_at?: string
+        }
+        Update: {
+          agency_id?: string
+          body?: string
+          case_id?: string
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          link_id?: string | null
+          note?: string | null
+          replied_at?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string
+          to_email?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       club_recommendations: {
         Row: {
           athlete_id: string
@@ -10125,6 +10179,30 @@ export type Database = {
       case_access_by_id: {
         Args: { p_case: string; p_write: boolean }
         Returns: boolean
+      }
+      case_outreach_create: {
+        Args: { p_body: string; p_case: string; p_contact: string | null; p_email: string; p_subject: string }
+        Returns: { id: string; token: string }[]
+      }
+      case_outreach_list: {
+        Args: { p_case: string }
+        Returns: {
+          created_at: string
+          id: string
+          last_viewed_at: string | null
+          link_active: boolean
+          note: string | null
+          replied_at: string | null
+          sent_at: string | null
+          status: string
+          subject: string
+          to_email: string
+          views: number
+        }[]
+      }
+      case_outreach_mark: {
+        Args: { p_id: string; p_note?: string; p_status: string }
+        Returns: string
       }
       club_roster_summary: {
         Args: { p_org: string }

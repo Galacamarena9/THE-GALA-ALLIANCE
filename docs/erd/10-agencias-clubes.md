@@ -1,8 +1,8 @@
 <!-- Generado por scripts/erd/generate.mjs a partir de las migraciones. No editar a mano: `npm run erd`. -->
 # 10 · Agencias y clubes
 
-Tablas: **19** · RLS activada en 19/19.
-Se relaciona con: `athlete_documents` (03), `athlete_profiles` (03), `auth_users`, `institutions` (05), `opportunities` (07), `organizations` (05), `profiles` (01), `sports` (04), `verification_requests` (06).
+Tablas: **20** · RLS activada en 20/20.
+Se relaciona con: `athlete_documents` (03), `athlete_profiles` (03), `auth_users`, `institutions` (05), `opportunities` (07), `organizations` (05), `profiles` (01), `recruiting_links` (03), `sports` (04), `verification_requests` (06).
 
 ## AS-IS · Modelo actual
 
@@ -24,6 +24,11 @@ erDiagram
   PROFILES |o--o{ AGENT_REPRESENTATIONS : "guardian_approved_by"
   OPPORTUNITIES |o--o{ AGENT_REPRESENTATIONS : "opportunity_id"
   PROFILES |o--o{ AGENT_REPRESENTATIONS : "revoked_by"
+  ORGANIZATIONS ||--o{ CASE_OUTREACH : "agency_id"
+  RECRUITING_CASES ||--o{ CASE_OUTREACH : "case_id"
+  AGENCY_CONTACTS |o--o{ CASE_OUTREACH : "contact_id"
+  PROFILES |o--o{ CASE_OUTREACH : "created_by"
+  RECRUITING_LINKS |o--o{ CASE_OUTREACH : "link_id"
   ATHLETE_PROFILES ||--o{ CLUB_RECOMMENDATIONS : "athlete_id"
   PROFILES |o--o{ CLUB_RECOMMENDATIONS : "author_id"
   ORGANIZATIONS ||--o{ CLUB_RECOMMENDATIONS : "organization_id"
@@ -135,6 +140,23 @@ erDiagram
     uuid revoked_by FK
     timestamptz suspended_at
     text status_reason
+    timestamptz updated_at
+  }
+  CASE_OUTREACH {
+    uuid id PK
+    uuid case_id FK
+    uuid agency_id FK
+    uuid contact_id FK
+    text to_email
+    text subject
+    text body
+    uuid link_id FK
+    text status
+    timestamptz sent_at
+    timestamptz replied_at
+    text note
+    uuid created_by FK
+    timestamptz created_at
     timestamptz updated_at
   }
   CLUB_RECOMMENDATIONS {
@@ -317,6 +339,7 @@ erDiagram
 | `agency_athlete_notes` | Interna | — | organización (agency_id) → se borra<br>atleta (athlete_id) → se borra<br>persona (author_id) → se borra | Mientras exista la organización | No: Nota interna de la agencia sobre el atleta | KEEP |
 | `agency_contacts` | Interna | — | organización (agency_id) → se borra<br>persona (created_by) → se anonimiza | Mientras exista la organización | — | KEEP |
 | `agent_representations` | Sensible | Sí | organización (agency_id) → se borra<br>persona (agent_id) → se borra<br>atleta (athlete_id) → se borra<br>persona (guardian_approved_by) → se anonimiza<br>persona (revoked_by) → se anonimiza | Mientras exista la cuenta | Sí | KEEP |
+| `case_outreach` | Interna | Sí | organización (agency_id) → se borra<br>persona (created_by) → se anonimiza | Mientras exista la organización | No: Email de la agencia a un coach desde un proceso (texto con marcador, sin el enlace) | KEEP |
 | `club_recommendations` | Personal | Sí | atleta (athlete_id) → se borra<br>persona (author_id) → se anonimiza<br>organización (organization_id) → se borra | Mientras exista la cuenta | Sí | KEEP |
 | `club_roster` | Personal | Sí | atleta (athlete_id) → se borra<br>organización (organization_id) → se borra | Mientras exista la cuenta | Sí | KEEP |
 | `club_roster_invites` | Interna | — | persona (created_by) → se borra<br>organización (organization_id) → se borra | 90 días tras caducar | — | MERGE → organization_invitations (tipo roster) |

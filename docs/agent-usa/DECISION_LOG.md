@@ -25,6 +25,7 @@
 | D-15 | 2026-11 | NO-GO a programar reglas NCAA sin fuente oficial fechada; GO a infraestructura sin reglas | No afirmar elegibilidad | `docs/NCAA-1-AUDIT.md` §H | Vigente | — |
 | D-16 | 2026-11 | Demo coherente con una sola historia; «Listo para EE. UU.» en 6 hitos | Confianza en la venta; claridad para el agente | PR #106, PR #107 | Vigente | Sí |
 | D-17 | 2026-11 | Checkout de suscripción con Stripe Tax y recogida de NIF/VAT | Facturación B2B correcta | PR #105, `src/app/actions/billing.ts` L68-80 | Vigente (sin claves live) | Sí |
+| D-18 | 2026-11-24 | Ciclo 2: el email al coach sale del buzón de la agencia (mailto/copiar), no de la plataforma; la agencia registra enviado/respuesta. La agencia puede crear el enlace al Passport solo con representación activa y permisos `organization.contact` + `passport.view` (para menores, los aprobó la familia); el atleta lo ve y lo revoca | Sin dominio ni Resend todavía; reputación de envío y DPA de la agencia; no inventar entregas | `20261216000100_coach_outreach.sql`, `src/lib/domain/coach-outreach.ts` | Vigente | Sí (envío por Resend cuando haya dominio) |
 
 ## Propuestas del agente (pendientes de aprobación)
 

@@ -130,3 +130,17 @@ test('contrato: ningún campo privado (notas, scouting, cumplimiento, contacto) 
   assert.doesNotMatch(loader, /\bbody\b/);
   assert.doesNotMatch(loader, /source_text|agency_athlete_notes/);
 });
+
+test('ciclo 2: email al coach sin respuesta a 10 días pide seguimiento; antes, no', () => {
+  const now = new Date('2026-12-20T10:00:00Z');
+  const input = {
+    athletes: [{ id: 'a1', name: 'Lucía', sportId: 'basketball', graduationYear: 2027 }],
+    offers: [], tasks: [], followUps: [], repAlerts: [], opportunities: [],
+    cases: [{ id: 'c1', athleteId: 'a1', institution: 'State U', stage: 'contacted', nextAction: null, nextActionDue: null, updatedAt: '2026-12-01T00:00:00Z' }],
+    coachOutreach: [{ id: 'o1', caseId: 'c1', sentAt: '2026-12-08T09:00:00Z' }, { id: 'o2', caseId: 'c1', sentAt: '2026-12-15T09:00:00Z' }],
+  } as unknown as Parameters<typeof buildAttention>[0];
+  const items = buildAttention(input, now).filter((i) => i.key.startsWith('coach:'));
+  assert.equal(items.length, 1);
+  assert.equal(items[0].title, 'State U no ha contestado');
+  assert.equal(items[0].cta.href, '/app/pipeline/c1');
+});

@@ -1,3 +1,4 @@
+import { NO_REPLY_DAYS } from './coach-outreach.ts';
 /**
  * Prompt 5 · Inicio del agente (Command Center). Lógica pura y determinista: prioridades, resumen, pipeline
  * y vista previa de la cartera. Recibe solo la proyección segura (ver AgentHomeInput) y nunca notas
@@ -46,6 +47,8 @@ export interface AgentHomeInput {
   followUps: HomeFollowUp[];
   repAlerts: HomeRepAlert[];
   opportunities: HomeOpportunity[];
+  /** Ciclo 2 · emails a coaches enviados que siguen sin respuesta. */
+  coachOutreach?: { id: string; caseId: string; sentAt: string }[];
 }
 
 export const OFFER_WINDOW_DAYS = 7;
@@ -128,6 +131,15 @@ export function buildAttention(input: AgentHomeInput, now: Date = new Date()): A
     push({ key: `rep:${r.athleteId}`, kind: 'overdue', athleteId: r.athleteId, title: r.text, context: 'Representación',
       due: r.daysLeft != null ? addDays(today, r.daysLeft) : null, dueState: r.daysLeft == null ? 'overdue' : dueStateOf(addDays(today, r.daysLeft), today),
       cta: { label: 'Revisar representación', href: `/app/portfolio/${r.athleteId}` } });
+  }
+
+  for (const o of input.coachOutreach ?? []) {
+    const c = caseById.get(o.caseId);
+    const sent = o.sentAt.slice(0, 10);
+    if (!c || FINAL.has(c.stage) || daysBetween(sent, today) < NO_REPLY_DAYS) continue;
+    push({ key: `coach:${o.id}`, kind: 'overdue', athleteId: c.athleteId, title: `${c.institution} no ha contestado`,
+      context: `Email al coach · hace ${daysBetween(sent, today)} días`, due: addDays(sent, NO_REPLY_DAYS), dueState: 'overdue',
+      cta: { label: 'Hacer seguimiento', href: `/app/pipeline/${c.id}` } });
   }
 
   for (const c of open) {

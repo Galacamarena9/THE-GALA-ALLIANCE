@@ -1,4 +1,5 @@
 import 'server-only';
+import { NO_REPLY_DAYS } from '@/lib/domain/coach-outreach';
 import { createClient } from '@/lib/supabase/server';
 import { loadPortfolio } from '@/lib/data/portfolio';
 import { loadAgencyCases } from '@/lib/data/agency-cases';
@@ -72,7 +73,8 @@ export async function loadAgentSources(userId: string, now: Date = new Date()): 
     const openCaseIds = cases.filter((c) => c.stage !== 'committed' && c.stage !== 'closed').map((c) => c.id);
     const today = now.toISOString().slice(0, 10);
 
-    const [offersRes, tasksRes, oppsRes] = await Promise.all([
+    const silentBefore = new Date(now.getTime() - NO_REPLY_DAYS * 864e5).toISOString();
+    const [offersRes, tasksRes, oppsRes, outreachRes] = await Promise.all([
       activeIds.length
         ? supabase.from('athlete_offers').select('id, athlete_id, university_name, aid_amount_usd, deadline').in('athlete_id', activeIds).limit(500)
         : Promise.resolve({ data: [], error: null }),
@@ -83,6 +85,9 @@ export async function loadAgentSources(userId: string, now: Date = new Date()): 
         ? supabase.from('opportunities').select('id, title, sport_id, graduation_years, deadline, created_at, organizations!inner(name, verification_status)')
             .eq('status', 'published').eq('organizations.verification_status', 'verified').in('sport_id', sports)
             .or(`deadline.is.null,deadline.gte.${today}`).order('created_at', { ascending: false }).limit(200)
+        : Promise.resolve({ data: [], error: null }),
+      openCaseIds.length
+        ? supabase.from('case_outreach').select('id, case_id, sent_at').in('case_id', openCaseIds.slice(0, 500)).eq('status', 'sent').lte('sent_at', silentBefore).limit(500)
         : Promise.resolve({ data: [], error: null }),
     ]);
     if (offersRes.error) partial.push('ofertas');
@@ -99,6 +104,8 @@ export async function loadAgentSources(userId: string, now: Date = new Date()): 
       repAlerts: representationAlerts(portfolio.entries, now).map((r) => ({ athleteId: r.athleteId, text: r.text, daysLeft: r.daysLeft, severe: r.tone === 'danger' })),
       opportunities: ((oppsRes.data ?? []) as unknown as { id: string; title: string; sport_id: string | null; graduation_years: number[] | null; deadline: string | null; created_at: string; organizations: { name: string } | null }[])
         .map((o) => ({ id: o.id, title: o.title, organization: o.organizations?.name ?? 'Organización verificada', sportId: o.sport_id, graduationYears: o.graduation_years ?? [], deadline: o.deadline, createdAt: o.created_at })),
+      coachOutreach: ((outreachRes.data ?? []) as { id: string; case_id: string; sent_at: string | null }[])
+        .filter((o) => o.sent_at).map((o) => ({ id: o.id, caseId: o.case_id, sentAt: o.sent_at as string })),
     };
     return { agency, input, partial, entries: portfolio.entries };
 }
