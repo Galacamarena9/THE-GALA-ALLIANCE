@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { planLimitMessage } from '@/lib/domain/plan-limits';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { requireSession } from '@/lib/session';
@@ -31,6 +32,8 @@ export async function importPortfolio(_prev: ImportState, formData: FormData): P
     });
     if (error) {
       if (error.message.includes('not_allowed')) return { error: 'No tienes permiso para importar en esta agencia.' };
+      const limit = planLimitMessage(error.message);
+      if (limit) return { error: `${limit} Se han creado ${created.length} invitaciones.`, created };
       if (error.message.includes('too_many_open_invites')) return { error: 'Tienes 500 invitaciones abiertas: espera a que las reclamen o cancela alguna.', created };
       return { error: 'No se ha podido terminar la importación. Lo creado hasta ahora se conserva.', created };
     }

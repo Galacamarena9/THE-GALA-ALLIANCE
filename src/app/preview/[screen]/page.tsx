@@ -7,6 +7,8 @@ import { AthletesCrm } from '@/app/app/portfolio/AthletesCrm';
 import { PortfolioImport, type InviteRow } from '@/app/app/portfolio/PortfolioImport';
 import { CoachOutreach, type OutreachRow } from '@/components/agency/CoachOutreach';
 import { coachEmailDraft } from '@/lib/domain/coach-outreach';
+import { PlanUsage } from '@/components/agency/PlanUsage';
+import type { AgencyPlanStatus } from '@/lib/domain/plan-limits';
 
 const PREVIEW_INVITES: InviteRow[] = [
   { id: 'i1', full_name: 'Lucía Marín', email: 'lucia@ejemplo.com', sport: 'Baloncesto', graduation_year: 2027, status: 'claimed', expires_at: '2027-01-01', created_at: '2026-11-20' },
@@ -96,7 +98,7 @@ const demoPublicOpp: PublicOpportunity = {
  */
 export const metadata: Metadata = { title: 'Probador interno', robots: { index: false, follow: false } };
 
-const SCREENS = ['agent-inbox', 'agent-thread', 'agent-thread-revoked', 'agent-discovery', 'agent-discovery-eligible', 'agent-discovery-empty', 'agent-discovery-forbidden', 'agent-discovery-error', 'agent-discovery-pick', 'admin-difusion', 'admin-difusion-empty', 'difusion-respuesta', 'difusion-hecho', 'athlete-360', 'athlete-360-empty', 'athlete-360-viewer', 'athlete-360-locked', 'portfolio-100', 'portfolio-empty', 'agent-home', 'agent-home-empty', 'agent-home-partial', 'agent-home-no-agency', 'agent-home-error', 'portfolio', 'athlete-home', 'coach-home', 'pipeline', 'pipeline-table', 'coach-outreach', 'match', 'opportunity', 'passport', 'galamatch', 'command-center', 'athlete-pipeline', 'club-trials', 'trial-club', 'trial-athlete', 'family-trials', 'program-athlete', 'family-home', 'family-costs', 'family-welcome', 'shell-agent', 'shell-athlete', 'shell-university', 'shell-operations'] as const;
+const SCREENS = ['agent-inbox', 'agent-thread', 'agent-thread-revoked', 'agent-discovery', 'agent-discovery-eligible', 'agent-discovery-empty', 'agent-discovery-forbidden', 'agent-discovery-error', 'agent-discovery-pick', 'admin-difusion', 'admin-difusion-empty', 'difusion-respuesta', 'difusion-hecho', 'athlete-360', 'athlete-360-empty', 'athlete-360-viewer', 'athlete-360-locked', 'portfolio-100', 'portfolio-empty', 'agent-home', 'agent-home-empty', 'agent-home-partial', 'agent-home-no-agency', 'agent-home-error', 'portfolio', 'athlete-home', 'coach-home', 'pipeline', 'pipeline-table', 'coach-outreach', 'plan-trial', 'plan-full', 'plan-none', 'match', 'opportunity', 'passport', 'galamatch', 'command-center', 'athlete-pipeline', 'club-trials', 'trial-club', 'trial-athlete', 'family-trials', 'program-athlete', 'family-home', 'family-costs', 'family-welcome', 'shell-agent', 'shell-athlete', 'shell-university', 'shell-operations'] as const;
 
 // Gala Match con el motor real y datos ficticios: un Passport completo y otro con muchos datos ausentes.
 const demoOpp = { sport_id: 'basketball', position_ids: [1], graduation_years: [2027], division: 'ncaa_d2' as const, min_gpa_4: 2.5, english_required: 'TOEFL 80', annual_cost_usd: 40000, aid_amount_usd: 30000 };
@@ -141,6 +143,15 @@ export default async function PreviewPage({ params, searchParams }: { params: Pr
               filters={{ sport: 'basketball', ...(eligibleOnly ? { eligible: true as const } : {}) }} activeSearchId="00000000-0000-4000-8000-00000000c001"
               searches={[{ id: '00000000-0000-4000-8000-00000000c001', label: 'NCAA con beca', href: '#', newCount: cards.filter((c) => c.isNew).length }]} />
           );
+        })()}
+        {(screen === 'plan-trial' || screen === 'plan-full' || screen === 'plan-none') && (() => {
+          const now = new Date();
+          const plan: Record<string, AgencyPlanStatus> = {
+            'plan-trial': { source: 'trial', plan_code: 'agent_team', trial_ends_at: new Date(now.getTime() + 12 * 864e5).toISOString(), athletes_limit: 100, athletes_used: 18, seats_limit: 5, seats_used: 2 },
+            'plan-full': { source: 'subscription', plan_code: 'agent_solo', trial_ends_at: null, athletes_limit: 25, athletes_used: 25, seats_limit: 1, seats_used: 1 },
+            'plan-none': { source: 'none', plan_code: null, trial_ends_at: new Date(now.getTime() - 3 * 864e5).toISOString(), athletes_limit: 0, athletes_used: 7, seats_limit: 0, seats_used: 2 },
+          };
+          return <div className="mx-auto max-w-2xl"><PlanUsage status={plan[screen]} now={now} /></div>;
         })()}
         {screen === 'coach-outreach' && (() => {
           const ago = (d: number) => new Date(Date.now() - d * 864e5).toISOString();

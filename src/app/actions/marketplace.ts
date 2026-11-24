@@ -1,6 +1,7 @@
 'use server';
 
 import { FEE_STATEMENT_VERSION } from '@/lib/domain/fee-attestation';
+import { planLimitMessage } from '@/lib/domain/plan-limits';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
@@ -120,6 +121,8 @@ export async function requestRepresentation(_prev: FormState, formData: FormData
   });
   if (error) {
     if (error.message.includes('agency_not_verified')) return { error: 'Tu agencia tiene que estar verificada para proponer representaciones.' };
+    const limit = planLimitMessage(error.message);
+    if (limit) return { error: limit };
     if (error.message.includes('not_found')) return { error: 'Este perfil no está disponible para agencias.' };
     if (error.message.includes('blocked')) return { error: 'No es posible contactar con este atleta.' };
     return { error: 'No se ha podido enviar la solicitud.' };

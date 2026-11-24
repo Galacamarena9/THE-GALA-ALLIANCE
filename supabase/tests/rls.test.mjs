@@ -4080,6 +4080,85 @@ try {
     eq((await db.query(`select minor_has_active_family($1) g`, [kid])).rows[0].g, false, 'el menor sigue sin familia activa');
   });
 
+  results.push('\nFase 2: los límites de plan se cumplen y no hay periodo gratis general');
+  // Inserta con sesión (auth.uid()) pero sin RLS, para probar los triggers de límite aislados de las políticas.
+  const withSession = async (userId, sql, params = []) => {
+    await db.query('begin');
+    try {
+      await db.query(`select set_config('request.jwt.claims', $1, true)`, [JSON.stringify({ sub: userId, role: 'authenticated' })]);
+      const r = await db.query(sql, params); await db.query('commit'); return r;
+    } catch (e) { await db.query('rollback'); throw e; }
+  };
+  const mkAgency = async (name) => {
+    const owner = await mkAged(`${name}-owner`, 40);
+    await as(owner, `insert into user_roles (user_id, role) values ($1, 'agent')`, [owner]);
+    const org = (await as(owner, `insert into organizations (name, type, created_by) values ($1, 'agency', $2) returning id`, [name, owner])).rows[0].id;
+    return { owner, org };
+  };
+  const addInvites = (org, by, n) => db.query(`insert into agency_athlete_invites (agency_id, invited_by, full_name, token_hash)
+    select $1, $2, 'Atleta ' || g, md5(random()::text || g) from generate_series(1, $3) g`, [org, by, n]);
+  const expireTrial = (org) => db.query(`insert into agency_trials (organization_id, ends_at) values ($1, now() - interval '1 day')
+    on conflict (organization_id) do update set ends_at = excluded.ends_at`, [org]);
+  await check('P2-1 sin «gratis hasta 2027»: una agencia nueva tiene 30 días de prueba con el plan Agencia; solo sus miembros ven el estado', async () => {
+    eq((await db.query(`select count(*)::int n from plan_catalog where free_until is not null`)).rows[0].n, 0, 'free_until');
+    const { owner, org } = await mkAgency('P2 Trial Agency');
+    const st = (await as(owner, `select * from agency_plan_status($1)`, [org])).rows[0];
+    eq(st.source, 'trial'); eq(st.athletes_limit, 100); eq(st.seats_limit, 5); eq(st.seats_used, 1);
+    const days = Math.round((new Date(st.trial_ends_at) - Date.now()) / 86400000);
+    eq(days >= 29 && days <= 30, true, `prueba de 30 días (${days})`);
+    const outsider = await mkAged('p2-outsider', 40);
+    await expectError(() => as(outsider, `select * from agency_plan_status($1)`, [org]), /not_allowed/);
+    await expectError(() => as(null, `select * from agency_plan_status($1)`, [org]), /permission denied/);
+    await expectError(() => as(owner, `select agency_plan_features($1)`, [org]), /permission denied/);
+    await expectError(() => as(owner, `insert into agency_trials (organization_id, ends_at) values ($1, now() + interval '5 years')`, [org]), /permission denied|row-level security/);
+  });
+  await check('P2-2 atletas: al llegar al límite no se añade ninguno más (propuestas + invitaciones); sin plan, nada nuevo; nada se borra', async () => {
+    const { owner, org } = await mkAgency('P2 Athletes Agency');
+    await addInvites(org, owner, 99);
+    await withSession(owner, `insert into agency_athlete_invites (agency_id, invited_by, full_name, token_hash) values ($1, $2, 'Número 100', md5(random()::text))`, [org, owner]);
+    await expectError(() => withSession(owner, `insert into agency_athlete_invites (agency_id, invited_by, full_name, token_hash) values ($1, $2, 'Número 101', md5(random()::text))`, [org, owner]), /plan_athlete_limit/);
+    const ath = await mkAged('p2-ath', 22);
+    await db.query(`insert into user_roles (user_id, role) values ($1, 'athlete')`, [ath]);
+    await db.query(`insert into athlete_profiles (user_id, sport_id, graduation_year) values ($1, 'basketball', 2027)`, [ath]);
+    await expectError(() => withSession(owner, `insert into agent_representations (agency_id, agent_id, athlete_id) values ($1, $2, $3)`, [org, owner, ath]), /plan_athlete_limit/);
+    const { owner: o2, org: org2 } = await mkAgency('P2 Expired Agency');
+    await expireTrial(org2);
+    eq((await as(o2, `select source from agency_plan_status($1)`, [org2])).rows[0].source, 'none');
+    await expectError(() => withSession(o2, `insert into agency_athlete_invites (agency_id, invited_by, full_name, token_hash) values ($1, $2, 'Nuevo', md5(random()::text))`, [org2, o2]), /plan_athlete_limit/);
+    eq((await db.query(`select count(*)::int n from agency_athlete_invites where agency_id = $1`, [org])).rows[0].n, 100, 'lo existente se conserva');
+  });
+  await check('P2-3 puestos: la agencia no pasa de los puestos de su plan; quien la crea siempre entra; una suscripción manda sobre la prueba', async () => {
+    const { owner, org } = await mkAgency('P2 Seats Agency');
+    for (let i = 0; i < 4; i++) {
+      const m = await mkAged(`p2-member-${i}`, 30);
+      await withSession(owner, `insert into organization_members (organization_id, user_id, member_role) values ($1, $2, 'recruiter')`, [org, m]);
+    }
+    const sixth = await mkAged('p2-member-6', 30);
+    await expectError(() => withSession(owner, `insert into organization_members (organization_id, user_id, member_role) values ($1, $2, 'recruiter')`, [org, sixth]), /plan_seat_limit/);
+    // Con el plan Agente (1 puesto) contratado y la prueba acabada, ni siquiera cabe un segundo.
+    const { owner: o2, org: org2 } = await mkAgency('P2 Solo Agency');
+    await expireTrial(org2);
+    const acct = (await db.query(`insert into billing_accounts (organization_id) values ($1) returning id`, [org2])).rows[0].id;
+    await db.query(`insert into subscriptions (billing_account_id, plan_code, plan_version, status) values ($1, 'agent_solo', 4, 'active')`, [acct]);
+    const st = (await as(o2, `select * from agency_plan_status($1)`, [org2])).rows[0];
+    eq(st.source, 'subscription'); eq(st.plan_code, 'agent_solo'); eq(st.athletes_limit, 25); eq(st.seats_limit, 1);
+    const second = await mkAged('p2-solo-2', 30);
+    await expectError(() => withSession(o2, `insert into organization_members (organization_id, user_id, member_role) values ($1, $2, 'recruiter')`, [org2, second]), /plan_seat_limit/);
+    // Una agencia cuya prueba ya acabó al crearse sigue pudiendo tener a su creador.
+    const { owner: o3 } = await mkAgency('P2 Founder Always In');
+    eq(typeof o3, 'string');
+  });
+  await check('P2-4 ampliar la prueba: solo administración, con motivo y tope de 90 días; queda auditado', async () => {
+    const { owner, org } = await mkAgency('P2 Extend Agency');
+    await expireTrial(org);
+    await expectError(() => as(owner, `select admin_agency_trial_extend($1, 30, 'Piloto ampliado')`, [org]), /not_allowed/);
+    await expectError(() => as(u.admin, `select admin_agency_trial_extend($1, 120, 'Demasiado tiempo')`, [org]), /invalid_days/);
+    await expectError(() => as(u.admin, `select admin_agency_trial_extend($1, 30, '')`, [org]), /reason_required/);
+    await as(u.admin, `select admin_agency_trial_extend($1, 30, 'Piloto ampliado hasta tener Stripe live')`, [org]);
+    eq((await as(owner, `select source from agency_plan_status($1)`, [org])).rows[0].source, 'trial');
+    eq((await db.query(`select count(*)::int n from audit_logs where action = 'agency_trial_extended' and entity_id = $1`, [org])).rows[0].n, 1, 'auditado');
+  });
+
   if (!process.env.SKIP_ERASURE) await check('RGPD: toda cuenta y toda organización se puede borrar (anonimiza auditoría, no bloquea)', async () => {
     await db.query(`select set_config('request.jwt.claims', '{}', false)`);
     const fails = [];

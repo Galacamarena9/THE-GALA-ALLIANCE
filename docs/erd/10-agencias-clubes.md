@@ -1,7 +1,7 @@
 <!-- Generado por scripts/erd/generate.mjs a partir de las migraciones. No editar a mano: `npm run erd`. -->
 # 10 · Agencias y clubes
 
-Tablas: **21** · RLS activada en 21/21.
+Tablas: **22** · RLS activada en 22/22.
 Se relaciona con: `athlete_documents` (03), `athlete_profiles` (03), `auth_users`, `institutions` (05), `opportunities` (07), `organizations` (05), `profiles` (01), `recruiting_links` (03), `sports` (04), `verification_requests` (06).
 
 ## AS-IS · Modelo actual
@@ -18,6 +18,8 @@ erDiagram
   PROFILES |o--o{ AGENCY_CONTACTS : "created_by"
   INSTITUTIONS |o--o{ AGENCY_CONTACTS : "institution_id"
   SPORTS |o--o{ AGENCY_CONTACTS : "sport_id"
+  PROFILES |o--o{ AGENCY_TRIALS : "extended_by"
+  ORGANIZATIONS ||--o{ AGENCY_TRIALS : "organization_id"
   ORGANIZATIONS ||--o{ AGENT_REPRESENTATIONS : "agency_id"
   PROFILES ||--o{ AGENT_REPRESENTATIONS : "agent_id"
   ATHLETE_PROFILES ||--o{ AGENT_REPRESENTATIONS : "athlete_id"
@@ -118,6 +120,13 @@ erDiagram
     text notes
     uuid created_by FK
     timestamptz created_at
+    timestamptz updated_at
+  }
+  AGENCY_TRIALS {
+    uuid organization_id PK,FK
+    timestamptz ends_at
+    uuid extended_by FK
+    text reason
     timestamptz updated_at
   }
   AGENT_REPRESENTATIONS {
@@ -352,6 +361,7 @@ erDiagram
 | `agency_athlete_invites` | Interna | Sí | organización (agency_id) → se borra<br>persona (claimed_by) → se anonimiza<br>persona (invited_by) → se borra | Mientras exista la organización | No: Invitación de la agencia a un atleta de su cartera (solo hash del enlace) | KEEP |
 | `agency_athlete_notes` | Interna | — | organización (agency_id) → se borra<br>atleta (athlete_id) → se borra<br>persona (author_id) → se borra | Mientras exista la organización | No: Nota interna de la agencia sobre el atleta | KEEP |
 | `agency_contacts` | Interna | — | organización (agency_id) → se borra<br>persona (created_by) → se anonimiza | Mientras exista la organización | — | KEEP |
+| `agency_trials` | Interna | — | persona (extended_by) → se anonimiza<br>organización (organization_id) → se borra | Mientras exista la organización | No: Fin de la prueba gratuita de la agencia (dato de facturación de la organización) | KEEP |
 | `agent_representations` | Sensible | Sí | organización (agency_id) → se borra<br>persona (agent_id) → se borra<br>atleta (athlete_id) → se borra<br>persona (guardian_approved_by) → se anonimiza<br>persona (revoked_by) → se anonimiza | Mientras exista la cuenta | Sí | KEEP |
 | `case_outreach` | Interna | Sí | organización (agency_id) → se borra<br>persona (created_by) → se anonimiza | Mientras exista la organización | No: Email de la agencia a un coach desde un proceso (texto con marcador, sin el enlace) | KEEP |
 | `club_recommendations` | Personal | Sí | atleta (athlete_id) → se borra<br>persona (author_id) → se anonimiza<br>organización (organization_id) → se borra | Mientras exista la cuenta | Sí | KEEP |

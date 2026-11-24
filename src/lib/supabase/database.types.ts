@@ -238,6 +238,12 @@ export type Database = {
         }
         Relationships: []
       }
+      agency_trials: {
+        Row: { organization_id: string; ends_at: string; extended_by: string | null; reason: string | null; updated_at: string }
+        Insert: { organization_id: string; ends_at: string; extended_by?: string | null; reason?: string | null; updated_at?: string }
+        Update: { organization_id?: string; ends_at?: string; extended_by?: string | null; reason?: string | null; updated_at?: string }
+        Relationships: []
+      }
       agency_athlete_invites: {
         Row: { id: string; agency_id: string; invited_by: string; full_name: string; email: string | null; sport: string | null; graduation_year: number | null; token_hash: string; status: string; opened_at: string | null; claimed_at: string | null; claimed_by: string | null; expires_at: string; created_at: string }
         Insert: { id?: string; agency_id?: string; invited_by?: string; full_name?: string; email?: string | null; sport?: string | null; graduation_year?: number | null; token_hash?: string; status?: string; opened_at?: string | null; claimed_at?: string | null; claimed_by?: string | null; expires_at?: string; created_at?: string }
@@ -10045,6 +10051,14 @@ export type Database = {
         Returns: boolean
       }
       agency_invite_claim: { Args: { p_token: string }; Returns: string }
+      admin_agency_trial_extend: {
+        Args: { p_org: string; p_days: number; p_reason: string }
+        Returns: string
+      }
+      agency_plan_status: {
+        Args: { p_org: string }
+        Returns: { source: string; plan_code: string | null; trial_ends_at: string | null; athletes_limit: number; athletes_used: number; seats_limit: number; seats_used: number }[]
+      }
       agency_founder_status: {
         Args: never
         Returns: { cap: number; remaining: number; taken: number }[]
