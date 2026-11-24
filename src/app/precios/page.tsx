@@ -1,3 +1,4 @@
+import { founderSeats } from '@/lib/domain/fee-attestation';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { PublicFooter, PublicHeader } from '@/components/PublicShell';
@@ -16,7 +17,7 @@ export const metadata: Metadata = {
 const GROUPS: { id: string; title: string; intro: string; audiences: PlanAudience[]; cols: string }[] = [
   { id: 'personas', title: 'Atletas y familias', intro: 'El perfil es gratis. Core y Elite se generan al momento desde tu Passport, sin esperas ni citas. Signature es el acompañamiento personal de la fundadora.', audiences: ['athlete', 'family'], cols: 'md:grid-cols-2 xl:grid-cols-4' },
   { id: 'organizaciones', title: 'Universidades, academias y marcas', intro: 'Se verifican solas con el correo de su dominio oficial. Gratis durante el piloto.', audiences: ['organization', 'academy', 'brand'], cols: 'md:grid-cols-3' },
-  { id: 'agencias', title: 'Agencias', intro: 'Programa fundador: las agencias que se den de alta antes del 31 de marzo de 2027 lo usan gratis hasta esa fecha y después tienen un 50 % de descuento el primer año. A partir de ahí, el precio de la tarjeta. Precios sin IVA. Nunca cobramos comisión por atleta ni por contactar.', audiences: ['agent'], cols: 'md:grid-cols-3' },
+  { id: 'agencias', title: 'Agencias', intro: 'Programa fundador: las 15 primeras agencias pagan un 40 % menos de por vida (47 €/mes Agente, 119 €/mes Agencia). Todas empiezan con 30 días gratis y cancelan cuando quieran. Precios sin IVA. Nunca cobramos comisión por atleta ni por contactar.', audiences: ['agent'], cols: 'md:grid-cols-3' },
 ];
 
 export default async function PricingPage() {
@@ -24,6 +25,9 @@ export default async function PricingPage() {
   const session = await getSession().catch(() => null);
   const payments = Boolean(process.env.STRIPE_SECRET_KEY);
   let orgs: { id: string; name: string }[] = [];
+  const founder = founderSeats(await (async () => {
+    try { const { data } = await (await createClient()).rpc('agency_founder_status'); return (data as { cap: number; taken: number; remaining: number }[] | null)?.[0]; } catch { return null; }
+  })());
   if (session) {
     const supabase = await createClient();
     const { data } = await supabase.from('organization_members').select('organizations(id, name)').eq('user_id', session.userId);
@@ -44,6 +48,7 @@ export default async function PricingPage() {
             <section key={g.id} className="mt-12" aria-labelledby={`grp-${g.id}`}>
               <h2 id={`grp-${g.id}`} className="text-2xl text-paper">{g.title}</h2>
               <p className="mt-1 max-w-2xl text-sm text-muted">{g.intro}</p>
+              {g.id === 'agencias' && <p className="mt-2 text-sm font-semibold text-brass" data-testid="founder-seats">{founder.text}</p>}
               <div className={`mt-5 grid gap-4 ${g.cols}`}>
                 {plans.map((p) => (
                   <article key={p.code} className={`flex flex-col rounded-[var(--radius-card)] border bg-surface p-6 ${p.highlight ? 'border-brass/60' : 'border-line'}`}>

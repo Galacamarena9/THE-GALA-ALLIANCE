@@ -152,6 +152,7 @@ export const TABLES = {
   recruiting_case_tasks: { domain: '10-agencias-clubes', cls: 'internal', decision: 'KEEP' },
   recruiting_case_activities: { domain: '10-agencias-clubes', cls: 'internal', decision: 'KEEP' },
   case_outreach: { domain: '10-agencias-clubes', cls: 'internal', minors: true, decision: 'KEEP', noExport: 'Email de la agencia a un coach desde un proceso (texto con marcador, sin el enlace)' },
+  representation_fee_attestations: { domain: '10-agencias-clubes', cls: 'internal', minors: true, decision: 'KEEP', noExport: 'Declaración de tarifas de la agencia (append-only; el atleta la ve en la propuesta)' },
   club_roster: { domain: '10-agencias-clubes', cls: 'personal', minors: true, decision: 'KEEP', export: true },
   club_roster_invites: { domain: '10-agencias-clubes', cls: 'internal', decision: 'MERGE → organization_invitations (tipo roster)', retention: '90 días tras caducar' },
   club_recommendations: { domain: '10-agencias-clubes', cls: 'personal', minors: true, decision: 'KEEP', export: true },

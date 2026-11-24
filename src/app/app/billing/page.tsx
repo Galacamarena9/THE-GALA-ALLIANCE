@@ -1,3 +1,4 @@
+import { FOUNDER_PRICE_CENTS, founderSeats } from '@/lib/domain/fee-attestation';
 import type { Metadata } from 'next';
 import { requireSession } from '@/lib/session';
 import { logEvent } from '@/lib/events';
@@ -40,11 +41,13 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
   if (!orgs.length) return (<><PageHeader kicker="Cuenta" title="Facturación" /><EmptyState title="Nada que facturar">La facturación la gestiona quien dirige la organización.</EmptyState></>);
 
   const ids = orgs.map((o) => o.id);
-  const [{ data: accounts }, { data: catalog }, { data: members }] = await Promise.all([
+  const [{ data: accounts }, { data: catalog }, { data: members }, { data: founderRows }] = await Promise.all([
     supabase.from('billing_accounts').select('id, organization_id, stripe_customer_id, subscriptions(id, plan_code, status, seats, current_period_end, cancel_at_period_end, seat_assignments(user_id)), billing_ledger(kind, amount_cents, currency, occurred_at)').in('organization_id', ids),
     supabase.from('plan_catalog').select('code, audience, name, billing_interval, price_cents, currency, seats_included, free_until, stripe_price_id').eq('active', true),
     supabase.from('organization_members').select('organization_id, user_id, profiles:user_id(display_name)').in('organization_id', ids),
+    supabase.rpc('agency_founder_status'),
   ]);
+  const founder = founderSeats((founderRows as { cap: number; taken: number; remaining: number }[] | null)?.[0]);
   type Sub = { id: string; plan_code: string; status: string; seats: number; current_period_end: string | null; cancel_at_period_end: boolean; seat_assignments: { user_id: string }[] };
   type Acct = { id: string; organization_id: string; stripe_customer_id: string | null; subscriptions: Sub[]; billing_ledger: { kind: string; amount_cents: number; currency: string; occurred_at: string }[] };
   const accountByOrg = new Map(((accounts ?? []) as unknown as Acct[]).map((a) => [a.organization_id, a]));
@@ -87,17 +90,31 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
                   </details>
                 </>
               ) : (
+                <>
+                {audienceOf[o.type as string] === 'agent' && <p className="mt-2 text-sm text-brass" data-testid="founder-seats">{founder.text}</p>}
                 <ul className="mt-2 grid gap-3 sm:grid-cols-3">
                   {plans.filter((p) => ['month', 'year'].includes(p.billing_interval as string)).map((p) => (
                     <li key={p.code} className="rounded-xl border border-line p-3">
                       <p className="font-semibold text-paper">{p.name}</p>
-                      <p className="text-sm text-muted">{p.price_cents ? `${eur(p.price_cents as number, p.currency as string)}/${p.billing_interval === 'year' ? 'año' : 'mes'}` : 'Precio a medida'} · {p.seats_included} asiento{p.seats_included === 1 ? '' : 's'}</p>
+                      {(() => {
+                        const fp = founder.open ? FOUNDER_PRICE_CENTS[p.code as string] : undefined;
+                        const per = `/${p.billing_interval === 'year' ? 'año' : 'mes'}`;
+                        return fp ? (
+                          <p className="text-sm text-muted" data-testid="founder-price">
+                            <span className="font-semibold text-paper">{eur(fp, p.currency as string)}{per}</span> de por vida{' '}
+                            <s className="text-faint">{eur(p.price_cents as number, p.currency as string)}</s> · {p.seats_included} asiento{p.seats_included === 1 ? '' : 's'}
+                          </p>
+                        ) : (
+                          <p className="text-sm text-muted">{p.price_cents ? `${eur(p.price_cents as number, p.currency as string)}${per}` : 'Precio a medida'} · {p.seats_included} asiento{p.seats_included === 1 ? '' : 's'}</p>
+                        );
+                      })()}
                       {canPay && (p.stripe_price_id || (p.price_cents as number | null))
                         ? <form action={startSubscription} className="mt-2"><input type="hidden" name="org_id" value={o.id} /><input type="hidden" name="plan_code" value={p.code as string} /><button className={buttonClass('primary', 'md')}>{p.audience === 'agent' ? 'Empezar 30 días gratis' : 'Contratar'}</button></form>
                         : <p className="mt-2 text-xs text-faint">Contratación online próximamente.</p>}
                     </li>
                   ))}
                 </ul>
+                </>
               )}
               {acct?.stripe_customer_id && (
                 <form action={openBillingPortal} className="mt-4"><input type="hidden" name="org_id" value={o.id} /><button className="text-sm text-brass hover:underline">Facturas, tarjeta y cancelación →</button></form>

@@ -8409,6 +8409,39 @@ export type Database = {
           },
         ]
       }
+      representation_fee_attestations: {
+        Row: {
+          agency_id: string
+          athlete_id: string
+          attested_at: string
+          attested_by: string | null
+          id: string
+          representation_id: string
+          statement: string
+          statement_version: string
+        }
+        Insert: {
+          agency_id: string
+          athlete_id: string
+          attested_at?: string
+          attested_by?: string | null
+          id?: string
+          representation_id: string
+          statement: string
+          statement_version: string
+        }
+        Update: {
+          agency_id?: string
+          athlete_id?: string
+          attested_at?: string
+          attested_by?: string | null
+          id?: string
+          representation_id?: string
+          statement?: string
+          statement_version?: string
+        }
+        Relationships: []
+      }
       representation_invitations: {
         Row: {
           agency_id: string
@@ -10012,6 +10045,10 @@ export type Database = {
         Returns: boolean
       }
       agency_invite_claim: { Args: { p_token: string }; Returns: string }
+      agency_founder_status: {
+        Args: never
+        Returns: { cap: number; remaining: number; taken: number }[]
+      }
       agency_invite_create: {
         Args: { p_agency: string; p_name: string; p_email?: string; p_sport?: string; p_year?: number }
         Returns: { id: string; token: string }[]
@@ -10203,6 +10240,20 @@ export type Database = {
       case_outreach_mark: {
         Args: { p_id: string; p_note?: string; p_status: string }
         Returns: string
+      }
+      checkout_plan: {
+        Args: { p_code: string }
+        Returns: {
+          audience: string
+          billing_interval: string
+          code: string
+          currency: string
+          founder: boolean
+          name: string
+          price_cents: number | null
+          stripe_price_id: string | null
+          version: number
+        }[]
       }
       club_roster_summary: {
         Args: { p_org: string }
@@ -10706,6 +10757,10 @@ export type Database = {
       }
       representation_assign: {
         Args: { p_id: string; p_role: string; p_user: string }
+        Returns: string
+      }
+      representation_attest_fees: {
+        Args: { p_representation: string; p_version?: string }
         Returns: string
       }
       representation_conflict_resolve: {

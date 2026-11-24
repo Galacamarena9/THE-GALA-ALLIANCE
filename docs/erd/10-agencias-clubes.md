@@ -1,7 +1,7 @@
 <!-- Generado por scripts/erd/generate.mjs a partir de las migraciones. No editar a mano: `npm run erd`. -->
 # 10 · Agencias y clubes
 
-Tablas: **20** · RLS activada en 20/20.
+Tablas: **21** · RLS activada en 21/21.
 Se relaciona con: `athlete_documents` (03), `athlete_profiles` (03), `auth_users`, `institutions` (05), `opportunities` (07), `organizations` (05), `profiles` (01), `recruiting_links` (03), `sports` (04), `verification_requests` (06).
 
 ## AS-IS · Modelo actual
@@ -66,6 +66,10 @@ erDiagram
   AGENT_REPRESENTATIONS ||--o{ REPRESENTATION_CONFLICTS : "representation_id"
   PROFILES |o--o{ REPRESENTATION_CONFLICTS : "resolved_by"
   AGENT_REPRESENTATIONS ||--o{ REPRESENTATION_COVERAGE : "representation_id"
+  ORGANIZATIONS ||--o{ REPRESENTATION_FEE_ATTESTATIONS : "agency_id"
+  PROFILES ||--o{ REPRESENTATION_FEE_ATTESTATIONS : "athlete_id"
+  PROFILES |o--o{ REPRESENTATION_FEE_ATTESTATIONS : "attested_by"
+  AGENT_REPRESENTATIONS ||--o{ REPRESENTATION_FEE_ATTESTATIONS : "representation_id"
   ORGANIZATIONS ||--o{ REPRESENTATION_INVITATIONS : "agency_id"
   AUTH_USERS ||--o{ REPRESENTATION_INVITATIONS : "athlete_id"
   AUTH_USERS ||--o{ REPRESENTATION_INVITATIONS : "invited_by"
@@ -304,6 +308,16 @@ erDiagram
     text value
     timestamptz created_at
   }
+  REPRESENTATION_FEE_ATTESTATIONS {
+    uuid id PK
+    uuid representation_id FK
+    uuid agency_id FK
+    uuid athlete_id FK
+    uuid attested_by FK
+    text statement_version
+    text statement
+    timestamptz attested_at
+  }
   REPRESENTATION_INVITATIONS {
     uuid id PK
     uuid agency_id FK
@@ -352,6 +366,7 @@ erDiagram
 | `representation_assignments` | Sensible | Sí | organización (agency_id) → se borra<br>persona (assigned_by) → se anonimiza<br>persona (user_id) → se borra | Mientras exista la cuenta | Sí | KEEP |
 | `representation_conflicts` | Interna | — | persona (resolved_by) → se anonimiza | Mientras exista la organización | — | KEEP |
 | `representation_coverage` | Sensible | Sí | En cascada con `agent_representations` | Mientras exista la cuenta | No: Se identifica por la representación, no por la persona; el alcance va en representations. | KEEP |
+| `representation_fee_attestations` | Interna | Sí | organización (agency_id) → se borra<br>persona (athlete_id) → se borra<br>persona (attested_by) → se anonimiza | Mientras exista la organización | No: Declaración de tarifas de la agencia (append-only; el atleta la ve en la propuesta) | KEEP |
 | `representation_invitations` | Sensible | Sí | organización (agency_id) → se borra<br>persona (athlete_id) → se borra<br>persona (invited_by) → se borra | Mientras exista la cuenta | Sí | KEEP |
 | `representation_permissions` | Sensible | Sí | persona (granted_by) → se anonimiza<br>persona (revoked_by) → se anonimiza | Mientras exista la cuenta | No: Hija de la representación; sin columna de persona. | KEEP |
 | `territory_regions` | Pública | — | No depende de personas | Mientras esté publicado o vigente | — | KEEP |

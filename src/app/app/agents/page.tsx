@@ -1,3 +1,4 @@
+import { attestationLine, feeAttestationMap } from '@/lib/domain/fee-attestation';
 import type { Metadata } from 'next';
 import { requireSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
@@ -21,6 +22,11 @@ export default async function AthleteAgentsPage() {
     .select('id, status, message, created_at, representation_type, start_date, end_date, agency_id, organizations(name, website, verification_status), representation_coverage(dimension, value), representation_permissions(permission, status)')
     .eq('athlete_id', session.userId)
     .order('created_at', { ascending: false });
+  const repIds = (reps ?? []).map((r) => r.id);
+  const { data: attRows } = repIds.length
+    ? await supabase.from('representation_fee_attestations').select('representation_id, statement, statement_version, attested_at').in('representation_id', repIds).order('attested_at', { ascending: false })
+    : { data: [] };
+  const attestations = feeAttestationMap(attRows);
   const { data: verifiedAgencies } = await supabase.from('organizations').select('id, name')
     .eq('type', 'agency').eq('verification_status', 'verified').eq('org_status', 'active').order('name').limit(100);
   // Solo llegan los procesos que la agencia ha decidido compartir (lo garantiza la RLS).
@@ -72,6 +78,10 @@ export default async function AthleteAgentsPage() {
                     {scope('sport') && <div><dt className="inline text-faint">Deporte: </dt><dd className="inline text-paper">{scope('sport')}</dd></div>}
                     {scope('territory') && <div><dt className="inline text-faint">Territorio: </dt><dd className="inline text-paper">{scope('territory')}</dd></div>}
                   </dl>
+                  {r.status !== 'ended' && r.status !== 'declined' && (() => {
+                    const line = attestationLine(attestations.get(r.id));
+                    return <p data-testid="fee-attestation" className={`mt-3 text-sm ${line.tone === 'ok' ? 'text-muted' : 'text-warn'}`}>{line.tone === 'ok' ? '✓ ' : ''}{line.text}</p>;
+                  })()}
                   {r.status === 'requested' && perms.length > 0 && (
                     <p className="mt-2 text-sm text-muted">Si aceptas, podrá: {REP_PERMISSIONS.filter((p) => perms.includes(p.id)).map((p) => p.label.toLowerCase()).join(' · ')}. Podrás quitar cualquiera después.</p>
                   )}
