@@ -151,6 +151,7 @@ export const TABLES = {
   recruiting_cases: { domain: '10-agencias-clubes', cls: 'internal', minors: true, decision: 'KEEP', noExport: 'Caso interno de la agencia' },
   recruiting_case_tasks: { domain: '10-agencias-clubes', cls: 'internal', decision: 'KEEP' },
   recruiting_case_activities: { domain: '10-agencias-clubes', cls: 'internal', decision: 'KEEP' },
+  case_outreach: { domain: '10-agencias-clubes', cls: 'internal', minors: true, decision: 'KEEP', noExport: 'Email de la agencia a un coach desde un proceso (texto con marcador, sin el enlace)' },
   club_roster: { domain: '10-agencias-clubes', cls: 'personal', minors: true, decision: 'KEEP', export: true },
   club_roster_invites: { domain: '10-agencias-clubes', cls: 'internal', decision: 'MERGE → organization_invitations (tipo roster)', retention: '90 días tras caducar' },
   club_recommendations: { domain: '10-agencias-clubes', cls: 'personal', minors: true, decision: 'KEEP', export: true },

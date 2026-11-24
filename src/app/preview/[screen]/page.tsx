@@ -5,6 +5,8 @@ import { previewAgentHome, previewCrmRows } from '@/lib/preview/agent-home';
 import { AgentHomeView } from '@/app/app/AgentHome';
 import { AthletesCrm } from '@/app/app/portfolio/AthletesCrm';
 import { PortfolioImport, type InviteRow } from '@/app/app/portfolio/PortfolioImport';
+import { CoachOutreach, type OutreachRow } from '@/components/agency/CoachOutreach';
+import { coachEmailDraft } from '@/lib/domain/coach-outreach';
 
 const PREVIEW_INVITES: InviteRow[] = [
   { id: 'i1', full_name: 'Lucía Marín', email: 'lucia@ejemplo.com', sport: 'Baloncesto', graduation_year: 2027, status: 'claimed', expires_at: '2027-01-01', created_at: '2026-11-20' },
@@ -94,7 +96,7 @@ const demoPublicOpp: PublicOpportunity = {
  */
 export const metadata: Metadata = { title: 'Probador interno', robots: { index: false, follow: false } };
 
-const SCREENS = ['agent-inbox', 'agent-thread', 'agent-thread-revoked', 'agent-discovery', 'agent-discovery-eligible', 'agent-discovery-empty', 'agent-discovery-forbidden', 'agent-discovery-error', 'agent-discovery-pick', 'admin-difusion', 'admin-difusion-empty', 'difusion-respuesta', 'difusion-hecho', 'athlete-360', 'athlete-360-empty', 'athlete-360-viewer', 'athlete-360-locked', 'portfolio-100', 'portfolio-empty', 'agent-home', 'agent-home-empty', 'agent-home-partial', 'agent-home-no-agency', 'agent-home-error', 'portfolio', 'athlete-home', 'coach-home', 'pipeline', 'pipeline-table', 'match', 'opportunity', 'passport', 'galamatch', 'command-center', 'athlete-pipeline', 'club-trials', 'trial-club', 'trial-athlete', 'family-trials', 'program-athlete', 'family-home', 'family-costs', 'family-welcome', 'shell-agent', 'shell-athlete', 'shell-university', 'shell-operations'] as const;
+const SCREENS = ['agent-inbox', 'agent-thread', 'agent-thread-revoked', 'agent-discovery', 'agent-discovery-eligible', 'agent-discovery-empty', 'agent-discovery-forbidden', 'agent-discovery-error', 'agent-discovery-pick', 'admin-difusion', 'admin-difusion-empty', 'difusion-respuesta', 'difusion-hecho', 'athlete-360', 'athlete-360-empty', 'athlete-360-viewer', 'athlete-360-locked', 'portfolio-100', 'portfolio-empty', 'agent-home', 'agent-home-empty', 'agent-home-partial', 'agent-home-no-agency', 'agent-home-error', 'portfolio', 'athlete-home', 'coach-home', 'pipeline', 'pipeline-table', 'coach-outreach', 'match', 'opportunity', 'passport', 'galamatch', 'command-center', 'athlete-pipeline', 'club-trials', 'trial-club', 'trial-athlete', 'family-trials', 'program-athlete', 'family-home', 'family-costs', 'family-welcome', 'shell-agent', 'shell-athlete', 'shell-university', 'shell-operations'] as const;
 
 // Gala Match con el motor real y datos ficticios: un Passport completo y otro con muchos datos ausentes.
 const demoOpp = { sport_id: 'basketball', position_ids: [1], graduation_years: [2027], division: 'ncaa_d2' as const, min_gpa_4: 2.5, english_required: 'TOEFL 80', annual_cost_usd: 40000, aid_amount_usd: 30000 };
@@ -138,6 +140,21 @@ export default async function PreviewPage({ params, searchParams }: { params: Pr
             <DiscoveryView roster={roster} sports={sports} athlete={roster[0]} state="ok" demo cards={cards} hiddenIneligible={all.length - cards.length}
               filters={{ sport: 'basketball', ...(eligibleOnly ? { eligible: true as const } : {}) }} activeSearchId="00000000-0000-4000-8000-00000000c001"
               searches={[{ id: '00000000-0000-4000-8000-00000000c001', label: 'NCAA con beca', href: '#', newCount: cards.filter((c) => c.isNew).length }]} />
+          );
+        })()}
+        {screen === 'coach-outreach' && (() => {
+          const ago = (d: number) => new Date(Date.now() - d * 864e5).toISOString();
+          const rows: OutreachRow[] = [
+            { id: '00000000-0000-0000-0000-0000000c0001', toEmail: 'coach@harbor.edu', subject: 'European basketball prospect – Lucía Marín (class of 2027)', status: 'sent', sentAt: ago(12), repliedAt: null, note: null, createdAt: ago(12), views: 0, lastViewedAt: null, linkActive: true },
+            { id: '00000000-0000-0000-0000-0000000c0002', toEmail: 'assistant@lakeside.edu', subject: 'European basketball prospect – Lucía Marín (class of 2027)', status: 'replied', sentAt: ago(9), repliedAt: ago(4), note: 'Quiere ver un partido completo', createdAt: ago(9), views: 3, lastViewedAt: ago(5), linkActive: true },
+            { id: '00000000-0000-0000-0000-0000000c0003', toEmail: 'coach@ridge.edu', subject: 'European basketball prospect – Lucía Marín (class of 2027)', status: 'draft', sentAt: null, repliedAt: null, note: null, createdAt: ago(0), views: 0, lastViewedAt: null, linkActive: true },
+          ];
+          const draft = coachEmailDraft({ athleteName: 'Lucía Marín', minor: false, sportId: 'basketball', gradYear: 2027, position: 'Point guard', institutionName: 'Harbor Tech', coachName: null, agencyName: 'Agencia de ejemplo', senderName: 'Ana Gil' });
+          return (
+            <div className="mx-auto max-w-2xl" data-testid="coach-outreach">
+              <CoachOutreach caseId="00000000-0000-0000-0000-0000000ca5e1" canSend blockedReason={null} contacts={[{ id: '00000000-0000-0000-0000-0000000c0c01', name: 'Coach Reed · Harbor Tech', email: 'coach@harbor.edu' }]}
+                defaultContactId={null} draft={draft} rows={rows} now={new Date().toISOString()} ncaaNote={null} />
+            </div>
           );
         })()}
         {(screen === 'pipeline' || screen === 'pipeline-table') && (

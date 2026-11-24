@@ -3943,6 +3943,57 @@ try {
     eq((await as(null, `select valid from agency_invite_preview($1)`, [fresh])).rows[0].valid, false);
   });
 
+  // ---------------------------------------------------------------- Ciclo 2 · Escribir a coaches y saber quién responde
+  results.push('\nCiclo 2: la agencia escribe al coach desde el proceso y registra la respuesta');
+  const OUT_PERMS = [...BASIC_PERMS, 'organization.contact'];
+  const C2 = await mkUser('c2-adulta', 'athlete', 20);
+  await as(C2, `select representation_invite($1, $2)`, [agencyId, C2]);
+  const repC2 = await repRequest(u.agent, agencyId, C2, { perms: OUT_PERMS });
+  await as(C2, `select representation_respond($1, true)`, [repC2]);
+  const caseC2 = (await as(u.agent, `insert into recruiting_cases (agency_id, athlete_id, institution_name, sport_id, cycle, stage) values ($1, $2, 'Coach State University', 'basketball', '2027-28', 'approved_to_contact') returning id`, [agencyId, C2])).rows[0].id;
+  const outCreate = (who, c, email = 'coach@state.edu') => as(who, `select * from case_outreach_create($1, null, $2, 'Prospect: guard, class of 2027', 'Hi Coach, sharing a profile for your review.')`, [c, email]);
+  let outId; let outToken;
+  await check('C2-1 la agencia prepara el email con enlace al Passport; el atleta ve el enlace en su lista', async () => {
+    const r = (await outCreate(u.agent, caseC2)).rows[0];
+    outId = r.id; outToken = r.token;
+    eq(outToken.length, 64, 'token');
+    eq((await as(C2, `select count(*)::int n from recruiting_links where athlete_id = $1 and label = 'Coach · Coach State University'`, [C2])).rows[0].n, 1, 'el atleta lo ve');
+    eq((await as(u.agent, `select status from case_outreach where id = $1`, [outId])).rows[0].status, 'draft');
+  });
+  await check('C2-2 otra agencia, el atleta y nadie directamente: ni ven ni escriben', async () => {
+    eq((await as(agent2, `select count(*)::int n from case_outreach`)).rows[0].n, 0, 'otra agencia');
+    eq((await as(C2, `select count(*)::int n from case_outreach`)).rows[0].n, 0, 'atleta');
+    eq((await as(agent2, `select count(*)::int n from case_outreach_list($1)`, [caseC2])).rows[0].n, 0, 'lista ajena');
+    await expectError(() => outCreate(agent2, caseC2), /not_allowed/);
+    await expectError(() => as(agent2, `select case_outreach_mark($1, 'sent')`, [outId]), /not_allowed/);
+    await expectError(() => as(u.agent, `insert into case_outreach (case_id, agency_id, to_email, subject, body) values ($1, $2, 'a@b.co', 'Hola', 'Cuerpo de prueba')`, [caseC2, agencyId]), /permission denied|row-level security/);
+    await expectError(() => as(u.agent, `update case_outreach set status = 'replied' where id = $1`, [outId]).then((r) => { if (r.rowCount) throw new Error('actualizó'); throw new Error('row-level security'); }), /permission denied|row-level security/);
+  });
+  await check('C2-3 enviado → contactado; abre el coach; respuesta → respuesta recibida; todo en el historial', async () => {
+    eq((await as(u.agent, `select case_outreach_mark($1, 'sent') s`, [outId])).rows[0].s, 'sent');
+    eq((await as(u.agent, `select stage from recruiting_cases where id = $1`, [caseC2])).rows[0].stage, 'contacted');
+    await as(null, `select * from get_recruiting_card($1)`, [outToken]);
+    const l = (await as(u.agent, `select * from case_outreach_list($1)`, [caseC2])).rows[0];
+    eq(l.views, 1, 'aperturas'); eq(l.link_active, true);
+    await expectError(() => as(u.agent, `select case_outreach_mark($1, 'sent')`, [outId]), /invalid_transition/);
+    await as(u.agent, `select case_outreach_mark($1, 'replied', 'Quiere ver un partido completo')`, [outId]);
+    eq((await as(u.agent, `select stage from recruiting_cases where id = $1`, [caseC2])).rows[0].stage, 'response_received');
+    eq((await as(u.agent, `select count(*)::int n from recruiting_case_activities where case_id = $1 and kind = 'email'`, [caseC2])).rows[0].n, 2, 'dos emails en el historial');
+  });
+  await check('C2-4 sin permiso de contacto, sin aprobar o sin representación: no se prepara', async () => {
+    const D = await mkUser('c2-sinperm', 'athlete', 21);
+    await as(D, `select representation_invite($1, $2)`, [agencyId, D]);
+    await as(D, `select representation_respond($1, true)`, [await repRequest(u.agent, agencyId, D)]);
+    const cD = (await as(u.agent, `insert into recruiting_cases (agency_id, athlete_id, institution_name, sport_id, cycle, stage) values ($1, $2, 'Otra State', 'basketball', '2027-28', 'approved_to_contact') returning id`, [agencyId, D])).rows[0].id;
+    await expectError(() => outCreate(u.agent, cD), /contact_permission_required/);
+    const cR = (await as(u.agent, `insert into recruiting_cases (agency_id, athlete_id, institution_name, sport_id, cycle) values ($1, $2, 'Research U', 'basketball', '2027-28') returning id`, [agencyId, C2])).rows[0].id;
+    await expectError(() => outCreate(u.agent, cR), /not_approved_to_contact/);
+    await expectError(() => outCreate(u.agent, caseC2, 'no-es-un-email'), /email_invalid/);
+    const draft = (await outCreate(u.agent, caseC2)).rows[0].id;
+    await as(C2, `select representation_end($1, 'Fin de la prueba')`, [repC2]);
+    await expectError(() => as(u.agent, `select case_outreach_mark($1, 'sent')`, [draft]), /representation_required|not_allowed|contact_permission_required/);
+  });
+
   if (!process.env.SKIP_ERASURE) await check('RGPD: toda cuenta y toda organización se puede borrar (anonimiza auditoría, no bloquea)', async () => {
     await db.query(`select set_config('request.jwt.claims', '{}', false)`);
     const fails = [];

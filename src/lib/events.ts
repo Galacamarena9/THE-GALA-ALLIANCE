@@ -24,7 +24,9 @@ export type FunnelEvent =
   // Prompt 5 · Inicio del agente
   | 'agent_home_viewed' | 'agent_attention_opened'
   // Ciclo 1 · importar cartera e invitar a reclamarla
-  | 'athlete_invited' | 'invite_opened' | 'athlete_claimed';
+  | 'athlete_invited' | 'invite_opened' | 'athlete_claimed'
+  // Ciclo 2 · escribir a coaches y saber quién responde
+  | 'coach_outreach_sent' | 'coach_reply_logged';
 
 export async function logEvent(event: FunnelEvent, props: Record<string, string | number | boolean> = {}, dedupeKey?: string) {
   try {

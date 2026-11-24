@@ -9,6 +9,10 @@ import { dueText, isOverdue, relativeTime } from '@/lib/domain/portfolio';
 import { toggleShare, toggleTask } from '@/app/actions/agency-cases';
 import { UpdateCaseForm, ActivityForm, TaskForm } from '@/components/agency/CaseForms';
 import { Badge, Card, CardTitle, Notice, PageHeader } from '@/components/ui';
+import { CoachOutreach, type OutreachRow } from '@/components/agency/CoachOutreach';
+import { canOutreachFrom, coachEmailDraft, type OutreachStatus } from '@/lib/domain/coach-outreach';
+import { ncaaWindow, formatEsDate } from '@/lib/domain/ncaa';
+import type { Division } from '@/lib/types';
 
 export const metadata: Metadata = { title: 'Proceso' };
 
@@ -24,11 +28,16 @@ export default async function CasePage({ params }: { params: Promise<{ id: strin
   if (!c) notFound();
 
   const supabase = await createClient();
-  const [{ data: acts }, { data: tasks }] = await Promise.all([
+  const [{ data: acts }, { data: tasks }, { data: outreach }, { data: caseMeta }, { data: ath }, { data: minor }, { data: me }] = await Promise.all([
     supabase.from('recruiting_case_activities').select('id, kind, from_stage, to_stage, body, occurred_on, actor_id, created_at')
       .eq('case_id', id).order('created_at', { ascending: false }).limit(200),
     supabase.from('recruiting_case_tasks').select('id, title, assignee_id, due_date, done, done_at, created_at')
       .eq('case_id', id).order('done').order('due_date', { ascending: true, nullsFirst: false }),
+    supabase.rpc('case_outreach_list', { p_case: id }),
+    supabase.from('recruiting_cases').select('institution_id, institutions(division)').eq('id', id).maybeSingle(),
+    supabase.from('athlete_profiles').select('graduation_year, sport_positions!athlete_profiles_primary_position_id_fkey(name_en)').eq('user_id', c.athleteId).maybeSingle(),
+    supabase.rpc('is_minor', { p_user: c.athleteId }),
+    supabase.from('profiles').select('display_name').eq('id', session.userId).maybeSingle(),
   ]);
   const members = data.members.get(c.agencyId) ?? [];
   const nameOf = new Map(members.map((m) => [m.userId, m.name]));
@@ -38,6 +47,31 @@ export default async function CasePage({ params }: { params: Promise<{ id: strin
   const writable = canWrite(data.myRole.get(c.agencyId));
   const stageIdx = CASE_STAGES.findIndex((s) => s.id === c.stage);
   const representationActive = data.athletes.some((a) => a.id === c.athleteId && a.agencyId === c.agencyId);
+
+  type RawOut = { id: string; to_email: string; subject: string; status: string; sent_at: string | null; replied_at: string | null; note: string | null; created_at: string; views: number; last_viewed_at: string | null; link_active: boolean };
+  const outreachRows: OutreachRow[] = ((outreach ?? []) as RawOut[]).map((o) => ({
+    id: o.id, toEmail: o.to_email, subject: o.subject, status: o.status as OutreachStatus, sentAt: o.sent_at, repliedAt: o.replied_at,
+    note: o.note, createdAt: o.created_at, views: o.views, lastViewedAt: o.last_viewed_at, linkActive: o.link_active,
+  }));
+  const athleteRow = ath as { graduation_year: number | null; sport_positions: { name_en: string } | null } | null;
+  const gradYear = athleteRow?.graduation_year ?? null;
+  const division = ((caseMeta as { institutions: { division: Division | null } | null } | null)?.institutions?.division) ?? null;
+  const ncaa = ncaaWindow(gradYear, division, c.sportId);
+  const ncaaNote = !ncaa.open && ncaa.opensOn
+    ? `Orientativo: por las normas NCAA de contacto, el cuerpo técnico no podrá responder a iniciativas de reclutamiento antes del ${formatEsDate(ncaa.opensOn)}. Puedes escribir igualmente; consulta con cumplimiento si dudas.`
+    : null;
+  const agencyName = data.agencies.find((a) => a.id === c.agencyId)?.name ?? 'our agency';
+  const draft = coachEmailDraft({
+    athleteName: c.athleteName, minor: minor === true, sportId: c.sportId, gradYear,
+    position: athleteRow?.sport_positions?.name_en ?? null, institutionName: c.institutionName,
+    coachName: contact?.name ?? null, agencyName, senderName: (me as { display_name: string | null } | null)?.display_name ?? agencyName,
+  });
+  const outreachOpen = canOutreachFrom(c.stage);
+  const blockedReason = !writable ? 'Tu rol es de solo lectura.'
+    : !representationActive ? 'Sin representación activa no se puede escribir al coach en nombre del atleta.'
+    : !outreachOpen ? 'Cuando el atleta (o su familia) apruebe esta universidad, pasa el proceso a «Aprobado para contactar» para escribir al coach desde aquí.'
+    : null;
+  const outreachContacts = data.contacts.filter((x) => x.agencyId === c.agencyId).map((x) => ({ id: x.id, name: `${x.name} · ${x.institutionName}`, email: x.email }));
 
   type Act = { id: string; kind: string; from_stage: string | null; to_stage: string | null; body: string | null; occurred_on: string; actor_id: string | null; created_at: string };
   type Task = { id: string; title: string; assignee_id: string | null; due_date: string | null; done: boolean };
@@ -70,6 +104,15 @@ export default async function CasePage({ params }: { params: Promise<{ id: strin
             <CardTitle kicker="Estado">Fase y próxima acción</CardTitle>
             {!writable && <p className="mb-3 text-sm text-muted">Tu rol es de solo lectura.</p>}
             <UpdateCaseForm c={c} members={memberOpts} contacts={contactOpts} disabled={!writable} />
+          </Card>
+
+          <Card>
+            <CardTitle kicker="Coach">Escribir al <em>coach</em></CardTitle>
+            <p className="mb-4 text-sm text-muted">
+              Plantilla en inglés con un enlace privado al Passport. Sale de tu correo; aquí queda quién lo abre y quién contesta.
+            </p>
+            <CoachOutreach caseId={c.id} canSend={!blockedReason} blockedReason={blockedReason} contacts={outreachContacts}
+              defaultContactId={c.contactId} draft={draft} rows={outreachRows} ncaaNote={ncaaNote} now={new Date().toISOString()} />
           </Card>
 
           <Card>
