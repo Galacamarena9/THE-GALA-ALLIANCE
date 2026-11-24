@@ -71,6 +71,7 @@ erDiagram
   ATHLETE_PROFILES ||--o{ SAVED_ATHLETES : "athlete_id"
   PROFILES ||--o{ SAVED_ATHLETES : "owner_id"
   PROFILES ||--o{ SAVED_SEARCHES : "owner_id"
+  PROFILES |o--o{ SAVED_SEARCHES : "subject_id"
   PROFILES |o--o{ SHORTLIST_ACCESS : "granted_by"
   ORGANIZATIONS ||--o{ SHORTLIST_ACCESS : "organization_id"
   ORG_SHORTLISTS ||--o{ SHORTLIST_ACCESS : "shortlist_id"
@@ -255,6 +256,8 @@ erDiagram
     bool alerts_enabled
     timestamptz last_seen_at
     timestamptz created_at
+    text scope
+    uuid subject_id FK
   }
   SHORTLIST_ACCESS {
     uuid shortlist_id PK,FK
@@ -284,7 +287,7 @@ erDiagram
 | `org_tasks` | Interna | — | persona (assignee_id) → se anonimiza<br>atleta (athlete_id) → se anonimiza<br>persona (created_by) → se anonimiza<br>organización (organization_id) → se borra | Mientras exista la organización | — | KEEP |
 | `recruiting_needs` | Interna | — | persona (created_by) → se anonimiza<br>organización (organization_id) → se borra | Mientras exista la organización | — | KEEP |
 | `saved_athletes` | Personal | — | atleta (athlete_id) → se borra<br>persona (owner_id) → se borra | Mientras exista la cuenta | Sí | MERGE → org_shortlists privadas |
-| `saved_searches` | Personal | — | persona (owner_id) → se borra | Mientras exista la cuenta | Sí | MERGE → org_saved_searches (solo para staff) |
+| `saved_searches` | Personal | — | persona (owner_id) → se borra<br>persona (subject_id) → se borra | Mientras exista la cuenta | Sí | MERGE → org_saved_searches (solo para staff) |
 | `shortlist_access` | Interna | — | persona (granted_by) → se anonimiza<br>organización (organization_id) → se borra<br>persona (user_id) → se borra | Mientras exista la organización | — | KEEP |
 
 - `org_assignment_log`: Log inmutable: athlete_id, candidate_id y shortlist_id son referencias históricas sin FK (a propósito).

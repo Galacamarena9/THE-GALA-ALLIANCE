@@ -147,6 +147,7 @@ export const TABLES = {
   territory_regions: { domain: '10-agencias-clubes', cls: 'public', decision: 'KEEP', export: false, note: 'Catálogo de regiones (Europa, Norteamérica, Latam).' },
   professional_credentials: { domain: '10-agencias-clubes', cls: 'sensitive', decision: 'KEEP', export: true, note: 'Licencias del agente; el número nunca es público.' },
   agency_athlete_notes: { domain: '10-agencias-clubes', cls: 'internal', decision: 'KEEP', noExport: 'Nota interna de la agencia sobre el atleta' },
+  agency_athlete_invites: { domain: '10-agencias-clubes', cls: 'internal', minors: true, decision: 'KEEP', noExport: 'Invitación de la agencia a un atleta de su cartera (solo hash del enlace)' },
   recruiting_cases: { domain: '10-agencias-clubes', cls: 'internal', minors: true, decision: 'KEEP', noExport: 'Caso interno de la agencia' },
   recruiting_case_tasks: { domain: '10-agencias-clubes', cls: 'internal', decision: 'KEEP' },
   recruiting_case_activities: { domain: '10-agencias-clubes', cls: 'internal', decision: 'KEEP' },
