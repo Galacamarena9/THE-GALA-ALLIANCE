@@ -238,6 +238,12 @@ export type Database = {
         }
         Relationships: []
       }
+      agency_athlete_invites: {
+        Row: { id: string; agency_id: string; invited_by: string; full_name: string; email: string | null; sport: string | null; graduation_year: number | null; token_hash: string; status: string; opened_at: string | null; claimed_at: string | null; claimed_by: string | null; expires_at: string; created_at: string }
+        Insert: { id?: string; agency_id?: string; invited_by?: string; full_name?: string; email?: string | null; sport?: string | null; graduation_year?: number | null; token_hash?: string; status?: string; opened_at?: string | null; claimed_at?: string | null; claimed_by?: string | null; expires_at?: string; created_at?: string }
+        Update: { id?: string; agency_id?: string; invited_by?: string; full_name?: string; email?: string | null; sport?: string | null; graduation_year?: number | null; token_hash?: string; status?: string; opened_at?: string | null; claimed_at?: string | null; claimed_by?: string | null; expires_at?: string; created_at?: string }
+        Relationships: []
+      }
       agency_athlete_notes: {
         Row: {
           agency_id: string
@@ -9951,6 +9957,17 @@ export type Database = {
         Args: { p_agency: string; p_athlete: string }
         Returns: boolean
       }
+      agency_invite_claim: { Args: { p_token: string }; Returns: string }
+      agency_invite_create: {
+        Args: { p_agency: string; p_name: string; p_email?: string; p_sport?: string; p_year?: number }
+        Returns: { id: string; token: string }[]
+      }
+      agency_invite_preview: {
+        Args: { p_token: string }
+        Returns: { agency_name: string; agency_verified: boolean; valid: boolean }[]
+      }
+      agency_invite_reissue: { Args: { p_id: string }; Returns: string }
+      agency_invite_revoke: { Args: { p_id: string }; Returns: undefined }
       agency_can_write: { Args: { p_agency: string }; Returns: boolean }
       agency_has_active_representation: {
         Args: { p_agency: string; p_athlete: string }

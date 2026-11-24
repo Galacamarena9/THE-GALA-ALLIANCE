@@ -22,7 +22,9 @@ export type FunnelEvent =
   | 'brand_offer_sent' | 'brand_offer_accepted' | 'deliverable_submitted' | 'collaborations_viewed'
   | 'trust_center_viewed' | 'support_case_opened' | 'subscription_started' | 'billing_viewed'
   // Prompt 5 · Inicio del agente
-  | 'agent_home_viewed' | 'agent_attention_opened';
+  | 'agent_home_viewed' | 'agent_attention_opened'
+  // Ciclo 1 · importar cartera e invitar a reclamarla
+  | 'athlete_invited' | 'invite_opened' | 'athlete_claimed';
 
 export async function logEvent(event: FunnelEvent, props: Record<string, string | number | boolean> = {}, dedupeKey?: string) {
   try {
