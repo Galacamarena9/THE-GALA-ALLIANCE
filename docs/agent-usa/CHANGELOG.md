@@ -64,6 +64,13 @@ Cambios: rama `feat/fee-attestation-founder-cap`; migración `20261217000100_fee
 Pruebas: unit 266/266; RLS 438/438 (C3-1, C3-2); e2e 370 OK + `founder-pricing.spec.ts`; build OK.
 Riesgos abiertos: representaciones anteriores sin declaración (se muestran con aviso «pídesela»); claves Stripe live y `free_until` (gate de Gala); validación legal NCAA del texto.
 
+## [Fase 2 auditoría] 2026-11-24 · Los límites de plan se cumplen
+Origen: auditoría integral con el Agente Maestro PRO (hallazgo H1).
+Cambios:
+- Migración `20261219000100_phase2_plan_limits.sql`: retira `free_until`; prueba de 30 días por agencia (`agency_trials`, ampliable por administración con motivo); `agency_plan_features`/`agency_plan_status`; triggers que bloquean añadir atletas o puestos por encima del plan. ROLLBACK en la cabecera.
+- Facturación muestra la prueba (días restantes) y el uso frente al límite; mensajes claros al importar cartera, proponer representación o unirse a un equipo lleno.
+Pruebas: unit 272/272; RLS 445/445 (P2-1…P2-4); e2e 376 OK con `plan-limits.spec.ts`; build OK.
+
 ## [Fase 1 auditoría] 2026-11-24 · Confianza para el piloto
 Origen: auditoría integral con el Agente Maestro PRO (hallazgos S1, S2, H2, S6).
 Cambios:

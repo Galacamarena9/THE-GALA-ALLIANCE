@@ -1,5 +1,7 @@
 import { FOUNDER_PRICE_CENTS, founderSeats } from '@/lib/domain/fee-attestation';
 import type { Metadata } from 'next';
+import type { AgencyPlanStatus } from '@/lib/domain/plan-limits';
+import { PlanUsage } from '@/components/agency/PlanUsage';
 import { requireSession } from '@/lib/session';
 import { logEvent } from '@/lib/events';
 import { createClient } from '@/lib/supabase/server';
@@ -43,10 +45,17 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
   const ids = orgs.map((o) => o.id);
   const [{ data: accounts }, { data: catalog }, { data: members }, { data: founderRows }] = await Promise.all([
     supabase.from('billing_accounts').select('id, organization_id, stripe_customer_id, subscriptions(id, plan_code, status, seats, current_period_end, cancel_at_period_end, seat_assignments(user_id)), billing_ledger(kind, amount_cents, currency, occurred_at)').in('organization_id', ids),
-    supabase.from('plan_catalog').select('code, audience, name, billing_interval, price_cents, currency, seats_included, free_until, stripe_price_id').eq('active', true),
+    supabase.from('plan_catalog').select('code, audience, name, billing_interval, price_cents, currency, seats_included, stripe_price_id').eq('active', true),
     supabase.from('organization_members').select('organization_id, user_id, profiles:user_id(display_name)').in('organization_id', ids),
     supabase.rpc('agency_founder_status'),
   ]);
+  const agencyIds = orgs.filter((o) => o.type === 'agency').map((o) => o.id);
+  const planStatus = new Map<string, AgencyPlanStatus>();
+  await Promise.all(agencyIds.map(async (id) => {
+    const { data } = await supabase.rpc('agency_plan_status', { p_org: id });
+    const row = (data as AgencyPlanStatus[] | null)?.[0];
+    if (row) planStatus.set(id, row);
+  }));
   const founder = founderSeats((founderRows as { cap: number; taken: number; remaining: number }[] | null)?.[0]);
   type Sub = { id: string; plan_code: string; status: string; seats: number; current_period_end: string | null; cancel_at_period_end: boolean; seat_assignments: { user_id: string }[] };
   type Acct = { id: string; organization_id: string; stripe_customer_id: string | null; subscriptions: Sub[]; billing_ledger: { kind: string; amount_cents: number; currency: string; occurred_at: string }[] };
@@ -63,13 +72,14 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
           const acct = accountByOrg.get(o.id);
           const sub = acct?.subscriptions.find((s) => !['canceled', 'incomplete_expired'].includes(s.status)) ?? null;
           const plans = (catalog ?? []).filter((p) => p.audience === audienceOf[o.type as string]);
-          const launch = plans.find((p) => p.free_until && (p.free_until as string) >= new Date().toISOString().slice(0, 10));
+          const ps = planStatus.get(o.id);
           const team = (members ?? []).filter((m) => m.organization_id === o.id);
           return (
             <Card key={o.id}>
               <CardTitle kicker={o.name} action={sub ? <Badge tone={STATUS[sub.status]?.tone ?? 'neutral'}>{STATUS[sub.status]?.label ?? sub.status}</Badge> : <Badge>Sin suscripción</Badge>}>
-                {sub ? plans.find((p) => p.code === sub.plan_code)?.name ?? sub.plan_code : launch ? `${launch.name} · incluido gratis hasta el ${date(launch.free_until as string)}` : 'Plan gratuito'}
+                {sub ? plans.find((p) => p.code === sub.plan_code)?.name ?? sub.plan_code : ps?.source === 'trial' ? `${plans.find((p) => p.code === 'agent_team')?.name ?? 'Agencia'} · prueba gratuita hasta el ${date(ps.trial_ends_at as string)}` : ps ? 'Sin plan activo' : 'Plan gratuito'}
               </CardTitle>
+              {ps && <PlanUsage status={ps} />}
               {sub ? (
                 <>
                   <p className="text-sm text-muted">{sub.cancel_at_period_end ? 'Se cancelará' : 'Se renueva'} {sub.current_period_end ? `el ${date(sub.current_period_end)}` : ''} · {sub.seat_assignments.length} de {sub.seats} asientos en uso.</p>

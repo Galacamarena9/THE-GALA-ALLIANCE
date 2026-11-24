@@ -27,6 +27,7 @@
 | D-17 | 2026-11 | Checkout de suscripción con Stripe Tax y recogida de NIF/VAT | Facturación B2B correcta | PR #105, `src/app/actions/billing.ts` L68-80 | Vigente (sin claves live) | Sí |
 | D-18 | 2026-11-24 | Ciclo 2: el email al coach sale del buzón de la agencia (mailto/copiar), no de la plataforma; la agencia registra enviado/respuesta. La agencia puede crear el enlace al Passport solo con representación activa y permisos `organization.contact` + `passport.view` (para menores, los aprobó la familia); el atleta lo ve y lo revoca | Sin dominio ni Resend todavía; reputación de envío y DPA de la agencia; no inventar entregas | `20261216000100_coach_outreach.sql`, `src/lib/domain/coach-outreach.ts` | Vigente | Sí (envío por Resend cuando haya dominio) |
 | D-19 | 2026-11-24 | Ciclo 3: declaración de tarifas en tabla append-only con texto canónico versionado (lo fija el servidor), visible al atleta y su familia; cupo fundador aplicado por la base de datos (`checkout_plan`, `agency_founder_status`): 15 cuentas con suscripción v3 viva, una baja libera plaza; `subscription_started` lo emite `billing_apply_event` | Cierra P-03, P-04 y la medición de ingresos de P-06 | `20261217000100_fee_attestation_founder_cap.sql` | Vigente (sin claves live) | Sí |
+| D-20 | 2026-11-24 | Fase 2 de la auditoría (H1): `free_until` = null en todo el catálogo; cada agencia tiene 30 días de prueba sin tarjeta con el plan Agencia (las existentes, 30 días desde hoy; ampliable solo por administración, máx. 90 días por vez, auditado). Los límites de atletas (propuestas + representados + invitaciones abiertas) y puestos se comprueban en la base de datos al añadir; nunca se borra nada | Sin límites ni fin del periodo gratis no hay motivo para pagar; se cumple lo que ya anuncia la web («30 días gratis») | `20261219000100_phase2_plan_limits.sql` | Vigente. Hasta tener Stripe live, ampliar la prueba de los pilotos con `admin_agency_trial_extend` | Sí |
 
 ## Propuestas del agente (pendientes de aprobación)
 
@@ -36,7 +37,7 @@
 | P-02 | Unificar foco de deporte (resolver D-03 vs D-04) en un solo documento | Mensajes y SEO coherentes | Mensajes contradictorios en piloto |
 | ~~P-03~~ | (Hecho en ciclo 3, D-19) Persistir la atestación en tabla append-only (no solo en `product_events`) | Prueba auditable ante familia/NCAA | Evidencia perdida a los 13 meses o sin props para menores |
 | ~~P-04~~ | (Hecho en ciclo 3, D-19) Cupo fundador de 15 agencias aplicado en base de datos | Hoy el catálogo cobra 47/119 € a todos | Precio fundador indefinido para cualquiera |
-| P-05 | Alinear `agent_scale` (249 € en catálogo vs «desde 449 €») y `free_until` al pasar a live | Coherencia de cobro | Facturas que no cuadran con la web |
+| P-05 | Alinear `agent_scale` (249 € en catálogo vs «desde 449 €») al pasar a live (`free_until` ya retirado, D-20) | Coherencia de cobro | Facturas que no cuadran con la web |
 | P-06 | Instrumentar eventos de agencia (`agency_case_created`, cambios de fase, outreach) | Sin ellos no se puede medir el North Star del lado que paga | Decidir a ciegas |
 | P-07 | No migrar a la estructura `apps/*`/`packages/*` de la skill | El monolito actual ya es modular; coste sin beneficio medido | — |
 

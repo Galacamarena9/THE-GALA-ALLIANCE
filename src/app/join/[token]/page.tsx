@@ -7,6 +7,7 @@ import { SubmitButton } from '@/components/SubmitButton';
 import { createClient } from '@/lib/supabase/server';
 import { getSession } from '@/lib/session';
 import { ORG_TYPE_LABEL } from '@/lib/domain/labels';
+import { planLimitMessage } from '@/lib/domain/plan-limits';
 import type { OrgType } from '@/lib/types';
 
 export const metadata: Metadata = { title: 'Unirse al equipo', robots: { index: false } };
@@ -16,7 +17,7 @@ async function acceptTeamInvitation(formData: FormData) {
   const token = z.string().regex(/^[a-f0-9]{64}$/).parse(formData.get('token'));
   const supabase = await createClient();
   const { error } = await supabase.rpc('accept_organization_invitation', { p_token: token });
-  if (error) redirect(`/join/${token}?error=1`);
+  if (error) redirect(`/join/${token}?error=${error.message.includes('plan_seat_limit') ? 'seats' : '1'}`);
   redirect('/app/organization');
 }
 
@@ -62,7 +63,7 @@ export default async function JoinTeamPage({ params, searchParams }: { params: P
               {!session.roles.includes('coach') && !session.roles.includes('university') && (
                 <div className="mt-4"><Notice tone="warn">Necesitas un perfil de coach. <a className="underline" href={`/onboarding?add=1&role=coach&team=${token}`}>Añádelo aquí</a>.</Notice></div>
               )}
-              {error && <div className="mt-4"><Notice tone="danger">No se ha podido aceptar la invitación.</Notice></div>}
+              {error && <div className="mt-4"><Notice tone="danger">{error === 'seats' ? planLimitMessage('plan_seat_limit') : 'No se ha podido aceptar la invitación.'}</Notice></div>}
               <form action={acceptTeamInvitation} className="mt-6">
                 <input type="hidden" name="token" value={token} />
                 <SubmitButton pendingText="Uniéndote…">Unirme al equipo</SubmitButton>
