@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
+import { afterSignupPath } from '@/lib/domain/safe-path';
 import { Logo } from '@/components/Logo';
 import { getSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
@@ -9,10 +10,10 @@ import { OnboardingForm } from './OnboardingForm';
 
 export const metadata: Metadata = { title: '¿Qué te trae por aquí?' };
 
-export default async function OnboardingPage({ searchParams }: { searchParams: Promise<{ role?: string; invite?: string; team?: string; add?: string }> }) {
+export default async function OnboardingPage({ searchParams }: { searchParams: Promise<{ role?: string; invite?: string; team?: string; add?: string; next?: string }> }) {
   const session = await getSession();
   if (!session) redirect('/login?next=/onboarding');
-  const { role, invite, team, add } = await searchParams;
+  const { role, invite, team, add, next } = await searchParams;
   // Con ?add=1 un usuario existente añade otro perfil (p. ej. coach que también es agente).
   if (session.onboardingCompleted && add !== '1') redirect(roleHome(session.primaryRole));
   const supabase = await createClient();
@@ -34,6 +35,7 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
           initialRole={role}
           invite={invite}
           team={team}
+          next={afterSignupPath(next) ?? undefined}
           existingRoles={session.roles}
           isMinor={session.isMinor}
           sports={(sports ?? []) as Sport[]}

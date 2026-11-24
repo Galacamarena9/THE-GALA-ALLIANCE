@@ -1,5 +1,6 @@
 'use server';
 
+import { afterSignupPath, safeRedirectPath } from '@/lib/domain/safe-path';
 import { logEvent } from '@/lib/events';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
@@ -30,6 +31,12 @@ export async function signUp(_prev: FormState, formData: FormData): Promise<Form
     return { fieldErrors };
   }
   const { displayName, email, password, dateOfBirth, role } = parsed.data;
+  // A dónde volver al terminar (p. ej. la invitación de una agencia): solo rutas internas de la lista.
+  const after = afterSignupPath(String(formData.get('next') ?? ''));
+  const qs = new URLSearchParams();
+  if (role) qs.set('role', role);
+  if (after) qs.set('next', after);
+  const onboardingUrl = `/onboarding${qs.size ? `?${qs.toString()}` : ''}`;
   const pw = checkNewPassword(password, password);
   if (!pw.ok) return { error: pw.error, fieldErrors: { password: pw.error } };
 
@@ -54,7 +61,7 @@ export async function signUp(_prev: FormState, formData: FormData): Promise<Form
     password,
     options: {
       captchaToken: captchaToken(formData),
-      emailRedirectTo: `${siteUrl()}/auth/callback?next=/onboarding${role ? `?role=${role}` : ''}`,
+      emailRedirectTo: `${siteUrl()}/auth/callback?next=${encodeURIComponent(onboardingUrl)}`,
       data: { display_name: displayName, date_of_birth: dateOfBirth, signup_role: role ?? null },
     },
   });
@@ -66,7 +73,7 @@ export async function signUp(_prev: FormState, formData: FormData): Promise<Form
 
   const { data } = await supabase.auth.getUser();
   if (data.user) await logEvent('signup_completed');
-  if (data.user) redirect(`/onboarding${role ? `?role=${role}` : ''}`);
+  if (data.user) redirect(onboardingUrl);
   return { ok: true, message: email };
 }
 
@@ -86,10 +93,8 @@ const loginSchema = z.object({
   next: z.string().optional(),
 });
 
-/** Solo redirecciones internas: evita open redirects vía ?next=. */
-function safeNext(next: string | undefined) {
-  return next && next.startsWith('/') && !next.startsWith('//') ? next : '/app';
-}
+/** Solo redirecciones internas: evita open redirects vía ?next= (también `/\\dominio`). */
+const safeNext = (next: string | undefined) => safeRedirectPath(next, '/app');
 
 export async function signIn(_prev: FormState, formData: FormData): Promise<FormState> {
   const parsed = loginSchema.safeParse(Object.fromEntries(formData));

@@ -3,6 +3,7 @@
 import { logEvent } from '@/lib/events';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
+import { afterSignupPath } from '@/lib/domain/safe-path';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { getSession } from '@/lib/session';
@@ -151,5 +152,6 @@ export async function completeOnboarding(_prev: FormState, formData: FormData): 
   if (!addingRole && ref && /^[a-z0-9]{8}$/.test(ref)) {
     try { await supabase.rpc('referral_claim', { p_code: ref }); } catch { /* nunca bloquea el alta */ }
   }
-  redirect(pendingInvite ? `/invite/${pendingInvite}` : teamInvite ? `/join/${teamInvite}` : roleHome(data.role));
+  const after = afterSignupPath(typeof raw.next === 'string' ? raw.next : null);
+  redirect(pendingInvite ? `/invite/${pendingInvite}` : teamInvite ? `/join/${teamInvite}` : after ?? roleHome(data.role));
 }

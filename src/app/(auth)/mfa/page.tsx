@@ -2,12 +2,11 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { MfaChallenge } from './MfaChallenge';
+import { safeRedirectPath } from '@/lib/domain/safe-path';
 
 export const metadata: Metadata = { title: 'Código de verificación', robots: { index: false } };
 
-function safeNext(next: string | undefined) {
-  return next && next.startsWith('/') && !next.startsWith('//') ? next : '/app';
-}
+const safeNext = (next: string | undefined) => safeRedirectPath(next, '/app');
 
 export default async function MfaPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
   const supabase = await createClient();
