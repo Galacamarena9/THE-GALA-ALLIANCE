@@ -1,5 +1,6 @@
 'use server';
 
+import { must } from '@/lib/supabase/must';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
@@ -64,7 +65,7 @@ export async function setNeedStatus(formData: FormData) {
   await requireSession();
   const t = z.object({ id: uuid, status: z.enum(['active', 'paused', 'filled', 'closed']) }).parse(Object.fromEntries(formData));
   const supabase = await createClient();
-  await supabase.from('recruiting_needs').update({ status: t.status }).eq('id', t.id);
+  must(await supabase.from('recruiting_needs').update({ status: t.status }).eq('id', t.id), 'recruiting_needs.update');
   refresh('/app/recruit/needs');
 }
 
@@ -106,10 +107,10 @@ export async function updateShortlistMember(formData: FormData) {
   }).parse(Object.fromEntries(formData));
   const supabase = await createClient();
   const m = supabase.from('org_shortlist_members');
-  if (t.op === 'remove') await m.delete().eq('shortlist_id', t.list).eq('athlete_id', t.athlete);
-  else if (t.op === 'reviewed' || t.op === 'to_review') await m.update({ review_status: t.op }).eq('shortlist_id', t.list).eq('athlete_id', t.athlete);
-  else if (t.op === 'priority' || t.op === 'unpriority') await m.update({ priority: t.op === 'priority' }).eq('shortlist_id', t.list).eq('athlete_id', t.athlete);
-  else if (t.op === 'assign') { await m.update({ assigned_to: t.assignee }).eq('shortlist_id', t.list).eq('athlete_id', t.athlete); if (t.assignee) await logEvent('candidate_assigned'); }
+  if (t.op === 'remove') must(await m.delete().eq('shortlist_id', t.list).eq('athlete_id', t.athlete), 'recruiting_needs.update');
+  else if (t.op === 'reviewed' || t.op === 'to_review') must(await m.update({ review_status: t.op }).eq('shortlist_id', t.list).eq('athlete_id', t.athlete), 'org_shortlist_members.update');
+  else if (t.op === 'priority' || t.op === 'unpriority') must(await m.update({ priority: t.op === 'priority' }).eq('shortlist_id', t.list).eq('athlete_id', t.athlete), 'org_shortlist_members.update');
+  else if (t.op === 'assign') { must(await m.update({ assigned_to: t.assignee }).eq('shortlist_id', t.list).eq('athlete_id', t.athlete), 'org_shortlist_members.update'); if (t.assignee) await logEvent('candidate_assigned'); }
   else {
     const { data } = await supabase.from('org_shortlist_members').select('athlete_id, position, added_at').eq('shortlist_id', t.list).order('position').order('added_at');
     const rows = data ?? [];
@@ -117,7 +118,7 @@ export async function updateShortlistMember(formData: FormData) {
     const j = t.op === 'up' ? i - 1 : i + 1;
     if (i >= 0 && j >= 0 && j < rows.length) {
       [rows[i], rows[j]] = [rows[j], rows[i]];
-      await Promise.all(rows.map((r, k) => m.update({ position: k }).eq('shortlist_id', t.list).eq('athlete_id', r.athlete_id)));
+      (await Promise.all(rows.map((r, k) => m.update({ position: k }).eq('shortlist_id', t.list).eq('athlete_id', r.athlete_id)))).forEach((res) => must(res, 'org_shortlist_members.update'));
     }
   }
   refresh(`/app/recruit/shortlists/${t.list}`);
@@ -127,7 +128,7 @@ export async function archiveShortlist(formData: FormData) {
   await requireSession();
   const t = z.object({ list: uuid, archive: z.enum(['1', '0']) }).parse(Object.fromEntries(formData));
   const supabase = await createClient();
-  await supabase.from('org_shortlists').update({ archived_at: t.archive === '1' ? new Date().toISOString() : null }).eq('id', t.list);
+  must(await supabase.from('org_shortlists').update({ archived_at: t.archive === '1' ? new Date().toISOString() : null }).eq('id', t.list), 'org_shortlists.update');
   refresh('/app/recruit/shortlists');
 }
 
@@ -152,7 +153,7 @@ export async function addCandidate(formData: FormData) {
   await requireSession();
   const t = z.object({ org: uuid, athlete: uuid }).parse(Object.fromEntries(formData));
   const supabase = await createClient();
-  await supabase.from('org_candidates').upsert({ organization_id: t.org, athlete_id: t.athlete, source: 'discovery' }, { onConflict: 'organization_id,athlete_id', ignoreDuplicates: true });
+  must(await supabase.from('org_candidates').upsert({ organization_id: t.org, athlete_id: t.athlete, source: 'discovery' }, { onConflict: 'organization_id,athlete_id', ignoreDuplicates: true }), 'org_candidates.upsert');
   await logEvent('athlete_discovered');
   redirect(`/app/recruit/candidates/${t.athlete}`);
 }
@@ -175,8 +176,8 @@ export async function bulkCandidates(formData: FormData) {
   const t = z.object({ op: z.enum(['stage', 'archive']), stage: z.enum(INTERNAL_STAGES).optional() }).parse({ op: formData.get('op'), stage: formData.get('stage') || undefined });
   if (!ids.length) return;
   const supabase = await createClient();
-  if (t.op === 'archive') await supabase.from('org_candidates').update({ archived_at: new Date().toISOString() }).in('id', ids);
-  else if (t.stage) await supabase.from('org_candidates').update({ internal_stage: t.stage }).in('id', ids);
+  if (t.op === 'archive') must(await supabase.from('org_candidates').update({ archived_at: new Date().toISOString() }).in('id', ids), 'org_candidates.update');
+  else if (t.stage) must(await supabase.from('org_candidates').update({ internal_stage: t.stage }).in('id', ids), 'org_candidates.update');
   refresh('/app/recruit/candidates');
 }
 
@@ -196,7 +197,7 @@ export async function deleteOrgNote(formData: FormData) {
   await requireSession();
   const t = z.object({ id: uuid, athlete: uuid }).parse(Object.fromEntries(formData));
   const supabase = await createClient();
-  await supabase.from('org_notes').delete().eq('id', t.id);
+  must(await supabase.from('org_notes').delete().eq('id', t.id), 'org_notes.delete');
   refresh(`/app/recruit/candidates/${t.athlete}`);
 }
 
@@ -214,7 +215,7 @@ export async function toggleOrgTask(formData: FormData) {
   await requireSession();
   const t = z.object({ id: uuid, done: z.enum(['1', '0']), athlete: optUuid }).parse(Object.fromEntries(formData));
   const supabase = await createClient();
-  await supabase.from('org_tasks').update({ status: t.done === '1' ? 'done' : 'open', done_at: t.done === '1' ? new Date().toISOString() : null }).eq('id', t.id);
+  must(await supabase.from('org_tasks').update({ status: t.done === '1' ? 'done' : 'open', done_at: t.done === '1' ? new Date().toISOString() : null }).eq('id', t.id), 'org_tasks.update');
   refresh('/app/recruit/tasks', ...(t.athlete ? [`/app/recruit/candidates/${t.athlete}`] : []));
 }
 
@@ -287,7 +288,7 @@ export async function setMemberPrograms(formData: FormData) {
   const user = uuid.parse(formData.get('user'));
   const programs = formData.getAll('programs').map(String).filter((x) => uuid.safeParse(x).success);
   const supabase = await createClient();
-  await supabase.from('organization_members').update({ program_ids: programs }).eq('organization_id', org).eq('user_id', user);
+  must(await supabase.from('organization_members').update({ program_ids: programs }).eq('organization_id', org).eq('user_id', user), 'organization_members.update');
   revalidatePath('/app/organization');
 }
 
@@ -368,7 +369,7 @@ export async function shareShortlist(formData: FormData) {
   const supabase = await createClient();
   const { data: list } = await supabase.from('org_shortlists').select('organization_id').eq('id', t.list).maybeSingle();
   if (!list) return;
-  if (t.revoke) await supabase.from('shortlist_access').update({ revoked_at: new Date().toISOString() }).eq('shortlist_id', t.list).eq('user_id', t.user);
+  if (t.revoke) must(await supabase.from('shortlist_access').update({ revoked_at: new Date().toISOString() }).eq('shortlist_id', t.list).eq('user_id', t.user), 'shortlist_access.update');
   else await supabase.from('shortlist_access').upsert({ shortlist_id: t.list, organization_id: list.organization_id, user_id: t.user, access_role: t.role ?? 'viewer', granted_by: session.userId, revoked_at: null });
   refresh(`/app/recruit/shortlists/${t.list}`);
 }

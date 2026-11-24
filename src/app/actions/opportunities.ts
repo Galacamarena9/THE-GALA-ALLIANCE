@@ -1,5 +1,6 @@
 'use server';
 
+import { must } from '@/lib/supabase/must';
 import { logEvent } from '@/lib/events';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
@@ -193,7 +194,7 @@ export async function deleteOpportunity(formData: FormData) {
   await requireSession(['university', 'coach']);
   const id = z.string().uuid().parse(formData.get('id'));
   const supabase = await createClient();
-  await supabase.from('opportunities').delete().eq('id', id).in('status', ['draft', 'rejected']);
+  must(await supabase.from('opportunities').delete().eq('id', id).in('status', ['draft', 'rejected']), 'opportunities.delete');
   revalidatePath('/app/opportunities');
   redirect('/app/opportunities');
 }
@@ -231,7 +232,7 @@ export async function withdrawApplication(formData: FormData) {
   const session = await requireSession(['athlete']);
   const id = z.string().uuid().parse(formData.get('id'));
   const supabase = await createClient();
-  await supabase.from('applications').update({ status: 'withdrawn' }).eq('id', id).eq('athlete_id', session.userId);
+  must(await supabase.from('applications').update({ status: 'withdrawn' }).eq('id', id).eq('athlete_id', session.userId), 'applications.update');
   revalidatePath('/app/applications');
 }
 
@@ -242,7 +243,7 @@ export async function moveApplication(formData: FormData) {
   const parsed = z.object({ id: z.string().uuid(), status: z.enum(STATUSES) }).safeParse(Object.fromEntries(formData));
   if (!parsed.success) return;
   const supabase = await createClient();
-  await supabase.from('applications').update({ status: parsed.data.status }).eq('id', parsed.data.id);
+  must(await supabase.from('applications').update({ status: parsed.data.status }).eq('id', parsed.data.id), 'applications.update');
   revalidatePath('/app/applications');
 }
 
@@ -251,6 +252,6 @@ export async function addApplicationNote(formData: FormData) {
   const parsed = z.object({ application_id: z.string().uuid(), body: z.string().trim().min(1).max(4000) }).safeParse(Object.fromEntries(formData));
   if (!parsed.success) return;
   const supabase = await createClient();
-  await supabase.from('application_notes').insert({ ...parsed.data, author_id: session.userId });
+  must(await supabase.from('application_notes').insert({ ...parsed.data, author_id: session.userId }), 'application_notes.insert');
   revalidatePath('/app/applications');
 }

@@ -1,5 +1,6 @@
 'use server';
 
+import { must } from '@/lib/supabase/must';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
@@ -43,6 +44,6 @@ export async function decideRecommendation(formData: FormData) {
   const parsed = decide.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return;
   const supabase = await createClient();
-  await supabase.from('club_recommendations').update({ status: parsed.data.status }).eq('id', parsed.data.id);
+  must(await supabase.from('club_recommendations').update({ status: parsed.data.status }).eq('id', parsed.data.id), 'club_recommendations.update');
   revalidatePath('/app/athlete/passport');
 }

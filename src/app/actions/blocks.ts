@@ -1,5 +1,6 @@
 'use server';
 
+import { must } from '@/lib/supabase/must';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
@@ -28,7 +29,7 @@ export async function unblockUser(formData: FormData) {
   const parsed = target.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return;
   const supabase = await createClient();
-  await supabase.from('user_blocks').delete().eq('blocker_id', session.userId).eq('blocked_id', parsed.data.blocked_id);
+  must(await supabase.from('user_blocks').delete().eq('blocker_id', session.userId).eq('blocked_id', parsed.data.blocked_id), 'user_blocks.delete');
   revalidatePath('/app/settings');
   revalidatePath('/app/inbox', 'layout');
 }

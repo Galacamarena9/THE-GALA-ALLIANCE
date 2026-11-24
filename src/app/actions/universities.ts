@@ -1,5 +1,6 @@
 'use server';
 
+import { must } from '@/lib/supabase/must';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { requireSession } from '@/lib/session';
@@ -36,7 +37,7 @@ export async function deleteProgram(formData: FormData) {
   const id = z.string().uuid().parse(formData.get('id'));
   const inst = z.string().uuid().parse(formData.get('institution_id'));
   const supabase = await createClient();
-  await supabase.from('institution_programs').delete().eq('id', id);
+  must(await supabase.from('institution_programs').delete().eq('id', id), 'institution_programs.delete');
   revalidatePath(`/app/universities/${inst}`);
 }
 
@@ -66,7 +67,7 @@ export async function reviewClaim(formData: FormData) {
   const id = z.string().uuid().parse(formData.get('id'));
   const status = z.enum(['approved', 'rejected']).parse(formData.get('status'));
   const supabase = await createClient();
-  await supabase.from('institution_claims').update({ status, review_note: String(formData.get('note') ?? '').slice(0, 1000) || null }).eq('id', id);
+  must(await supabase.from('institution_claims').update({ status, review_note: String(formData.get('note') ?? '').slice(0, 1000) || null }).eq('id', id), 'institution_claims.update');
   revalidatePath('/app/admin');
 }
 
@@ -76,7 +77,7 @@ export async function setOpportunityLifecycle(formData: FormData) {
   const id = z.string().uuid().parse(formData.get('id'));
   const action = z.enum(['closed', 'filled', 'confirm']).parse(formData.get('action'));
   const supabase = await createClient();
-  if (action === 'confirm') await supabase.rpc('confirm_opportunity_open', { p_opportunity: id });
+  if (action === 'confirm') must(await supabase.rpc('confirm_opportunity_open', { p_opportunity: id }), 'rpc.confirm_opportunity_open');
   else await supabase.from('opportunities').update({ status: action }).eq('id', id);
   revalidatePath(`/app/opportunities/${id}`);
 }

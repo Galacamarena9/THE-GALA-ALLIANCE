@@ -1,5 +1,6 @@
 'use server';
 
+import { must, bestEffort } from '@/lib/supabase/must';
 import { logEvent } from '@/lib/events';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
@@ -125,7 +126,7 @@ export async function saveGoals(_prev: FormState, formData: FormData): Promise<F
   if (error) return { error: 'No se han podido guardar tus objetivos.' };
   // Compatibilidad con Gala Match actual: las divisiones de EE. UU. también en el perfil.
   const target_divisions = pathways.data.filter((p) => (DIVISION_PATHWAYS as readonly string[]).includes(p));
-  await supabase.from('athlete_profiles').update({ target_divisions, intended_major: intended_majors[0] ?? null }).eq('user_id', session.userId);
+  must(await supabase.from('athlete_profiles').update({ target_divisions, intended_major: intended_majors[0] ?? null }).eq('user_id', session.userId), 'athlete_profiles.update');
 
   // El presupuesto va a una tabla privada (solo atleta y familia).
   const budget = int(0, 200000).safeParse(formData.get('annual_budget_usd') ?? '');
@@ -155,7 +156,7 @@ export async function addVideo(_prev: FormState, formData: FormData): Promise<Fo
     return { fieldErrors: { media_rights: 'Confirma que puedes publicar este vídeo' }, error: 'Revisa los campos marcados.' };
   }
   const supabase = await createClient();
-  await supabase.from('consents').insert({ user_id: session.userId, purpose: 'media_rights', document_version: 'media-2026-11', granted: true });
+  must(await supabase.from('consents').insert({ user_id: session.userId, purpose: 'media_rights', document_version: 'media-2026-11', granted: true }), 'consents.insert');
   // El primer Highlight Reel pasa a ser el vídeo destacado.
   let is_featured = false;
   if (parsed.data.kind === 'highlight') {
@@ -165,7 +166,7 @@ export async function addVideo(_prev: FormState, formData: FormData): Promise<Fo
   const { error } = await supabase.from('athlete_videos').insert({ athlete_id: session.userId, ...parsed.data, is_featured });
   if (error) return { error: error.message.includes('too_many_videos') ? 'Has llegado al máximo de 30 vídeos.' : 'No se ha podido guardar el vídeo.' };
   await logEvent('video_uploaded', { kind: parsed.data.kind });
-  if (is_featured) await supabase.from('athlete_profiles').update({ highlight_video_url: parsed.data.url }).eq('user_id', session.userId);
+  if (is_featured) must(await supabase.from('athlete_profiles').update({ highlight_video_url: parsed.data.url }).eq('user_id', session.userId), 'athlete_profiles.update');
   revalidatePath('/app/athlete', 'layout');
   return { ok: true, message: 'Vídeo añadido' };
 }
@@ -175,8 +176,8 @@ export async function deleteVideo(formData: FormData) {
   const id = z.string().uuid().parse(formData.get('id'));
   const supabase = await createClient();
   const { data: v } = await supabase.from('athlete_videos').select('is_featured').eq('id', id).eq('athlete_id', session.userId).maybeSingle();
-  await supabase.from('athlete_videos').delete().eq('id', id).eq('athlete_id', session.userId);
-  if (v?.is_featured) await supabase.from('athlete_profiles').update({ highlight_video_url: null }).eq('user_id', session.userId);
+  must(await supabase.from('athlete_videos').delete().eq('id', id).eq('athlete_id', session.userId), 'athlete_videos.delete');
+  if (v?.is_featured) must(await supabase.from('athlete_profiles').update({ highlight_video_url: null }).eq('user_id', session.userId), 'athlete_profiles.update');
   revalidatePath('/app/athlete', 'layout');
 }
 
@@ -186,9 +187,9 @@ export async function featureVideo(formData: FormData) {
   const supabase = await createClient();
   const { data: v } = await supabase.from('athlete_videos').select('url').eq('id', id).eq('athlete_id', session.userId).maybeSingle();
   if (!v) return;
-  await supabase.from('athlete_videos').update({ is_featured: false }).eq('athlete_id', session.userId).eq('is_featured', true);
-  await supabase.from('athlete_videos').update({ is_featured: true }).eq('id', id).eq('athlete_id', session.userId);
-  await supabase.from('athlete_profiles').update({ highlight_video_url: v.url }).eq('user_id', session.userId);
+  must(await supabase.from('athlete_videos').update({ is_featured: false }).eq('athlete_id', session.userId).eq('is_featured', true), 'athlete_videos.update');
+  must(await supabase.from('athlete_videos').update({ is_featured: true }).eq('id', id).eq('athlete_id', session.userId), 'athlete_videos.update');
+  must(await supabase.from('athlete_profiles').update({ highlight_video_url: v.url }).eq('user_id', session.userId), 'athlete_profiles.update');
   revalidatePath('/app/athlete', 'layout');
 }
 
@@ -216,7 +217,7 @@ export async function deleteCareer(formData: FormData) {
   const session = await requireSession(['athlete']);
   const id = z.string().uuid().parse(formData.get('id'));
   const supabase = await createClient();
-  await supabase.from('athlete_career').delete().eq('id', id).eq('athlete_id', session.userId);
+  must(await supabase.from('athlete_career').delete().eq('id', id).eq('athlete_id', session.userId), 'athlete_career.delete');
   revalidatePath('/app/athlete', 'layout');
 }
 
@@ -277,7 +278,7 @@ export async function deleteStat(formData: FormData) {
   const session = await requireSession(['athlete']);
   const id = z.string().uuid().parse(formData.get('id'));
   const supabase = await createClient();
-  await supabase.from('athlete_statistics').delete().eq('id', id).eq('athlete_id', session.userId);
+  must(await supabase.from('athlete_statistics').delete().eq('id', id).eq('athlete_id', session.userId), 'athlete_statistics.delete');
   revalidatePath('/app/athlete', 'layout');
 }
 
@@ -301,7 +302,7 @@ export async function deleteLanguage(formData: FormData) {
   const session = await requireSession(['athlete']);
   const code = z.string().regex(/^[a-z]{2}$/).parse(formData.get('language_code'));
   const supabase = await createClient();
-  await supabase.from('athlete_languages').delete().eq('athlete_id', session.userId).eq('language_code', code);
+  must(await supabase.from('athlete_languages').delete().eq('athlete_id', session.userId).eq('language_code', code), 'athlete_languages.delete');
   revalidatePath('/app/athlete', 'layout');
 }
 
@@ -328,7 +329,7 @@ export async function deleteAchievement(formData: FormData) {
   const session = await requireSession(['athlete']);
   const id = z.string().uuid().parse(formData.get('id'));
   const supabase = await createClient();
-  await supabase.from('athlete_achievements').delete().eq('id', id).eq('athlete_id', session.userId);
+  must(await supabase.from('athlete_achievements').delete().eq('id', id).eq('athlete_id', session.userId), 'athlete_achievements.delete');
   revalidatePath('/app/athlete', 'layout');
 }
 
@@ -340,7 +341,7 @@ export async function savePhotoPath(path: string | null): Promise<{ ok: boolean 
   const { data: current } = await supabase.from('athlete_profiles').select('photo_path').eq('user_id', session.userId).maybeSingle();
   const { error } = await supabase.from('athlete_profiles').update({ photo_path: path }).eq('user_id', session.userId);
   if (error) return { ok: false };
-  if (current?.photo_path && current.photo_path !== path) await supabase.storage.from('athlete-photos').remove([current.photo_path]);
+  if (current?.photo_path && current.photo_path !== path) bestEffort(await supabase.storage.from('athlete-photos').remove([current.photo_path]), 'storage.athlete-photos.remove');
   revalidatePath('/app/athlete', 'layout');
   return { ok: true };
 }

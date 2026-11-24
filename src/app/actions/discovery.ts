@@ -1,5 +1,6 @@
 'use server';
 
+import { must, bestEffort } from '@/lib/supabase/must';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
@@ -88,7 +89,7 @@ export async function deleteDiscoverySearch(formData: FormData) {
   const id = uuid.safeParse(formData.get('id'));
   if (!id.success) return;
   const supabase = await createClient();
-  await supabase.from('saved_searches').delete().eq('id', id.data).eq('owner_id', session.userId).eq('scope', 'opportunities');
+  must(await supabase.from('saved_searches').delete().eq('id', id.data).eq('owner_id', session.userId).eq('scope', 'opportunities'), 'saved_searches.delete');
   revalidatePath('/app/opportunities/discover');
 }
 
@@ -97,6 +98,6 @@ export async function markDiscoverySearchSeen(formData: FormData) {
   const id = uuid.safeParse(formData.get('id'));
   if (!id.success) return;
   const supabase = await createClient();
-  await supabase.from('saved_searches').update({ last_seen_at: new Date().toISOString() }).eq('id', id.data).eq('owner_id', session.userId).eq('scope', 'opportunities');
+  bestEffort(await supabase.from('saved_searches').update({ last_seen_at: new Date().toISOString() }).eq('id', id.data).eq('owner_id', session.userId).eq('scope', 'opportunities'), 'saved_searches.update');
   revalidatePath('/app/opportunities/discover');
 }

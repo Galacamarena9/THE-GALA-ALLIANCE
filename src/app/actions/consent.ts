@@ -1,5 +1,6 @@
 'use server';
 
+import { bestEffort } from '@/lib/supabase/must';
 import { headers } from 'next/headers';
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
@@ -24,7 +25,7 @@ export async function logCookieConsent(input: z.infer<typeof schema>) {
 
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
-  await supabase.from('cookie_consent_logs').insert({
+  bestEffort(await supabase.from('cookie_consent_logs').insert({
     user_id: data.user?.id ?? null,
     anonymous_id: parsed.data.anonymousId,
     essential_allowed: true,
@@ -33,5 +34,5 @@ export async function logCookieConsent(input: z.infer<typeof schema>) {
     third_party_allowed: parsed.data.third_party,
     user_agent: h.get('user-agent')?.slice(0, 400) ?? null,
     ip_hash: ipHash,
-  });
+  }), 'cookie_consent_logs.insert');
 }

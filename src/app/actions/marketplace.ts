@@ -1,5 +1,6 @@
 'use server';
 
+import { must } from '@/lib/supabase/must';
 import { FEE_STATEMENT_VERSION } from '@/lib/domain/fee-attestation';
 import { planLimitMessage } from '@/lib/domain/plan-limits';
 import { revalidatePath } from 'next/cache';
@@ -61,7 +62,7 @@ export async function setCampaignStatus(formData: FormData) {
   const parsed = z.object({ id: z.string().uuid(), status: z.enum(['pending_review', 'closed']) }).safeParse(Object.fromEntries(formData));
   if (!parsed.success) return;
   const supabase = await createClient();
-  await supabase.from('brand_campaigns').update({ status: parsed.data.status }).eq('id', parsed.data.id);
+  must(await supabase.from('brand_campaigns').update({ status: parsed.data.status }).eq('id', parsed.data.id), 'brand_campaigns.update');
   revalidatePath(`/app/campaigns/${parsed.data.id}`);
 }
 
@@ -89,7 +90,7 @@ export async function moveCampaignApplication(formData: FormData) {
   const parsed = z.object({ id: z.string().uuid(), status: z.enum(['shortlisted', 'selected', 'declined', 'withdrawn']), campaign_id: z.string().uuid() }).safeParse(Object.fromEntries(formData));
   if (!parsed.success) return;
   const supabase = await createClient();
-  await supabase.from('campaign_applications').update({ status: parsed.data.status }).eq('id', parsed.data.id);
+  must(await supabase.from('campaign_applications').update({ status: parsed.data.status }).eq('id', parsed.data.id), 'campaign_applications.update');
   revalidatePath(`/app/campaigns/${parsed.data.campaign_id}`);
 }
 
@@ -144,12 +145,12 @@ export async function respondRepresentation(formData: FormData) {
   const supabase = await createClient();
   const { id, status } = parsed.data;
   if (status === 'active' || status === 'declined') {
-    await supabase.rpc('representation_respond', { p_id: id, p_accept: status === 'active' });
+    must(await supabase.rpc('representation_respond', { p_id: id, p_accept: status === 'active' }), 'rpc.representation_respond');
     if (status === 'active') await logEvent('representation_accepted', {}, `rep:${id}`);
   }
-  else if (status === 'guardian_approve' || status === 'guardian_decline') await supabase.rpc('representation_guardian_decide', { p_id: id, p_approve: status === 'guardian_approve' });
+  else if (status === 'guardian_approve' || status === 'guardian_decline') must(await supabase.rpc('representation_guardian_decide', { p_id: id, p_approve: status === 'guardian_approve' }), 'rpc.representation_guardian_decide');
   else {
-    await supabase.rpc('representation_end', { p_id: id });
+    must(await supabase.rpc('representation_end', { p_id: id }), 'rpc.representation_end');
     await logEvent('representation_revoked', {}, `rep-end:${id}`);
   }
   revalidatePath('/app/agents');
@@ -207,6 +208,6 @@ export async function deleteAthleteLink(formData: FormData) {
   const session = await requireSession(['athlete']);
   const id = z.string().uuid().parse(formData.get('id'));
   const supabase = await createClient();
-  await supabase.from('athlete_links').delete().eq('id', id).eq('athlete_id', session.userId);
+  must(await supabase.from('athlete_links').delete().eq('id', id).eq('athlete_id', session.userId), 'athlete_links.delete');
   revalidatePath('/app/athlete/passport');
 }

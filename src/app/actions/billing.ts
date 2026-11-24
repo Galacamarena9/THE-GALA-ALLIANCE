@@ -1,5 +1,6 @@
 'use server';
 
+import { must } from '@/lib/supabase/must';
 import { redirect } from 'next/navigation';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { z } from 'zod';
@@ -47,7 +48,7 @@ async function ensureCustomer(orgId: string, key: string): Promise<string | null
   const customer = await stripe('/customers', key, new URLSearchParams({ name: (org?.name as string) ?? 'Organización', 'metadata[billing_account_id]': String(accountId), 'metadata[organization_id]': orgId }), `customer-${accountId}`);
   if (!customer.id) return null;
   const admin = createServiceClient(url, secret, { auth: { persistSession: false, autoRefreshToken: false } });
-  await admin.rpc('billing_set_customer', { p_account: accountId, p_customer: customer.id });
+  must(await admin.rpc('billing_set_customer', { p_account: accountId, p_customer: customer.id }), 'rpc.billing_set_customer');
   return customer.id;
 }
 

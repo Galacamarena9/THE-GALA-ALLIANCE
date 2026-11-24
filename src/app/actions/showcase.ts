@@ -1,5 +1,6 @@
 'use server';
 
+import { must } from '@/lib/supabase/must';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
@@ -12,7 +13,7 @@ export async function joinShowcase(formData: FormData) {
   const p = entry.safeParse(Object.fromEntries(formData));
   if (!p.success) return;
   const supabase = await createClient();
-  await supabase.from('showcase_entries').upsert(p.data, { onConflict: 'event_id,athlete_id', ignoreDuplicates: true });
+  must(await supabase.from('showcase_entries').upsert(p.data, { onConflict: 'event_id,athlete_id', ignoreDuplicates: true }), 'showcase_entries.upsert');
   revalidatePath('/app/showcase');
 }
 
@@ -21,7 +22,7 @@ export async function leaveShowcase(formData: FormData) {
   const p = entry.safeParse(Object.fromEntries(formData));
   if (!p.success) return;
   const supabase = await createClient();
-  await supabase.from('showcase_entries').delete().eq('event_id', p.data.event_id).eq('athlete_id', p.data.athlete_id);
+  must(await supabase.from('showcase_entries').delete().eq('event_id', p.data.event_id).eq('athlete_id', p.data.athlete_id), 'showcase_entries.delete');
   revalidatePath('/app/showcase');
 }
 
@@ -38,6 +39,6 @@ export async function createShowcaseEvent(formData: FormData) {
   const p = event.safeParse(Object.fromEntries(formData));
   if (!p.success) return;
   const supabase = await createClient();
-  await supabase.from('showcase_events').insert({ ...p.data, sport_id: p.data.sport_id || null, starts_at: new Date(p.data.starts_at).toISOString(), ends_at: new Date(p.data.ends_at).toISOString() });
+  must(await supabase.from('showcase_events').insert({ ...p.data, sport_id: p.data.sport_id || null, starts_at: new Date(p.data.starts_at).toISOString(), ends_at: new Date(p.data.ends_at).toISOString() }), 'showcase_events.insert');
   revalidatePath('/app/showcase');
 }

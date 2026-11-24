@@ -1,5 +1,6 @@
 'use server';
 
+import { must } from '@/lib/supabase/must';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
@@ -43,7 +44,7 @@ export async function submitVerification(formData: FormData) {
   await requireSession(['university', 'coach', 'agent', 'brand']);
   const id = z.string().uuid().parse(formData.get('id'));
   const supabase = await createClient();
-  await supabase.from('organizations').update({ verification_status: 'submitted' }).eq('id', id);
+  must(await supabase.from('organizations').update({ verification_status: 'submitted' }).eq('id', id), 'organizations.update');
   revalidatePath('/app/organization');
 }
 
@@ -67,7 +68,7 @@ export async function removeMember(formData: FormData) {
   const parsed = z.object({ organization_id: z.string().uuid(), user_id: z.string().uuid() }).safeParse(Object.fromEntries(formData));
   if (!parsed.success) return;
   const supabase = await createClient();
-  await supabase.from('organization_members').delete().eq('organization_id', parsed.data.organization_id).eq('user_id', parsed.data.user_id).neq('member_role', 'admin');
+  must(await supabase.from('organization_members').delete().eq('organization_id', parsed.data.organization_id).eq('user_id', parsed.data.user_id).neq('member_role', 'admin'), 'organization_members.delete');
   revalidatePath('/app/organization');
 }
 
@@ -117,6 +118,6 @@ export async function respondNewsTag(formData: FormData) {
   const parsed = z.object({ id: z.string().uuid(), status: z.enum(['published', 'hidden']) }).safeParse(Object.fromEntries(formData));
   if (!parsed.success) return;
   const supabase = await createClient();
-  await supabase.from('news_posts').update({ status: parsed.data.status }).eq('id', parsed.data.id);
+  must(await supabase.from('news_posts').update({ status: parsed.data.status }).eq('id', parsed.data.id), 'news_posts.update');
   revalidatePath('/app/news');
 }

@@ -1,5 +1,6 @@
 'use server';
 
+import { must } from '@/lib/supabase/must';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
@@ -32,6 +33,6 @@ export async function submitCredential(formData: FormData) {
   const id = z.string().uuid().safeParse(formData.get('id'));
   if (!id.success) return;
   const supabase = await createClient();
-  await supabase.rpc('credential_submit', { p_credential: id.data });
+  must(await supabase.rpc('credential_submit', { p_credential: id.data }), 'rpc.credential_submit');
   revalidatePath('/app/verify');
 }

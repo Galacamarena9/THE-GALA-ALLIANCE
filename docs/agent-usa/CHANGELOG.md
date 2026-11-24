@@ -64,6 +64,14 @@ Cambios: rama `feat/fee-attestation-founder-cap`; migración `20261217000100_fee
 Pruebas: unit 266/266; RLS 438/438 (C3-1, C3-2); e2e 370 OK + `founder-pricing.spec.ts`; build OK.
 Riesgos abiertos: representaciones anteriores sin declaración (se muestran con aviso «pídesela»); claves Stripe live y `free_until` (gate de Gala); validación legal NCAA del texto.
 
+## [Fase 3 auditoría] 2026-11-24 · Ninguna escritura falla en silencio
+Origen: auditoría integral con el Agente Maestro PRO (hallazgo H3).
+Cambios:
+- `must()` / `bestEffort()` en `src/lib/supabase/must.ts`; 139 escrituras en 34 ficheros (acciones, webhook de Stripe y Gala IA) pasan por uno de los dos.
+- `writes-checked.test.ts` recorre el código del servidor y falla si aparece una escritura sin comprobar.
+- La pantalla de error avisa de que lo que se estaba guardando no se ha guardado.
+Pruebas: unit 275/275; e2e 376 OK; build OK. Sin cambios de base de datos.
+
 ## [Fase 2 auditoría] 2026-11-24 · Los límites de plan se cumplen
 Origen: auditoría integral con el Agente Maestro PRO (hallazgo H1).
 Cambios:

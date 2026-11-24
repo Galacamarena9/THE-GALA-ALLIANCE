@@ -1,5 +1,6 @@
 'use server';
 
+import { must } from '@/lib/supabase/must';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
@@ -74,12 +75,12 @@ export async function toggleFollowUp(formData: FormData) {
     .safeParse(Object.fromEntries(formData));
   if (!parsed.success) return;
   const supabase = await createClient();
-  await supabase
+  must(await supabase
     .from('agency_athlete_notes')
     .update({ done: parsed.data.done === 'true' })
     .eq('id', parsed.data.id)
     .eq('author_id', session.userId)
-    .eq('kind', 'follow_up');
+    .eq('kind', 'follow_up'), 'agency_athlete_notes.update');
   refresh(parsed.data.athlete_id);
 }
 
@@ -88,7 +89,7 @@ export async function deleteAgencyNote(formData: FormData) {
   const parsed = z.object({ id: uuid, athlete_id: uuid }).safeParse(Object.fromEntries(formData));
   if (!parsed.success) return;
   const supabase = await createClient();
-  await supabase.from('agency_athlete_notes').delete().eq('id', parsed.data.id).eq('author_id', session.userId);
+  must(await supabase.from('agency_athlete_notes').delete().eq('id', parsed.data.id).eq('author_id', session.userId), 'agency_athlete_notes.delete');
   refresh(parsed.data.athlete_id);
 }
 
