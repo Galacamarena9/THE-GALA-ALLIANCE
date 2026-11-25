@@ -1,3 +1,4 @@
+import { getT } from '@/lib/i18n/server-t';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { requireSession } from '@/lib/session';
@@ -8,9 +9,12 @@ import { RecruitShell } from '@/components/recruit/RecruitShell';
 import { OrgTaskForm } from '@/components/recruit/RecruitForms';
 import { toggleOrgTask } from '@/app/actions/recruit';
 
-export const metadata: Metadata = { title: 'Tareas del equipo' };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())('Tareas del equipo') };
+}
 
 export default async function TasksPage({ searchParams }: { searchParams: Promise<{ org?: string; mine?: string; done?: string }> }) {
+  const tx = await getT();
   const session = await requireSession();
   const sp = await searchParams;
   const { orgs, org } = await currentRecruitOrg(session.userId, sp.org);
@@ -26,32 +30,32 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
 
   return (
     <>
-      <PageHeader kicker="Recruiting" title="Tareas del equipo" description="Quién hace qué y cuándo, sin duplicar trabajo." />
+      <PageHeader kicker={tx('Recruiting')} title={tx('Tareas del equipo')} description={tx('Quién hace qué y cuándo, sin duplicar trabajo.')} />
       <RecruitShell org={org} orgs={orgs} active="/app/recruit/tasks">
         {org && (
           <div className="space-y-4">
-            <nav aria-label="Filtros" className="flex gap-2 text-xs">
-              <Link href="/app/recruit/tasks" className={`inline-flex min-h-9 items-center rounded-full border px-3 ${!sp.mine && !sp.done ? 'border-brass text-brass' : 'border-line text-muted'}`}>Abiertas</Link>
-              <Link href="/app/recruit/tasks?mine=1" className={`inline-flex min-h-9 items-center rounded-full border px-3 ${sp.mine ? 'border-brass text-brass' : 'border-line text-muted'}`}>Mías</Link>
-              <Link href="/app/recruit/tasks?done=1" className={`inline-flex min-h-9 items-center rounded-full border px-3 ${sp.done ? 'border-brass text-brass' : 'border-line text-muted'}`}>Hechas</Link>
+            <nav aria-label={tx('Filtros')} className="flex gap-2 text-xs">
+              <Link href="/app/recruit/tasks" className={`inline-flex min-h-9 items-center rounded-full border px-3 ${!sp.mine && !sp.done ? 'border-brass text-brass' : 'border-line text-muted'}`}>{tx('Abiertas')}</Link>
+              <Link href="/app/recruit/tasks?mine=1" className={`inline-flex min-h-9 items-center rounded-full border px-3 ${sp.mine ? 'border-brass text-brass' : 'border-line text-muted'}`}>{tx('Mías')}</Link>
+              <Link href="/app/recruit/tasks?done=1" className={`inline-flex min-h-9 items-center rounded-full border px-3 ${sp.done ? 'border-brass text-brass' : 'border-line text-muted'}`}>{tx('Hechas')}</Link>
             </nav>
             {(tasks ?? []).length ? (
               <Card className="p-0">
                 <ul className="divide-y divide-line">
                   {(tasks ?? []).map((t) => (
                     <li key={t.id} className="flex items-center gap-3 p-3">
-                      <form action={toggleOrgTask}><input type="hidden" name="id" value={t.id} /><input type="hidden" name="done" value={t.status === 'done' ? '0' : '1'} /><button aria-label={t.status === 'done' ? `Reabrir ${t.title}` : `Marcar hecha ${t.title}`} className={`grid h-7 w-7 place-items-center rounded-md border ${t.status === 'done' ? 'border-brass bg-brass text-ink' : 'border-line'}`}>{t.status === 'done' ? '✓' : ''}</button></form>
+                      <form action={toggleOrgTask}><input type="hidden" name="id" value={t.id} /><input type="hidden" name="done" value={t.status === 'done' ? '0' : '1'} /><button aria-label={t.status === 'done' ? `${tx('Reabrir')} ${t.title}` : `${tx('Marcar hecha')} ${t.title}`} className={`grid h-7 w-7 place-items-center rounded-md border ${t.status === 'done' ? 'border-brass bg-brass text-ink' : 'border-line'}`}>{t.status === 'done' ? '✓' : ''}</button></form>
                       <div className="min-w-0 flex-1">
                         <p className={`text-sm ${t.status === 'done' ? 'text-muted line-through' : 'text-paper'}`}>{t.title}</p>
-                        <p className="text-xs text-muted">{t.athlete_id && names.get(t.athlete_id) ? <Link href={`/app/recruit/candidates/${t.athlete_id}`} className="text-brass">{names.get(t.athlete_id)}</Link> : null}{t.assignee_id ? ` · ${memberName.get(t.assignee_id) ?? ''}` : ' · Sin asignar'}</p>
+                        <p className="text-xs text-muted">{t.athlete_id && names.get(t.athlete_id) ? <Link href={`/app/recruit/candidates/${t.athlete_id}`} className="text-brass">{names.get(t.athlete_id)}</Link> : null}{t.assignee_id ? ` · ${memberName.get(t.assignee_id) ?? ''}` : tx(' · Sin asignar')}</p>
                       </div>
-                      {t.priority === 'high' && <Badge tone="warn">Alta</Badge>}
-                      <span className={`text-xs ${t.due_date && t.due_date < today && t.status === 'open' ? 'font-semibold text-danger' : 'text-muted'}`}>{t.due_date ?? 'Sin fecha'}</span>
+                      {t.priority === 'high' && <Badge tone="warn">{tx('Alta')}</Badge>}
+                      <span className={`text-xs ${t.due_date && t.due_date < today && t.status === 'open' ? 'font-semibold text-danger' : 'text-muted'}`}>{t.due_date ?? tx('Sin fecha')}</span>
                     </li>
                   ))}
                 </ul>
               </Card>
-            ) : <EmptyState title="Sin tareas">Crea tareas para el equipo, por ejemplo «Ver partido completo de Lucía — viernes».</EmptyState>}
+            ) : <EmptyState title={tx('Sin tareas')}>{tx('Crea tareas para el equipo, por ejemplo «Ver partido completo de Lucía — viernes».')}</EmptyState>}
             {org.caps.has('tasks') && <Card><OrgTaskForm org={org.id} members={members.map((m) => ({ id: m.id, name: m.name }))} /></Card>}
           </div>
         )}

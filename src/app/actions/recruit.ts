@@ -1,5 +1,6 @@
 'use server';
 
+import { getLocale } from '@/lib/i18n/server';
 import { must } from '@/lib/supabase/must';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
@@ -316,6 +317,7 @@ export type QuickView = {
  * Lee con la sesión del coach: la RLS por bloque decide qué llega. Nunca recalcula Gala Match.
  */
 export async function loadQuickView(input: { org: string; athlete: string }): Promise<QuickView> {
+  const english = (await getLocale()) === 'en';
   const session = await requireSession();
   const p = z.object({ org: uuid, athlete: uuid }).safeParse(input);
   if (!p.success) return { ok: false, message: 'Datos no válidos.' };
@@ -325,7 +327,7 @@ export async function loadQuickView(input: { org: string; athlete: string }): Pr
   const [{ data: minor }, { data: acad }, { data: stats }, { data: videos }, { data: cand }] = await Promise.all([
     supabase.rpc('viewer_is_minor', { p_user: p.data.athlete }),
     supabase.from('athlete_academics').select('gpa_source').eq('athlete_id', p.data.athlete).maybeSingle(),
-    supabase.from('athlete_statistics').select('season, value, source, sport_stat_definitions(label_es, unit)').eq('athlete_id', p.data.athlete).order('season', { ascending: false }).limit(5),
+    supabase.from('athlete_statistics').select('season, value, source, sport_stat_definitions(label_es, label_en, unit)').eq('athlete_id', p.data.athlete).order('season', { ascending: false }).limit(5),
     supabase.from('athlete_videos').select('id, kind, title, url').eq('athlete_id', p.data.athlete).order('is_featured', { ascending: false }).limit(4),
     supabase.from('org_candidates').select('internal_stage, archived_at').eq('organization_id', org.id).eq('athlete_id', p.data.athlete).maybeSingle(),
   ]);
@@ -336,8 +338,8 @@ export async function loadQuickView(input: { org: string; athlete: string }): Pr
     academics: !acad ? 'private' : acad.gpa_source !== 'self_reported' ? 'documented' : 'declared',
     videos: (videos ?? []).map((v) => ({ id: v.id as string, kind: v.kind as string, title: v.title as string | null, url: v.url as string })),
     stats: (stats ?? []).map((s) => {
-      const d = s.sport_stat_definitions as unknown as { label_es: string; unit: string | null } | null;
-      return { label: `${d?.label_es ?? 'Dato'} (${s.season})`, value: `${s.value}${d?.unit ? ` ${d.unit}` : ''}`, verified: s.source !== 'self_reported' };
+      const d = s.sport_stat_definitions as unknown as { label_es: string; label_en: string | null; unit: string | null } | null;
+      return { label: `${(english ? d?.label_en : null) ?? d?.label_es ?? (english ? 'Stat' : 'Dato')} (${s.season})`, value: `${s.value}${d?.unit ? ` ${d.unit}` : ''}`, verified: s.source !== 'self_reported' };
     }),
     inPipeline: !!cand && !cand.archived_at && !['new', 'review', 'shortlisted', 'closed'].includes(cand.internal_stage as string),
   };

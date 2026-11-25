@@ -1,3 +1,4 @@
+import { getT } from '@/lib/i18n/server-t';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { requireSession } from '@/lib/session';
@@ -7,10 +8,13 @@ import { currentRecruitOrg } from '@/lib/data/recruit';
 import { Card, EmptyState, PageHeader } from '@/components/ui';
 import { RecruitShell } from '@/components/recruit/RecruitShell';
 
-export const metadata: Metadata = { title: 'Comparar atletas' };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())('Comparar atletas') };
+}
 
 /** Comparación por secciones (legible en móvil). Datos medibles y visibles; nunca declara una "ganadora". */
 export default async function ComparePage({ searchParams }: { searchParams: Promise<{ ids?: string; diff?: string }> }) {
+  const tx = await getT();
   const session = await requireSession();
   const sp = await searchParams;
   const { orgs, org } = await currentRecruitOrg(session.userId);
@@ -25,25 +29,25 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
   const people = ids.map((id) => (dir ?? []).find((d) => d.user_id === id)).filter((x): x is NonNullable<typeof x> => !!x);
   const pos = new Map(catalog.positions.map((p) => [p.id, p.name_es]));
   const rows: [string, (p: (typeof people)[number]) => string][] = [
-    ['Posición', (p) => (p.primary_position_id ? pos.get(p.primary_position_id) ?? '—' : '🔒')],
-    ['Clase', (p) => String(p.graduation_year ?? '—')],
-    ['Altura', (p) => (p.height_cm ? `${(p.height_cm / 100).toFixed(2)} m` : '🔒 / —')],
-    ['País', (p) => p.country ?? '—'],
-    ['Nivel competitivo', (p) => p.competitive_level ?? '—'],
-    ['Highlight', (p) => (p.has_video ? '✓' : '—')],
-    ['Académico', (p) => { const a = (acad ?? []).find((x) => x.athlete_id === p.user_id); return !a ? '🔒 No compartido' : a.gpa_source !== 'self_reported' ? '✓ Documentado' : 'Declarado'; }],
-    ['Inglés', (p) => { const a = (acad ?? []).find((x) => x.athlete_id === p.user_id); return !a ? '🔒' : a.english_test ?? 'Sin certificado'; }],
-    ['Estadísticas', (p) => { const s = (stats ?? []).filter((x) => x.athlete_id === p.user_id); if (!s.length) return '🔒 / —'; const v = s.filter((x) => x.source !== 'self_reported').length; return v === s.length ? '✓ Verificadas' : v ? 'Parcialmente verificadas' : 'Declaradas'; }],
+    [tx('Posición'), (p) => (p.primary_position_id ? pos.get(p.primary_position_id) ?? '—' : '🔒')],
+    [tx('Clase'), (p) => String(p.graduation_year ?? '—')],
+    [tx('Altura'), (p) => (p.height_cm ? `${(p.height_cm / 100).toFixed(2)} m` : '🔒 / —')],
+    [tx('País'), (p) => p.country ?? '—'],
+    [tx('Nivel competitivo'), (p) => p.competitive_level ?? '—'],
+    [tx('Highlight'), (p) => (p.has_video ? '✓' : '—')],
+    [tx('Académico'), (p) => { const a = (acad ?? []).find((x) => x.athlete_id === p.user_id); return !a ? tx('🔒 No compartido') : a.gpa_source !== 'self_reported' ? '✓ Documentado' : tx('Declarado'); }],
+    [tx('Inglés'), (p) => { const a = (acad ?? []).find((x) => x.athlete_id === p.user_id); return !a ? '🔒' : a.english_test ?? tx('Sin certificado'); }],
+    [tx('Estadísticas'), (p) => { const s = (stats ?? []).filter((x) => x.athlete_id === p.user_id); if (!s.length) return '🔒 / —'; const v = s.filter((x) => x.source !== 'self_reported').length; return v === s.length ? '✓ Verificadas' : v ? tx('Parcialmente verificadas') : tx('Declaradas'); }],
   ];
   const shown = sp.diff ? rows.filter(([, fn]) => new Set(people.map(fn)).size > 1) : rows;
 
   return (
     <>
-      <PageHeader kicker="Recruiting" title="Comparar atletas" description="Datos objetivos lado a lado. La decisión es del staff: Gala no ordena ni elige." />
+      <PageHeader kicker={tx('Recruiting')} title={tx('Comparar atletas')} description={tx('Datos objetivos lado a lado. La decisión es del staff: Gala no ordena ni elige.')} />
       <RecruitShell org={org} orgs={orgs} active="/app/recruit/shortlists">
-        {people.length < 2 ? <EmptyState title="Elige 2 o 3 atletas">Desde una shortlist pulsa «Comparar».</EmptyState> : (
+        {people.length < 2 ? <EmptyState title={tx('Elige 2 o 3 atletas')}>{tx('Desde una shortlist pulsa «Comparar».')}</EmptyState> : (
           <div className="space-y-4">
-            <Link href={`/app/recruit/compare?ids=${ids.join(',')}${sp.diff ? '' : '&diff=1'}`} className="inline-flex min-h-11 items-center rounded-full border border-line px-4 text-xs font-semibold text-paper">{sp.diff ? 'Mostrar todo' : 'Mostrar solo diferencias'}</Link>
+            <Link href={`/app/recruit/compare?ids=${ids.join(',')}${sp.diff ? '' : '&diff=1'}`} className="inline-flex min-h-11 items-center rounded-full border border-line px-4 text-xs font-semibold text-paper">{sp.diff ? tx('Mostrar todo') : tx('Mostrar solo diferencias')}</Link>
             {shown.map(([label, fn]) => (
               <Card key={label}>
                 <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-faint">{label}</h2>

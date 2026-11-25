@@ -8,6 +8,8 @@ import { PortfolioImport, type InviteRow } from '@/app/app/portfolio/PortfolioIm
 import { CoachOutreach, type OutreachRow } from '@/components/agency/CoachOutreach';
 import { coachEmailDraft } from '@/lib/domain/coach-outreach';
 import { PlanUsage } from '@/components/agency/PlanUsage';
+import { RecruitShell } from '@/components/recruit/RecruitShell';
+import type { Cap } from '@/lib/domain/recruit';
 import type { AgencyPlanStatus } from '@/lib/domain/plan-limits';
 
 const PREVIEW_INVITES: InviteRow[] = [
@@ -98,7 +100,7 @@ const demoPublicOpp: PublicOpportunity = {
  */
 export const metadata: Metadata = { title: 'Probador interno', robots: { index: false, follow: false } };
 
-const SCREENS = ['agent-inbox', 'agent-thread', 'agent-thread-revoked', 'agent-discovery', 'agent-discovery-eligible', 'agent-discovery-empty', 'agent-discovery-forbidden', 'agent-discovery-error', 'agent-discovery-pick', 'admin-difusion', 'admin-difusion-empty', 'difusion-respuesta', 'difusion-hecho', 'athlete-360', 'athlete-360-empty', 'athlete-360-viewer', 'athlete-360-locked', 'portfolio-100', 'portfolio-empty', 'agent-home', 'agent-home-empty', 'agent-home-partial', 'agent-home-no-agency', 'agent-home-error', 'portfolio', 'athlete-home', 'coach-home', 'pipeline', 'pipeline-table', 'coach-outreach', 'plan-trial', 'plan-full', 'plan-none', 'match', 'opportunity', 'passport', 'galamatch', 'command-center', 'athlete-pipeline', 'club-trials', 'trial-club', 'trial-athlete', 'family-trials', 'program-athlete', 'family-home', 'family-costs', 'family-welcome', 'shell-agent', 'shell-athlete', 'shell-university', 'shell-operations'] as const;
+const SCREENS = ['agent-inbox', 'agent-thread', 'agent-thread-revoked', 'agent-discovery', 'agent-discovery-eligible', 'agent-discovery-empty', 'agent-discovery-forbidden', 'agent-discovery-error', 'agent-discovery-pick', 'admin-difusion', 'admin-difusion-empty', 'difusion-respuesta', 'difusion-hecho', 'athlete-360', 'athlete-360-empty', 'athlete-360-viewer', 'athlete-360-locked', 'portfolio-100', 'portfolio-empty', 'agent-home', 'agent-home-empty', 'agent-home-partial', 'agent-home-no-agency', 'agent-home-error', 'portfolio', 'athlete-home', 'coach-home', 'pipeline', 'pipeline-table', 'coach-outreach', 'plan-trial', 'plan-full', 'plan-none', 'recruit-shell', 'match', 'opportunity', 'passport', 'galamatch', 'command-center', 'athlete-pipeline', 'club-trials', 'trial-club', 'trial-athlete', 'family-trials', 'program-athlete', 'family-home', 'family-costs', 'family-welcome', 'shell-agent', 'shell-athlete', 'shell-university', 'shell-operations'] as const;
 
 // Gala Match con el motor real y datos ficticios: un Passport completo y otro con muchos datos ausentes.
 const demoOpp = { sport_id: 'basketball', position_ids: [1], graduation_years: [2027], division: 'ncaa_d2' as const, min_gpa_4: 2.5, english_required: 'TOEFL 80', annual_cost_usd: 40000, aid_amount_usd: 30000 };
@@ -144,6 +146,15 @@ export default async function PreviewPage({ params, searchParams }: { params: Pr
               searches={[{ id: '00000000-0000-4000-8000-00000000c001', label: 'NCAA con beca', href: '#', newCount: cards.filter((c) => c.isNew).length }]} />
           );
         })()}
+        {screen === 'recruit-shell' && (
+          <RecruitShell
+            active="/app/recruit/discover"
+            orgs={[]}
+            org={{ id: 'demo', name: 'Demo State University', type: 'university', verification_status: 'pending', institution_id: null, role: 'head_coach', program_ids: [], verified: false, caps: new Set<Cap>(['discover', 'shortlist', 'candidates', 'needs', 'tasks']) }}
+          >
+            <p>—</p>
+          </RecruitShell>
+        )}
         {(screen === 'plan-trial' || screen === 'plan-full' || screen === 'plan-none') && (() => {
           const now = new Date();
           const plan: Record<string, AgencyPlanStatus> = {

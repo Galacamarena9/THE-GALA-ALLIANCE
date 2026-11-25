@@ -85,16 +85,17 @@ export async function loadPassport(athleteId: string) {
   };
 }
 
-export async function loadCatalog() {
+/** Catálogo de deportes y posiciones; en inglés usa name_en (fase 4b). */
+export async function loadCatalog(locale: 'es' | 'en' = 'es') {
   const supabase = await createClient();
   const [sports, positions, statDefs] = await Promise.all([
-    supabase.from('sports').select('id, name_es').eq('active', true).order('name_es'),
-    supabase.from('sport_positions').select('id, sport_id, code, name_es').order('id'),
+    supabase.from('sports').select('id, name_es, name_en').eq('active', true).order('name_es'),
+    supabase.from('sport_positions').select('id, sport_id, code, name_es, name_en').order('id'),
     supabase.from('sport_stat_definitions').select('id, sport_id, code, label_es, unit').order('sort_order'),
   ]);
   return {
-    sports: sports.data ?? [],
-    positions: positions.data ?? [],
+    sports: (sports.data ?? []).map((s) => ({ id: s.id, name_es: locale === 'en' ? s.name_en ?? s.name_es : s.name_es })),
+    positions: (positions.data ?? []).map((p) => ({ id: p.id, sport_id: p.sport_id, code: p.code, name_es: locale === 'en' ? p.name_en ?? p.name_es : p.name_es })),
     statDefs: statDefs.data ?? [],
   };
 }

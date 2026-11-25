@@ -60,3 +60,23 @@ test('U2: la preferencia guardada (tga_lang) manda sobre el navegador', async ({
   await page.goto('/');
   await expect(page.getByTestId('cookie-banner')).toContainText('Your privacy, your call');
 });
+
+test.describe('fase 4b · recruiting en inglés', () => {
+  test.use({ locale: 'en-US' });
+  test('la cabecera del portal de recruiting sale en inglés con un navegador en inglés', async ({ page }) => {
+    await page.goto('/preview/recruit-shell');
+    const nav = page.getByRole('navigation', { name: 'Recruiting portal' });
+    await expect(nav.getByRole('link', { name: 'Discover' })).toHaveAttribute('aria-current', 'page');
+    await expect(nav.getByRole('link', { name: 'Processes' })).toBeVisible();
+    await expect(page.getByText('Verification pending')).toBeVisible();
+    await expect(page.getByText(/Limited access while we verify your organization/)).toBeVisible();
+    await expect(page.getByText('· Head coach')).toBeVisible();
+  });
+});
+
+test('fase 4b · en castellano la cabecera del portal no cambia', async ({ page }) => {
+  await page.goto('/preview/recruit-shell');
+  const nav = page.getByRole('navigation', { name: 'Portal de recruiting' });
+  await expect(nav.getByRole('link', { name: 'Descubrir' })).toBeVisible();
+  await expect(page.getByText('Verificación pendiente')).toBeVisible();
+});

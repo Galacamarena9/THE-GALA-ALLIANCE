@@ -16,6 +16,7 @@ import { createClient } from '@/lib/supabase/server';
 import { enforceMfaChallenge } from '@/lib/mfa';
 import { getLocale } from '@/lib/i18n/server';
 import { localizeMode } from '@/lib/domain/navigation';
+import { I18nProvider } from '@/lib/i18n/client';
 
 /** Perfil "público" de cada tipo de usuario (lo que ven los demás). */
 function profileHref(roles: string[]) {
@@ -52,6 +53,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     .is('read_at', null);
 
   return (
+    <I18nProvider locale={locale}>
     <div className="min-h-dvh" lang={locale}>
       <header className="sticky top-0 z-40 border-b border-line bg-surface/90 backdrop-blur-xl">
         <div className="flex h-16 items-center gap-3 px-4 sm:px-6">
@@ -90,5 +92,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       </div>
       <Suspense><MobileNav mode={mode} /></Suspense>
     </div>
+    </I18nProvider>
   );
 }

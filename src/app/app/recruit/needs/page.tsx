@@ -1,3 +1,4 @@
+import { getT } from '@/lib/i18n/server-t';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { requireSession } from '@/lib/session';
@@ -9,11 +10,14 @@ import { RecruitShell } from '@/components/recruit/RecruitShell';
 import { NeedForm } from '@/components/recruit/RecruitForms';
 import { setNeedStatus } from '@/app/actions/recruit';
 
-export const metadata: Metadata = { title: 'Necesidades de recruiting' };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())('Necesidades de recruiting') };
+}
 
 const STATUS = { active: 'Activa', paused: 'En pausa', filled: 'Cubierta', closed: 'Cerrada' } as const;
 
 export default async function NeedsPage({ searchParams }: { searchParams: Promise<{ org?: string }> }) {
+  const tx = await getT();
   const session = await requireSession();
   const sp = await searchParams;
   const { orgs, org } = await currentRecruitOrg(session.userId, sp.org);
@@ -30,7 +34,7 @@ export default async function NeedsPage({ searchParams }: { searchParams: Promis
 
   return (
     <>
-      <PageHeader kicker="Recruiting" title="Necesidades" description="Lo que buscáis, en privado. Alimentan Gala Match inverso; solo se hacen públicas si publicas una oportunidad." />
+      <PageHeader kicker={tx('Recruiting')} title={tx('Necesidades')} description={tx('Lo que buscáis, en privado. Alimentan Gala Match inverso; solo se hacen públicas si publicas una oportunidad.')} />
       <RecruitShell org={org} orgs={orgs} active="/app/recruit/needs">
         {org && (
           <div className="space-y-5">
@@ -44,17 +48,17 @@ export default async function NeedsPage({ searchParams }: { searchParams: Promis
                       <Card className="h-full">
                         <div className="flex items-start justify-between gap-2">
                           <p className="font-display text-lg font-bold uppercase text-paper">{n.title}</p>
-                          <Badge tone={n.status === 'active' ? 'ok' : 'neutral'}>{STATUS[n.status as keyof typeof STATUS]}</Badge>
+                          <Badge tone={n.status === 'active' ? 'ok' : 'neutral'}>{tx(STATUS[n.status as keyof typeof STATUS])}</Badge>
                         </div>
                         <p className="text-xs text-muted">{[catalog.sports.find((s) => s.id === n.sport_id)?.name_es, (n.position_ids as number[]).map((p) => posName.get(p)).join(' / '), (n.class_years as number[]).join(', '), n.start_term, n.slots && `${n.slots} plaza${n.slots > 1 ? 's' : ''}`].filter(Boolean).join(' · ')}</p>
                         <p className="mt-2 text-sm text-paper">{shortlisted} en shortlists · {c.filter((x) => ['contact', 'call', 'active'].includes(x.internal_stage)).length} en contacto · {c.filter((x) => x.internal_stage === 'offer').length} oferta{c.filter((x) => x.internal_stage === 'offer').length === 1 ? '' : 's'} · {c.filter((x) => x.internal_stage === 'committed').length} comprometido{c.filter((x) => x.internal_stage === 'committed').length === 1 ? '' : 's'}</p>
                         <div className="mt-3 flex flex-wrap items-center gap-2">
-                          {org.caps.has('discover') && <Link href={`/app/recruit/discover?need=${n.id}`} className="inline-flex min-h-11 items-center rounded-full bg-brass px-4 text-xs font-semibold text-ink">Ver atletas compatibles →</Link>}
-                          {n.opportunity_id ? <Link href={`/app/opportunities/${n.opportunity_id}`} className="text-xs text-brass underline">Oportunidad publicada</Link> : org.caps.has('opportunities') && <Link href={`/app/opportunities/new?need=${n.id}`} className="text-xs text-muted underline">Publicar como oportunidad</Link>}
+                          {org.caps.has('discover') && <Link href={`/app/recruit/discover?need=${n.id}`} className="inline-flex min-h-11 items-center rounded-full bg-brass px-4 text-xs font-semibold text-ink">{tx('Ver atletas compatibles →')}</Link>}
+                          {n.opportunity_id ? <Link href={`/app/opportunities/${n.opportunity_id}`} className="text-xs text-brass underline">{tx('Oportunidad publicada')}</Link> : org.caps.has('opportunities') && <Link href={`/app/opportunities/new?need=${n.id}`} className="text-xs text-muted underline">{tx('Publicar como oportunidad')}</Link>}
                           {canEdit && (
                             <form action={setNeedStatus} className="ml-auto flex items-center gap-1">
                               <input type="hidden" name="id" value={n.id} />
-                              <label className="sr-only" htmlFor={`ns-${n.id}`}>Estado</label>
+                              <label className="sr-only" htmlFor={`ns-${n.id}`}>{tx('Estado')}</label>
                               <select id={`ns-${n.id}`} name="status" defaultValue={n.status} className="min-h-9 rounded-lg border border-line bg-ink/40 px-2 text-xs text-paper">{Object.entries(STATUS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
                               <button className="min-h-9 px-2 text-xs text-brass">OK</button>
                             </form>
@@ -65,13 +69,13 @@ export default async function NeedsPage({ searchParams }: { searchParams: Promis
                   );
                 })}
               </ul>
-            ) : <EmptyState title="Sin necesidades">Ejemplo: «2027 · Base», baloncesto femenino, clase 2027, Fall 2027.</EmptyState>}
+            ) : <EmptyState title={tx('Sin necesidades')}>{tx('Ejemplo: «2027 · Base», baloncesto femenino, clase 2027, Fall 2027.')}</EmptyState>}
             {canEdit ? (
               <Card>
-                <h2 className="mb-3 font-display text-lg font-bold text-paper">Nueva necesidad</h2>
+                <h2 className="mb-3 font-display text-lg font-bold text-paper">{tx('Nueva necesidad')}</h2>
                 <NeedForm org={org.id} sports={catalog.sports.map((s) => ({ id: s.id, name: s.name_es }))} positions={catalog.positions} programs={(programs ?? []).map((p) => ({ id: p.id, name: p.name }))} />
               </Card>
-            ) : <Notice tone="warn">Tu rol no permite crear necesidades.</Notice>}
+            ) : <Notice tone="warn">{tx('Tu rol no permite crear necesidades.')}</Notice>}
           </div>
         )}
       </RecruitShell>
