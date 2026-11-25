@@ -170,7 +170,7 @@ export async function loadCandidate(org: RecruitOrg, athleteId: string) {
     supabase.from('athlete_directory').select('*').eq('user_id', athleteId).maybeSingle(),
     supabase.from('athlete_profiles').select('user_id, username, nationality, league, years_experience, weight_kg').eq('user_id', athleteId).maybeSingle(),
     supabase.from('athlete_academics').select('gpa, gpa_scale, grade_display, education_system, school_name, english_test, english_score, gpa_source, english_source, sat_score, act_score').eq('athlete_id', athleteId).maybeSingle(),
-    supabase.from('athlete_statistics').select('season, value, source, team, competition, sport_stat_definitions(label_es, unit)').eq('athlete_id', athleteId).order('season', { ascending: false }).limit(12),
+    supabase.from('athlete_statistics').select('season, value, source, team, competition, sport_stat_definitions(label_es, label_en, unit)').eq('athlete_id', athleteId).order('season', { ascending: false }).limit(12),
     supabase.from('athlete_videos').select('id, kind, title, url, is_featured').eq('athlete_id', athleteId).order('is_featured', { ascending: false }).limit(8),
     supabase.from('athlete_achievements').select('title, year').eq('athlete_id', athleteId).order('year', { ascending: false }).limit(6),
     supabase.from('org_candidates').select('*').eq('organization_id', org.id).eq('athlete_id', athleteId).maybeSingle(),

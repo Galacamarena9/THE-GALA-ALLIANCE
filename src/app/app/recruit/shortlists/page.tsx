@@ -1,3 +1,4 @@
+import { getT } from '@/lib/i18n/server-t';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { requireSession } from '@/lib/session';
@@ -8,14 +9,17 @@ import { RecruitShell } from '@/components/recruit/RecruitShell';
 import { ShortlistCreateForm } from '@/components/recruit/RecruitForms';
 import { archiveShortlist } from '@/app/actions/recruit';
 
-export const metadata: Metadata = { title: 'Shortlists' };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())('Shortlists') };
+}
 
-const ago = (d: string) => {
+const ago = (d: string, tx: (s: string) => string) => {
   const days = Math.floor((Date.now() - new Date(d).getTime()) / 86400000);
-  return days <= 0 ? 'Actualizada hoy' : days === 1 ? 'Actualizada ayer' : `Actualizada hace ${days} días`;
+  return days <= 0 ? tx('Actualizada hoy') : days === 1 ? tx('Actualizada ayer') : tx(`Actualizada hace ${days} días`);
 };
 
 export default async function ShortlistsPage({ searchParams }: { searchParams: Promise<{ org?: string; f?: string }> }) {
+  const tx = await getT();
   const session = await requireSession();
   const sp = await searchParams;
   const { orgs, org } = await currentRecruitOrg(session.userId, sp.org);
@@ -33,12 +37,12 @@ export default async function ShortlistsPage({ searchParams }: { searchParams: P
 
   return (
     <>
-      <PageHeader kicker="Recruiting" title="Shortlists" description="Interés preliminar del staff. Una shortlist no es un proceso: cuando quieras avanzar, inicia el recruiting." />
+      <PageHeader kicker={tx('Recruiting')} title={tx('Shortlists')} description={tx('Interés preliminar del staff. Una shortlist no es un proceso: cuando quieras avanzar, inicia el recruiting.')} />
       <RecruitShell org={org} orgs={orgs} active="/app/recruit/shortlists">
-        {org && !org.caps.has('shortlist') ? <Notice tone="warn">Tu rol o el estado de verificación no permite usar shortlists.</Notice> : org && (
+        {org && !org.caps.has('shortlist') ? <Notice tone="warn">{tx('Tu rol o el estado de verificación no permite usar shortlists.')}</Notice> : org && (
           <div className="space-y-5">
-            <nav aria-label="Filtrar shortlists" className="flex gap-2 text-xs">
-              {[['all', 'Todas'], ['mine', 'Mías'], ['shared', 'De equipo'], ['archived', 'Archivadas']].map(([k, l]) => (
+            <nav aria-label={tx('Filtrar shortlists')} className="flex gap-2 text-xs">
+              {[['all', tx('Todas')], ['mine', tx('Mías')], ['shared', tx('De equipo')], ['archived', tx('Archivadas')]].map(([k, l]) => (
                 <Link key={k} href={`/app/recruit/shortlists${k === 'all' ? '' : `?f=${k}`}`} aria-current={filter === k ? 'page' : undefined} className={`inline-flex min-h-9 items-center rounded-full border px-3 ${filter === k ? 'border-brass text-brass' : 'border-line text-muted'}`}>{l}</Link>
               ))}
             </nav>
@@ -50,17 +54,17 @@ export default async function ShortlistsPage({ searchParams }: { searchParams: P
                     <li key={l.id}>
                       <Card className="h-full">
                         <Link href={`/app/recruit/shortlists/${l.id}`} className="font-display text-lg font-bold uppercase text-paper hover:text-brass">{l.name}</Link>
-                        <p className="text-xs text-muted">{{ private: '🔒 Privada', shared: 'Compartida', program: 'Programa', team: 'Equipo' }[l.visibility as string] ?? 'Equipo'} · {ago(l.updated_at)}</p>
+                        <p className="text-xs text-muted">{{ private: tx('🔒 Privada'), shared: tx('Compartida'), program: tx('Programa'), team: tx('Equipo') }[l.visibility as string] ?? tx('Equipo')} · {ago(l.updated_at, tx)}</p>
                         <p className="mt-2 text-sm text-paper">{m.length} atleta{m.length === 1 ? '' : 's'} · {m.filter((x) => x.review_status === 'to_review').length} por revisar · {m.filter((x) => active.has(x.athlete_id)).length} en recruiting activo</p>
-                        <form action={archiveShortlist} className="mt-2"><input type="hidden" name="list" value={l.id} /><input type="hidden" name="archive" value={l.archived_at ? '0' : '1'} /><button className="text-xs text-muted hover:text-paper">{l.archived_at ? 'Recuperar' : 'Archivar'}</button></form>
+                        <form action={archiveShortlist} className="mt-2"><input type="hidden" name="list" value={l.id} /><input type="hidden" name="archive" value={l.archived_at ? '0' : '1'} /><button className="text-xs text-muted hover:text-paper">{l.archived_at ? tx('Recuperar') : tx('Archivar')}</button></form>
                       </Card>
                     </li>
                   );
                 })}
               </ul>
-            ) : <EmptyState title="Sin shortlists">Crea la primera, por ejemplo «2027 Point Guards», y añade atletas desde Descubrir.</EmptyState>}
+            ) : <EmptyState title={tx('Sin shortlists')}>{tx('Crea la primera, por ejemplo «2027 Point Guards», y añade atletas desde Descubrir.')}</EmptyState>}
             <Card>
-              <h2 className="mb-3 font-display text-lg font-bold text-paper">+ Nueva shortlist</h2>
+              <h2 className="mb-3 font-display text-lg font-bold text-paper">{tx('+ Nueva shortlist')}</h2>
               <ShortlistCreateForm org={org.id} programs={(programs ?? []).map((p) => ({ id: p.id, name: p.name }))} needs={(needs ?? []).map((n) => ({ id: n.id, name: n.title }))} />
             </Card>
           </div>

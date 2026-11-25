@@ -64,6 +64,14 @@ Cambios: rama `feat/fee-attestation-founder-cap`; migración `20261217000100_fee
 Pruebas: unit 266/266; RLS 438/438 (C3-1, C3-2); e2e 370 OK + `founder-pricing.spec.ts`; build OK.
 Riesgos abiertos: representaciones anteriores sin declaración (se muestran con aviso «pídesela»); claves Stripe live y `free_until` (gate de Gala); validación legal NCAA del texto.
 
+## [Fase 4b auditoría] 2026-11-25 · Recruiting en inglés
+Origen: auditoría integral con el Agente Maestro PRO (hallazgo U2).
+Cambios:
+- Traductor `tx()` (servidor: `getT()`; cliente: `useT()` con `I18nProvider` en la app) y diccionario `en.ts` con unos 435 textos y 16 patrones.
+- En inglés: Hoy, Descubrir (filtros, encaje, vista rápida), listas y su detalle, procesos y ficha del candidato, necesidades, tareas, comparar, trials y la cabecera del portal. También los títulos de página, los deportes, las posiciones, las estadísticas y las fechas.
+- Vista previa `/preview/recruit-shell`.
+Pruebas: unit 287/287 (`recruit-parity.test.ts`: cada texto marcado tiene traducción; acciones del coach con cifras); e2e 392 OK; build OK.
+
 ## [Fase 4a auditoría] 2026-11-25 · El aviso de cookies no tapa nada y el coach entra en inglés
 Origen: auditoría integral con el Agente Maestro PRO (hallazgos U1 y U2).
 Cambios:
