@@ -1,3 +1,4 @@
+import { getT } from '@/lib/i18n/server-t';
 /**
  * El puente Europa → NCAA: mapa abstracto de puntos con rutas que fluyen del talento europeo a los programas
  * universitarios de EE. UU. Es ilustrativo (no es un mapa a escala) y todo el movimiento es CSS que se apaga con
@@ -33,12 +34,13 @@ function dots() {
   return out;
 }
 
-export function BridgeMap() {
+export async function BridgeMap() {
+  const tx = await getT();
   const grid = dots();
   return (
     <div className="relative">
       <svg viewBox="0 0 800 460" className="h-auto w-full" role="img" aria-labelledby="bridge-title">
-        <title id="bridge-title">Rutas ilustrativas de atletas europeos hacia la NCAA</title>
+        <title id="bridge-title">{tx('Rutas ilustrativas de atletas europeos hacia la NCAA')}</title>
         <defs>
           <linearGradient id="route" x1="1" x2="0">
             <stop offset="0" stopColor="#e6cf8f" stopOpacity="0.95" />
@@ -47,7 +49,7 @@ export function BridgeMap() {
           <radialGradient id="glow"><stop offset="0" stopColor="#e6cf8f" stopOpacity="0.55" /><stop offset="1" stopColor="#e6cf8f" stopOpacity="0" /></radialGradient>
         </defs>
         {grid.map((d) => <circle key={`${d.x}-${d.y}`} cx={d.x} cy={d.y} r="1.6" fill="#f4efe4" opacity={d.o} />)}
-        <text x="400" y="404" textAnchor="middle" className="fill-paper/55 text-[11px] uppercase tracking-[0.4em]">Atlántico</text>
+        <text x="400" y="404" textAnchor="middle" className="fill-paper/55 text-[11px] uppercase tracking-[0.4em]">{tx('Atlántico')}</text>
         {ROUTES.map(([e, u], i) => {
           const a = EU[e]; const b = US[u];
           const mx = (a.x + b.x) / 2; const my = Math.min(a.y, b.y) - 120 - (i % 3) * 18;
@@ -69,7 +71,7 @@ export function BridgeMap() {
         {EU.map((p) => (
           <g key={p.name}>
             <circle cx={p.x} cy={p.y} r="3.2" fill="#f4efe4" className="city-pulse" />
-            <text x={p.x + 8} y={p.y + 4} className="fill-paper/80 text-[13px]">{p.name}</text>
+            <text x={p.x + 8} y={p.y + 4} className="fill-paper/80 text-[13px]">{tx(p.name)}</text>
           </g>
         ))}
       </svg>
@@ -78,28 +80,29 @@ export function BridgeMap() {
 }
 
 /** Tarjeta compacta del Passport que flota sobre el mapa (atleta ficticia). */
-export function BridgePassport({ className = '' }: { className?: string }) {
+export async function BridgePassport({ className = '' }: { className?: string }) {
+  const tx = await getT();
   return (
     <div className={`bridge-card w-[290px] rounded-2xl border border-brass/40 bg-night/85 p-5 shadow-[var(--shadow-premium)] backdrop-blur-md ${className}`}>
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-brass">Gala Passport</span>
-        <span className="rounded-full border border-ok/40 px-2 py-0.5 text-[10px] font-semibold text-ok">Verificado</span>
+        <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-brass">{tx('Gala Passport')}</span>
+        <span className="rounded-full border border-ok/40 px-2 py-0.5 text-[10px] font-semibold text-ok">{tx('Verificado')}</span>
       </div>
       <div className="mt-4 flex items-center gap-3">
         <span className="grid h-11 w-11 place-items-center rounded-full bg-brass font-display text-lg text-night" aria-hidden>LM</span>
         <div>
-          <p className="font-display text-2xl leading-none text-paper">Lucía M.</p>
-          <p className="mt-1 text-xs text-muted">Base · Valencia → NCAA D-I</p>
+          <p className="font-display text-2xl leading-none text-paper">{tx('Lucía M.')}</p>
+          <p className="mt-1 text-xs text-muted">{tx('Base · Valencia → NCAA D-I')}</p>
         </div>
       </div>
       <dl className="mt-4 grid grid-cols-3 border-y border-line py-3 text-center">
-        <div><dt className="text-[10px] uppercase tracking-wider text-faint">Puntos</dt><dd className="font-display text-xl text-paper">14,2</dd></div>
-        <div className="border-x border-line"><dt className="text-[10px] uppercase tracking-wider text-faint">Nota</dt><dd className="font-display text-xl text-paper">8,7</dd></div>
-        <div><dt className="text-[10px] uppercase tracking-wider text-faint">Inglés</dt><dd className="font-display text-xl text-paper">C1</dd></div>
+        <div><dt className="text-[10px] uppercase tracking-wider text-faint">{tx('Puntos')}</dt><dd className="font-display text-xl text-paper">14,2</dd></div>
+        <div className="border-x border-line"><dt className="text-[10px] uppercase tracking-wider text-faint">{tx('Nota')}</dt><dd className="font-display text-xl text-paper">8,7</dd></div>
+        <div><dt className="text-[10px] uppercase tracking-wider text-faint">{tx('Inglés')}</dt><dd className="font-display text-xl text-paper">C1</dd></div>
       </dl>
-      <p className="mt-3 flex items-center justify-between text-xs"><span className="text-muted">Encaje con 3 programas</span><span className="font-semibold text-brass">Alto</span></p>
-      <p className="mt-1 flex items-center justify-between text-xs"><span className="text-muted">Agente</span><span className="text-paper">Norte Sports</span></p>
-      <p className="mt-3 text-[10px] text-faint">Ejemplo ilustrativo · atleta ficticia</p>
+      <p className="mt-3 flex items-center justify-between text-xs"><span className="text-muted">{tx('Encaje con 3 programas')}</span><span className="font-semibold text-brass">{tx('Alto')}</span></p>
+      <p className="mt-1 flex items-center justify-between text-xs"><span className="text-muted">{tx('Agente')}</span><span className="text-paper">{tx('Norte Sports')}</span></p>
+      <p className="mt-3 text-[10px] text-faint">{tx('Ejemplo ilustrativo · atleta ficticia')}</p>
     </div>
   );
 }

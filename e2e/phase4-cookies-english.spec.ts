@@ -80,3 +80,37 @@ test('fase 4b · en castellano la cabecera del portal no cambia', async ({ page 
   await expect(nav.getByRole('link', { name: 'Descubrir' })).toBeVisible();
   await expect(page.getByText('Verificación pendiente')).toBeVisible();
 });
+
+test.describe('fase 4c · portada, precios, alta y login en inglés', () => {
+  test.use({ locale: 'en-US' });
+  test('la portada habla inglés con un navegador en inglés', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('If you have the level, you should get the shot.');
+    await expect(page.getByRole('link', { name: /I'm an agent · see the demo/ }).first()).toBeVisible();
+    await expect(page.locator('[lang="en"]').first()).toBeVisible();
+    await expect(page.getByText('Do you guarantee a scholarship or a contract?')).toBeVisible();
+  });
+  test('precios en inglés, con el precio fundador y las cifras sin cambiar', async ({ page }) => {
+    await page.goto('/precios');
+    await expect(page.getByRole('heading', { name: 'Agencies' })).toBeVisible();
+    await expect(page.getByText('€79/month').first()).toBeVisible();
+    await expect(page.getByText(/founder price: €47\/month for life for the first 15 agencies/).first()).toBeVisible();
+  });
+  test('alta y login en inglés, y el error de validación también', async ({ page }) => {
+    await page.goto('/login');
+    await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
+    await expect(page.getByLabel('Password')).toBeVisible();
+    await page.goto('/signup');
+    await expect(page.getByLabel('Full name')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Create account' })).toBeVisible();
+  });
+});
+
+test('fase 4c · el selector cambia la portada a inglés y vuelve a castellano', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Si tienes nivel, tienes que poder optar.');
+  await page.getByRole('button', { name: /English/ }).first().click();
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('If you have the level, you should get the shot.');
+  await page.getByRole('button', { name: /Castellano/ }).first().click();
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Si tienes nivel');
+});

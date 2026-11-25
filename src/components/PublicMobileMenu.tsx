@@ -1,5 +1,6 @@
 'use client';
 
+import { useT } from '@/lib/i18n/client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -7,6 +8,7 @@ import { Menu, X } from 'lucide-react';
 
 /** Menú móvil de la cabecera pública: panel a pantalla completa con desenfoque. */
 export function MobileMenu({ items }: { items: { href: string; label: string }[] }) {
+  const tx = useT();
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const [lastPath, setLastPath] = useState(pathname);
@@ -27,7 +29,7 @@ export function MobileMenu({ items }: { items: { href: string; label: string }[]
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-controls="mobile-menu"
-        aria-label={open ? 'Cerrar menú' : 'Abrir menú'}
+        aria-label={open ? tx('Cerrar menú') : tx('Abrir menú')}
         className="flex h-10 w-10 items-center justify-center rounded-xl text-paper transition-colors hover:bg-surface"
       >
         {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -44,8 +46,8 @@ export function MobileMenu({ items }: { items: { href: string; label: string }[]
             ))}
           </ul>
           <div className="mt-6 grid gap-3">
-            <Link href="/signup" className="btn-shine rounded-xl bg-brass px-4 py-3 text-center font-bold text-ink">Crear cuenta gratis</Link>
-            <Link href="/login" className="rounded-xl border border-line-strong px-4 py-3 text-center text-paper">Iniciar sesión</Link>
+            <Link href="/signup" className="btn-shine rounded-xl bg-brass px-4 py-3 text-center font-bold text-ink">{tx('Crear cuenta gratis')}</Link>
+            <Link href="/login" className="rounded-xl border border-line-strong px-4 py-3 text-center text-paper">{tx('Iniciar sesión')}</Link>
           </div>
         </div>
       )}

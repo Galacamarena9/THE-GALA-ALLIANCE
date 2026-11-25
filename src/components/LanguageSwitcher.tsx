@@ -19,11 +19,10 @@ export function LanguageSwitcher({ current, className = '' }: { current: Locale;
           name="lang"
           value={code}
           lang={code}
-          aria-label={name}
           aria-pressed={current === code}
           className={`rounded-lg px-2 py-1 font-semibold transition-colors ${current === code ? 'bg-brass/15 text-brass' : 'text-faint hover:text-paper'}`}
         >
-          {short}
+          {short}<span className="sr-only"> · {name}</span>
         </button>
       ))}
     </form>
