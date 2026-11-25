@@ -1,5 +1,6 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
+import type { GuardianState } from '@/lib/domain/guardian-verification';
 import type { SessionContext } from '@/lib/session';
 import type { FamilyApproval, FamilyDeadline, FamilyOffer } from '@/lib/domain/family';
 import { budgetFit, familyCost, type CostScenario } from '@/lib/domain/family-cost';
@@ -13,6 +14,8 @@ export interface GuardianLink {
   status: 'approved' | 'restricted';
   /** false = vínculo vigente pero sin acceso (pausado o revisión de mayoría de edad vencida). */
   active: boolean;
+  /** Fase 5: si puede decidir por el menor (declaración + revisión). Opcional en las vistas previas. */
+  guardianState?: GuardianState;
   scopes: { profile: boolean; applications: boolean; academics: boolean; edit: boolean; costs: boolean; budget: boolean; documents: boolean; contacts: boolean; messages: boolean };
 }
 
@@ -25,10 +28,12 @@ export async function guardianLinks(session: SessionContext): Promise<GuardianLi
     .eq('parent_id', session.userId).in('status', ['approved', 'restricted']).order('created_at');
   const ids = (links ?? []).map((l) => l.athlete_id as string).filter(Boolean);
   if (!ids.length) return [];
-  const [{ data: profiles }, actives] = await Promise.all([
+  const [{ data: profiles }, actives, states] = await Promise.all([
     supabase.from('profiles').select('id, display_name').in('id', ids),
     Promise.all(ids.map((id) => supabase.rpc('is_active_guardian', { p_athlete: id }).then((r) => [id, r.data === true] as const))),
+    Promise.all((links ?? []).map((l) => supabase.rpc('guardian_verification_state', { p_link: l.id as string }).then((r) => [l.id as string, (r.data as GuardianState | null) ?? undefined] as const))),
   ]);
+  const stateOf = new Map(states);
   const activeOf = new Map(actives);
   return (links ?? []).filter((l) => l.athlete_id).map((l) => ({
     id: l.id as string,
@@ -38,6 +43,7 @@ export async function guardianLinks(session: SessionContext): Promise<GuardianLi
     verification: l.verification_status as GuardianLink['verification'],
     status: l.status as GuardianLink['status'],
     active: l.status === 'approved' && activeOf.get(l.athlete_id as string) === true,
+    guardianState: stateOf.get(l.id as string),
     scopes: {
       profile: !!l.can_view_profile, applications: !!l.can_view_applications, academics: !!l.can_view_academics, edit: !!l.can_edit_profile,
       costs: !!l.can_view_costs, budget: !!l.can_view_budget, documents: !!l.can_view_documents, contacts: !!l.can_view_contacts, messages: !!l.can_view_messages,

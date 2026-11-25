@@ -367,6 +367,7 @@ export function dueText(dueDate: string | null, now: Date = new Date()): string 
 /** Mensajes legibles para los errores de los triggers y la RLS. */
 export function friendlyDbError(message: string | undefined): string {
   const m = message ?? '';
+  if (m.includes('guardian_verification_required')) return 'Para aprobar en nombre de un menor tienes que estar verificado como su tutor legal. Hazlo desde Familia.';
   if (m.includes('representation_transition_not_allowed')) return 'Ese cambio de estado no está permitido. Solo el atleta puede aceptar o rechazar.';
   if (m.includes('representation_adults_only')) return 'La representación solo está disponible con atletas mayores de edad.';
   if (m.includes('note_due_only_follow_up')) return 'Solo los seguimientos llevan fecha.';

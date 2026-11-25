@@ -1,7 +1,7 @@
 <!-- Generado por scripts/erd/generate.mjs a partir de las migraciones. No editar a mano: `npm run erd`. -->
 # 02 · Familia, consentimiento y privacidad
 
-Tablas: **7** · RLS activada en 7/7.
+Tablas: **8** · RLS activada en 8/8.
 Se relaciona con: `athlete_offers` (08), `athlete_profiles` (03), `institutions` (05), `opportunities` (07), `organizations` (05), `profiles` (01).
 
 ## AS-IS · Modelo actual
@@ -20,6 +20,9 @@ erDiagram
   OPPORTUNITIES |o--o{ FAMILY_COST_SCENARIOS : "opportunity_id"
   ATHLETE_PROFILES ||--o{ FAMILY_NOTES : "athlete_id"
   PROFILES ||--o{ FAMILY_NOTES : "author_id"
+  PROFILES ||--o{ GUARDIAN_ATTESTATIONS : "athlete_id"
+  PARENT_ATHLETE_LINKS ||--o{ GUARDIAN_ATTESTATIONS : "link_id"
+  PROFILES ||--o{ GUARDIAN_ATTESTATIONS : "parent_id"
   PROFILES |o--o{ PARENT_ATHLETE_LINKS : "athlete_id"
   PROFILES ||--o{ PARENT_ATHLETE_LINKS : "invited_by"
   PROFILES |o--o{ PARENT_ATHLETE_LINKS : "parent_id"
@@ -98,6 +101,15 @@ erDiagram
     int4 review_window_days
     timestamptz updated_at
   }
+  GUARDIAN_ATTESTATIONS {
+    uuid id PK
+    uuid link_id FK
+    uuid parent_id FK
+    uuid athlete_id FK
+    text statement_version
+    text relationship
+    timestamptz created_at
+  }
   PARENT_ATHLETE_LINKS {
     uuid id PK
     uuid parent_id FK
@@ -139,11 +151,13 @@ erDiagram
 | `family_cost_scenarios` | Sensible | Sí | atleta (athlete_id) → se borra<br>persona (created_by) → se anonimiza | Mientras exista la cuenta | Sí | KEEP |
 | `family_notes` | Sensible | Sí | atleta (athlete_id) → se borra<br>persona (author_id) → se borra | Mientras exista la cuenta | Sí | KEEP |
 | `family_policies` | Interna | — | No depende de personas | Mientras exista la organización | — | KEEP |
+| `guardian_attestations` | Sensible | Sí | persona (athlete_id) → se borra<br>persona (parent_id) → se borra | Mientras exista la cuenta | Sí | KEEP |
 | `parent_athlete_links` | Sensible | Sí | persona (athlete_id) → se borra<br>persona (invited_by) → se borra<br>persona (parent_id) → se borra<br>persona (verified_by) → se anonimiza | Invitaciones pendientes: 90 días tras caducar | Sí | KEEP |
 
 - `family_cost_scenarios`: Cálculo privado de coste por opción; NULL = desconocido.
 - `family_notes`: Notas privadas de la familia; nunca visibles para organizaciones.
 - `family_policies`: Política familiar configurable por jurisdicción (ventana de revisión al cumplir 18).
+- `guardian_attestations`: Declaración firmada del tutor (versionada, solo añadir); prueba para decidir por un menor.
 
 ## TO-BE · Modelo objetivo
 

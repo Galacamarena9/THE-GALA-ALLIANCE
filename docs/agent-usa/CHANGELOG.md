@@ -64,6 +64,14 @@ Cambios: rama `feat/fee-attestation-founder-cap`; migración `20261217000100_fee
 Pruebas: unit 266/266; RLS 438/438 (C3-1, C3-2); e2e 370 OK + `founder-pricing.spec.ts`; build OK.
 Riesgos abiertos: representaciones anteriores sin declaración (se muestran con aviso «pídesela»); claves Stripe live y `free_until` (gate de Gala); validación legal NCAA del texto.
 
+## [Fase 5 auditoría] 2026-11-25 · Solo un tutor verificado decide por un menor
+Origen: riesgo residual de la fase 1 (un adulto falso podía actuar como tutor). Coordinado con GALA MONSTER OS (05 Engineering responsable, 06 QA, Legal & Privacy de la Launch Suite consultado). Riesgo L4 en staging; la verificación con proveedor de identidad es L5 (Gala).
+Cambios:
+- Migración `20261220000100_phase5_guardian_verification.sql`: declaración del tutor (append-only, versionada), comprobaciones automáticas sin exponer edades, `guardian_decision_ok`, `is_guardian_of` endurecido, triggers en `consents` (consentimiento dado por un tutor) y `contact_requests` (aprobar contacto), cola y decisión de administración con motivo y auditoría, flag `guardian_auto_verify` apagado, evento `guardian_attested`. ROLLBACK en la cabecera.
+- Familia: tarjeta «Confirma que eres su tutor legal» con la declaración; mensajes claros si una aprobación se frena. Trust & Safety: cola «Tutores por verificar».
+- Exportación RGPD y ERD incluyen `guardian_attestations`.
+Pruebas: RLS 450/450 (P5-1…P5-5); unit 293/293; e2e 406 OK con `guardian-verification.spec.ts`; build OK.
+
 ## [Fase 4c auditoría] 2026-11-25 · Portada, precios, alta y login en inglés
 Origen: auditoría integral con el Agente Maestro PRO (hallazgo U2).
 Cambios:

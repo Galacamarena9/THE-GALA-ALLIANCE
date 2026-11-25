@@ -148,7 +148,11 @@ export async function respondRepresentation(formData: FormData) {
     must(await supabase.rpc('representation_respond', { p_id: id, p_accept: status === 'active' }), 'rpc.representation_respond');
     if (status === 'active') await logEvent('representation_accepted', {}, `rep:${id}`);
   }
-  else if (status === 'guardian_approve' || status === 'guardian_decline') must(await supabase.rpc('representation_guardian_decide', { p_id: id, p_approve: status === 'guardian_approve' }), 'rpc.representation_guardian_decide');
+  else if (status === 'guardian_approve' || status === 'guardian_decline') {
+    const res = await supabase.rpc('representation_guardian_decide', { p_id: id, p_approve: status === 'guardian_approve' });
+    if (res.error?.message.includes('guardian_verification_required')) redirect('/app/family?verificar=1');
+    must(res, 'rpc.representation_guardian_decide');
+  }
   else {
     must(await supabase.rpc('representation_end', { p_id: id }), 'rpc.representation_end');
     await logEvent('representation_revoked', {}, `rep-end:${id}`);

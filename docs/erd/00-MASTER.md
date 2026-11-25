@@ -1,8 +1,8 @@
 <!-- Generado por scripts/erd/generate.mjs a partir de las migraciones. No editar a mano: `npm run erd`. -->
 # 00 · MASTER · Mapa de datos de The Gala Alliance
 
-**164 tablas** en 14 dominios, todas con RLS (164/164).
-Clasificación: Pública 19 · Interna 49 · Personal 67 · Sensible 29 · con posibles datos de menores: 52.
+**165 tablas** en 14 dominios, todas con RLS (165/165).
+Clasificación: Pública 19 · Interna 49 · Personal 67 · Sensible 30 · con posibles datos de menores: 53.
 
 Cómo leerlo: cada dominio tiene su fichero con el diagrama AS-IS (columnas reales), el inventario y el TO-BE. La arquitectura, las reglas y el plan están en [`docs/DATA_ARCHITECTURE.md`](../DATA_ARCHITECTURE.md).
 
@@ -13,7 +13,7 @@ Una flecha A → B significa que tablas de A apuntan (FK) a tablas de B.
 ```mermaid
 flowchart LR
   D01["01 · Identidad y cuentas<br>6 tablas"]
-  D02["02 · Familia, consentimiento y privacidad<br>7 tablas"]
+  D02["02 · Familia, consentimiento y privacidad<br>8 tablas"]
   D03["03 · Passport del atleta<br>18 tablas"]
   D04["04 · Catálogo deportivo y eventos<br>7 tablas"]
   D05["05 · Instituciones y organizaciones<br>9 tablas"]
@@ -156,7 +156,7 @@ erDiagram
 | Dominio | Tablas | Cambios previstos |
 |---|---|---|
 | [01 · Identidad y cuentas](./01-identidad.md) | 6 | — |
-| [02 · Familia, consentimiento y privacidad](./02-familia-privacidad.md) | 7 | — |
+| [02 · Familia, consentimiento y privacidad](./02-familia-privacidad.md) | 8 | — |
 | [03 · Passport del atleta](./03-passport.md) | 18 | — |
 | [04 · Catálogo deportivo y eventos](./04-catalogo.md) | 7 | — |
 | [05 · Instituciones y organizaciones](./05-organizaciones.md) | 9 | — |

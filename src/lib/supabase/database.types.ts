@@ -238,6 +238,12 @@ export type Database = {
         }
         Relationships: []
       }
+      guardian_attestations: {
+        Row: { id: string; link_id: string; parent_id: string; athlete_id: string; statement_version: string; relationship: string; created_at: string }
+        Insert: { id?: string; link_id: string; parent_id: string; athlete_id: string; statement_version: string; relationship: string; created_at?: string }
+        Update: { id?: string; link_id?: string; parent_id?: string; athlete_id?: string; statement_version?: string; relationship?: string; created_at?: string }
+        Relationships: []
+      }
       agency_trials: {
         Row: { organization_id: string; ends_at: string; extended_by: string | null; reason: string | null; updated_at: string }
         Insert: { organization_id: string; ends_at: string; extended_by?: string | null; reason?: string | null; updated_at?: string }
@@ -10051,6 +10057,22 @@ export type Database = {
         Returns: boolean
       }
       agency_invite_claim: { Args: { p_token: string }; Returns: string }
+      guardian_attest: {
+        Args: { p_link: string; p_version: string }
+        Returns: string
+      }
+      guardian_review: {
+        Args: { p_link: string; p_approve: boolean; p_reason: string }
+        Returns: string
+      }
+      guardian_review_queue: {
+        Args: Record<string, never>
+        Returns: { link_id: string; parent_name: string; athlete_name: string; relationship: string; attested_at: string; auto_checks_ok: boolean }[]
+      }
+      guardian_verification_state: {
+        Args: { p_link: string }
+        Returns: string
+      }
       admin_agency_trial_extend: {
         Args: { p_org: string; p_days: number; p_reason: string }
         Returns: string

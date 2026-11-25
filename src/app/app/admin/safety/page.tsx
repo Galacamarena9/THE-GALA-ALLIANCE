@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { Badge, Card, CardTitle, EmptyState, PageHeader } from '@/components/ui';
 import { DecideAppealForm, ModerateForm, OpenCaseForm } from '@/components/safety/SafetyForms';
 import { revertModeration } from '@/app/actions/safety';
+import { GuardianReviewQueue, type GuardianReviewRow } from '@/components/safety/GuardianReviewQueue';
 
 export const metadata: Metadata = { title: 'Trust & Safety' };
 
@@ -19,17 +20,19 @@ const date = (d: string) => new Intl.DateTimeFormat('es-ES', { day: 'numeric', m
  * 14 · Cola de Trust & Safety: denuncias sin caso, casos abiertos con su historia y su medida, apelaciones y
  * sanciones activas. Solo la ve quien tiene el rol interno de Trust & Safety (lo decide la base de datos).
  */
-export default async function SafetyQueuePage() {
+export default async function SafetyQueuePage({ searchParams }: { searchParams: Promise<{ tutor?: string }> }) {
+  const { tutor } = await searchParams;
   await requireSession(['admin']);
   const supabase = await createClient();
   const { data: canTs } = await supabase.rpc('has_admin_role', { p_role: 'trust_safety' });
   if (!canTs) return (<><PageHeader kicker="Admin" title="Trust & Safety" /><EmptyState title="Sin acceso">Esta cola requiere el rol interno de Trust & Safety.</EmptyState></>);
 
-  const [{ data: reports }, { data: cases }, { data: appeals }, { data: active }] = await Promise.all([
+  const [{ data: reports }, { data: cases }, { data: appeals }, { data: active }, { data: guardians }] = await Promise.all([
     supabase.from('content_reports').select('id, entity_type, entity_id, reason, details, priority, created_at').is('case_id', null).in('status', ['open', 'reviewing']).order('priority').order('created_at').limit(50),
     supabase.from('safety_cases').select('id, title, category, priority, status, subject_user, subject_org, created_at, safety_case_events(id, kind, body, created_at)').in('status', ['open', 'investigating', 'actioned']).order('created_at', { ascending: false }).limit(50),
     supabase.from('moderation_appeals').select('id, body, created_at, moderation_actions(action, reason)').eq('status', 'open').order('created_at').limit(50),
     supabase.from('moderation_actions').select('id, action, scopes, reason, ends_at, subject_user, subject_org, created_at').is('reverted_at', null).not('action', 'in', '(no_action,escalate,warning)').order('created_at', { ascending: false }).limit(50),
+    supabase.rpc('guardian_review_queue'),
   ]);
   type Ev = { id: string; kind: string; body: string; created_at: string };
   type Case = { id: string; title: string; category: string; priority: string; status: string; subject_user: string | null; subject_org: string | null; created_at: string; safety_case_events: Ev[] };
@@ -38,6 +41,7 @@ export default async function SafetyQueuePage() {
   return (
     <>
       <PageHeader kicker="Admin" title="Trust & Safety" description="Denuncias, casos, apelaciones y medidas activas. Cada decisión necesita un motivo y queda auditada." />
+      <div className="mb-6"><GuardianReviewQueue rows={(guardians ?? []) as GuardianReviewRow[]} notice={tutor} /></div>
       <div className="grid gap-5 xl:grid-cols-2">
         <Card>
           <CardTitle kicker="Denuncias sin caso" action={<Badge>{reports?.length ?? 0}</Badge>}>Para triar</CardTitle>

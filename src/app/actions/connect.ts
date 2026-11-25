@@ -1,5 +1,6 @@
 'use server';
 
+import { redirect } from 'next/navigation';
 import { logEvent } from '@/lib/events';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
@@ -42,6 +43,7 @@ export async function respondContact(formData: FormData) {
   if (!parsed.success) return;
   const supabase = await createClient();
   const { error } = await supabase.from('contact_requests').update({ status: parsed.data.status }).eq('id', parsed.data.id);
+  if (error?.message.includes('guardian_verification_required')) redirect('/app/family?verificar=1');
   if (!error && parsed.data.status === 'accepted') await logEvent('contact_accepted');
   revalidatePath('/app/inbox');
 }

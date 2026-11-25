@@ -80,6 +80,26 @@ try {
     await db.query(readFileSync(join(migDir, f), 'utf8'));
   }
 
+  // Fase 5: las pruebas anteriores dan por hecho un tutor ya verificado (declaración + revisión). Este disparador
+  // SOLO de pruebas lo simula al aprobarse un vínculo; el bloque «Fase 5» lo desactiva para probar la verificación real.
+  await db.query(`create or replace function public.test_autoverify_guardian() returns trigger language plpgsql set search_path = public as $$
+    begin
+      if new.status = 'approved' and new.parent_id is not null and new.athlete_id is not null
+         and new.relationship in ('parent', 'mother', 'father', 'legal_guardian') then
+        if not exists (select 1 from public.guardian_attestations where link_id = new.id) then
+          insert into public.guardian_attestations (link_id, parent_id, athlete_id, statement_version, relationship)
+          values (new.id, new.parent_id, new.athlete_id, public.guardian_statement_version(), new.relationship);
+        end if;
+      end if;
+      return null;
+    end $$`);
+  await db.query(`create trigger test_autoverify_guardian after insert or update of status on public.parent_athlete_links
+    for each row execute function public.test_autoverify_guardian()`);
+  await db.query(`revoke all on function public.test_autoverify_guardian() from public, anon, authenticated`);
+  // …y con la declaración hecha, la verificación automática pasa (las edades de los fixtures no son realistas).
+  await db.query(`create or replace function public.guardian_auto_checks(p_link uuid) returns boolean language sql stable security definer set search_path = public as $$ select true $$`);
+  await db.query(`update public.feature_flags set enabled = true where key = 'guardian_auto_verify'`);
+
   // --- Actores ---------------------------------------------------------------
   const u = {
     adult: randomUUID(), minor: randomUUID(), privateAth: randomUUID(), parent: randomUUID(),
@@ -4158,6 +4178,130 @@ try {
     eq((await as(owner, `select source from agency_plan_status($1)`, [org])).rows[0].source, 'trial');
     eq((await db.query(`select count(*)::int n from audit_logs where action = 'agency_trial_extended' and entity_id = $1`, [org])).rows[0].n, 1, 'auditado');
   });
+
+  results.push('\nFase 5: solo un tutor verificado decide por un menor');
+  {
+    // Vuelve el comportamiento real: sin declaración automática, comprobaciones de verdad y revisión humana (piloto).
+    await db.query(`alter table public.parent_athlete_links disable trigger test_autoverify_guardian`);
+    const mig = readFileSync(join(migDir, '20261220000100_phase5_guardian_verification.sql'), 'utf8');
+    await db.query(mig.match(/create or replace function public\.guardian_auto_checks[\s\S]*?\$\$;/)[0]);
+    await db.query(`update public.feature_flags set enabled = false where key = 'guardian_auto_verify'`);
+
+    const person = async (name, age, { confirmed = true } = {}) => {
+      const id = randomUUID();
+      await db.query(`insert into auth.users (id, email, raw_user_meta_data${confirmed ? ', email_confirmed_at' : ''}) values ($1, $2, $3${confirmed ? ', now()' : ''})`,
+        [id, `${name}-${id.slice(0, 6)}@p5.test`, { display_name: name }]);
+      await db.query(`insert into private_profile_data (user_id, date_of_birth) values ($1, current_date - make_interval(years => $2))`, [id, age]);
+      return id;
+    };
+    const kid = await person('p5-kid', 15);
+    await db.query(`insert into user_roles (user_id, role) values ($1, 'athlete')`, [kid]);
+    await db.query(`insert into athlete_profiles (user_id, sport_id, graduation_year, profile_visibility) values ($1, 'basketball', 2029, 'members')`, [kid]);
+    const mum = await person('p5-mum', 44);
+    await db.query(`insert into user_roles (user_id, role) values ($1, 'parent')`, [mum]);
+    const mumLink = (await db.query(`insert into parent_athlete_links (parent_id, athlete_id, invited_by, status, approved_at, relationship, guardian_consent_given)
+      values ($1, $2, $2, 'approved', now(), 'mother', true) returning id`, [mum, kid])).rows[0].id;
+    const clubOwner = await person('p5-club', 40);
+    const club = (await db.query(`insert into organizations (name, type, created_by, verification_status) values ('P5 Club', 'club', $1, 'verified') returning id`, [clubOwner])).rows[0].id;
+    await db.query(`insert into user_roles (user_id, role) values ($1, 'coach') on conflict do nothing`, [clubOwner]);
+    await db.query(`insert into organization_members (organization_id, user_id, member_role) values ($1, $2, 'admin') on conflict do nothing`, [club, clubOwner]);
+    const contact = async () => {
+      await db.query('begin');
+      try {
+        await db.query(`select set_config('request.jwt.claims', $1, true)`, [JSON.stringify({ sub: clubOwner, role: 'authenticated' })]);
+        const r = await db.query(`insert into contact_requests (organization_id, athlete_id, message) values ($1, $2, 'Queremos invitarte a una prueba de la temporada que viene.') returning id, status`, [club, kid]);
+        await db.query('commit');
+        eq(r.rows[0].status, 'pending_guardian', 'con un menor empieza esperando a la familia');
+        return r;
+      } catch (e) { await db.query('rollback'); throw e; }
+    };
+    const sessionInsertConsent = async (actor, granted) => {
+      await db.query('begin');
+      try {
+        await db.query(`select set_config('request.jwt.claims', $1, true)`, [JSON.stringify({ sub: actor, role: 'authenticated' })]);
+        await db.query(`insert into consents (user_id, guardian_id, purpose, document_version, granted) values ($1, $2, 'trial_participation', 'p5', $3)`, [kid, actor, granted]);
+        await db.query('commit');
+      } catch (e) { await db.query('rollback'); throw e; }
+    };
+
+    await check('P5-1 vínculo aprobado sin verificar: ve lo compartido, pero no decide por el menor (rechazar sí)', async () => {
+      eq((await as(mum, `select guardian_verification_state($1) s`, [mumLink])).rows[0].s, 'needs_attestation');
+      eq((await as(mum, `select is_guardian_of($1) g`, [kid])).rows[0].g, false, 'no actúa por el menor');
+      eq((await as(mum, `select has_family_link($1, 'view_profile') v`, [kid])).rows[0].v, true, 'sigue viendo');
+      const r1 = (await contact()).rows[0].id;
+      await expectError(() => as(mum, `update contact_requests set status = 'pending' where id = $1`, [r1]), /guardian_verification_required/);
+      await as(mum, `update contact_requests set status = 'declined' where id = $1`, [r1]);
+      eq((await db.query(`select status from contact_requests where id = $1`, [r1])).rows[0].status, 'declined', 'rechazar siempre se puede');
+      await expectError(() => sessionInsertConsent(mum, true), /guardian_verification_required/);
+      await sessionInsertConsent(mum, false);
+    });
+
+    await check('P5-2 declaración: solo el tutor del vínculo, versión vigente y parentesco de tutor; nadie la escribe a mano', async () => {
+      const stranger = await person('p5-stranger', 45);
+      await expectError(() => as(stranger, `select guardian_attest($1, guardian_statement_version())`, [mumLink]), /not_found/);
+      await expectError(() => as(mum, `select guardian_attest($1, 'guardian-2020-01')`, [mumLink]), /statement_outdated/);
+      const aunt = await person('p5-aunt', 50);
+      const auntLink = (await db.query(`insert into parent_athlete_links (parent_id, athlete_id, invited_by, status, approved_at, relationship)
+        values ($1, $2, $2, 'approved', now(), 'other_family') returning id`, [aunt, kid])).rows[0].id;
+      await expectError(() => as(aunt, `select guardian_attest($1, guardian_statement_version())`, [auntLink]), /relationship_not_guardian/);
+      await expectError(() => as(mum, `insert into guardian_attestations (link_id, parent_id, athlete_id, statement_version, relationship) values ($1, $2, $3, 'guardian-2026-11', 'mother')`, [mumLink, mum, kid]), /permission denied/);
+      eq((await as(mum, `select guardian_attest($1, guardian_statement_version()) s`, [mumLink])).rows[0].s, 'pending_review', 'piloto: revisión humana');
+      eq((await as(kid, `select count(*)::int n from guardian_attestations where link_id = $1`, [mumLink])).rows[0].n, 1, 'el menor la ve');
+      eq((await as(stranger, `select count(*)::int n from guardian_attestations where link_id = $1`, [mumLink])).rows[0].n, 0, 'nadie más');
+      eq((await as(mum, `select is_guardian_of($1) g`, [kid])).rows[0].g, false, 'declarar no basta en el piloto');
+    });
+
+    await check('P5-3 revisión: solo administración, con motivo; al aprobar, el tutor decide y queda auditado', async () => {
+      await expectError(() => as(mum, `select * from guardian_review_queue()`), /not_allowed/);
+      const q = (await as(u.admin, `select * from guardian_review_queue()`)).rows.find((r) => r.link_id === mumLink);
+      eq(Boolean(q), true, 'en la cola');
+      eq(Object.keys(q).includes('date_of_birth'), false, 'sin edades');
+      await expectError(() => as(mum, `select guardian_review($1, true, 'Me apruebo a mí misma')`, [mumLink]), /not_allowed/);
+      await expectError(() => as(u.admin, `select guardian_review($1, true, 'corto')`, [mumLink]), /reason_required/);
+      eq((await as(u.admin, `select guardian_review($1, true, 'Videollamada con la madre y el club: confirmado') s`, [mumLink])).rows[0].s, 'verified');
+      eq((await as(mum, `select guardian_verification_state($1) s`, [mumLink])).rows[0].s, 'verified');
+      eq((await as(mum, `select is_guardian_of($1) g`, [kid])).rows[0].g, true);
+      const r2 = (await contact()).rows[0].id;
+      await as(mum, `update contact_requests set status = 'pending' where id = $1`, [r2]);
+      await sessionInsertConsent(mum, true);
+      eq((await db.query(`select count(*)::int n from audit_logs where action = 'guardian_verified' and entity_id = $1`, [mumLink])).rows[0].n, 1, 'auditado');
+    });
+
+    await check('P5-4 verificación automática (flag): solo con email confirmado, tutor ≥ 25 años y ≥ 16 años mayor; si no, a revisión', async () => {
+      await db.query(`update public.feature_flags set enabled = true where key = 'guardian_auto_verify'`);
+      try {
+        const mk = async (age, opts) => {
+          const g = await person('p5-g', age, opts);
+          const l = (await db.query(`insert into parent_athlete_links (parent_id, athlete_id, invited_by, status, approved_at, relationship)
+            values ($1, $2, $2, 'approved', now(), 'father') returning id`, [g, kid])).rows[0].id;
+          return (await as(g, `select guardian_attest($1, guardian_statement_version()) s`, [l])).rows[0].s;
+        };
+        eq(await mk(45), 'verified', 'pasa las comprobaciones');
+        eq(await mk(23), 'pending_review', 'demasiado joven para ser tutor sin revisión');
+        eq(await mk(45, { confirmed: false }), 'pending_review', 'email sin confirmar');
+      } finally {
+        await db.query(`update public.feature_flags set enabled = false where key = 'guardian_auto_verify'`);
+      }
+    });
+
+    await check('P5-5 rechazo: restringe el vínculo (deja de ver y de decidir); con un atleta adulto no hace falta verificación', async () => {
+      const dad = await person('p5-dad', 47);
+      const dadLink = (await db.query(`insert into parent_athlete_links (parent_id, athlete_id, invited_by, status, approved_at, relationship)
+        values ($1, $2, $2, 'approved', now(), 'father') returning id`, [dad, kid])).rows[0].id;
+      await as(dad, `select guardian_attest($1, guardian_statement_version())`, [dadLink]);
+      eq((await as(u.admin, `select guardian_review($1, false, 'No coincide con los datos del club') s`, [dadLink])).rows[0].s, 'restricted');
+      eq((await as(dad, `select has_family_link($1, 'view_profile') v`, [kid])).rows[0].v, false, 'deja de ver');
+      eq((await as(dad, `select is_guardian_of($1) g`, [kid])).rows[0].g, false, 'no decide');
+      eq((await db.query(`select count(*)::int n from audit_logs where action = 'guardian_rejected' and entity_id = $1`, [dadLink])).rows[0].n, 1, 'auditado');
+      const adultAth = await person('p5-adult', 20);
+      const pa = await person('p5-pa', 50);
+      const adultLink = (await db.query(`insert into parent_athlete_links (parent_id, athlete_id, invited_by, status, approved_at, relationship)
+        values ($1, $2, $2, 'approved', now(), 'mother') returning id`, [pa, adultAth])).rows[0].id;
+      eq((await as(pa, `select guardian_verification_state($1) s`, [adultLink])).rows[0].s, 'not_required');
+      await expectError(() => as(pa, `select guardian_attest($1, guardian_statement_version())`, [adultLink]), /not_required/);
+    });
+    await db.query(`alter table public.parent_athlete_links enable trigger test_autoverify_guardian`);
+  }
 
   if (!process.env.SKIP_ERASURE) await check('RGPD: toda cuenta y toda organización se puede borrar (anonimiza auditoría, no bloquea)', async () => {
     await db.query(`select set_config('request.jwt.claims', '{}', false)`);
