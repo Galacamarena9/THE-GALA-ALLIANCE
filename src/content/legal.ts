@@ -93,7 +93,7 @@ export const LEGAL: LegalDoc[] = [
     slug: 'cookies',
     title: 'Política de cookies',
     sections: [
-      { heading: 'Esenciales', body: ['Sesión de usuario (Supabase), seguridad y tu preferencia de cookies. No requieren consentimiento.'] },
+      { heading: 'Esenciales', body: ['Sesión de usuario (Supabase), seguridad, tu preferencia de cookies y el idioma que eliges con el selector (tga_lang, 1 año). No requieren consentimiento.'] },
       { heading: 'Opcionales', body: ['Funcionales (recordar filtros), analítica agregada y de terceros (vídeos incrustados). Solo se activan si las aceptas; rechazarlas es igual de fácil que aceptarlas y puedes cambiarlo en Privacidad y datos.'] },
       { heading: 'Registro', body: ['Guardamos prueba de tu elección (fecha, categorías y un identificador anónimo; la IP solo como hash) para poder acreditarla.'] },
     ],

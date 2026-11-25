@@ -1,5 +1,7 @@
 'use server';
 
+import { LOCALE_COOKIE, LOCALE_COOKIE_MAX_AGE } from '@/lib/i18n/locale';
+import { cookies } from 'next/headers';
 import { must } from '@/lib/supabase/must';
 import { revalidatePath } from 'next/cache';
 import { captchaToken } from '@/lib/captcha';
@@ -88,5 +90,7 @@ export async function requestCoachAccess(_prev: FormState, formData: FormData): 
   if (error) {
     return { error: error.status === 429 ? 'Too many requests. Please wait a minute and try again.' : 'We could not send the link. Please try again.' };
   }
+  // Viene de la ficha en inglés: su sesión empieza en inglés (puede cambiarlo con el selector).
+  (await cookies()).set(LOCALE_COOKIE, 'en', { path: '/', maxAge: LOCALE_COOKIE_MAX_AGE, sameSite: 'lax', secure: process.env.NODE_ENV === 'production' });
   return { ok: true, message: `Check ${parsed.data.email}: we sent you a sign-in link (no password needed).` };
 }

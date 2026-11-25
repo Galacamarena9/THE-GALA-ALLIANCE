@@ -7,7 +7,7 @@ import { test, expect, type Page } from '@playwright/test';
  */
 /** El aviso de cookies tapa la parte baja de la pantalla: se cierra antes de interactuar. */
 async function dismissCookies(page: Page) {
-  const btn = page.getByRole('button', { name: /rechazar opcionales/i });
+  const btn = page.getByRole('button', { name: /rechazar opcionales|reject optional/i });
   if (await btn.isVisible().catch(() => false)) await btn.click();
 }
 async function noOverflow(page: Page) {

@@ -14,6 +14,8 @@ import { Breadcrumbs } from './Breadcrumbs';
 import { UserMenu } from './UserMenu';
 import { createClient } from '@/lib/supabase/server';
 import { enforceMfaChallenge } from '@/lib/mfa';
+import { getLocale } from '@/lib/i18n/server';
+import { localizeMode } from '@/lib/domain/navigation';
 
 /** Perfil "público" de cada tipo de usuario (lo que ven los demás). */
 function profileHref(roles: string[]) {
@@ -33,7 +35,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     .some((m) => ['club', 'academy'].includes((m.organizations as unknown as { type: string } | null)?.type ?? ''));
   // Un modo por actor (Agent OS, Athlete OS, University OS, Operaciones, familia, marca).
   const primary = session.primaryRole ?? session.roles[0];
-  const mode = navModeFor({ roles: session.roles, primaryRole: primary, isMinor: session.isMinor, clubStaff });
+  const locale = await getLocale();
+  const mode = localizeMode(navModeFor({ roles: session.roles, primaryRole: primary, isMinor: session.isMinor, clubStaff }), locale);
+  const moreLabel = locale === 'en' ? 'More' : 'Más';
   // Búsqueda global del agente: sus atletas por nombre (misma proyección y RLS que la cartera; nada más).
   const people: SearchEntity[] = mode.id === 'agent'
     ? [...new Map((await loadPortfolio(session.userId)).entries.map((e) => [e.athleteId, e])).values()].map((e) => ({
@@ -48,7 +52,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     .is('read_at', null);
 
   return (
-    <div className="min-h-dvh">
+    <div className="min-h-dvh" lang={locale}>
       <header className="sticky top-0 z-40 border-b border-line bg-surface/90 backdrop-blur-xl">
         <div className="flex h-16 items-center gap-3 px-4 sm:px-6">
           <div className="w-auto shrink-0 lg:w-[232px]"><Logo href="/app" /></div>
@@ -59,11 +63,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <Link href="/app/ia" className="btn-shine hidden items-center gap-1.5 rounded-xl border border-brass/40 bg-brass/10 px-3 py-1.5 text-[13px] font-medium text-brass transition-all hover:bg-brass/20 sm:inline-flex">
               <Sparkles className="h-4 w-4" aria-hidden /> Gala IA
             </Link>
-            <Link href="/app/notifications" className="relative rounded-xl p-2 text-muted transition-colors hover:bg-surface hover:text-paper" aria-label={unread ? `Notificaciones: ${unread} sin leer` : 'Notificaciones'}>
+            <Link href="/app/notifications" className="relative rounded-xl p-2 text-muted transition-colors hover:bg-surface hover:text-paper" aria-label={locale === 'en' ? (unread ? `Notifications: ${unread} unread` : 'Notifications') : unread ? `Notificaciones: ${unread} sin leer` : 'Notificaciones'}>
               <Bell className="h-5 w-5" aria-hidden strokeWidth={1.8} />
               {!!unread && <span className="absolute right-0.5 top-0.5 min-w-4 rounded-full bg-brass px-1 text-center text-xs font-bold leading-4 text-ink">{unread > 9 ? '9+' : unread}</span>}
             </Link>
-            <UserMenu name={session.displayName} roles={session.roles.map(roleLabel).join(' · ')} profileHref={profileHref(session.roles)} signOut={signOut} />
+            <UserMenu name={session.displayName} roles={session.roles.map(roleLabel).join(' · ')} profileHref={profileHref(session.roles)} signOut={signOut} locale={locale} />
           </div>
         </div>
       </header>
@@ -71,10 +75,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <div className="flex">
         {/* Tablet: raíl compacto de iconos con los mismos destinos. */}
         <aside className="sticky top-16 hidden h-[calc(100dvh-4rem)] w-[72px] shrink-0 border-r border-line bg-surface py-4 md:block lg:hidden" aria-label="Navegación compacta">
-          <Suspense><Sidebar mode={mode} compact /></Suspense>
+          <Suspense><Sidebar mode={mode} compact moreLabel={moreLabel} /></Suspense>
         </aside>
         <aside className="sticky top-16 hidden h-[calc(100dvh-4rem)] w-[260px] shrink-0 overflow-y-auto border-r border-line bg-surface px-3 py-6 lg:block">
-          <Suspense><Sidebar mode={mode} /></Suspense>
+          <Suspense><Sidebar mode={mode} moreLabel={moreLabel} /></Suspense>
           <div className="mx-3 mt-8 rounded-2xl border border-line bg-ink p-4">
             <p className="text-sm font-bold text-paper">¿No sabes por dónde empezar?</p>
             <p className="mt-1 text-xs leading-relaxed text-muted">Pulsa <kbd className="rounded border border-line-strong px-1 text-xs">Ctrl K</kbd> y escribe lo que quieres hacer, o pregunta a Gala IA.</p>

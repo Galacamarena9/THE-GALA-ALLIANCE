@@ -9,6 +9,8 @@ export default defineConfig({
   use: {
     baseURL: process.env.E2E_BASE_URL ?? 'http://localhost:3100',
     trace: 'retain-on-failure',
+    // El público principal usa la plataforma en castellano; las pruebas en inglés lo piden con test.use({ locale: 'en-US' }).
+    locale: 'es-ES',
     // Permite reutilizar un Chromium ya instalado donde no se pueden descargar navegadores.
     ...(process.env.E2E_CHROMIUM ? { launchOptions: { executablePath: process.env.E2E_CHROMIUM } } : {}),
   },

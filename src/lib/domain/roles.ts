@@ -96,6 +96,16 @@ export function roleLabel(role: AppRole) {
 }
 
 /** Roles que buscan y guardan talento. */
+/** Fase 4 (U2): textos del alta en inglés (mismo orden y sentido que ACTORS). */
+export const ACTOR_EN: Record<ActorRole, { intent: string; promise: string }> = {
+  athlete: { intent: "I'm an athlete looking for a US scholarship", promise: 'One Passport for verified universities, clubs and brands, whatever league you play in.' },
+  parent: { intent: "I'm supporting an athlete (family or legal guardian)", promise: 'The process, the deadlines and the real cost of each option, in one place.' },
+  university: { intent: 'I run recruiting for a university or college', promise: 'Post scholarships, receive matching candidates and manage your international recruits.' },
+  coach: { intent: "I'm a coach or scout looking for talent", promise: 'Find talent with comparable data, without depending on who has the best agent.' },
+  agent: { intent: "I'm an agent or an agency", promise: 'Track every athlete with every university in one place, as a team and with their permission.' },
+  brand: { intent: 'I represent a brand', promise: 'Post offers and sign adult athletes to promote your brand.' },
+};
+
 export const TALENT_ROLES: AppRole[] = ['university', 'coach', 'agent', 'brand'];
 /** Roles que publican o gestionan becas. */
 export const RECRUITING_ROLES: AppRole[] = ['university', 'coach'];

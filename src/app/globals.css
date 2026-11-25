@@ -135,6 +135,8 @@ body {
   font-family: var(--font-sans);
   font-feature-settings: "cv11", "ss01";
   -webkit-font-smoothing: antialiased;
+  /* Fase 4 (U1): mientras el aviso de cookies está abierto, la página reserva su altura al final para que ningún botón quede tapado. */
+  padding-bottom: var(--cookie-banner-space, 0px);
 }
 
 /* Titulares de marcador: Anton condensada en mayúsculas; las palabras en <em> pasan a Fraunces itálica dorada (firma de marca). */
