@@ -52,11 +52,11 @@ export function AttentionList({ items, today, limit = 6, className }: { items: A
         <p className="flex items-center gap-2 px-5 py-6 text-sm text-muted"><CheckCircle2 className="h-5 w-5 text-ok" aria-hidden /> Todo al día: no hay ofertas que caduquen, vencidos, respuestas ni visitas pendientes.</p>
       ) : (
         <>
-          <ol className="divide-y divide-line">{head.map((i) => <AttentionRow key={i.key} i={i} today={today} />)}</ol>
+          <ol className="divide-y divide-line">{head.map((i, n) => <AttentionRow key={i.key} i={i} today={today} lead={n === 0} />)}</ol>
           {rest.length > 0 && (
             <details className="border-t border-line">
               <summary className="cursor-pointer px-5 py-3 text-sm font-semibold text-brass">Ver {rest.length} más</summary>
-              <ol className="divide-y divide-line border-t border-line">{rest.map((i) => <AttentionRow key={i.key} i={i} today={today} />)}</ol>
+              <ol className="divide-y divide-line border-t border-line">{rest.map((i) => <AttentionRow key={i.key} i={i} today={today} lead={false} />)}</ol>
             </details>
           )}
         </>
@@ -65,8 +65,9 @@ export function AttentionList({ items, today, limit = 6, className }: { items: A
   );
 }
 
-function AttentionRow({ i, today }: { i: AttentionItem; today: string }) {
-  const primary = i.rank <= 2;
+function AttentionRow({ i, today, lead }: { i: AttentionItem; today: string; lead: boolean }) {
+  // Fase 8 (U7): un solo botón dorado por pantalla, el de lo más urgente; el resto, contorno.
+  const primary = lead && i.rank <= 2;
   return (
     <li className="relative flex flex-col gap-2 py-3 pl-5 pr-4 sm:flex-row sm:items-center sm:gap-3 sm:pr-5" data-kind={i.kind}>
       <span className={cx('absolute bottom-3 left-2 top-3 w-1 rounded-full', BAR[i.dueState])} aria-hidden />

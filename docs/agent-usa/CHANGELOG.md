@@ -64,6 +64,18 @@ Cambios: rama `feat/fee-attestation-founder-cap`; migración `20261217000100_fee
 Pruebas: unit 266/266; RLS 438/438 (C3-1, C3-2); e2e 370 OK + `founder-pricing.spec.ts`; build OK.
 Riesgos abiertos: representaciones anteriores sin declaración (se muestran con aviso «pídesela»); claves Stripe live y `free_until` (gate de Gala); validación legal NCAA del texto.
 
+## [Fase 8 auditoría] 2026-11-25 · Mínimo privilegio y pulido
+Origen: auditoría integral (hallazgos S7, U5–U8). GALA MONSTER OS: 05 Engineering, 06 QA, 03 Design consultado. Riesgo L4 (privilegios) en staging.
+Cambios:
+- S7: `20261222000100_phase8_least_privilege.sql` retira los privilegios por defecto de Supabase sobre el esquema public y vuelve a conceder solo lo que piden las migraciones; los objetos futuros no heredan nada. `supabase_stub.sql` replica los privilegios por defecto, así que las pruebas ven lo mismo que Supabase. Prueba MP-1.
+- Bug encontrado al cruzar privilegios: la ficha de un proceso llamaba a `is_minor` (cerrada desde 11D) y nunca sabía si el atleta era menor; ahora usa `viewer_is_minor`.
+- U6: coach y universidad tienen Mensajes en primer nivel (también en la barra móvil); «Mis listas» pasa dentro de «Buscar atletas». «Más» deja de repetir lo que ya está en el menú de usuario (privacidad, planes, invitar).
+- U7: en el inicio del agente solo es dorado el botón de lo más urgente.
+- U8: la tabla de atletas y el tablero de procesos no desbordan a 1024 px; el tablero desplazable se puede usar con teclado; los enlaces del pie miden al menos 24 px de alto.
+- U5: verificado sin cambios (el destino se llama «Mi perfil» en navegación y menú; «Passport» es el contenido).
+Pruebas: RLS 454/454 con privilegios por defecto de Supabase; unit 298/298; e2e 406 OK; build OK.
+Pendiente de Gala: foto de la fundadora en mejor resolución (U7).
+
 ## [Fase 7 auditoría] 2026-11-25 · Errores dentro de la app, «sin acceso» y formatos únicos
 Origen: auditoría integral (hallazgos U4 y U3). Riesgo L2. Sin cambios de base de datos.
 Cambios:

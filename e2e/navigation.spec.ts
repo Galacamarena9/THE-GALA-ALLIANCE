@@ -46,13 +46,13 @@ test.describe('shell por actor', () => {
       await page.keyboard.press('Tab');
       order.push(await page.evaluate(() => (document.activeElement as HTMLElement | null)?.innerText?.trim() || (document.activeElement as HTMLElement | null)?.getAttribute('aria-label') || ''));
     }
-    const nav = ['Hoy', 'Buscar atletas', 'Mis listas', 'Procesos', 'Becas y pruebas', 'Más'];
+    const nav = ['Hoy', 'Buscar atletas', 'Procesos', 'Becas y pruebas', 'Mensajes', 'Más'];
     const idx = nav.map((l) => order.indexOf(l));
     expect(idx.every((x) => x >= 0), `orden: ${order.join(' | ')}`).toBe(true);
     expect([...idx].sort((a, b) => a - b)).toEqual(idx);
-    // «Más» se abre con teclado.
+    // «Más» se abre con teclado (fase 8: Mensajes ya es de primer nivel; dentro quedan cuenta y herramientas).
     await page.getByRole('navigation', { name: 'Navegación · Universidad' }).last().getByRole('button', { name: 'Más' }).press('Enter');
-    await expect(page.getByRole('link', { name: 'Mensajes', exact: true }).last()).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Ayuda', exact: true }).last()).toBeVisible();
   });
 
   test('Operaciones Gala: Verificación, Cumplimiento, Confianza, Moderación, Soporte', async ({ page }, info) => {

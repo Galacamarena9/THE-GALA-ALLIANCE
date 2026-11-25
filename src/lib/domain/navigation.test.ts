@@ -25,10 +25,12 @@ test('Atleta: exactamente 5 destinos, sin «Más»', () => {
   }
 });
 
-test('Club o universidad: Hoy, Buscar atletas, Mis listas, Procesos, Becas y pruebas + Más', () => {
+test('Club o universidad: Hoy, Buscar atletas, Procesos, Becas y pruebas, Mensajes + Más', () => {
   for (const r of ['university', 'coach'] as AppRole[]) {
     const m = mode([r]);
-    assert.deepEqual(labels(m), ['Hoy', 'Buscar atletas', 'Mis listas', 'Procesos', 'Becas y pruebas']);
+    assert.deepEqual(labels(m), ['Hoy', 'Buscar atletas', 'Procesos', 'Becas y pruebas', 'Mensajes']);
+    assert.ok(m.tabs.some((t) => t.href === '/app/inbox'), 'Mensajes también en la barra móvil');
+    assert.ok(m.more.length <= 9, `«Más» con ${m.more.length} entradas`);
     assert.ok(topLevelCount(m) <= 6);
   }
 });
