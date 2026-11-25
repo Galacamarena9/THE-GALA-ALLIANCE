@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Badge, Card, CardTitle, EmptyState, Notice } from '@/components/ui';
 import type { FamilyAction, FamilyDeadline } from '@/lib/domain/family';
+import { GuardianVerification } from './GuardianVerification';
 import { daysBetween } from '@/lib/domain/family';
 import type { FamilyChildHome, GuardianLink } from '@/lib/data/family-home';
 import { FamilyNotes, FamilyTaskForm } from '@/components/family/FamilyForms';
@@ -27,13 +28,14 @@ const shortDate = (d: string) => new Intl.DateTimeFormat('es-ES', { day: 'numeri
  * Family Command Center de un hijo/a. Orden: lo que necesita a la familia → esta semana → proceso → coste → seguridad.
  * Solo muestra lo que la relación permite; cada bloque sin permiso lo dice en lugar de aparecer vacío.
  */
-export function FamilyHome({ links, current, home, action, today, switchHref }: {
+export function FamilyHome({ links, current, home, action, today, switchHref, verificationNotice }: {
   links: GuardianLink[];
   current: GuardianLink;
   home: FamilyChildHome | null;
   action: FamilyAction;
   today: string;
   switchHref: (athleteId: string) => string;
+  verificationNotice?: string;
 }) {
   const s = current.scopes;
   return (
@@ -48,6 +50,8 @@ export function FamilyHome({ links, current, home, action, today, switchHref }: 
           ))}
         </nav>
       )}
+
+      <GuardianVerification linkId={current.id} athleteId={current.athleteId} athleteName={current.name} state={current.guardianState} notice={verificationNotice} />
 
       {!current.active && (
         <Notice tone="warn">

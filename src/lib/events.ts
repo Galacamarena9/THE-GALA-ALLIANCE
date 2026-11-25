@@ -26,7 +26,7 @@ export type FunnelEvent =
   // Ciclo 1 · importar cartera e invitar a reclamarla
   | 'athlete_invited' | 'invite_opened' | 'athlete_claimed'
   // Ciclo 2 · escribir a coaches y saber quién responde
-  | 'coach_outreach_sent' | 'coach_reply_logged';
+  | 'coach_outreach_sent' | 'coach_reply_logged' | 'guardian_attested';
 
 export async function logEvent(event: FunnelEvent, props: Record<string, string | number | boolean> = {}, dedupeKey?: string) {
   try {

@@ -18,7 +18,7 @@ function todayIso() {
   return new Date().toISOString().slice(0, 10);
 }
 
-export default async function FamilyPage({ searchParams }: { searchParams: Promise<{ child?: string; bienvenida?: string }> }) {
+export default async function FamilyPage({ searchParams }: { searchParams: Promise<{ child?: string; bienvenida?: string; verificacion?: string; verificar?: string }> }) {
   const session = await requireSession(['parent']);
   const sp = await searchParams;
   const supabase = await createClient();
@@ -91,7 +91,7 @@ export default async function FamilyPage({ searchParams }: { searchParams: Promi
     <>
       {header}
       {sp.bienvenida && <FamilyOnboarding name={current.name} scopes={current.scopes} />}
-      <FamilyHome links={links} current={current} home={home} action={action} today={today} switchHref={(id) => `/app/family?child=${id}`} />
+      <FamilyHome links={links} current={current} home={home} action={action} today={today} switchHref={(id) => `/app/family?child=${id}`} verificationNotice={sp.verificacion ?? (sp.verificar ? 'requerida' : undefined)} />
       {trialItems.length > 0 && <div className="mt-5"><FamilyTrialCenter items={trialItems} /></div>}
       {apps !== null && (
         <Card className="mt-5">

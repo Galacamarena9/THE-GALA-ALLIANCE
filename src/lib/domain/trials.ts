@@ -1,3 +1,4 @@
+import { guardianErrorMessage } from './guardian-verification.ts';
 /**
  * TRIALS Y PROGRAMAS · reglas puras (Prompts 11 y 11A).
  * - Entidades separadas: invitación (club) ≠ candidatura (atleta) ≠ inscripción ≠ asistencia ≠ resultado ≠ matrícula.
@@ -219,6 +220,8 @@ export const TRIAL_ERROR: Record<string, string> = {
   duplicate: 'Ya existe: no se ha duplicado.',
 };
 export function trialErrorMessage(message: string | undefined) {
+  const guardian = guardianErrorMessage(message);
+  if (guardian) return guardian;
   const key = Object.keys(TRIAL_ERROR).find((k) => message?.includes(k));
   return key ? TRIAL_ERROR[key] : 'No se ha podido completar la acción. Inténtalo de nuevo.';
 }

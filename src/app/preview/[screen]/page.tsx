@@ -9,6 +9,8 @@ import { CoachOutreach, type OutreachRow } from '@/components/agency/CoachOutrea
 import { coachEmailDraft } from '@/lib/domain/coach-outreach';
 import { PlanUsage } from '@/components/agency/PlanUsage';
 import { RecruitShell } from '@/components/recruit/RecruitShell';
+import { GuardianVerification } from '@/components/family/GuardianVerification';
+import { GuardianReviewQueue } from '@/components/safety/GuardianReviewQueue';
 import type { Cap } from '@/lib/domain/recruit';
 import type { AgencyPlanStatus } from '@/lib/domain/plan-limits';
 
@@ -100,7 +102,7 @@ const demoPublicOpp: PublicOpportunity = {
  */
 export const metadata: Metadata = { title: 'Probador interno', robots: { index: false, follow: false } };
 
-const SCREENS = ['agent-inbox', 'agent-thread', 'agent-thread-revoked', 'agent-discovery', 'agent-discovery-eligible', 'agent-discovery-empty', 'agent-discovery-forbidden', 'agent-discovery-error', 'agent-discovery-pick', 'admin-difusion', 'admin-difusion-empty', 'difusion-respuesta', 'difusion-hecho', 'athlete-360', 'athlete-360-empty', 'athlete-360-viewer', 'athlete-360-locked', 'portfolio-100', 'portfolio-empty', 'agent-home', 'agent-home-empty', 'agent-home-partial', 'agent-home-no-agency', 'agent-home-error', 'portfolio', 'athlete-home', 'coach-home', 'pipeline', 'pipeline-table', 'coach-outreach', 'plan-trial', 'plan-full', 'plan-none', 'recruit-shell', 'match', 'opportunity', 'passport', 'galamatch', 'command-center', 'athlete-pipeline', 'club-trials', 'trial-club', 'trial-athlete', 'family-trials', 'program-athlete', 'family-home', 'family-costs', 'family-welcome', 'shell-agent', 'shell-athlete', 'shell-university', 'shell-operations'] as const;
+const SCREENS = ['agent-inbox', 'agent-thread', 'agent-thread-revoked', 'agent-discovery', 'agent-discovery-eligible', 'agent-discovery-empty', 'agent-discovery-forbidden', 'agent-discovery-error', 'agent-discovery-pick', 'admin-difusion', 'admin-difusion-empty', 'difusion-respuesta', 'difusion-hecho', 'athlete-360', 'athlete-360-empty', 'athlete-360-viewer', 'athlete-360-locked', 'portfolio-100', 'portfolio-empty', 'agent-home', 'agent-home-empty', 'agent-home-partial', 'agent-home-no-agency', 'agent-home-error', 'portfolio', 'athlete-home', 'coach-home', 'pipeline', 'pipeline-table', 'coach-outreach', 'plan-trial', 'plan-full', 'plan-none', 'recruit-shell', 'guardian-verify', 'guardian-pending', 'guardian-queue', 'match', 'opportunity', 'passport', 'galamatch', 'command-center', 'athlete-pipeline', 'club-trials', 'trial-club', 'trial-athlete', 'family-trials', 'program-athlete', 'family-home', 'family-costs', 'family-welcome', 'shell-agent', 'shell-athlete', 'shell-university', 'shell-operations'] as const;
 
 // Gala Match con el motor real y datos ficticios: un Passport completo y otro con muchos datos ausentes.
 const demoOpp = { sport_id: 'basketball', position_ids: [1], graduation_years: [2027], division: 'ncaa_d2' as const, min_gpa_4: 2.5, english_required: 'TOEFL 80', annual_cost_usd: 40000, aid_amount_usd: 30000 };
@@ -146,6 +148,19 @@ export default async function PreviewPage({ params, searchParams }: { params: Pr
               searches={[{ id: '00000000-0000-4000-8000-00000000c001', label: 'NCAA con beca', href: '#', newCount: cards.filter((c) => c.isNew).length }]} />
           );
         })()}
+        {(screen === 'guardian-verify' || screen === 'guardian-pending') && (
+          <div className="mx-auto max-w-3xl">
+            <GuardianVerification linkId="00000000-0000-4000-8000-000000000001" athleteId="00000000-0000-4000-8000-000000000002" athleteName="Lucía (ficticia)" state={screen === 'guardian-verify' ? 'needs_attestation' : 'pending_review'} />
+          </div>
+        )}
+        {screen === 'guardian-queue' && (
+          <div className="mx-auto max-w-3xl">
+            <GuardianReviewQueue rows={[
+              { link_id: '00000000-0000-4000-8000-000000000011', parent_name: 'Marta G. (ficticia)', athlete_name: 'Lucía (ficticia)', relationship: 'mother', attested_at: new Date().toISOString(), auto_checks_ok: true },
+              { link_id: '00000000-0000-4000-8000-000000000012', parent_name: 'Álex R. (ficticio)', athlete_name: 'Hugo (ficticio)', relationship: 'legal_guardian', attested_at: new Date().toISOString(), auto_checks_ok: false },
+            ]} />
+          </div>
+        )}
         {screen === 'recruit-shell' && (
           <RecruitShell
             active="/app/recruit/discover"

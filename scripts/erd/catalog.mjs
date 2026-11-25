@@ -149,6 +149,7 @@ export const TABLES = {
   agency_athlete_notes: { domain: '10-agencias-clubes', cls: 'internal', decision: 'KEEP', noExport: 'Nota interna de la agencia sobre el atleta' },
   agency_athlete_invites: { domain: '10-agencias-clubes', cls: 'internal', minors: true, decision: 'KEEP', noExport: 'Invitación de la agencia a un atleta de su cartera (solo hash del enlace)' },
   agency_trials: { domain: '10-agencias-clubes', cls: 'internal', minors: false, decision: 'KEEP', noExport: 'Fin de la prueba gratuita de la agencia (dato de facturación de la organización)' },
+  guardian_attestations: { domain: '02-familia-privacidad', cls: 'sensitive', minors: true, decision: 'KEEP', export: true, note: 'Declaración firmada del tutor (versionada, solo añadir); prueba para decidir por un menor.' },
   recruiting_cases: { domain: '10-agencias-clubes', cls: 'internal', minors: true, decision: 'KEEP', noExport: 'Caso interno de la agencia' },
   recruiting_case_tasks: { domain: '10-agencias-clubes', cls: 'internal', decision: 'KEEP' },
   recruiting_case_activities: { domain: '10-agencias-clubes', cls: 'internal', decision: 'KEEP' },
