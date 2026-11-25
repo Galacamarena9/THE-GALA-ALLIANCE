@@ -1,4 +1,5 @@
 import { NO_REPLY_DAYS } from './coach-outreach.ts';
+import { formatUsd } from '../i18n/format.ts';
 /**
  * Prompt 5 · Inicio del agente (Command Center). Lógica pura y determinista: prioridades, resumen, pipeline
  * y vista previa de la cartera. Recibe solo la proyección segura (ver AgentHomeInput) y nunca notas
@@ -103,7 +104,7 @@ export function buildAttention(input: AgentHomeInput, now: Date = new Date()): A
   for (const o of input.offers) {
     if (!o.deadline || o.deadline < today || o.deadline > addDays(today, OFFER_WINDOW_DAYS)) continue;
     push({ key: `offer:${o.id}`, kind: 'offer_expiring', athleteId: o.athleteId, title: `Oferta de ${o.university} caduca`,
-      context: o.aidUsd ? `${o.aidUsd.toLocaleString('es-ES')} $/año` : 'Ayuda sin indicar', due: o.deadline, dueState: dueStateOf(o.deadline, today),
+      context: o.aidUsd ? formatUsd(o.aidUsd, 'es', { perYear: true })! : 'Ayuda sin indicar', due: o.deadline, dueState: dueStateOf(o.deadline, today),
       cta: { label: 'Revisar oferta', href: `/app/portfolio/${o.athleteId}` } });
   }
 

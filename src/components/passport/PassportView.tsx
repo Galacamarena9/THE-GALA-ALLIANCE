@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { formatHeight } from '@/lib/i18n/format';
 import { Award, BadgeCheck, Crown, ExternalLink, Flag, GraduationCap, Lock, Medal, Star, Target, Trophy } from 'lucide-react';
 import type { AthleteAcademics, AthleteGoals, AthleteProfile, AthleteVideo, CareerEntry, DataSource, Visibility } from '@/lib/types';
 import type { StatRow } from '@/lib/data/athlete';
@@ -105,7 +106,7 @@ export function PassportView({ d, actions, mode = 'public' }: { d: PassportViewD
   const verifiedCount = count('club_verified') + count('documented') + d.links.filter((l) => l.verified).length;
 
   const facts: [string, string | null][] = [
-    ['Altura', p.height_cm ? `${(p.height_cm / 100).toFixed(2).replace('.', ',')} m` : null],
+    ['Altura', formatHeight(p.height_cm, 'es')],
     ['Peso', p.weight_kg ? `${p.weight_kg} kg` : null],
     ['Dominante', sideLabel(p.dominant_side, p.sport_id)],
     ['Experiencia', p.years_experience != null ? `${p.years_experience} años` : null],

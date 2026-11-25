@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { formatHeight } from '@/lib/i18n/format';
 import type { ReactNode } from 'react';
 import { Badge } from '@/components/ui';
 import { DIVISION_LABEL } from '@/lib/domain/labels';
@@ -51,7 +52,7 @@ export function AthleteCard({ a, positionName, sportName, footer }: { a: Directo
         <p className="mt-1 truncate text-sm text-muted">{[positionName, a.current_team ?? a.competitive_level].filter(Boolean).join(' · ') || 'Perfil en construcción'}</p>
         {a.headline && <p className="mt-2 line-clamp-2 text-sm text-muted">{a.headline}</p>}
         <dl className="mt-4 grid grid-cols-3 divide-x divide-line border-y border-line py-3 text-center">
-          <div><dt className="text-xs text-faint">Altura</dt><dd className="font-display text-xl font-bold tabular-nums text-paper">{a.height_cm ? `${a.height_cm}` : '—'}<span className="text-xs font-normal text-faint">{a.height_cm ? ' cm' : ''}</span></dd></div>
+          <div><dt className="text-xs text-faint">Altura</dt><dd className="font-display text-xl font-bold tabular-nums text-paper">{formatHeight(a.height_cm, 'es') ?? '—'}</dd></div>
           <div><dt className="text-xs text-faint">Promoción</dt><dd className="font-display text-xl font-bold tabular-nums text-paper">{a.graduation_year ?? '—'}</dd></div>
           <div><dt className="text-xs text-faint">Objetivo</dt><dd className="truncate font-display text-xl font-bold text-paper">{a.target_divisions[0] ? DIVISION_LABEL[a.target_divisions[0]] : '—'}</dd></div>
         </dl>

@@ -10,6 +10,7 @@
  * La proyección es lo único que sale del servidor hacia el navegador.
  */
 import type { Division } from '@/lib/types';
+import { formatUsd } from '../i18n/format.ts';
 import { DIVISION_LABEL } from './labels.ts';
 import {
   CONFIDENCE_LABEL, DIMENSION_LABEL, compareMatches, galaMatch,
@@ -187,7 +188,7 @@ export interface DiscoveryCard {
 }
 
 const dateEs = (d: string) => new Date(`${d}T00:00:00Z`).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
-const usd = (n: number) => `${Math.round(n).toLocaleString('es-ES')} $`;
+const usd = (n: number) => formatUsd(n, 'es')!;
 
 /**
  * Explicación en voz de agente. Solo usa datos publicados por la organización o hechos sí/no del perfil:

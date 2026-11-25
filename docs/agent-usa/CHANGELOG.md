@@ -64,6 +64,13 @@ Cambios: rama `feat/fee-attestation-founder-cap`; migración `20261217000100_fee
 Pruebas: unit 266/266; RLS 438/438 (C3-1, C3-2); e2e 370 OK + `founder-pricing.spec.ts`; build OK.
 Riesgos abiertos: representaciones anteriores sin declaración (se muestran con aviso «pídesela»); claves Stripe live y `free_until` (gate de Gala); validación legal NCAA del texto.
 
+## [Fase 7 auditoría] 2026-11-25 · Errores dentro de la app, «sin acceso» y formatos únicos
+Origen: auditoría integral (hallazgos U4 y U3). Riesgo L2. Sin cambios de base de datos.
+Cambios:
+- U4: `app/app/error.tsx` y `app/app/not-found.tsx`: un fallo o un 404 dentro de la app ya no saca al usuario de su barra lateral. Nueva página `/app/sin-acceso`: entrar en una sección de otro tipo de cuenta lo explica en vez de devolver al inicio en silencio (`requireSession`). En castellano e inglés.
+- U3: `src/lib/i18n/format.ts` (`formatHeight`, `formatUsd`, `formatInt`): altura «1,98 m» (inglés «6′6″ (198 cm)») y dólares «18.000 US$» / «$18,000» en Passport, tarjetas, Discover, listas, comparador, vista rápida, CV, ficha /r/…, cartera, familia, Match y universidades.
+Pruebas: unit 298/298 (`format.test.ts`); e2e 406 OK; build OK.
+
 ## [Fase 6 auditoría] 2026-11-25 · Privacidad fina
 Origen: auditoría integral (hallazgos S4, S5, S8, S9, S10 y S11). GALA MONSTER OS: 05 Engineering responsable, 06 QA, Legal & Privacy consultado. Riesgo L4 en staging.
 Cambios:

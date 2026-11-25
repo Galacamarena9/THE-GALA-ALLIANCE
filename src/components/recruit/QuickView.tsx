@@ -1,6 +1,7 @@
 'use client';
 
-import { useT } from '@/lib/i18n/client';
+import { useT, useLocale } from '@/lib/i18n/client';
+import { formatHeight } from '@/lib/i18n/format';
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -25,6 +26,7 @@ const CONF = { high: 'Confianza alta', medium: 'Confianza media', low: 'Confianz
  */
 export function QuickViewProvider({ rows, org, lists, members = [], children }: { rows: QVRow[]; org: string; lists: { id: string; name: string }[]; members?: { id: string; name: string }[]; children: ReactNode }) {
   const tx = useT();
+  const locale = useLocale();
   const [index, setIndex] = useState<number | null>(null);
   const [data, setData] = useState<Record<string, QV>>({});
   const [loading, setLoading] = useState(false);
@@ -79,7 +81,7 @@ export function QuickViewProvider({ rows, org, lists, members = [], children }: 
                   : <p className="rounded-xl border border-line p-3 text-sm text-muted">{row.has_video ? tx('🔒 Vídeo no compartido contigo') : tx('Sin vídeo en el Passport')}</p>}
 
                 <dl className="mt-4 grid grid-cols-2 gap-2 text-sm">
-                  {row.height_cm && <div className="rounded-xl bg-surface p-2"><dt className="text-[11px] text-faint">{tx('Altura')}</dt><dd className="font-semibold text-paper">{(row.height_cm / 100).toFixed(2)} m</dd></div>}
+                  {row.height_cm && <div className="rounded-xl bg-surface p-2"><dt className="text-[11px] text-faint">{tx('Altura')}</dt><dd className="font-semibold text-paper">{formatHeight(row.height_cm, locale)}</dd></div>}
                   {d?.ok && d.stats.slice(0, 4).map((s) => (
                     <div key={s.label} className="rounded-xl bg-surface p-2"><dt className="truncate text-[11px] text-faint">{tx(s.label)}</dt><dd className="font-semibold text-paper">{s.value} {s.verified ? <span className="text-ok" title={tx('Verificada')}>✓</span> : <span className="text-[10px] font-normal text-muted">{tx('declarada')}</span>}</dd></div>
                   ))}

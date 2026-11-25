@@ -1,4 +1,5 @@
 import { ExternalLink, PlayCircle, ShieldCheck } from 'lucide-react';
+import { feetInches } from '@/lib/i18n/format';
 import { Logo } from '@/components/Logo';
 import { CoachAccessForm } from '@/components/recruiting-client';
 import { videoEmbed } from '@/lib/domain/recruiting';
@@ -29,10 +30,6 @@ export interface RecruitingCard {
 const DIVISION_EN: Record<string, string> = { ncaa_d1: 'NCAA D-I', ncaa_d2: 'NCAA D-II', ncaa_d3: 'NCAA D-III', naia: 'NAIA', njcaa: 'NJCAA' };
 const SIDE_EN: Record<string, string> = { left: 'Left', right: 'Right', both: 'Both' };
 
-function feetInches(cm: number) {
-  const inches = Math.round(cm / 2.54);
-  return `${Math.floor(inches / 12)}′${inches % 12}″`;
-}
 
 /**
  * Ficha de reclutamiento para coaches de EE. UU. Pensada para leerse en el móvil en 10 segundos:

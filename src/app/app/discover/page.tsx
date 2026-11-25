@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { formatHeight } from '@/lib/i18n/format';
 import Link from 'next/link';
 import { LayoutGrid, Rows3, SlidersHorizontal, X } from 'lucide-react';
 import { requireSession } from '@/lib/session';
@@ -258,7 +259,7 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
                       </td>
                       <td className="px-3 py-2.5 text-muted">{a.primary_position_id ? positionName(a.primary_position_id) : '—'}</td>
                       <td className="px-3 py-2.5 tabular-nums text-paper">{a.graduation_year ?? '—'}</td>
-                      <td className="px-3 py-2.5 tabular-nums text-paper">{a.height_cm ? `${a.height_cm} cm` : '—'}</td>
+                      <td className="px-3 py-2.5 tabular-nums text-paper">{formatHeight(a.height_cm, 'es') ?? '—'}</td>
                       <td className="px-3 py-2.5 tabular-nums text-paper">{a.weight_kg ? `${a.weight_kg} kg` : '—'}</td>
                       <td className="px-3 py-2.5 text-muted">{a.dominant_side ? SIDE_LABEL[a.dominant_side] : '—'}</td>
                       <td className="px-3 py-2.5 text-muted">{a.english_level ? ENGLISH_LABEL[a.english_level] : '—'}</td>

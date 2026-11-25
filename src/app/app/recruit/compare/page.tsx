@@ -1,4 +1,5 @@
 import { getT } from '@/lib/i18n/server-t';
+import { formatHeight } from '@/lib/i18n/format';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { requireSession } from '@/lib/session';
@@ -31,7 +32,7 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
   const rows: [string, (p: (typeof people)[number]) => string][] = [
     [tx('Posición'), (p) => (p.primary_position_id ? pos.get(p.primary_position_id) ?? '—' : '🔒')],
     [tx('Clase'), (p) => String(p.graduation_year ?? '—')],
-    [tx('Altura'), (p) => (p.height_cm ? `${(p.height_cm / 100).toFixed(2)} m` : '🔒 / —')],
+    [tx('Altura'), (p) => (formatHeight(p.height_cm, tx.locale) ?? '🔒 / —')],
     [tx('País'), (p) => p.country ?? '—'],
     [tx('Nivel competitivo'), (p) => p.competitive_level ?? '—'],
     [tx('Highlight'), (p) => (p.has_video ? '✓' : '—')],

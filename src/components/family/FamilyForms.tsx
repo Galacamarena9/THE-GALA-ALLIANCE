@@ -1,6 +1,7 @@
 'use client';
 
 import { ActionForm } from '@/components/ActionForm';
+import { formatUsd } from '@/lib/i18n/format';
 import { SubmitButton } from '@/components/SubmitButton';
 import { inputClass } from '@/components/ui';
 import { addFamilyNote, addFamilyTask, deleteFamilyNote, saveCostScenario, saveFamilyBudget } from '@/app/actions/family';
@@ -131,7 +132,7 @@ export function CostScenarioForm({ athleteId, offers }: { athleteId: string; off
 
 export function BudgetForm({ athleteId, amount, mode, canEdit }: { athleteId: string; amount: number | null; mode: 'preference' | 'hard_limit'; canEdit: boolean }) {
   if (!canEdit) {
-    return <p className="text-sm text-muted">{amount != null ? `Presupuesto anual: ${amount.toLocaleString('es-ES')} US$ (${mode === 'hard_limit' ? 'límite' : 'preferencia'}).` : 'Sin presupuesto definido.'} Solo quien edita el perfil del atleta puede cambiarlo.</p>;
+    return <p className="text-sm text-muted">{amount != null ? `Presupuesto anual: ${formatUsd(amount, 'es')} (${mode === 'hard_limit' ? 'límite' : 'preferencia'}).` : 'Sin presupuesto definido.'} Solo quien edita el perfil del atleta puede cambiarlo.</p>;
   }
   return (
     <ActionForm action={saveFamilyBudget} className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
