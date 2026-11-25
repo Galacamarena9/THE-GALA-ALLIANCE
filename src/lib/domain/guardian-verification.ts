@@ -9,6 +9,7 @@ export const GUARDIAN_STATEMENT_VERSION = 'guardian-2026-11';
 export type GuardianState = 'not_required' | 'link_inactive' | 'not_guardian' | 'needs_attestation' | 'pending_review' | 'verified';
 
 /** Texto que se declara (versión GUARDIAN_STATEMENT_VERSION). Pendiente de revisión por abogado antes de producción. */
+/** Texto revisado por el abogado (OK 25-11-2026, D-28). Si cambia, sube GUARDIAN_STATEMENT_VERSION y la versión en la base de datos. */
 export function guardianStatement(athleteName: string): string {
   return `Declaro que soy la madre, el padre o el tutor legal de ${athleteName}, que soy mayor de edad y que tengo autoridad para dar consentimientos en su nombre. Entiendo que una declaración falsa supone el cierre de mi cuenta.`;
 }
