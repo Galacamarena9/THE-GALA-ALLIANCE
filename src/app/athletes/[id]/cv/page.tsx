@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { formatHeight } from '@/lib/i18n/format';
 import { notFound } from 'next/navigation';
 import { loadCatalog, loadPassport } from '@/lib/data/athlete';
 import { DIVISION_LABEL, LINK_KIND_LABEL } from '@/lib/domain/labels';
@@ -37,7 +38,7 @@ export default async function SportsCvPage({ params }: { params: Promise<{ id: s
           <section>
             <h2 className="mb-2 text-lg" style={{ color: '#111' }}>Athletic profile</h2>
             <div className="text-sm">
-              <div className={row}><span>Height</span><span>{p.height_cm ? `${p.height_cm} cm` : '—'}</span></div>
+              <div className={row}><span>Height</span><span>{formatHeight(p.height_cm, 'en') ?? '—'}</span></div>
               <div className={row}><span>Current team</span><span>{p.current_team ?? '—'}</span></div>
               <div className={row}><span>Level / league</span><span>{p.competitive_level ?? '—'}</span></div>
               <div className={row}><span>Target divisions</span><span>{p.target_divisions.map((d) => DIVISION_LABEL[d]).join(', ') || '—'}</span></div>

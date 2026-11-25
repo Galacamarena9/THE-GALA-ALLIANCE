@@ -1,5 +1,17 @@
 /** Diccionario castellano → inglés de la interfaz (fase 4b: recruiting). Se completa por pantallas. */
 export const EN: Record<string, string> = {
+  // — Fase 7: errores y sin acceso dentro de la app —
+  "Algo no ha ido bien": "Something went wrong",
+  "No es culpa tuya. Si estabas guardando algo, no se ha guardado: vuelve a intentarlo. Si se repite, escríbenos y lo arreglamos.": "It's not your fault. If you were saving something, it wasn't saved: please try again. If it happens again, write to us and we'll fix it.",
+  "Ir a mi inicio": "Go to my home",
+  "Escribir a soporte": "Contact support",
+  "Código para soporte:": "Support code:",
+  "No lo encontramos": "We couldn't find it",
+  "Puede que se haya borrado, que el enlace esté mal o que ya no tengas acceso.": "It may have been deleted, the link may be wrong, or you may no longer have access.",
+  "Esta sección no es para tu cuenta": "This section isn't for your account",
+  "Cada tipo de cuenta ve sus herramientas. Tu cuenta es de:": "Each account type sees its own tools. Your account is:",
+  "sin tipo": "no type",
+  "Si crees que deberías entrar (por ejemplo, porque te han invitado a una organización), revisa la invitación o escríbenos.": "If you think you should have access (for example, because you were invited to an organization), check the invitation or write to us.",
   // — Fase 4c: portada, precios, alta y login —
   "/mes": "/month",
   "El proceso, los plazos y el coste real de cada opción, en un solo lugar.": "The process, the deadlines and the real cost of each option, in one place.",

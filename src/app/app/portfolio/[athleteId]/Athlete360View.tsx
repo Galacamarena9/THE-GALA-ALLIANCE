@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { formatUsd } from '@/lib/i18n/format';
 import {
   FileText,
   ArrowLeft, ArrowRight, CalendarClock, Check, CircleDashed, Clock, ExternalLink, FileCheck2, Lock, MapPin, MessageSquare,
@@ -24,7 +25,7 @@ const CAT: Record<string, string> = { university: 'Universidades', club: 'Clubes
 const place = (v: string) => ({ WORLD: 'Todo el mundo', EUROPE: 'Europa', NORTH_AMERICA: 'Norteamérica', LATAM: 'Latinoamérica' } as Record<string, string>)[v] ?? v;
 const dateFmt = (iso: string) => new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
 const flag = (cc: string | null) => (cc && /^[A-Z]{2}$/.test(cc) ? String.fromCodePoint(...[...cc].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65)) : '');
-const usd = (n: number | null) => (n == null ? '—' : `${n.toLocaleString('es-ES')} $`);
+const usd = (n: number | null) => formatUsd(n, 'es') ?? '—';
 
 export function Athlete360View({ data, tab, userId, now = new Date() }: { data: Athlete360; tab: A360Tab; userId: string; now?: Date }) {
   const { ws, access, journey } = data;

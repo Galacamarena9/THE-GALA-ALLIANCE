@@ -1,4 +1,5 @@
 import { getT } from '@/lib/i18n/server-t';
+import { formatHeight } from '@/lib/i18n/format';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { headers } from 'next/headers';
@@ -143,7 +144,7 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
                           <Link href={`/app/recruit/candidates/${r.user_id}`} className="font-display text-lg font-bold uppercase leading-tight text-paper hover:text-brass">{r.display_name}</Link>
                           <p className="text-xs text-muted">{[r.primary_position_id && posName.get(r.primary_position_id), r.graduation_year && `${tx('Clase')} ${r.graduation_year}`, r.country].filter(Boolean).join(' · ') || tx('Datos deportivos no compartidos')}</p>
                           <p className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-paper">
-                            {r.height_cm && <span>{(r.height_cm / 100).toFixed(2)} m</span>}
+                            {r.height_cm && <span>{formatHeight(r.height_cm, tx.locale)}</span>}
                             <span>{r.has_video ? tx('Vídeo ✓') : tx('Sin vídeo visible')}</span>
                             {r.academics_documented != null && <span>{r.academics_documented ? tx('Académico documentado') : tx('Académico declarado')}</span>}
                             {r.verified_stats ? <span>{tx('Estadísticas verificadas ✓')}</span> : null}

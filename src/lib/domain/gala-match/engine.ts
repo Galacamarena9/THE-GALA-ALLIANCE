@@ -12,6 +12,7 @@
  *  - Cada factor indica de dónde sale el dato: oficial, organización, Passport o inferencia declarada.
  */
 import type { MajorDef } from './majors.ts';
+import { formatUsd } from '../../i18n/format.ts';
 import { programMatch, resolveMajor } from './majors.ts';
 
 export const GALA_MATCH_VERSION = 'gm-2.0';
@@ -151,7 +152,7 @@ const US_STATES: Record<string, string> = {
 };
 export const STATE_NAME = (code: string | null) => (code && US_STATES[code] ? US_STATES[code].replace(/\b\w/g, (c) => c.toUpperCase()) : code ?? '');
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
-export const usdFmt = (n: number) => `${Math.round(n).toLocaleString('es-ES')} $`;
+export const usdFmt = (n: number) => formatUsd(n, 'es')!;
 
 /**
  * Coste anual PUBLICADO estimado para un estudiante internacional.

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { formatHeight } from '@/lib/i18n/format';
 import Link from 'next/link';
 import { Bell, Bookmark, Search, Trash2 } from 'lucide-react';
 import { requireSession } from '@/lib/session';
@@ -169,7 +170,7 @@ export default async function ListsPage({ searchParams }: { searchParams: Promis
                       <div className="mt-3 flex flex-wrap gap-1.5">
                         {a.has_video && <Badge tone="brass">Vídeo</Badge>}
                         {a.open_to_opportunities && <Badge tone="ok">Abierto a ofertas</Badge>}
-                        {a.height_cm && <Badge>{a.height_cm} cm</Badge>}
+                        {a.height_cm && <Badge>{formatHeight(a.height_cm, 'es')}</Badge>}
                       </div>
 
                       <form action={updateSavedNote} className="mt-4 space-y-2">

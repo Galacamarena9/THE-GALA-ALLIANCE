@@ -51,6 +51,7 @@ export async function requireSession(allowed?: AppRole[]) {
   const session = await getSession();
   if (!session) redirect('/login');
   if (!session.onboardingCompleted) redirect('/onboarding');
-  if (allowed && !session.roles.some((r) => allowed.includes(r) || r === 'admin')) redirect('/app');
+  // Fase 7 (U4): ya no devuelve al inicio en silencio; explica que la sección es de otro tipo de cuenta.
+  if (allowed && !session.roles.some((r) => allowed.includes(r) || r === 'admin')) redirect('/app/sin-acceso');
   return session;
 }
