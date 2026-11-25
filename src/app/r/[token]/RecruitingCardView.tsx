@@ -70,7 +70,7 @@ export function RecruitingCardView({ card: c }: { card: RecruitingCard }) {
       </header>
 
       <main className="mx-auto max-w-[720px] px-5 pb-20">
-        {/* Sin incrustar terceros (CSP frame-src 'none'): el vídeo se abre en su web, sin cookies aquí. */}
+        {/* Ficha pública: el vídeo se abre en su web (sin incrustar terceros ni cookies aquí). */}
         {video && (
           <a href={c.video_url ?? video.src} target="_blank" rel="noopener noreferrer" className="group relative flex aspect-video items-center justify-center overflow-hidden rounded-2xl border border-line bg-surface shadow-[var(--shadow-premium)] transition-colors hover:border-brass/50">
             <span className="bg-grid absolute inset-0 opacity-40" aria-hidden />

@@ -27,8 +27,12 @@ export default async function ShowcasePage() {
   ]);
   const ids = (events ?? []).map((e) => e.id);
   const { data: entries } = ids.length
-    ? await supabase.from('showcase_entries').select('event_id, athlete_id, athlete_profiles(user_id, graduation_year, current_team, profiles(display_name))').in('event_id', ids)
+    ? await supabase.from('showcase_entries').select('event_id, athlete_id, athlete_profiles(user_id, graduation_year, profiles(display_name))').in('event_id', ids)
     : { data: [] };
+  // Fase 6 (S4): el equipo es del bloque deportivo; se lee con su visibilidad.
+  const entryIds = [...new Set((entries ?? []).map((x) => x.athlete_id as string))];
+  const { data: blocks } = entryIds.length ? await supabase.rpc('athlete_block_fields_many', { p_athletes: entryIds }) : { data: [] };
+  const teamOf = new Map(((blocks ?? []) as { user_id: string; current_team: string | null }[]).map((b) => [b.user_id, b.current_team]));
   const sportName = (id: string | null) => catalog.sports.find((s) => s.id === id)?.name_es ?? 'Todos los deportes';
   const now = new Date();
 
@@ -91,7 +95,8 @@ export default async function ShowcasePage() {
                     {!isFamily && live && (mine.length ? (
                       <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         {mine.map((x) => {
-                          const ap = x.athlete_profiles as unknown as { user_id: string; graduation_year: number | null; current_team: string | null; profiles: { display_name: string } | null } | null;
+                          const apRaw = x.athlete_profiles as unknown as { user_id: string; graduation_year: number | null; profiles: { display_name: string } | null } | null;
+                          const ap = apRaw ? { ...apRaw, current_team: teamOf.get(apRaw.user_id) ?? null } : null;
                           return (
                             <li key={x.athlete_id}>
                               <Link href={`/athletes/${x.athlete_id}`} className="hover-lift block rounded-2xl border border-line p-4">

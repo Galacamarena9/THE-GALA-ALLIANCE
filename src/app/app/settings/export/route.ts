@@ -22,11 +22,23 @@ export async function GET() {
     }),
   );
 
+  // Fase 6 (S4): los campos con visibilidad por bloque se leen por función; el titular los ve todos.
+  const sections = Object.fromEntries(results) as Record<string, unknown>;
+  if (Array.isArray(sections.athlete_profile) && sections.athlete_profile.length) {
+    const { data: block } = await supabase.rpc('athlete_block_fields', { p_athlete: uid });
+    const extra = (block as Record<string, unknown>[] | null)?.[0];
+    if (extra) {
+      const { user_id: _u, ...fields } = extra;
+      void _u;
+      sections.athlete_profile = [{ ...(sections.athlete_profile[0] as object), ...fields }];
+    }
+  }
+
   const body = {
     exported_at: new Date().toISOString(),
     account: { id: uid, email: auth.user?.email, created_at: auth.user?.created_at },
     note: 'Los archivos de tus documentos se descargan uno a uno desde Documentos. Las notas internas que una organización escribe sobre ti pertenecen a esa organización.',
-    ...Object.fromEntries(results),
+    ...sections,
   };
 
   return new NextResponse(JSON.stringify(body, null, 2), {
