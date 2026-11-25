@@ -64,6 +64,13 @@ Cambios: rama `feat/fee-attestation-founder-cap`; migración `20261217000100_fee
 Pruebas: unit 266/266; RLS 438/438 (C3-1, C3-2); e2e 370 OK + `founder-pricing.spec.ts`; build OK.
 Riesgos abiertos: representaciones anteriores sin declaración (se muestran con aviso «pídesela»); claves Stripe live y `free_until` (gate de Gala); validación legal NCAA del texto.
 
+## [Fase 4c auditoría] 2026-11-25 · Portada, precios, alta y login en inglés
+Origen: auditoría integral con el Agente Maestro PRO (hallazgo U2).
+Cambios:
+- Portada (titulares, FAQ, JSON-LD con `inLanguage`), /precios (planes, notas y plazas de precio fundador), /signup y /login (incluidos los mensajes de error) en inglés. Selector ES/EN en la cabecera pública de esas páginas, en el alta y en el login.
+- El selector anuncia el idioma completo a los lectores de pantalla («ES · Castellano», WCAG 2.5.3).
+Pruebas: unit 288/288 (paridad de portada, planes y tipos de cuenta); e2e 399 OK con portada, precios, alta y login en inglés y el selector; accesibilidad sin fallos graves; build OK.
+
 ## [Fase 4b auditoría] 2026-11-25 · Recruiting en inglés
 Origen: auditoría integral con el Agente Maestro PRO (hallazgo U2).
 Cambios:
