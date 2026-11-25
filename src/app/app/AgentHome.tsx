@@ -103,7 +103,7 @@ function Header({ first, date, agency }: { first: string; date: string; agency?:
         <p className="mt-4 text-lg text-paper/80">Tus atletas, sus procesos y lo que hay que mover hoy. Nada más.</p>
         <p className="mt-1 text-xs text-faint"><span className="inline-block first-letter:uppercase">{date}</span>{agency ? ` · ${agency.name}${agency.verified ? ' ✓' : ''}` : ''}</p>
       </div>
-      <Link href="/app/discover" className={buttonClass('primary')}><Search className="h-4 w-4" aria-hidden /> Buscar talento</Link>
+      <Link href="/app/discover" className={buttonClass('secondary')}><Search className="h-4 w-4" aria-hidden /> Buscar talento</Link>
     </header>
   );
 }

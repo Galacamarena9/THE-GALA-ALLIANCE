@@ -59,7 +59,7 @@ export function AthletesCrm({ rows, initial, agency, partial = [], importPanel =
             Importa arriba tu cartera actual o busca atletas por deporte, posición y nivel. Aparecerán aquí en cuanto acepten tu propuesta.
           </EmptyState>
         ) : (
-          <section aria-label="Mis atletas" className="overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface">
+          <section aria-label="Mis atletas" className="min-w-0 overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface">
             <nav aria-label="Vistas" className="flex gap-1 overflow-x-auto border-b border-line px-3 pt-2">
               {CRM_VIEWS.map((v) => {
                 const on = f.view === v.id;
@@ -116,24 +116,25 @@ export function AthletesCrm({ rows, initial, agency, partial = [], importPanel =
               </div>
             ) : (
               <>
-                {/* Escritorio y tablet: tabla con semántica completa (caption, th scope, aria-sort). */}
+                {/* Escritorio y tablet: tabla con semántica completa (caption, th scope, aria-sort).
+                    Fase 8 (U8): a 1024 px no desborda; «Recorrido» solo desde xl (sigue en la ficha y en el filtro). */}
                 <div className="hidden lg:block">
                   <table className="w-full text-left text-sm">
                     <caption className="sr-only">Mis atletas · {CRM_VIEWS.find((v) => v.id === f.view)?.label} · ordenado por {CRM_SORT_LABEL[f.sort]}</caption>
                     <thead className="border-y border-line text-xs text-muted">
                       <tr>
                         <SortHead s="name" f={f} onSort={sortBy} className="pl-4">Atleta</SortHead>
-                        <th scope="col" className="px-3 py-2.5 font-semibold">Recorrido</th>
+                        <th scope="col" className="hidden px-3 py-2.5 font-semibold xl:table-cell">Recorrido</th>
                         <SortHead s="next" f={f} onSort={sortBy}>Siguiente acción</SortHead>
                         <th scope="col" className="px-3 py-2.5 text-right font-semibold">Oportunidades</th>
                         <SortHead s="activity" f={f} onSort={sortBy}>Última actividad</SortHead>
-                        <th scope="col" className="px-4 py-2.5 text-right font-semibold"><span className="sr-only">Acciones</span></th>
+                        <th scope="col" className="relative px-4 py-2.5 text-right font-semibold"><span className="sr-only">Acciones</span></th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-line">
                       {result.rows.map((r) => (
                         <tr key={r.id} data-athlete={r.id} className="hover:bg-ink">
-                          <th scope="row" className="py-2.5 pl-4 pr-3 font-normal">
+                          <th scope="row" className="max-w-[260px] py-2.5 pl-4 pr-3 font-normal">
                             <span className="flex items-center gap-3">
                               <AthleteAvatar name={r.name} src={r.avatarUrl} sport={r.sport ?? r.sportId} size="sm" />
                               <span className="min-w-0">
@@ -143,13 +144,13 @@ export function AthletesCrm({ rows, initial, agency, partial = [], importPanel =
                               </span>
                             </span>
                           </th>
-                          <td className="px-3 py-2.5 text-paper">{r.journey}</td>
-                          <td className="max-w-[260px] px-3 py-2.5">
+                          <td className="hidden px-3 py-2.5 text-paper xl:table-cell">{r.journey}</td>
+                          <td className="max-w-[220px] px-3 py-2.5 xl:max-w-[260px]">
                             <span className="block truncate text-paper" data-next>{r.nextAction ?? <span className="text-muted">Sin siguiente paso</span>}</span>
                             {r.nextDue && <span className={cx('text-xs font-semibold', r.nextDue < today() ? 'text-danger' : 'text-muted')}>{dueText(r.nextDue, today())}</span>}
                           </td>
                           <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums text-paper">{r.processes} {r.processes === 1 ? 'proceso' : 'procesos'}{r.offers ? <span className="block text-xs text-muted">{r.offers} {r.offers === 1 ? 'oferta' : 'ofertas'}</span> : null}</td>
-                          <td className="px-3 py-2.5 text-xs text-muted"><span className="block text-paper">{rel(r.lastActivityAt)}</span>{r.lastActivity}</td>
+                          <td className="max-w-[180px] px-3 py-2.5 text-xs text-muted"><span className="block text-paper">{rel(r.lastActivityAt)}</span><span className="block truncate">{r.lastActivity}</span></td>
                           <td className="px-4 py-2.5"><RowActions r={r} /></td>
                         </tr>
                       ))}

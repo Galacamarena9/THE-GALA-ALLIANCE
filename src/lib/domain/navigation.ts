@@ -193,11 +193,18 @@ export const PAUSED: NavItem[] = [
   it('/app/showcase', 'Showcase Day', 'showcase', 'Jornada mensual ante universidades y clubes verificados.'),
   it('/app/academia', 'Academia SAT/TOEFL', 'grad', 'Práctica con preguntas tipo examen y fechas oficiales.'),
 ];
+/**
+ * Cuenta en «Más» (fase 8, U6): solo lo que no está ya en el menú de usuario.
+ * «Privacidad y datos», «Planes y servicios» e «Invitar» viven en el menú de usuario o en el buscador (ACCOUNT_EXTRA).
+ */
 const ACCOUNT = (org: boolean): NavItem[] => [
-  org ? it('/app/billing', 'Plan y facturación', 'tag', 'Tu plan, asientos, uso y facturas.') : it('/precios', 'Planes y servicios', 'tag', 'Gratis para atletas; Core, Elite y Signature para familias.'),
-  it('/app/settings', 'Privacidad y datos', 'shield', 'Visibilidad, descarga de datos y baja de la cuenta.'),
+  ...(org ? [it('/app/billing', 'Plan y facturación', 'tag', 'Tu plan, asientos, uso y facturas.')] : []),
   it('/app/trust', 'Confianza y seguridad', 'shield', 'Quién ve tus datos ahora, medidas que te afecten y cómo apelar.'),
   it('/app/support', 'Ayuda', 'book', 'Escríbenos y te respondemos aquí.'),
+];
+const ACCOUNT_EXTRA = (org: boolean): NavItem[] => [
+  ...(org ? [] : [it('/precios', 'Planes y servicios', 'tag', 'Gratis para atletas; Core, Elite y Signature para familias.')]),
+  it('/app/settings', 'Privacidad y datos', 'shield', 'Visibilidad, descarga de datos y baja de la cuenta.'),
   it('/app/invitar', 'Invitar', 'spark', 'Comparte The Gala Alliance con tu equipo.'),
 ];
 
@@ -231,7 +238,7 @@ function agentMode(): NavMode {
     primary: [home, athletes, processes, opportunities, MESSAGES],
     more: [it('/app/organization', 'Agencia', 'building', 'Datos de la agencia, verificación y miembros.'), ...TOOLS, ...ACCOUNT(true)],
     tabs: [home, athletes, processes, MESSAGES],
-    extra: PAUSED,
+    extra: [...ACCOUNT_EXTRA(true), ...PAUSED],
   };
 }
 
@@ -273,7 +280,7 @@ function athleteMode(adult: boolean): NavMode {
     primary: [home, profile, opportunities, journey, MESSAGES],
     more: [],
     tabs: [home, { ...opportunities, label: 'Oportun.' }, journey, MESSAGES],
-    extra: [...TOOLS, ...ACCOUNT(false).filter((i) => i.href !== '/app/settings'), ...PAUSED],
+    extra: [...TOOLS, ...ACCOUNT(false), ...ACCOUNT_EXTRA(false).filter((i) => i.href !== '/app/settings'), ...PAUSED],
   };
 }
 
@@ -307,24 +314,21 @@ function familyMode(): NavMode {
     primary: [home, journey, costs, approvals, MESSAGES],
     more: [it('/app/share', 'Compartir su perfil', 'megaphone', 'Enlaces privados de reclutamiento.'), ...TOOLS, ...ACCOUNT(false)],
     tabs: [home, journey, costs, approvals],
-    extra: PAUSED,
+    extra: [...ACCOUNT_EXTRA(false), ...PAUSED],
   };
 }
 
 /** Club o universidad (reforma 180°): Hoy · Buscar atletas · Mis listas · Procesos · Becas y pruebas. */
 function universityMode(club: boolean, isCoach: boolean): NavMode {
   const home = it('/app', 'Hoy', 'home', 'Recruiting: qué necesita atención, necesidades por posición y agenda.', { aliases: ['/app/recruit'] });
-  const discover = it('/app/recruit/discover', 'Buscar atletas', 'search', 'Búsqueda con privacidad y encaje con tus necesidades.', {
+  // Fase 8 (U6): «Mis listas» pasa dentro de «Buscar atletas» para que Mensajes sea de primer nivel (el coach responde desde ahí).
+  const discover = it('/app/recruit/discover', 'Buscar atletas', 'search', 'Búsqueda con privacidad, listas de seguimiento y encaje con tus necesidades.', {
     children: [
       it('/app/recruit/discover', 'Descubrir atletas', 'search', 'Búsqueda que respeta la privacidad, con encaje.'),
-      it('/app/recruit/compare', 'Comparar', 'compare', 'Candidatos lado a lado.'),
-      it('/app/recruit/needs', 'Necesidades', 'chart', 'Plazas por posición, temporada y promoción.'),
-    ],
-  });
-  const lists = it('/app/recruit/shortlists', 'Mis listas', 'list', 'Listas privadas o de equipo, con revisión y notas.', {
-    children: [
       it('/app/recruit/shortlists', 'Listas de seguimiento', 'list', 'Listas privadas o de equipo, con revisión y notas.'),
       it('/app/lists', 'Listas personales', 'list', 'Atletas guardados y búsquedas con alertas.'),
+      it('/app/recruit/compare', 'Comparar', 'compare', 'Candidatos lado a lado.'),
+      it('/app/recruit/needs', 'Necesidades', 'chart', 'Plazas por posición, temporada y promoción.'),
     ],
   });
   const processes = it('/app/recruit/candidates', 'Procesos', 'pipeline', 'Candidatos por etapa interna, asignados y con historial.', {
@@ -343,12 +347,12 @@ function universityMode(club: boolean, isCoach: boolean): NavMode {
   });
   return {
     id: 'university', label: club ? 'Club / academia' : 'Universidad',
-    primary: [home, discover, lists, processes, published],
-    more: [MESSAGES, it('/app/organization', club ? 'Club / academia' : 'Universidad y equipo', 'building', 'Datos, verificación y miembros.'),
+    primary: [home, discover, processes, published, MESSAGES],
+    more: [it('/app/organization', club ? 'Club / academia' : 'Universidad y equipo', 'building', 'Datos, verificación y miembros.'),
       ...(isCoach ? [it('/app/verify', 'Mi verificación', 'shield', 'Correo institucional, afiliación y cargo.'), it('/app/club', 'Portal de club', 'users', 'Plantilla, validación de estadísticas y colocaciones.')] : []),
-      ...TOOLS, ...ACCOUNT(true)],
-    tabs: [home, discover, lists, processes],
-    extra: PAUSED,
+      ...TOOLS.filter((i) => i.href !== '/app/calculator'), ...ACCOUNT(true)],
+    tabs: [home, discover, processes, MESSAGES],
+    extra: [...TOOLS.filter((i) => i.href === '/app/calculator'), ...ACCOUNT_EXTRA(true), ...PAUSED],
   };
 }
 
@@ -363,7 +367,7 @@ function brandMode(): NavMode {
     more: [it('/app/campaigns/new', 'Nueva campaña', 'megaphone', 'Publica una campaña para atletas mayores de edad.'),
       it('/app/organization', 'Marca', 'building', 'Datos de la marca, verificación y equipo.'), ...TOOLS, ...ACCOUNT(true)],
     tabs: [home, talent, lists, MESSAGES],
-    extra: PAUSED,
+    extra: [...ACCOUNT_EXTRA(true), ...PAUSED],
   };
 }
 
@@ -397,7 +401,7 @@ export function navModeFor({ roles, primaryRole, isMinor = false, clubStaff = fa
     case 'university': case 'coach': return withOtherRoles(universityMode(clubStaff, roles.includes('coach')), roles, primary);
     case 'brand': return withOtherRoles(brandMode(), roles, primary);
     case 'admin': return operationsMode();
-    default: return { id: 'athlete', label: 'Cuenta', primary: [it('/app', 'Hoy', 'home'), MESSAGES], more: [...TOOLS, ...ACCOUNT(false)], tabs: [it('/app', 'Hoy', 'home'), MESSAGES], extra: [] };
+    default: return { id: 'athlete', label: 'Cuenta', primary: [it('/app', 'Hoy', 'home'), MESSAGES], more: [...TOOLS, ...ACCOUNT(false)], tabs: [it('/app', 'Hoy', 'home'), MESSAGES], extra: ACCOUNT_EXTRA(false) };
   }
 }
 
@@ -474,6 +478,7 @@ const NAV_EN: Record<string, string> = {
   "Recruiting: qué necesita atención, necesidades por posición y agenda.": "Recruiting: what needs attention, needs by position and schedule.",
   "Buscar atletas": "Find athletes",
   "Búsqueda con privacidad y encaje con tus necesidades.": "Privacy-respecting search matched to your needs.",
+  "Búsqueda con privacidad, listas de seguimiento y encaje con tus necesidades.": "Privacy-respecting search, watch lists and fit with your needs.",
   "Descubrir atletas": "Discover athletes",
   "Búsqueda que respeta la privacidad, con encaje.": "Privacy-respecting search with fit.",
   "Comparar": "Compare",

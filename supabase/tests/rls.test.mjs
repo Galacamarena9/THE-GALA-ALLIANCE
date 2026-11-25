@@ -4363,6 +4363,25 @@ try {
     });
   }
 
+  results.push('\nFase 8: mínimo privilegio (con los privilegios por defecto de Supabase)');
+  await check('MP-1 la API no hereda privilegios por defecto: tablas nuevas cerradas, token_hash y registros de cookies ilegibles', async () => {
+    await db.query(`create table public.f8_probe (id int primary key)`);
+    try {
+      for (const role of ['anon', 'authenticated']) {
+        eq((await db.query(`select has_table_privilege($1, 'public.f8_probe', 'select') p`, [role])).rows[0].p, false, `${role} lee una tabla nueva`);
+      }
+    } finally { await db.query(`drop table public.f8_probe`); }
+    await db.query(`create function public.f8_probe_fn() returns int language sql set search_path = public as $$ select 1 $$`);
+    try {
+      eq((await db.query(`select has_function_privilege('anon', 'public.f8_probe_fn()', 'execute') p`)).rows[0].p, true, 'PUBLIC sigue (como en Postgres)');
+      eq((await db.query(`select count(*)::int n from pg_proc p cross join lateral aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a
+        where p.proname = 'f8_probe_fn' and a.grantee in ('anon'::regrole, 'authenticated'::regrole)`)).rows[0].n, 0, 'sin concesión explícita a anon/authenticated');
+    } finally { await db.query(`drop function public.f8_probe_fn()`); }
+    await expectError(() => as(null, `select * from cookie_consent_logs`), /permission denied/);
+    eq((await db.query(`select has_column_privilege('authenticated', 'public.email_verifications', 'token_hash', 'select') p`)).rows[0].p, false, 'token_hash');
+    eq((await db.query(`select has_table_privilege('authenticated', 'public.payment_requirements', 'update') p`)).rows[0].p, false, 'pagos solo por funciones');
+  });
+
   if (!process.env.SKIP_ERASURE) await check('RGPD: toda cuenta y toda organización se puede borrar (anonimiza auditoría, no bloquea)', async () => {
     await db.query(`select set_config('request.jwt.claims', '{}', false)`);
     const fails = [];

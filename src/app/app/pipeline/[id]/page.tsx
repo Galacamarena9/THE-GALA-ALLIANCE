@@ -36,7 +36,7 @@ export default async function CasePage({ params }: { params: Promise<{ id: strin
     supabase.rpc('case_outreach_list', { p_case: id }),
     supabase.from('recruiting_cases').select('institution_id, institutions(division)').eq('id', id).maybeSingle(),
     supabase.from('athlete_profiles').select('graduation_year, sport_positions!athlete_profiles_primary_position_id_fkey(name_en)').eq('user_id', c.athleteId).maybeSingle(),
-    supabase.rpc('is_minor', { p_user: c.athleteId }),
+    supabase.rpc('viewer_is_minor', { p_user: c.athleteId }),
     supabase.from('profiles').select('display_name').eq('id', session.userId).maybeSingle(),
   ]);
   const members = data.members.get(c.agencyId) ?? [];

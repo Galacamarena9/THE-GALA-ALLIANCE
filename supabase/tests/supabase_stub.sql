@@ -52,3 +52,9 @@ create or replace function storage.foldername(name text) returns text[] language
   select (string_to_array(name, '/'))[1 : greatest(array_length(string_to_array(name, '/'), 1) - 1, 0)];
 $$;
 grant execute on function storage.foldername(text) to anon, authenticated, service_role;
+
+-- Fase 8 (S7): privilegios por defecto como en Supabase. Sin esto, una función o tabla nueva sin `revoke`
+-- quedaba cerrada en local pero abierta en Supabase, y las pruebas no lo veían.
+alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
+alter default privileges in schema public grant all on functions to anon, authenticated, service_role;
+alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;

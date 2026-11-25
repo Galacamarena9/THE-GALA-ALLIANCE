@@ -105,33 +105,33 @@ export function PublicFooter({ locale }: { locale?: Locale } = {}) {
           <h4 className="mb-5 text-xs font-bold uppercase tracking-[0.2em] text-paper">{tx('Para')}</h4>
           <ul className="space-y-2.5 text-sm">
             {ACTORS.map((a) => (
-              <li key={a.role}><Link href={`/para/${a.slug}`} className="text-muted transition-colors hover:text-brass">{tx(a.plural)}</Link></li>
+              <li key={a.role}><Link href={`/para/${a.slug}`} className="inline-block py-1 text-muted transition-colors hover:text-brass">{tx(a.plural)}</Link></li>
             ))}
           </ul>
         </nav>
         <nav aria-label={tx('Recursos')}>
           <h4 className="mb-5 text-xs font-bold uppercase tracking-[0.2em] text-paper">{tx('Recursos')}</h4>
           <ul className="space-y-2.5 text-sm">
-            <li><Link href="/oportunidades" className="text-muted transition-colors hover:text-brass">{tx('Oportunidades')}</Link></li>
-            <li><Link href="/herramientas" className="text-muted transition-colors hover:text-brass">{tx('Herramientas gratuitas')}</Link></li>
-            <li><Link href="/guia" className="text-muted transition-colors hover:text-brass">{tx('Guía oficial del proceso')}</Link></li>
-            <li><Link href="/#test" className="text-muted transition-colors hover:text-brass">{tx('Test de opciones')}</Link></li>
-            <li><Link href="/seguridad" className="text-muted transition-colors hover:text-brass">{tx('Seguridad y confianza')}</Link></li>
-            <li><Link href="/calculadora" className="text-muted transition-colors hover:text-brass">{tx('Calculadora de coste real')}</Link></li>
-            <li><Link href="/precios" className="text-muted transition-colors hover:text-brass">{tx('Planes y precios')}</Link></li>
-            <li><Link href="/inversores" className="text-muted transition-colors hover:text-brass">{tx('Inversores')}</Link></li>
-            <li><Link href="/signup" className="text-muted transition-colors hover:text-brass">{tx('Crear cuenta')}</Link></li>
+            <li><Link href="/oportunidades" className="inline-block py-1 text-muted transition-colors hover:text-brass">{tx('Oportunidades')}</Link></li>
+            <li><Link href="/herramientas" className="inline-block py-1 text-muted transition-colors hover:text-brass">{tx('Herramientas gratuitas')}</Link></li>
+            <li><Link href="/guia" className="inline-block py-1 text-muted transition-colors hover:text-brass">{tx('Guía oficial del proceso')}</Link></li>
+            <li><Link href="/#test" className="inline-block py-1 text-muted transition-colors hover:text-brass">{tx('Test de opciones')}</Link></li>
+            <li><Link href="/seguridad" className="inline-block py-1 text-muted transition-colors hover:text-brass">{tx('Seguridad y confianza')}</Link></li>
+            <li><Link href="/calculadora" className="inline-block py-1 text-muted transition-colors hover:text-brass">{tx('Calculadora de coste real')}</Link></li>
+            <li><Link href="/precios" className="inline-block py-1 text-muted transition-colors hover:text-brass">{tx('Planes y precios')}</Link></li>
+            <li><Link href="/inversores" className="inline-block py-1 text-muted transition-colors hover:text-brass">{tx('Inversores')}</Link></li>
+            <li><Link href="/signup" className="inline-block py-1 text-muted transition-colors hover:text-brass">{tx('Crear cuenta')}</Link></li>
           </ul>
         </nav>
         <nav aria-label={tx('Legal')}>
           <h4 className="mb-5 text-xs font-bold uppercase tracking-[0.2em] text-paper">{tx('Legal')}</h4>
           <ul className="space-y-2.5 text-sm">
-            <li><Link href="/legal/privacidad" className="text-muted transition-colors hover:text-brass">{tx('Privacidad')}</Link></li>
-            <li><Link href="/legal/terminos" className="text-muted transition-colors hover:text-brass">{tx('Términos')}</Link></li>
-            <li><Link href="/legal/cookies" className="text-muted transition-colors hover:text-brass">{tx('Cookies')}</Link></li>
-            <li><Link href="/legal/proteccion-menores" className="text-muted transition-colors hover:text-brass">{tx('Protección de menores')}</Link></li>
-            <li><Link href="/legal/normas" className="text-muted transition-colors hover:text-brass">{tx('Normas de la comunidad')}</Link></li>
-            <li><Link href="/legal/aviso-legal" className="text-muted transition-colors hover:text-brass">{tx('Aviso legal')}</Link></li>
+            <li><Link href="/legal/privacidad" className="inline-block py-1 text-muted transition-colors hover:text-brass">{tx('Privacidad')}</Link></li>
+            <li><Link href="/legal/terminos" className="inline-block py-1 text-muted transition-colors hover:text-brass">{tx('Términos')}</Link></li>
+            <li><Link href="/legal/cookies" className="inline-block py-1 text-muted transition-colors hover:text-brass">{tx('Cookies')}</Link></li>
+            <li><Link href="/legal/proteccion-menores" className="inline-block py-1 text-muted transition-colors hover:text-brass">{tx('Protección de menores')}</Link></li>
+            <li><Link href="/legal/normas" className="inline-block py-1 text-muted transition-colors hover:text-brass">{tx('Normas de la comunidad')}</Link></li>
+            <li><Link href="/legal/aviso-legal" className="inline-block py-1 text-muted transition-colors hover:text-brass">{tx('Aviso legal')}</Link></li>
           </ul>
         </nav>
       </div>
