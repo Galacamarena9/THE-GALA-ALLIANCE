@@ -4,9 +4,17 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ChevronDown, LogOut, ShieldCheck, Tag, User } from 'lucide-react';
 import { ThemeToggle } from '@/components/growth';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import type { Locale } from '@/lib/i18n/locale';
+
+const T = {
+  es: { profile: 'Mi perfil', plans: 'Planes y servicios', privacy: 'Privacidad y datos', theme: 'Tema', language: 'Idioma', signOut: 'Cerrar sesión' },
+  en: { profile: 'My profile', plans: 'Plans & services', privacy: 'Privacy & data', theme: 'Theme', language: 'Language', signOut: 'Sign out' },
+};
 
 /** Menú de perfil (avatar con iniciales): perfil, plan, privacidad, tema y salir. */
-export function UserMenu({ name, roles, profileHref, signOut }: { name: string; roles: string; profileHref: string; signOut: () => Promise<void> }) {
+export function UserMenu({ name, roles, profileHref, signOut, locale = 'es' }: { name: string; roles: string; profileHref: string; signOut: () => Promise<void>; locale?: Locale }) {
+  const t = T[locale];
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join('') || 'G';
@@ -31,12 +39,13 @@ export function UserMenu({ name, roles, profileHref, signOut }: { name: string; 
             <p className="truncate text-sm font-medium text-paper">{name}</p>
             <p className="truncate text-xs text-faint">{roles}</p>
           </div>
-          <Link role="menuitem" href={profileHref} onClick={() => setOpen(false)} className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-muted hover:bg-surface-2 hover:text-paper"><User className="h-4 w-4" aria-hidden />Mi perfil</Link>
-          <Link role="menuitem" href="/precios" onClick={() => setOpen(false)} className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-muted hover:bg-surface-2 hover:text-paper"><Tag className="h-4 w-4" aria-hidden />Planes y servicios</Link>
-          <Link role="menuitem" href="/app/settings" onClick={() => setOpen(false)} className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-muted hover:bg-surface-2 hover:text-paper"><ShieldCheck className="h-4 w-4" aria-hidden />Privacidad y datos</Link>
-          <div className="my-2 flex items-center justify-between border-t border-line px-3 pt-3 text-xs text-faint">Tema <ThemeToggle /></div>
+          <Link role="menuitem" href={profileHref} onClick={() => setOpen(false)} className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-muted hover:bg-surface-2 hover:text-paper"><User className="h-4 w-4" aria-hidden />{t.profile}</Link>
+          <Link role="menuitem" href="/precios" onClick={() => setOpen(false)} className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-muted hover:bg-surface-2 hover:text-paper"><Tag className="h-4 w-4" aria-hidden />{t.plans}</Link>
+          <Link role="menuitem" href="/app/settings" onClick={() => setOpen(false)} className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-muted hover:bg-surface-2 hover:text-paper"><ShieldCheck className="h-4 w-4" aria-hidden />{t.privacy}</Link>
+          <div className="my-2 flex items-center justify-between border-t border-line px-3 pt-3 text-xs text-faint">{t.theme} <ThemeToggle /></div>
+          <div className="flex items-center justify-between px-3 pb-2 text-xs text-faint">{t.language} <LanguageSwitcher current={locale} /></div>
           <form action={signOut}>
-            <button role="menuitem" className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-muted hover:bg-danger/10 hover:text-danger"><LogOut className="h-4 w-4" aria-hidden />Cerrar sesión</button>
+            <button role="menuitem" className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-muted hover:bg-danger/10 hover:text-danger"><LogOut className="h-4 w-4" aria-hidden />{t.signOut}</button>
           </form>
         </div>
       )}

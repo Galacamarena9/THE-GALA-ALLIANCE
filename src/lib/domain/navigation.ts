@@ -465,3 +465,79 @@ export function breadcrumbsFor(mode: NavMode, pathname: string, search = ''): Na
   if (!best) return [];
   return best.child && best.child.href !== best.top.href ? [best.top, best.child] : [best.top];
 }
+
+/** Fase 4 (U2): la navegación en inglés. Las claves son los textos en castellano; lo que falte queda en castellano. */
+const NAV_EN: Record<string, string> = {
+  "Invitar": "Invite",
+  "Comparte The Gala Alliance con tu equipo.": "Share The Gala Alliance with your team.",
+  "Hoy": "Today",
+  "Recruiting: qué necesita atención, necesidades por posición y agenda.": "Recruiting: what needs attention, needs by position and schedule.",
+  "Buscar atletas": "Find athletes",
+  "Búsqueda con privacidad y encaje con tus necesidades.": "Privacy-respecting search matched to your needs.",
+  "Descubrir atletas": "Discover athletes",
+  "Búsqueda que respeta la privacidad, con encaje.": "Privacy-respecting search with fit.",
+  "Comparar": "Compare",
+  "Candidatos lado a lado.": "Candidates side by side.",
+  "Necesidades": "Needs",
+  "Plazas por posición, temporada y promoción.": "Spots by position, season and class.",
+  "Mis listas": "My lists",
+  "Listas privadas o de equipo, con revisión y notas.": "Private or team lists, with review and notes.",
+  "Listas de seguimiento": "Watch lists",
+  "Listas personales": "Personal lists",
+  "Atletas guardados y búsquedas con alertas.": "Saved athletes and searches with alerts.",
+  "Procesos": "Processes",
+  "Candidatos por etapa interna, asignados y con historial.": "Candidates by internal stage, assigned and with history.",
+  "Candidatos": "Candidates",
+  "Candidatos por etapa interna.": "Candidates by internal stage.",
+  "Candidaturas recibidas": "Applications received",
+  "Quién se ha apuntado a cada oportunidad.": "Who applied to each opportunity.",
+  "Tareas del equipo": "Team tasks",
+  "Quién hace qué y para cuándo.": "Who does what, and by when.",
+  "Becas y pruebas": "Scholarships & tryouts",
+  "Vuestras becas, trials y programas publicados.": "Your published scholarships, tryouts and programs.",
+  "Publicadas": "Published",
+  "Gestiona lo que habéis publicado.": "Manage what you have published.",
+  "Publicar": "Post",
+  "Sale al momento si pasa los controles automáticos.": "Goes live right away if it passes automatic checks.",
+  "Trials": "Tryouts",
+  "Inscripciones, plazas y asistencia.": "Sign-ups, spots and attendance.",
+  "Club / academia": "Club / academy",
+  "Universidad": "University",
+  "Universidad y equipo": "University and team",
+  "Datos, verificación y miembros.": "Details, verification and members.",
+  "Mi verificación": "My verification",
+  "Correo institucional, afiliación y cargo.": "Institutional email, affiliation and role.",
+  "Portal de club": "Club portal",
+  "Plantilla, validación de estadísticas y colocaciones.": "Roster, stat validation and placements.",
+  "Mensajes": "Messages",
+  "Conversaciones seguras; con menores, la familia aprueba y ve el hilo.": "Secure conversations; with minors, the family approves and sees the thread.",
+  "Pregunta lo que quieras sobre el proceso, a cualquier hora.": "Ask anything about the process, any time.",
+  "Calculadora de coste": "Cost calculator",
+  "Coste real a 4 años con viajes, seguro y subidas.": "Real 4-year cost with travel, insurance and increases.",
+  "Centro de información": "Information center",
+  "Divisiones, requisitos, documentos y visado con fuentes oficiales.": "Divisions, requirements, documents and visas with official sources.",
+  "Plan y facturación": "Plan & billing",
+  "Tu plan, asientos, uso y facturas.": "Your plan, seats, usage and invoices.",
+  "Planes y servicios": "Plans & services",
+  "Privacidad y datos": "Privacy & data",
+  "Visibilidad, descarga de datos y baja de la cuenta.": "Visibility, data download and account deletion.",
+  "Confianza y seguridad": "Trust & safety",
+  "Quién ve tus datos ahora, medidas que te afecten y cómo apelar.": "Who sees your data now, measures that affect you and how to appeal.",
+  "Ayuda": "Help",
+  "Escríbenos y te respondemos aquí.": "Write to us and we reply here.",
+  "Actualidad": "News",
+  "Novedades de atletas, comunicados oficiales y cambios de normativa.": "Athlete updates, official notices and rule changes.",
+  "Academia SAT/TOEFL": "SAT/TOEFL Academy",
+  "Práctica con preguntas tipo examen y fechas oficiales.": "Exam-style practice and official dates.",
+  "Jornada mensual ante universidades y clubes verificados.": "Monthly showcase for verified universities and clubs.",
+  "Cuenta": "Account",
+  "Operaciones Gala": "Gala Operations",
+};
+const tr = (v: string | undefined) => (v == null ? v : NAV_EN[v] ?? v);
+export function localizeNavItem(i: NavItem): NavItem {
+  return { ...i, label: tr(i.label)!, desc: tr(i.desc), children: i.children?.map(localizeNavItem) };
+}
+export function localizeMode(mode: NavMode, locale: 'es' | 'en'): NavMode {
+  if (locale === 'es') return mode;
+  return { ...mode, label: tr(mode.label)!, primary: mode.primary.map(localizeNavItem), more: mode.more.map(localizeNavItem), tabs: mode.tabs.map(localizeNavItem), extra: mode.extra.map(localizeNavItem) };
+}

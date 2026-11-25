@@ -51,7 +51,7 @@ function Item({ item, active, exact = true, sub, compact, onNavigate }: { item: 
  * Barra lateral por modo (Agent OS, Athlete OS, University OS, Operaciones…): pocos destinos de primer nivel;
  * las vistas contextuales del destino activo se despliegan debajo; «Más» plegado. `compact`: raíl de tablet.
  */
-export function Sidebar({ mode, onNavigate, compact = false }: { mode: NavMode; onNavigate?: () => void; compact?: boolean }) {
+export function Sidebar({ mode, onNavigate, compact = false, moreLabel = 'Más' }: { mode: NavMode; onNavigate?: () => void; compact?: boolean; moreLabel?: string }) {
   const active = useActiveHref(flattenMode(mode));
   const moreActive = mode.more.some((i) => i.href === active);
   const [moreOpen, setMoreOpen] = useState(moreActive);
@@ -85,7 +85,7 @@ export function Sidebar({ mode, onNavigate, compact = false }: { mode: NavMode; 
             onClick={() => setMoreOpen((v) => !v)}
             aria-expanded={moreOpen}
             aria-controls="nav-more"
-            aria-label={compact ? 'Más' : undefined}
+            aria-label={compact ? moreLabel : undefined}
             className={cx(
               'flex items-center rounded-xl text-muted transition-colors hover:bg-ink hover:text-paper focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass',
               compact ? 'h-11 w-11 justify-center' : 'w-full gap-3 px-3 py-2 text-sm',
@@ -93,7 +93,7 @@ export function Sidebar({ mode, onNavigate, compact = false }: { mode: NavMode; 
             )}
           >
             <span className="text-faint"><NavIcon name="more" /></span>
-            {!compact && <span className="flex-1 text-left">Más</span>}
+            {!compact && <span className="flex-1 text-left">{moreLabel}</span>}
             {!compact && <ChevronDown className={cx('h-4 w-4 transition-transform', moreOpen ? 'rotate-180' : '')} aria-hidden />}
           </button>
           {moreOpen && (

@@ -64,6 +64,15 @@ Cambios: rama `feat/fee-attestation-founder-cap`; migración `20261217000100_fee
 Pruebas: unit 266/266; RLS 438/438 (C3-1, C3-2); e2e 370 OK + `founder-pricing.spec.ts`; build OK.
 Riesgos abiertos: representaciones anteriores sin declaración (se muestran con aviso «pídesela»); claves Stripe live y `free_until` (gate de Gala); validación legal NCAA del texto.
 
+## [Fase 4a auditoría] 2026-11-25 · El aviso de cookies no tapa nada y el coach entra en inglés
+Origen: auditoría integral con el Agente Maestro PRO (hallazgos U1 y U2).
+Cambios:
+- U1: el aviso de cookies reserva su altura (`--cookie-banner-space`), queda encima de la barra inferior de la app y es más compacto en móvil.
+- U2: `src/lib/i18n` (`pickLocale`, `getLocale`, cookie `tga_lang`) y `LanguageSwitcher` (en el alta y en el menú de usuario).
+- U2: en inglés quedan el aviso de cookies (también en la ficha `/r/…`), el alta (textos y errores), la navegación de coach/universidad y el menú de usuario. Pedir acceso desde la ficha deja la sesión en inglés.
+- La política de cookies recoge `tga_lang`.
+Pruebas: unit 283/283 (paridad de traducciones); e2e 388 OK con `phase4-cookies-english.spec.ts`, en escritorio y móvil; build OK.
+
 ## [Fase 3 auditoría] 2026-11-24 · Ninguna escritura falla en silencio
 Origen: auditoría integral con el Agente Maestro PRO (hallazgo H3).
 Cambios:

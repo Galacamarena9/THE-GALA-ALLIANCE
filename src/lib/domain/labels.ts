@@ -35,6 +35,15 @@ export const OPPORTUNITY_STATUS_LABEL: Record<OpportunityStatus, string> = {
   filled: 'Plaza cubierta',
 };
 
+export const ORG_TYPE_LABEL_EN: Record<OrgType, string> = {
+  university: 'University',
+  college: 'College',
+  club: 'Club',
+  academy: 'Academy',
+  agency: 'Agency',
+  brand: 'Brand',
+};
+
 export const ORG_TYPE_LABEL: Record<OrgType, string> = {
   university: 'Universidad',
   college: 'College',

@@ -11,6 +11,7 @@ import { getSession } from '@/lib/session';
 import { roleHome } from '@/lib/domain/roles';
 import { SPAIN_DIGITAL_CONSENT_AGE } from '@/lib/domain/age';
 import type { FormState } from './auth';
+import { getLocale } from '@/lib/i18n/server';
 
 const LEGAL_VERSION = '2026-11-borrador';
 
@@ -52,7 +53,39 @@ const ORG_TYPES_BY_ROLE = {
   brand: ['brand'],
 } as const;
 
-export async function completeOnboarding(_prev: FormState, formData: FormData): Promise<FormState> {
+/** Fase 4 (U2): mismos mensajes en inglés cuando la persona usa la plataforma en inglés. */
+const EN: Record<string, string> = {
+  'Código de país de 2 letras (ES, US…)': '2-letter country code (US, ES…)',
+  'Elige tu deporte': 'Choose your sport',
+  'Elige tu posición': 'Choose your position',
+  'Falta tu fecha de nacimiento. Contacta con soporte.': 'Your date of birth is missing. Please contact support.',
+  'Revisa los campos marcados.': 'Please check the highlighted fields.',
+  'Este tipo de cuenta es solo para mayores de edad.': 'This account type is for adults only.',
+  'No hemos podido guardar tu rol. Inténtalo de nuevo.': 'We could not save your role. Please try again.',
+  'No hemos podido crear tu Passport. Revisa deporte y posición.': 'We could not create your Passport. Check sport and position.',
+  'Nombre de la organización': 'Organization name',
+  'Tipo de organización no válido para tu perfil': 'Organization type not valid for your profile',
+  'Esta organización ya existe en Gala.': 'This organization is already on Gala.',
+  'No hemos podido crear tu organización. Revisa los datos.': 'We could not create your organization. Please check the details.',
+  'No hemos podido completar el registro. Inténtalo de nuevo.': 'We could not complete your registration. Please try again.',
+};
+function toEnglish(m: string): string {
+  const exists = m.match(/^«(.+)» ya está en Gala: no crees otra/);
+  if (exists) return `“${exists[1]}” is already on Gala: don't create a duplicate. Finish signing up with “Join an existing one” and verify your affiliation from Verification.`;
+  return EN[m] ?? m;
+}
+
+export async function completeOnboarding(prev: FormState, formData: FormData): Promise<FormState> {
+  const state = await completeOnboardingEs(prev, formData);
+  if (!state || (await getLocale()) !== 'en') return state;
+  return {
+    ...state,
+    error: state.error ? toEnglish(state.error) : state.error,
+    fieldErrors: state.fieldErrors ? Object.fromEntries(Object.entries(state.fieldErrors).map(([k, v]) => [k, toEnglish(v)])) : state.fieldErrors,
+  };
+}
+
+async function completeOnboardingEs(_prev: FormState, formData: FormData): Promise<FormState> {
   const session = await getSession();
   if (!session) redirect('/login');
   const addingRole = session.onboardingCompleted;

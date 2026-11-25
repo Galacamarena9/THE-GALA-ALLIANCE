@@ -3,8 +3,10 @@
 import { useActionState, useMemo, useState } from 'react';
 import { completeOnboarding } from '@/app/actions/onboarding';
 import type { FormState } from '@/app/actions/auth';
-import { ACTORS } from '@/lib/domain/roles';
-import { DIVISION_LABEL, ORG_TYPE_LABEL } from '@/lib/domain/labels';
+import { ACTORS, ACTOR_EN } from '@/lib/domain/roles';
+import { DIVISION_LABEL, ORG_TYPE_LABEL, ORG_TYPE_LABEL_EN } from '@/lib/domain/labels';
+import type { Locale } from '@/lib/i18n/locale';
+import { ONBOARDING_COPY } from './copy';
 import type { Sport, SportPosition } from '@/lib/types';
 import { Field, inputClass, Notice, cx } from '@/components/ui';
 import { SubmitButton } from '@/components/SubmitButton';
@@ -12,6 +14,7 @@ import { SubmitButton } from '@/components/SubmitButton';
 const ORG_TYPES = { university: ['university', 'college'], coach: ['club', 'academy'], agent: ['agency'], brand: ['brand'] } as const;
 
 export function OnboardingForm({
+  locale = 'es',
   initialRole,
   invite,
   team,
@@ -21,6 +24,7 @@ export function OnboardingForm({
   sports,
   positions,
 }: {
+  locale?: Locale;
   initialRole?: string;
   invite?: string;
   team?: string;
@@ -38,6 +42,8 @@ export function OnboardingForm({
   const sportPositions = useMemo(() => positions.filter((p) => p.sport_id === sport), [positions, sport]);
   const fe = state?.fieldErrors ?? {};
   const thisYear = new Date().getFullYear();
+  const t = ONBOARDING_COPY[locale];
+  const orgLabels = locale === 'en' ? ORG_TYPE_LABEL_EN : ORG_TYPE_LABEL;
 
   return (
     <form action={action} className="mt-8 space-y-8">
@@ -47,7 +53,7 @@ export function OnboardingForm({
       {state?.error && <Notice tone="danger">{state.error}</Notice>}
 
       <fieldset>
-        <legend className="sr-only">Tipo de cuenta</legend>
+        <legend className="sr-only">{t.accountType}</legend>
         <div className="grid gap-3 sm:grid-cols-2">
           {available.map((a) => (
             <label
@@ -59,50 +65,50 @@ export function OnboardingForm({
             >
               <span className="flex items-center gap-3">
                 <input type="radio" name="role" value={a.role} checked={role === a.role} onChange={() => setRole(a.role)} className="accent-[var(--color-brass)]" />
-                <span className="font-medium text-paper">{a.intent}</span>
+                <span className="font-medium text-paper">{locale === 'en' ? ACTOR_EN[a.role].intent : a.intent}</span>
               </span>
-              <span className="mt-2 pl-7 text-sm text-muted">{a.promise}</span>
+              <span className="mt-2 pl-7 text-sm text-muted">{locale === 'en' ? ACTOR_EN[a.role].promise : a.promise}</span>
             </label>
           ))}
         </div>
         {isMinor && (
-          <p className="mt-3 text-sm text-faint">Como eres menor de edad, tu cuenta es de atleta. Tu familia puede crear su propia cuenta y vincularse contigo.</p>
+          <p className="mt-3 text-sm text-faint">{t.minorNote}</p>
         )}
       </fieldset>
 
       {role && (
         <div className="space-y-5 rounded-[var(--radius-card)] border border-line bg-surface p-6">
-          <Field label="País (código de 2 letras)" htmlFor="country" hint="Por ejemplo ES o US." error={fe.country}>
-            <input id="country" name="country" defaultValue="ES" maxLength={2} required className={cx(inputClass, 'uppercase')} />
+          <Field label={t.country} htmlFor="country" hint={t.countryHint} error={fe.country}>
+            <input id="country" name="country" defaultValue={locale === 'en' ? 'US' : 'ES'} maxLength={2} required className={cx(inputClass, 'uppercase')} />
           </Field>
 
           {role === 'athlete' && (
             <>
               <div className="grid gap-5 sm:grid-cols-2">
-                <Field label="Deporte" htmlFor="sport_id" error={fe.sport_id}>
+                <Field label={t.sport} htmlFor="sport_id" error={fe.sport_id}>
                   <select id="sport_id" name="sport_id" required value={sport} onChange={(e) => setSport(e.target.value)} className={inputClass}>
-                    <option value="">Elige…</option>
+                    <option value="">{t.choose}</option>
                     {sports.map((s) => <option key={s.id} value={s.id}>{s.name_es}</option>)}
                   </select>
                 </Field>
-                <Field label="Posición o prueba principal" htmlFor="primary_position_id" error={fe.primary_position_id}>
+                <Field label={t.position} htmlFor="primary_position_id" error={fe.primary_position_id}>
                   <select id="primary_position_id" name="primary_position_id" required disabled={!sport} className={inputClass}>
-                    <option value="">{sport ? 'Elige…' : 'Primero el deporte'}</option>
+                    <option value="">{sport ? t.choose : t.sportFirst}</option>
                     {sportPositions.map((p) => <option key={p.id} value={p.id}>{p.name_es}</option>)}
                   </select>
                 </Field>
               </div>
               <div className="grid gap-5 sm:grid-cols-2">
-                <Field label="Año en que terminas el instituto" htmlFor="graduation_year" hint="Bachillerato o equivalente." error={fe.graduation_year}>
+                <Field label={t.gradYear} htmlFor="graduation_year" hint={t.gradHint} error={fe.graduation_year}>
                   <select id="graduation_year" name="graduation_year" required className={inputClass} defaultValue={thisYear + 1}>
                     {Array.from({ length: 7 }, (_, i) => thisYear - 1 + i).map((y) => <option key={y} value={y}>{y}</option>)}
                   </select>
                 </Field>
-                <Field label="Ciudad" htmlFor="city" hint="Opcional. Solo la ciudad, nunca tu dirección.">
+                <Field label={t.city} htmlFor="city" hint={t.cityHint}>
                   <input id="city" name="city" className={inputClass} />
                 </Field>
               </div>
-              <Field label="Equipo actual" htmlFor="current_team" hint="Opcional.">
+              <Field label={t.team} htmlFor="current_team" hint={t.optional}>
                 <input id="current_team" name="current_team" className={inputClass} />
               </Field>
             </>
@@ -110,14 +116,14 @@ export function OnboardingForm({
 
           {role === 'coach' && (
             <fieldset className="space-y-2">
-              <legend className="mb-1 text-sm font-medium text-paper">¿Dónde entrenas?</legend>
+              <legend className="mb-1 text-sm font-medium text-paper">{t.whereCoach}</legend>
               <label className="flex items-center gap-2 text-sm text-paper">
                 <input type="radio" name="org_mode" value="join_later" checked={orgMode === 'join_later'} onChange={() => setOrgMode('join_later')} className="accent-[var(--color-brass)]" />
-                En una universidad o college: me invitará su cuenta oficial
+                {t.coachCollege}
               </label>
               <label className="flex items-center gap-2 text-sm text-paper">
                 <input type="radio" name="org_mode" value="create" checked={orgMode === 'create'} onChange={() => setOrgMode('create')} className="accent-[var(--color-brass)]" />
-                En un club o academia: quiero darlo de alta
+                {t.coachClub}
               </label>
             </fieldset>
           )}
@@ -125,20 +131,20 @@ export function OnboardingForm({
           {(role === 'university' || role === 'agent' || role === 'brand' || (role === 'coach' && orgMode === 'create')) && (
             <>
               <Field
-                label={role === 'brand' ? 'Nombre de la marca' : role === 'agent' ? 'Nombre de la agencia' : role === 'university' ? 'Universidad o college' : 'Club o academia'}
+                label={t.orgName[role as 'brand' | 'agent' | 'university' | 'coach']}
                 htmlFor="org_name"
                 error={fe.org_name}
               >
                 <input id="org_name" name="org_name" required className={inputClass} />
               </Field>
               <div className="grid gap-5 sm:grid-cols-2">
-                <Field label="Tipo" htmlFor="org_type" error={fe.org_type}>
+                <Field label={t.orgType} htmlFor="org_type" error={fe.org_type}>
                   <select id="org_type" name="org_type" className={inputClass}>
-                    {ORG_TYPES[role].map((t) => <option key={t} value={t}>{ORG_TYPE_LABEL[t]}</option>)}
+                    {ORG_TYPES[role].map((o) => <option key={o} value={o}>{orgLabels[o]}</option>)}
                   </select>
                 </Field>
                 {role === 'university' && (
-                  <Field label="División" htmlFor="division">
+                  <Field label={t.division} htmlFor="division">
                     <select id="division" name="division" className={inputClass} defaultValue="">
                       <option value="">—</option>
                       {Object.entries(DIVISION_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
@@ -146,30 +152,25 @@ export function OnboardingForm({
                   </Field>
                 )}
               </div>
-              <Field label="Web oficial" htmlFor="org_website" hint="La usamos para verificar tu organización (dominio oficial).">
+              <Field label={t.website} htmlFor="org_website" hint={t.websiteHint}>
                 <input id="org_website" name="org_website" inputMode="url" placeholder="https://" className={inputClass} />
               </Field>
-              <Notice>
-                Revisaremos tu organización antes de que puedas publicar
-                {role === 'university' || role === 'coach' ? ' becas o ver perfiles de menores' : role === 'brand' ? ' ofertas' : ' y representar atletas'}. Mientras tanto ya puedes explorar la plataforma.
-              </Notice>
+              <Notice>{t.review(role === 'university' || role === 'coach' ? 'staff' : role === 'brand' ? 'brand' : 'agent')}</Notice>
             </>
           )}
 
           {role === 'coach' && orgMode === 'join_later' && (
             <>
               <input type="hidden" name="org_type" value="club" />
-              <Notice>Pide a la cuenta oficial de tu universidad un enlace de invitación al equipo. Al abrirlo quedarás vinculado/a.</Notice>
+              <Notice>{t.collegeInvite}</Notice>
             </>
           )}
 
           {role === 'parent' && (
-            <Notice>
-              Después podrás invitar a tu hijo o hija con un enlace. Solo verás su perfil cuando acepte, y siempre con los permisos que elija.
-            </Notice>
+            <Notice>{t.parentNote}</Notice>
           )}
 
-          <SubmitButton className="w-full sm:w-auto" pendingText="Preparando tu espacio…">Continuar</SubmitButton>
+          <SubmitButton className="w-full sm:w-auto" pendingText={t.preparing}>{t.continue}</SubmitButton>
         </div>
       )}
     </form>
