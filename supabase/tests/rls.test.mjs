@@ -4303,6 +4303,66 @@ try {
     await db.query(`alter table public.parent_athlete_links enable trigger test_autoverify_guardian`);
   }
 
+  results.push('\nFase 6: privacidad fina');
+  {
+    const mk = async (name, age) => {
+      const id = randomUUID();
+      await db.query(`insert into auth.users (id, email, raw_user_meta_data, email_confirmed_at) values ($1, $2, $3, now())`, [id, `${name}-${id.slice(0, 6)}@p6.test`, { display_name: `${name} Test` }]);
+      await db.query(`insert into private_profile_data (user_id, date_of_birth) values ($1, current_date - make_interval(years => $2))`, [id, age]);
+      await db.query(`insert into user_roles (user_id, role) values ($1, 'athlete')`, [id]);
+      return id;
+    };
+    await check('F6-1 bloques privados: altura, objetivos y vídeo no se leen de la tabla; la función los da solo a quien puede', async () => {
+      const a = await mk('p6-adult', 22);
+      await db.query(`insert into athlete_profiles (user_id, sport_id, graduation_year, height_cm, weight_kg, league, target_divisions, intended_major, highlight_video_url,
+          profile_visibility, sport_visibility, goals_visibility, videos_visibility)
+        values ($1, 'basketball', 2026, 198, 92, 'EBA', '{ncaa_d1}', 'Business', 'https://youtu.be/abcdefgh', 'public', 'private', 'private', 'members')`, [a]);
+      for (const who of [null, u.brand]) {
+        await expectError(() => as(who, `select height_cm from athlete_profiles where user_id = $1`, [a]), /permission denied/);
+        await expectError(() => as(who, `select target_divisions from athlete_profiles where user_id = $1`, [a]), /permission denied/);
+        await expectError(() => as(who, `select * from athlete_profiles where user_id = $1`, [a]), /permission denied/);
+        eq((await as(who, `select count(*)::int n from athlete_profiles where user_id = $1`, [a])).rows[0].n, 1, 'el perfil sí se ve');
+      }
+      const anon = (await as(null, `select * from athlete_block_fields($1)`, [a])).rows[0];
+      eq(anon.height_cm, null, 'deportivo privado'); eq(anon.weight_kg, null); eq(anon.league, null);
+      eq(Array.isArray(anon.target_divisions) ? anon.target_divisions.length : String(anon.target_divisions), Array.isArray(anon.target_divisions) ? 0 : '{}', 'objetivos privados');
+      eq(anon.highlight_video_url, null, 'vídeo solo para miembros');
+      const member = (await as(u.brand, `select * from athlete_block_fields($1)`, [a])).rows[0];
+      eq(member.highlight_video_url, 'https://youtu.be/abcdefgh', 'un miembro ve el vídeo'); eq(member.height_cm, null);
+      const own = (await as(a, `select * from athlete_block_fields($1)`, [a])).rows[0];
+      eq(own.height_cm, 198, 'el titular lo ve todo'); eq(own.intended_major, 'Business');
+      const dir = (await as(u.brand, `select height_cm, weight_kg, target_divisions, has_video from athlete_directory where user_id = $1`, [a])).rows[0];
+      eq(dir.height_cm, null, 'el directorio aplica el bloque'); eq(dir.has_video, true);
+      eq((await as(u.brand, `select count(*)::int n from athlete_directory where user_id = $1 and height_cm >= 190`, [a])).rows[0].n, 0, 'filtrar no revela el dato');
+      await as(a, `update athlete_profiles set height_cm = 199 where user_id = $1`, [a]);
+      eq((await db.query(`select height_cm from athlete_profiles where user_id = $1`, [a])).rows[0].height_cm, 199, 'el titular sigue editando');
+    });
+    await check('F6-2 con menores no pasan datos de contacto disfrazados («arroba», espacios, redes); los años sí', async () => {
+      const hit = async (t) => (await as(u.adult, `select has_contact_data($1) h`, [t])).rows[0].h;
+      for (const t of ['escríbeme a pepe arroba gmail punto com', 'pepe (at) gmail (dot) com', 'pepe @ gmail.com', 'llámame al 6 5 7 2 1 6 1 3 7',
+                       'mi número: 657-21-61-37', '+34 657 216 137', 'búscame en insta', 'hablamos por wasap', 'PEPE[AT]GMAIL[DOT]COM']) {
+        eq(await hit(t), true, t);
+      }
+      for (const t of ['Temporadas 2023 2024 2025 2026 en el mismo club', 'Nos vemos at home. Bien', 'Medía 1,98 y pesaba 92', 'El partido es el 12/10 a las 18:30',
+                       'Promedió 15 puntos y 8 rebotes en 30 partidos']) {
+        eq(await hit(t), false, t);
+      }
+    });
+    await check('F6-3 la ficha /r/… de un menor no enseña académicos aunque sean «miembros»; la de un adulto sí', async () => {
+      const kid = await mk('p6-kid', 15);
+      const adult = await mk('p6-ad', 19);
+      for (const x of [kid, adult]) {
+        await db.query(`insert into athlete_profiles (user_id, sport_id, graduation_year, profile_visibility, academics_visibility) values ($1, 'basketball', 2028, 'members', 'members')`, [x]);
+        await db.query(`insert into athlete_academics (athlete_id, gpa, gpa_scale, sat_score) values ($1, 3.6, 4.0, 1300)`, [x]);
+      }
+      const tok = async (x) => (await db.query(`insert into recruiting_links (athlete_id, label) values ($1, 'F6') returning token`, [x])).rows[0].token;
+      const k = (await as(null, `select is_minor, gpa_4, sat_score from get_recruiting_card($1)`, [await tok(kid)])).rows[0];
+      eq(k.is_minor, true); eq(k.gpa_4, null, 'menor sin GPA'); eq(k.sat_score, null, 'menor sin SAT');
+      const ad = (await as(null, `select gpa_4, sat_score from get_recruiting_card($1)`, [await tok(adult)])).rows[0];
+      eq(ad.sat_score, 1300, 'adulto con académicos compartidos');
+    });
+  }
+
   if (!process.env.SKIP_ERASURE) await check('RGPD: toda cuenta y toda organización se puede borrar (anonimiza auditoría, no bloquea)', async () => {
     await db.query(`select set_config('request.jwt.claims', '{}', false)`);
     const fails = [];

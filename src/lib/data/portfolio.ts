@@ -1,4 +1,5 @@
 import 'server-only';
+import { withBlockFields, type AthleteBlockFields } from '@/lib/athlete/profile-columns';
 import { cache } from 'react';
 import { createClient } from '@/lib/supabase/server';
 import { myOrganizations, type MyOrg } from '@/lib/data/orgs';
@@ -144,12 +145,9 @@ export async function loadAthleteWorkspace(userId: string, athleteId: string) {
   const supabase = await createClient();
   const notes = portfolio.notes.filter((n) => n.athlete_id === athleteId);
   const authorIds = [...new Set(notes.map((n) => n.author_id))];
-  const [{ data: ap }, { data: ac }, { data: authors }] = await Promise.all([
-    supabase
-      .from('athlete_profiles')
-      .select('headline, bio, height_cm, dominant_side, city, competitive_level, target_divisions, intended_major, highlight_video_url')
-      .eq('user_id', athleteId)
-      .maybeSingle(),
+  const [{ data: apBase }, { data: apBlock }, { data: ac }, { data: authors }] = await Promise.all([
+    supabase.from('athlete_profiles').select('headline, bio, city').eq('user_id', athleteId).maybeSingle(),
+    supabase.rpc('athlete_block_fields', { p_athlete: athleteId }),
     supabase
       .from('athlete_academics')
       .select('gpa, gpa_scale, english_test, english_score, sat_score, school_year')
@@ -158,6 +156,7 @@ export async function loadAthleteWorkspace(userId: string, athleteId: string) {
     authorIds.length ? supabase.from('profiles').select('id, display_name').in('id', authorIds) : Promise.resolve({ data: [] }),
   ]);
 
+  const ap = apBase ? withBlockFields(apBase, (apBlock as Partial<AthleteBlockFields>[] | null)?.[0]) : null;
   const detail: AthleteDetail = {
     headline: ap?.headline ?? null,
     bio: ap?.bio ?? null,

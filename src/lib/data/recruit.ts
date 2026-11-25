@@ -168,7 +168,7 @@ export async function loadCandidate(org: RecruitOrg, athleteId: string) {
   const supabase = await createClient();
   const [dir, prof, acad, stats, videos, achievements, cand, notes, tasks, activity, requests, lists, apps, members] = await Promise.all([
     supabase.from('athlete_directory').select('*').eq('user_id', athleteId).maybeSingle(),
-    supabase.from('athlete_profiles').select('user_id, username, nationality, league, years_experience, weight_kg').eq('user_id', athleteId).maybeSingle(),
+    supabase.from('athlete_profiles').select('user_id, username, nationality').eq('user_id', athleteId).maybeSingle(),
     supabase.from('athlete_academics').select('gpa, gpa_scale, grade_display, education_system, school_name, english_test, english_score, gpa_source, english_source, sat_score, act_score').eq('athlete_id', athleteId).maybeSingle(),
     supabase.from('athlete_statistics').select('season, value, source, team, competition, sport_stat_definitions(label_es, label_en, unit)').eq('athlete_id', athleteId).order('season', { ascending: false }).limit(12),
     supabase.from('athlete_videos').select('id, kind, title, url, is_featured').eq('athlete_id', athleteId).order('is_featured', { ascending: false }).limit(8),
@@ -185,7 +185,7 @@ export async function loadCandidate(org: RecruitOrg, athleteId: string) {
   if (!dir.data) return null;
   return {
     dir: dir.data as Omit<DiscoverRow, 'academics_documented' | 'verified_stats' | 'fit'>,
-    profile: prof.data, academics: acad.data, stats: stats.data ?? [], videos: videos.data ?? [], achievements: achievements.data ?? [],
+    profile: prof.data ? { ...prof.data, league: dir.data.league ?? null, years_experience: dir.data.years_experience ?? null, weight_kg: dir.data.weight_kg ?? null } : null, academics: acad.data, stats: stats.data ?? [], videos: videos.data ?? [], achievements: achievements.data ?? [],
     candidate: cand.data, notes: notes.data ?? [], tasks: tasks.data ?? [], activity: activity.data ?? [], requests: requests.data ?? [],
     lists: lists.data ?? [], applications: apps.data ?? [],
     members: (members.data ?? []).map((m) => ({ id: m.user_id as string, role: m.member_role as string, title: m.title as string | null, name: (m.profiles as unknown as { display_name: string } | null)?.display_name ?? 'Miembro' })),

@@ -166,6 +166,12 @@ export async function deleteMyAccount(_prev: FormState, formData: FormData): Pro
   const { data: docs } = await supabase.from('athlete_documents').select('storage_path').eq('athlete_id', session.userId).not('storage_path', 'is', null);
   const paths = (docs ?? []).map((d) => d.storage_path as string);
   if (paths.length) bestEffort(await supabase.storage.from('athlete-documents').remove(paths), 'storage.athlete-documents.remove');
+  // Fase 6 (S5): también las fotos del Passport y las evidencias de verificación (carpeta = id de la cuenta).
+  for (const bucket of ['athlete-photos', 'verification-evidence'] as const) {
+    const { data: files } = await supabase.storage.from(bucket).list(session.userId, { limit: 1000 });
+    const own = (files ?? []).filter((f) => f.name && f.id).map((f) => `${session.userId}/${f.name}`);
+    if (own.length) bestEffort(await supabase.storage.from(bucket).remove(own), `storage.${bucket}.remove`);
+  }
   const { error } = await supabase.rpc('delete_my_account', { p_confirm: 'ELIMINAR' });
   if (error) {
     if (error.message.includes('transfer_organizations_first')) return { error: 'Antes de borrar tu cuenta, transfiere o cierra las organizaciones que creaste.' };

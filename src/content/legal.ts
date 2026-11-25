@@ -102,7 +102,7 @@ export const LEGAL: LegalDoc[] = [
     slug: 'proteccion-menores',
     title: 'Protección de menores',
     sections: [
-      { heading: 'Por defecto, máxima protección', body: ['Los perfiles de menores no son visibles para anónimos, marcas ni agentes, ni se indexan en buscadores. Solo los ven universidades y clubes verificados y la familia vinculada.'] },
+      { heading: 'Por defecto, máxima protección', body: ['Los perfiles de menores no son visibles para anónimos ni marcas, ni se indexan en buscadores, y no aparecen en las búsquedas de agencias. Solo los ven universidades y clubes verificados, la familia vinculada y, si la familia aprueba una representación, la agencia y el agente asignado, con los permisos que la familia elija.'] },
       { heading: 'Contacto', body: ['Solo organizaciones verificadas pueden pedir contacto. Con un menor, la familia vinculada aprueba la solicitud, ve la conversación y no se permite compartir emails, teléfonos ni redes sociales.'] },
       { heading: 'Sin patrones adictivos ni publicidad perfilada', body: ['No usamos rankings públicos de menores, rachas ni notificaciones agresivas, ni mostramos publicidad basada en perfiles a menores.'] },
       { heading: 'Si algo va mal', body: ['Usa "Denunciar" en cualquier perfil, oferta o conversación: las denuncias de seguridad infantil tienen prioridad máxima. Si hay riesgo inmediato, llama al 112.'] },

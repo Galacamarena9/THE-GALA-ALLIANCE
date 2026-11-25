@@ -1,4 +1,5 @@
 import 'server-only';
+import { ATHLETE_PROFILE_PUBLIC_COLUMNS, withBlockFields, type AthleteBlockFields } from '@/lib/athlete/profile-columns';
 import { createClient } from '@/lib/supabase/server';
 import type { AthleteAcademics, AthleteGoals, AthleteProfile, AthleteVideo, CareerEntry } from '@/lib/types';
 import { computeReadiness } from '@/lib/domain/readiness';
@@ -20,8 +21,9 @@ export interface StatRow {
  */
 export async function loadPassport(athleteId: string) {
   const supabase = await createClient();
-  const [profileRes, personRes, academicsRes, statsRes, langsRes, achRes, linksRes, privRes, finRes, careerRes, videosRes, goalsRes, officialRes] = await Promise.all([
-    supabase.from('athlete_profiles').select('*').eq('user_id', athleteId).maybeSingle(),
+  const [profileRes, blockRes, personRes, academicsRes, statsRes, langsRes, achRes, linksRes, privRes, finRes, careerRes, videosRes, goalsRes, officialRes] = await Promise.all([
+    supabase.from('athlete_profiles').select(ATHLETE_PROFILE_PUBLIC_COLUMNS).eq('user_id', athleteId).maybeSingle(),
+    supabase.rpc('athlete_block_fields', { p_athlete: athleteId }),
     supabase.from('profiles').select('display_name, avatar_url, country').eq('id', athleteId).maybeSingle(),
     supabase.from('athlete_academics').select('*').eq('athlete_id', athleteId).maybeSingle(),
     supabase
@@ -40,7 +42,9 @@ export async function loadPassport(athleteId: string) {
     supabase.from('athlete_links').select('id, kind, url, verified').eq('athlete_id', athleteId).order('created_at'),
   ]);
 
-  const profile = profileRes.data as AthleteProfile | null;
+  const profile = profileRes.data
+    ? (withBlockFields(profileRes.data, (blockRes.data as Partial<AthleteBlockFields>[] | null)?.[0]) as unknown as AthleteProfile)
+    : null;
   const academics = academicsRes.data as AthleteAcademics | null;
   const stats = (statsRes.data ?? []) as unknown as StatRow[];
   const languages = langsRes.data ?? [];

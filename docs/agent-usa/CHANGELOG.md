@@ -64,6 +64,17 @@ Cambios: rama `feat/fee-attestation-founder-cap`; migración `20261217000100_fee
 Pruebas: unit 266/266; RLS 438/438 (C3-1, C3-2); e2e 370 OK + `founder-pricing.spec.ts`; build OK.
 Riesgos abiertos: representaciones anteriores sin declaración (se muestran con aviso «pídesela»); claves Stripe live y `free_until` (gate de Gala); validación legal NCAA del texto.
 
+## [Fase 6 auditoría] 2026-11-25 · Privacidad fina
+Origen: auditoría integral (hallazgos S4, S5, S8, S9, S10 y S11). GALA MONSTER OS: 05 Engineering responsable, 06 QA, Legal & Privacy consultado. Riesgo L4 en staging.
+Cambios:
+- S4: altura, peso, equipo, liga, objetivos y vídeo destacado ya no se pueden leer de `athlete_profiles` saltándose su bloque; salen por `athlete_block_fields()` / `athlete_block_fields_many()`. `athlete_directory` y la exportación RGPD usan la misma vía.
+- S8: `has_contact_data()` detecta emails con «arroba»/«(at)», teléfonos con cifras separadas y más redes; lo usan los mensajes y las novedades de menores. Las listas de años no cuentan como teléfono.
+- S9: la ficha /r/… de un menor ya no enseña GPA, inglés ni SAT.
+- S5: darse de baja borra también las fotos del Passport y las evidencias de verificación.
+- S10: se pueden reproducir vídeos de YouTube (sin cookies) y Vimeo dentro del Passport. `unsafe-inline` sigue (riesgo aceptado, D-26).
+- S11: la política de menores explica que una agencia solo ve a un menor si la familia aprueba la representación.
+Pruebas: RLS 453/453 (F6-1…F6-3); unit 295/295; e2e 406 OK; build OK.
+
 ## [Fase 5 auditoría] 2026-11-25 · Solo un tutor verificado decide por un menor
 Origen: riesgo residual de la fase 1 (un adulto falso podía actuar como tutor). Coordinado con GALA MONSTER OS (05 Engineering responsable, 06 QA, Legal & Privacy de la Launch Suite consultado). Riesgo L4 en staging; la verificación con proveedor de identidad es L5 (Gala).
 Cambios:

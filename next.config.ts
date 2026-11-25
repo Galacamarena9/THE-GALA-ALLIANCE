@@ -8,8 +8,10 @@ const turnstile = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? ' https://challen
 
 /**
  * Cabeceras de seguridad para toda la app.
- * CSP: solo nuestro dominio y Supabase. Los vídeos y webs externas se abren en pestaña
- * nueva (no se incrustan), así no cargamos terceros sin consentimiento.
+ * CSP: solo nuestro dominio y Supabase. Los vídeos de YouTube (dominio sin cookies) y Vimeo (dnt=1)
+ * se incrustan solo cuando la persona pulsa «reproducir» (VideoFacade); el resto se abre en pestaña nueva.
+ * 'unsafe-inline' en scripts: riesgo aceptado (fase 6, S10). Quitarlo exige nonces y renderizado dinámico de
+ * todas las páginas; se revisará antes del lanzamiento público.
  */
 const csp = [
   "default-src 'self'",
@@ -19,7 +21,7 @@ const csp = [
   "font-src 'self' data:",
   `connect-src 'self' ${supabase} ${supabase.replace('https://', 'wss://')}${turnstile}`,
   "frame-ancestors 'none'",
-  turnstile ? `frame-src${turnstile}` : "frame-src 'none'",
+  `frame-src https://www.youtube-nocookie.com https://player.vimeo.com${turnstile}`,
   "base-uri 'self'",
   "form-action 'self'",
   "object-src 'none'",

@@ -9957,10 +9957,43 @@ export type Database = {
         Args: { p_shares_progress?: boolean; p_token: string }
         Returns: string
       }
+      athlete_block_fields: {
+        Args: { p_athlete: string }
+        Returns: {
+          competitive_level: string
+          current_team: string
+          dominant_side: string
+          height_cm: number
+          highlight_video_url: string
+          intended_major: string
+          league: string
+          target_divisions: Database["public"]["Enums"]["division"][]
+          user_id: string
+          weight_kg: number
+          years_experience: number
+        }[]
+      }
+      athlete_block_fields_many: {
+        Args: { p_athletes: string[] }
+        Returns: {
+          competitive_level: string
+          current_team: string
+          dominant_side: string
+          height_cm: number
+          highlight_video_url: string
+          intended_major: string
+          league: string
+          target_divisions: Database["public"]["Enums"]["division"][]
+          user_id: string
+          weight_kg: number
+          years_experience: number
+        }[]
+      }
       active_guardians_with: {
         Args: { p_athlete: string; p_capability: string }
         Returns: string[]
       }
+      has_contact_data: { Args: { p_text: string }; Returns: boolean }
       admin_agency_metrics: { Args: { p_days?: number }; Returns: Json }
       admin_ai_stats: {
         Args: never

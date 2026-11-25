@@ -37,7 +37,7 @@ export const EXPORT_SOURCES: ExportSource[] = [
   { key: 'consents', table: 'consents' },
   { key: 'data_requests', table: 'data_subject_requests' },
   // Passport
-  { key: 'athlete_profile', table: 'athlete_profiles' },
+  { key: 'athlete_profile', table: 'athlete_profiles', select: 'user_id, headline, bio, sport_id, primary_position_id, secondary_position_id, graduation_year, city, open_to_opportunities, profile_visibility, academics_visibility, stats_visibility, sport_visibility, videos_visibility, goals_visibility, created_at, updated_at, username, nationality, photo_path' },
   { key: 'academics', table: 'athlete_academics', column: 'athlete_id' },
   { key: 'finances', table: 'athlete_finances', column: 'athlete_id' },
   { key: 'documents', table: 'athlete_documents', column: 'athlete_id', select: 'id, kind, title, due_date, mime_type, size_bytes, uploaded_at, created_at' },
