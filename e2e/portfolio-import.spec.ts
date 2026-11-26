@@ -6,7 +6,7 @@ test.describe('Importar cartera e invitar a reclamarla', () => {
     await page.goto('/preview/portfolio');
     const panel = page.getByTestId('portfolio-import');
     await expect(panel.getByRole('heading', { name: /Trae a tus atletas/ })).toBeVisible();
-    await expect(panel.getByRole('button', { name: /Importar e invitar/ })).toBeVisible();
+    await expect(panel.getByRole('button', { name: /Importar y crear enlaces/ })).toBeVisible();
     await expect(panel.locator('[data-invite-status="claimed"]')).toContainText('Ya está dentro');
     await expect(panel.locator('[data-invite-status="opened"]')).toContainText('La ha abierto');
     await expect(panel).toContainText('de 3 ya están dentro');

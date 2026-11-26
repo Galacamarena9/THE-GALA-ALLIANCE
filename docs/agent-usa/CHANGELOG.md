@@ -64,6 +64,21 @@ Cambios: rama `feat/fee-attestation-founder-cap`; migración `20261217000100_fee
 Pruebas: unit 266/266; RLS 438/438 (C3-1, C3-2); e2e 370 OK + `founder-pricing.spec.ts`; build OK.
 Riesgos abiertos: representaciones anteriores sin declaración (se muestran con aviso «pídesela»); claves Stripe live y `free_until` (gate de Gala); validación legal NCAA del texto.
 
+## [QA agente] 2026-11-26 · Prueba visible, contratar sin callejones, mensajes y bandeja que dicen a quién contestar
+Origen: QA de la vista del agente (`/tmp/qa/agente.md`, hallazgos 1-8, 10, 11 y 20). GALA MONSTER OS: 05 Engineering, revisa 06 QA. Riesgo L3 (fuera de producción); migración aditiva.
+Cambios (rama `fix/agente-flujos`):
+- Prueba y cupo: aviso en Hoy y en Mis atletas con días que quedan y atletas usados/límite, urgente con ≤ 5 días, rojo sin plan y con plan contratado solo al acercarse al límite (`planBanner`, `PlanBanner`). Acceso directo a Facturación.
+- Checkout: Stripe ya no regala otros 30 días. La prueba enviada es la que queda de la app; 0 si terminó o si la agencia ya tuvo suscripción (`checkoutTrialDays`, con prueba unitaria). Botón «Contratar» con «sin cargo hasta que acabe tu prueba» solo cuando es verdad.
+- Sin claves de Stripe: «Solicitar alta» registra la solicitud con el flujo existente (`requestPlan` → `service_requests`, evento `plan_requested`); `requestPlan` acepta ahora los planes de agencia.
+- Ficha 360: «Mensaje» abre la conversación de la agencia o, si no existe, `/app/inbox/nuevo` para escribir el primer mensaje (`openAgencyThread`; con menores la base de datos lo manda a la familia). Ya no lleva al perfil público, y sin permiso `messages.participate` no se ofrece.
+- Bandeja: cada hilo muestra al atleta (y «su familia» si es menor), extracto del último mensaje y de quién es, no leídos y «Te toca responder»; primero lo que espera respuesta. Migración `20261223000500_contact_thread_reads.sql` (marca de lectura propia, solo vía `contact_mark_read`, sin escritura directa; ROLLBACK en cabecera).
+- Cartera vacía: Hoy y Mis atletas proponen primero «Importar mi cartera (Excel/CSV)» (ancla `#importar`); «Buscar talento» queda secundario. El texto de importación ya no promete un envío que no existe: «te damos un enlace por atleta para que se lo envíes».
+- Misma siguiente acción en Hoy y Mis atletas (`nextStepFor`; una oferta que caduca manda). Contadores de Hoy «Ofertas» y «Necesitan atención» filtran Mis atletas; «Revisar oferta» abre la pestaña de oportunidades.
+- Tablero: botones accesibles «fase anterior / siguiente» en cada tarjeta (`moveCase`, que ya no falla en silencio).
+- Fuentes oficiales según el deporte: FIBA, EuroLeague y federación de baloncesto solo para baloncesto.
+Pruebas: unit 306/306; RLS 455/455 (nueva: marcas de lectura); tsc OK; build OK.
+Pendiente de Gala (L5): claves Stripe live; si quiere envío real de invitaciones por email (Resend) y que reclamar la invitación acepte la representación.
+
 ## [QA web-admin] 2026-11-26 · Menú móvil, MFA en todo el admin, dominio de organizaciones y camino de compra de agencias
 
 ### Hecho

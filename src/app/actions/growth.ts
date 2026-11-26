@@ -142,7 +142,8 @@ export async function requestPlan(_prev: FormState, formData: FormData): Promise
   const session = await getSession();
   if (!session) return { error: 'Inicia sesión o crea tu cuenta gratis para solicitarlo.' };
   const plan = planByCode(String(formData.get('plan_code') ?? ''));
-  if (!plan || plan.cta === 'signup') return { error: 'Plan no válido.' };
+  // Los planes de agencia se contratan online; mientras el pago online no esté activo, también se pueden solicitar.
+  if (!plan || (plan.cta === 'signup' && plan.audience !== 'agent')) return { error: 'Plan no válido.' };
   // QA menores: la contratación de un plan de familia la decide y la solicita el tutor.
   if (familyPaysPlan(session, plan.audience)) return { error: 'Pídeselo a tu familia: la contratación la hace tu madre, padre o tutor desde su cuenta.' };
   const parsed = z.object({

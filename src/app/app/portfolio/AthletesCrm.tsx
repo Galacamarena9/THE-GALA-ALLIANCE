@@ -10,6 +10,9 @@ import {
   type CrmFilters, type CrmRep, type CrmRow, type CrmSort,
 } from '@/lib/domain/athletes-crm';
 import { dueText } from '@/lib/domain/agent-home';
+import type { AgencyPlanStatus } from '@/lib/domain/plan-limits';
+import { PlanBanner } from '@/components/agency/PlanBanner';
+import { ImportFirst } from '@/components/agent/ImportFirst';
 
 const flag = (cc: string | null) => (cc && /^[A-Z]{2}$/.test(cc) ? String.fromCodePoint(...[...cc].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65)) : '');
 const today = () => new Date().toISOString().slice(0, 10);
@@ -23,7 +26,7 @@ const rel = (iso: string | null) => {
  * «Mis atletas»: filtros, búsqueda, orden y página viven en la URL (compartible y estable), pero se aplican en
  * memoria sobre la proyección que ya envió el servidor: el resultado aparece al teclear, sin ir y volver al servidor.
  */
-export function AthletesCrm({ rows, initial, agency, partial = [], importPanel = null }: { rows: CrmRow[]; initial: CrmFilters; agency: { name: string; verified: boolean } | null; partial?: string[]; importPanel?: React.ReactNode }) {
+export function AthletesCrm({ rows, initial, agency, partial = [], importPanel = null, plan = null }: { rows: CrmRow[]; initial: CrmFilters; agency: { name: string; verified: boolean } | null; partial?: string[]; importPanel?: React.ReactNode; plan?: AgencyPlanStatus | null }) {
   const [f, setF] = useState<CrmFilters>(initial);
   const set = (patch: Partial<CrmFilters>) => setF((cur) => ({ ...cur, ...patch, page: 'page' in patch ? patch.page! : 1 }));
   const result = useMemo(() => applyCrm(rows, f), [rows, f]);
@@ -51,13 +54,12 @@ export function AthletesCrm({ rows, initial, agency, partial = [], importPanel =
       />
       <div className="space-y-4">
         {agency && !agency.verified && <Notice>Tu agencia está pendiente de verificación. Mientras tanto puedes importar tu cartera e invitar a tus atletas; podrás enviarles propuestas en cuanto Gala la verifique.</Notice>}
+        <PlanBanner status={plan} />
         {importPanel}
         {partial.length > 0 && <Notice tone="warn">No hemos podido cargar {partial.join(', ')}: algunos recuentos pueden estar incompletos.</Notice>}
 
         {!rows.length ? (
-          <EmptyState title="Tu cartera está vacía" action={<Link href="/app/discover" className={buttonClass('primary')}><Search className="h-4 w-4" aria-hidden /> Buscar talento</Link>}>
-            Importa arriba tu cartera actual o busca atletas por deporte, posición y nivel. Aparecerán aquí en cuanto acepten tu propuesta.
-          </EmptyState>
+          <ImportFirst importHref="#importar" />
         ) : (
           <section aria-label="Mis atletas" className="min-w-0 overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface">
             <nav aria-label="Vistas" className="flex gap-1 overflow-x-auto border-b border-line px-3 pt-2">

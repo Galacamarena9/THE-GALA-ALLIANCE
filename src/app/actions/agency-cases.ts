@@ -78,9 +78,11 @@ export async function updateCase(_prev: FormState, formData: FormData): Promise<
 export async function moveCase(formData: FormData) {
   await requireSession(['agent']);
   const parsed = z.object({ id: z.string().uuid(), stage: z.enum(stageIds) }).safeParse(Object.fromEntries(formData));
-  if (!parsed.success) return;
+  // Nunca un fallo silencioso: el tablero muestra el aviso (QA agente, hallazgo 11).
+  if (!parsed.success) redirect('/app/pipeline?movido=error');
   const supabase = await createClient();
-  must(await supabase.from('recruiting_cases').update({ stage: parsed.data.stage }).eq('id', parsed.data.id), 'recruiting_cases.update');
+  const { data, error } = await supabase.from('recruiting_cases').update({ stage: parsed.data.stage }).eq('id', parsed.data.id).select('id');
+  if (error || !data?.length) redirect(`/app/pipeline?movido=${error ? 'error' : 'sin_permiso'}`);
   revalidatePath('/app/pipeline');
   revalidatePath(`/app/pipeline/${parsed.data.id}`);
 }

@@ -40,24 +40,31 @@ export function classifyOfficialLink(url: string): OfficialLink | null {
   return null;
 }
 
+/** Fuentes del registro que solo sirven para baloncesto. */
+export const BASKETBALL_ONLY = new Set<GlobalSourceId>(['fiba', 'euroleague']);
+export const isBasketball = (sport: string | null | undefined) => sport === 'basketball';
+
 export interface OfficialSearch { id: string; label: string; href: string; note: string }
 
 /**
  * Enlaces para buscar a un atleta por su nombre en cada fuente oficial (búsqueda web limitada a ese sitio).
  * La federación del país del atleta, si la conocemos, va primero.
  */
-export function officialSearchLinks(p: { name: string; country?: string | null }): OfficialSearch[] {
+export function officialSearchLinks(p: { name: string; country?: string | null; sport?: string | null }): OfficialSearch[] {
   const name = p.name.trim().replace(/\s+/g, ' ');
   if (name.length < 2) return [];
   const q = (site: string) => `https://www.google.com/search?q=${encodeURIComponent(`site:${site} "${name}"`)}`;
   const out: OfficialSearch[] = [];
-  const fed = federationFor(p.country);
+  // El registro de federaciones, FIBA y EuroLeague es solo de baloncesto (QA agente, hallazgo 10): para otro deporte
+  // (o sin deporte) solo NCAA y ESPN, que cubren todos los deportes.
+  const basketball = isBasketball(p.sport);
+  const fed = basketball ? federationFor(p.country) : null;
   if (fed) {
     const site = fed.website ? hostOf(fed.website) : null;
     out.push(site
       ? { id: 'federation', label: `Federación (${fed.country})`, href: q(site), note: fed.name ?? 'Federación nacional' }
       : { id: 'federation', label: `Federación (${fed.country})`, href: fed.fibaPage, note: 'Página oficial de la federación en FIBA' });
   }
-  for (const s of GLOBAL_SOURCES) out.push({ id: s.id, label: s.name, href: q(s.searchSite), note: s.id === 'ncaa' ? 'Estadísticas universitarias' : s.id === 'fiba' ? 'Selecciones y competiciones FIBA' : s.id === 'espn' ? 'Ficha de medios' : 'Euroliga y EuroCup' });
+  for (const s of GLOBAL_SOURCES.filter((g) => basketball || !BASKETBALL_ONLY.has(g.id))) out.push({ id: s.id, label: s.name, href: q(s.searchSite), note: s.id === 'ncaa' ? 'Estadísticas universitarias' : s.id === 'fiba' ? 'Selecciones y competiciones FIBA' : s.id === 'espn' ? 'Ficha de medios' : 'Euroliga y EuroCup' });
   return out;
 }

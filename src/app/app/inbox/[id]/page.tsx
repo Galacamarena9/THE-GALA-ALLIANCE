@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
+import { bestEffort } from '@/lib/supabase/must';
 import { Card, PageHeader, cx } from '@/components/ui';
 import { MessageForm, ReportButton } from '@/components/forms';
 import { BlockButton } from '@/components/BlockButton';
@@ -42,6 +43,8 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
     ? await loadThreadContext(session.userId, req.athlete_id, req.organization_id as string, otherProfile?.display_name ?? 'Atleta')
     : null;
   const canWrite = ctx ? ctx.canMessage : true;
+  // Marca de lectura para los «no leídos» de la bandeja de la agencia (solo quien participa; nunca bloquea la página).
+  if (!onAthleteSide) bestEffort(await supabase.rpc('contact_mark_read', { p_request: id }), 'rpc.contact_mark_read');
 
   return (
     <div className={ctx ? 'grid gap-6 lg:grid-cols-[1fr_320px]' : undefined}>

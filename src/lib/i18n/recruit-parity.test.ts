@@ -78,3 +78,28 @@ test('en castellano el traductor no cambia nada', () => {
   assert.equal(es('Beca 2027 caduca en 1 día'), 'Beca 2027 caduca en 1 día');
   assert.equal(translated('Descubrir atletas'), true);
 });
+
+test('QA agente: plan, cartera, bandeja, tablero y facturación tienen sus textos en inglés', () => {
+  const agentFiles = [
+    'src/components/agency/PlanBanner.tsx', 'src/components/agent/ImportFirst.tsx', 'src/components/agency/PhaseMoveButtons.tsx',
+    'src/app/app/portfolio/PortfolioImport.tsx', 'src/app/app/billing/page.tsx', 'src/app/app/pipeline/page.tsx',
+    'src/app/app/inbox/nuevo/page.tsx', 'src/components/inbox/AgentInbox.tsx', 'src/app/app/portfolio/[athleteId]/Athlete360View.tsx',
+  ];
+  const missing: string[] = [];
+  for (const f of agentFiles) {
+    for (const m of readFileSync(f, 'utf8').matchAll(/tx\('((?:[^'\\]|\\.)*)'\)/g)) {
+      const k = m[1].replace(/\\'/g, "'");
+      if (!(k in EN)) missing.push(`${f}: ${k}`);
+    }
+  }
+  assert.deepEqual(missing, []);
+  // Frases con cifras o nombres.
+  assert.equal(en('Prueba gratuita: quedan 12 días.'), 'Free trial: 12 days left.');
+  assert.equal(en('Tu prueba gratuita acaba en 3 días.'), 'Your free trial ends in 3 days.');
+  assert.equal(en('Atletas: 25 de 25'), 'Athletes: 25 of 25');
+  assert.equal(en('Sin cargo hasta que acabe tu prueba (quedan 9 días).'), 'No charge until your trial ends (9 days left).');
+  assert.equal(en('Mover a Ana Pérez a la fase siguiente: Evaluación'), 'Move Ana Pérez to the next stage: Evaluation');
+  assert.equal(en('Conversación con Ana y su familia'), 'Conversation with Ana and their family');
+  assert.equal(en('3 conversaciones esperan tu respuesta'), '3 conversations are waiting for your reply');
+  assert.equal(es('Atletas: 25 de 25'), 'Atletas: 25 de 25');
+});

@@ -90,6 +90,7 @@ export const EXPORT_SOURCES: ExportSource[] = [
   { key: 'moderation_appeals', table: 'moderation_appeals', column: 'appellant_id' },
   { key: 'support_cases', table: 'support_cases', column: 'requester_id' },
   { key: 'messages_sent', table: 'contact_messages', column: 'sender_id' },
+  { key: 'message_reads', table: 'contact_thread_reads' },
   { key: 'info_requests', table: 'info_requests', column: 'athlete_id' },
   { key: 'notifications', table: 'notifications' },
   { key: 'feedback', table: 'user_feedback' },

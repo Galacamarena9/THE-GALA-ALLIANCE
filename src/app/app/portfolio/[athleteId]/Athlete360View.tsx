@@ -27,7 +27,7 @@ const dateFmt = (iso: string) => new Date(iso).toLocaleDateString('es-ES', { day
 const flag = (cc: string | null) => (cc && /^[A-Z]{2}$/.test(cc) ? String.fromCodePoint(...[...cc].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65)) : '');
 const usd = (n: number | null) => formatUsd(n, 'es') ?? '—';
 
-export function Athlete360View({ data, tab, userId, now = new Date() }: { data: Athlete360; tab: A360Tab; userId: string; now?: Date }) {
+export function Athlete360View({ data, tab, userId, now = new Date(), tx = (s: string) => s }: { data: Athlete360; tab: A360Tab; userId: string; now?: Date; tx?: (s: string) => string }) {
   const { ws, access, journey } = data;
   const e = ws.current;
   const today = now.toISOString().slice(0, 10);
@@ -38,7 +38,10 @@ export function Athlete360View({ data, tab, userId, now = new Date() }: { data: 
     recruiting: data.cases.filter((c) => c.stage !== 'committed' && c.stage !== 'closed').length,
     documentos: data.documents.filter((d) => d.state === 'shared').length,
   };
-  const messageHref = data.conversation ? `/app/inbox/${data.conversation.id}` : access.messages ? `/athletes/${e.athleteId}` : null;
+  // «Mensaje» abre la conversación de la agencia con el atleta o, si no existe, el primer mensaje (nunca el perfil público).
+  // Sin permiso de mensajes no se ofrece, aunque exista una conversación anterior (QA agente, hallazgos 4 y 20).
+  const openThread = data.conversation && ['pending_guardian', 'pending', 'accepted'].includes(data.conversation.status) ? data.conversation : null;
+  const messageHref = !access.messages ? null : openThread ? `/app/inbox/${openThread.id}` : `/app/inbox/nuevo?atleta=${e.athleteId}`;
 
   return (
     <div className="space-y-5">
@@ -134,7 +137,7 @@ export function Athlete360View({ data, tab, userId, now = new Date() }: { data: 
       </nav>
 
       <section aria-labelledby={`tab-${tab}`} data-a360-panel={tab}>
-        {tab === 'resumen' && <SummaryTab data={data} steps={steps} />}
+        {tab === 'resumen' && <SummaryTab data={data} steps={steps} tx={tx} />}
         {tab === 'oportunidades' && <OpportunitiesTab data={data} today={today} />}
         {tab === 'recruiting' && <RecruitingTab data={data} today={today} />}
         {tab === 'documentos' && <DocumentsTab data={data} messageHref={messageHref} />}
@@ -186,7 +189,7 @@ function Fact({ label, children }: { label: string; children: React.ReactNode })
 
 // ─── Pestañas ───────────────────────────────────────────────────────────────
 
-function SummaryTab({ data, steps }: { data: Athlete360; steps: ReturnType<typeof nextSteps> }) {
+function SummaryTab({ data, steps, tx }: { data: Athlete360; steps: ReturnType<typeof nextSteps>; tx: (s: string) => string }) {
   const { ws, access } = data;
   const e = ws.current;
   const d = ws.detail;
@@ -233,7 +236,7 @@ function SummaryTab({ data, steps }: { data: Athlete360; steps: ReturnType<typeo
             </details>
           )}
         </Panel>
-        <OfficialSourcesPanel data={data} />
+        <OfficialSourcesPanel data={data} tx={tx} />
         <Panel title="Seguimientos" action={<Link href={a360Href(e.athleteId, 'actividad')} className="text-xs font-medium text-brass hover:underline">Ver actividad</Link>}>
           <NextStepsList steps={steps.slice(0, 3)} showAthlete={false} empty="Sin seguimientos abiertos. Programa uno desde Actividad." />
         </Panel>
@@ -530,7 +533,7 @@ function MyNotes({ data, userId }: { data: Athlete360; userId: string }) {
 // ─── Fuentes oficiales ──────────────────────────────────────────────────────
 
 /** Enlaces oficiales del atleta (FIBA, NCAA, ESPN, federación) y búsqueda de su nombre en esas fuentes. Se enlaza; no se copia. */
-function OfficialSourcesPanel({ data }: { data: Athlete360 }) {
+function OfficialSourcesPanel({ data, tx }: { data: Athlete360; tx: (s: string) => string }) {
   const official = data.links.filter((l) => l.official);
   const other = data.links.filter((l) => !l.official);
   return (
@@ -546,7 +549,7 @@ function OfficialSourcesPanel({ data }: { data: Athlete360 }) {
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-muted">Aún no ha enlazado ninguna ficha oficial. Pídele su ficha de la federación o de FIBA.</p>
+          <p className="text-sm text-muted">{data.ws.current.sportId === 'basketball' ? tx('Aún no ha enlazado ninguna ficha oficial. Pídele su ficha de la federación o de FIBA.') : tx('Aún no ha enlazado ninguna ficha oficial. Añade su ficha federativa o pídesela.')}</p>
         )}
         {other.length > 0 && <p className="mt-2 text-xs text-faint">{other.length} {other.length === 1 ? 'enlace más' : 'enlaces más'} de otras webs (vídeo, club, redes).</p>}
         {data.officialSearch.length > 0 && (

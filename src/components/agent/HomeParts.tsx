@@ -16,9 +16,9 @@ const DUE_TONE: Record<DueState, string> = { overdue: 'text-danger', today: 'tex
 export function SummaryStrip({ s, className }: { s: AgentHomeSummary; className?: string }) {
   const items: { label: string; value: number; note: string; href: string; alert?: boolean }[] = [
     { label: 'Atletas', value: s.athletes, note: 'representados', href: '/app/portfolio' },
-    { label: 'Necesitan atención', value: s.needAttention, note: 'acciones pendientes', href: '#hoy', alert: s.needAttention > 0 },
+    { label: 'Necesitan atención', value: s.needAttention, note: 'acciones pendientes', href: '/app/portfolio?view=attention', alert: s.needAttention > 0 },
     { label: 'Oportunidades', value: s.activeOpportunities, note: 'abiertas que encajan', href: '/app/opportunities' },
-    { label: 'Ofertas', value: s.offers, note: 'vivas', href: '/app/portfolio' },
+    { label: 'Ofertas', value: s.offers, note: 'vivas', href: '/app/portfolio?view=offers' },
     { label: 'Plazos hoy', value: s.deadlinesToday, note: s.deadlinesToday ? 'vencen hoy' : 'ninguno hoy', href: '#hoy', alert: s.deadlinesToday > 0 },
   ];
   return (

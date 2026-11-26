@@ -3,7 +3,7 @@
  * Reutiliza la regla de «necesita atención» del Inicio (buildAttention, rangos 1–4) para que ambas pantallas
  * cuenten igual. Sin rankings universales: el orden es operativo (urgencia, plazo, actividad, nombre).
  */
-import { PIPELINE_BUCKETS, type AgentHomeInput, type AttentionItem } from './agent-home.ts';
+import { PIPELINE_BUCKETS, nextStepFor, type AgentHomeInput, type AttentionItem } from './agent-home.ts';
 import type { RepStatus } from './portfolio.ts';
 
 export type CrmView = 'all' | 'attention' | 'recruiting' | 'offers' | 'placed';
@@ -80,8 +80,7 @@ export function crmRows(entries: CrmEntry[], input: AgentHomeInput, attention: A
     const liveOffers = input.offers.filter((o) => o.athleteId === e.athleteId && (!o.deadline || o.deadline >= today)).length;
     const items = attention.filter((i) => i.athleteId === e.athleteId && i.rank <= 4);
     const bucket = [...PIPELINE_BUCKETS].reverse().find((b) => (placed && b.id === 'placed') || open.some((c) => (b.stages as readonly string[]).includes(c.stage)));
-    const nextCase = open.filter((c) => c.nextActionDue).sort((a, b) => a.nextActionDue!.localeCompare(b.nextActionDue!))[0];
-    const top = items[0];
+    const step = nextStepFor(e.athleteId, open, attention);
     const v = ver.get(e.athleteId);
     const lastCase = cases.map((c) => ({ at: c.updatedAt, what: `Proceso con ${c.institution}` })).sort((a, b) => b.at.localeCompare(a.at))[0];
     const events = [
@@ -102,8 +101,8 @@ export function crmRows(entries: CrmEntry[], input: AgentHomeInput, attention: A
       intake: e.graduationYear, rep: e.status,
       verification: verificationText(v),
       journey: e.status === 'requested' ? 'Propuesta pendiente' : e.status !== 'active' ? 'Sin representación activa' : bucket?.label ?? 'Sin procesos',
-      nextAction: top?.title ?? nextCase?.nextAction ?? (nextCase ? `Siguiente paso con ${nextCase.institution}` : null),
-      nextDue: top?.due ?? nextCase?.nextActionDue ?? null,
+      nextAction: step.action,
+      nextDue: step.due,
       processes: open.length, offers: liveOffers, attention: items.length,
       lastActivityAt: events[0]?.at ?? null, lastActivity: events[0]?.what ?? '—',
       segments,
