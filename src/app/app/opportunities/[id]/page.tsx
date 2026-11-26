@@ -281,6 +281,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
               applications={isMember ? (trialApps ?? []).map((a) => ({ id: a.id as string, athlete_id: a.athlete_id as string, status: a.status as string, guardian_consent_status: a.guardian_consent_status as string, materials_complete: a.materials_complete as boolean, name: who(a.athlete_id as string) })) : (trialApps ?? []).filter((a) => a.athlete_id === session.userId).map((a) => ({ id: a.id as string, athlete_id: a.athlete_id as string, status: a.status as string, guardian_consent_status: a.guardian_consent_status as string, name: 'Tú' }))}
               asClub={isMember}
               asFamily={session.roles.includes('parent')}
+              isMinor={session.isMinor}
               preview={preview}
               participantFilter={sp.pf && sp.pf in PARTICIPANT_FILTERS ? (sp.pf as ParticipantFilter) : 'all'}
               filterHref={(f) => `/app/opportunities/${opp.id}?pf=${f}${sp.pq ? `&pq=${encodeURIComponent(sp.pq)}` : ''}#participantes`}

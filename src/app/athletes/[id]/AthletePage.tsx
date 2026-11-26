@@ -15,6 +15,9 @@ import { myOrganizations } from '@/lib/data/orgs';
 import { domainOf } from '@/lib/domain/labels';
 import { formatEsDate, ncaaWindow } from '@/lib/domain/ncaa';
 import { saveAthlete } from '@/app/actions/lists';
+import { loadInvitableTrials } from '@/lib/data/trials';
+import { eventWhen } from '@/lib/domain/trials';
+import { InviteToTrialButton } from '@/components/trials/TrialApply';
 import { BRAND } from '@/content/brand';
 
 export async function athleteMetadata(id: string): Promise<Metadata> {
@@ -68,6 +71,9 @@ export async function AthletePassportPage({ id }: { id: string }) {
   const canSave = session?.roles.some((r) => ['university', 'coach', 'agent', 'brand'].includes(r));
   const { data: minorFlag } = session ? await supabase.rpc('viewer_is_minor', { p_user: id }) : { data: true };
   const isMinor = Boolean(minorFlag);
+  // «Invitar a prueba»: solo staff de clubes y academias verificados (nunca universidades/colleges).
+  const invitable = session && !isOwner && session.roles.some((r) => r === 'coach' || r === 'university') ? await loadInvitableTrials(session.userId) : { allowed: false, trials: [] };
+  const inviteTrials = invitable.trials.map((t) => ({ id: t.id, title: t.title, when: eventWhen(t.start_at, t.timezone) }));
 
   const actions = (
     <div className="flex flex-wrap items-start gap-2">
@@ -101,8 +107,9 @@ export async function AthletePassportPage({ id }: { id: string }) {
             <p className="mt-1">Por las normas de reclutamiento NCAA, vuestra universidad no puede iniciar contacto con este atleta hasta el {formatEsDate(ncaaBlocked[0].w.opensOn!)}. Mientras tanto puedes guardarlo en una lista.</p>
           </div>
         )}
-        {session && !isOwner && (verifiedOrgs.length > 0 || agencies.length > 0) && (
+        {session && !isOwner && (verifiedOrgs.length > 0 || agencies.length > 0 || invitable.allowed) && (
           <section aria-label="Contactar" className="mt-5 flex flex-wrap items-start gap-3 rounded-[28px] border border-white/10 p-5">
+            {invitable.allowed && <InviteToTrialButton athleteId={id} trials={inviteTrials} isMinor={isMinor} />}
             {verifiedOrgs.length > 0 && <ContactRequestForm organizations={verifiedOrgs} athleteId={id} isMinor={isMinor} />}
             {agencies.length > 0 && !isMinor && <RepresentationForm agencies={agencies} athleteId={id} />}
           </section>
