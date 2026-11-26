@@ -7,6 +7,12 @@
 @import "@fontsource-variable/fraunces/wght-italic.css";
 @import "@fontsource/anton/latin-400.css";
 @import "@fontsource/anton/latin-ext-400.css";
+@import "@fontsource/barlow-condensed/latin-700-italic.css";
+@import "@fontsource/barlow-condensed/latin-ext-700-italic.css";
+@import "@fontsource/barlow-condensed/latin-800-italic.css";
+@import "@fontsource/barlow-condensed/latin-ext-800-italic.css";
+@import "@fontsource/barlow-condensed/latin-900-italic.css";
+@import "@fontsource/barlow-condensed/latin-ext-900-italic.css";
 
 /*
  * Identidad v3 «Editorial premium» (22-nov-2026): marfil, tinta azul noche y un toque dorado.
@@ -20,30 +26,35 @@
  * brass = color de acento (índigo en claro, lima en oscuro).
  */
 @theme {
-  /* Identidad v4 «Élite deportiva» (22-nov-2026): negro de estadio, marfil y oro. Oscura por defecto. */
-  --color-ink: #0b0d12;
-  --color-surface: #13161d;
-  --color-surface-2: #1b1f28;
-  --color-line: #262b36;
-  --color-line-strong: #3a4050;
-  --color-paper: #f4efe4;
-  --color-muted: #bab4a6;
-  --color-faint: #9d9789;
-  --color-brass: #e6cf8f;
-  --color-brass-soft: #f2e3b8;
-  --color-brass-deep: #c9a24a;
-  --color-trust: #6fcf9f;
-  --color-ok: #6fcf9f;
-  --color-warn: #f0c26b;
-  --color-danger: #f08a78;
-  --color-gold: #d9b867;
+  /* Identidad v5 «Pista» (26-nov-2026): marketplace deportivo claro. Blanco y gris pista, tinta azul noche,
+     azul pista #1F4BFF (acción y confianza) y naranja balón #FF6A1A (energía, con texto oscuro encima).
+     Titulares en Barlow Condensed cursiva (velocidad), interfaz en Inter. Todos los pares de texto cumplen WCAG AA.
+     La identidad v4 «Élite» (negro y oro) queda como tema oscuro opcional: html[data-theme="dark"]. */
+  --color-ink: #f4f6fb;
+  --color-surface: #ffffff;
+  --color-surface-2: #eef1f7;
+  --color-line: #e2e6ef;
+  --color-line-strong: #c9d0de;
+  --color-paper: #0d1321;
+  --color-muted: #3f4759;
+  --color-faint: #59627a;
+  --color-brass: #1f4bff;
+  --color-brass-soft: #3d63ff;
+  --color-brass-deep: #1436c7;
+  --color-trust: #0d7a4e;
+  --color-ok: #0d7a4e;
+  --color-warn: #8f5200;
+  --color-danger: #c2341a;
+  --color-gold: #1f4bff;
+  --color-pop: #ff6a1a;
+  --color-pop-soft: #ff8a4a;
 
-  /* Marca fija (no cambia con el tema). */
-  --color-night: #07080b;
-  --color-night-2: #151821;
-  /* «lime» se conserva como nombre: ahora es champán, el acento claro sobre tinta. */
-  --color-lime: #e6cf8f;
-  --color-lavender: #d8d2c2;
+  /* Marca fija (no cambia con el tema): bloques destacados en azul noche. */
+  --color-night: #0d1321;
+  --color-night-2: #18223a;
+  /* «lime» se conserva como nombre: es el acento claro sobre azul noche (naranja balón). */
+  --color-lime: #ff8a4a;
+  --color-lavender: #c9d0de;
 
   /* Un color por deporte (texto blanco encima: contraste ≥ 5:1). */
   --color-sport-basketball: #c2410c;
@@ -56,13 +67,13 @@
 
   --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Fraunces Variable", Georgia, serif;
-  --font-display: "Anton", "Impact", "Arial Narrow", sans-serif;
+  --font-display: "Barlow Condensed", "Arial Narrow", "Impact", sans-serif;
 
-  --radius-card: 14px;
+  --radius-card: 18px;
 
-  --shadow-gold: 0 10px 30px -10px rgb(201 162 74 / 0.45);
-  --shadow-elevated: 0 1px 2px rgb(18 19 26 / 0.04), 0 6px 20px rgb(18 19 26 / 0.06);
-  --shadow-premium: 0 40px 80px -30px rgb(0 0 0 / 0.7);
+  --shadow-gold: 0 10px 26px -12px rgb(31 75 255 / 0.45);
+  --shadow-elevated: 0 1px 2px rgb(13 19 33 / 0.05), 0 10px 30px -8px rgb(13 19 33 / 0.12);
+  --shadow-premium: 0 30px 60px -28px rgb(13 19 33 / 0.35);
 
   --animate-fade-in-up: fade-in-up 0.6s ease-out both;
   --animate-float: float 4s ease-in-out infinite;
@@ -85,29 +96,32 @@
 }
 
 html {
-  color-scheme: dark;
+  color-scheme: light;
   background: var(--color-ink);
 }
 
-/* Tema claro opcional (editorial v3): marfil y tinta, para quien prefiera leer sobre claro. */
-html[data-theme="light"] {
-  color-scheme: light;
-  --color-ink: #f6f3ec;
-  --color-surface: #ffffff;
-  --color-surface-2: #efeadf;
-  --color-line: #e6e0d3;
-  --color-line-strong: #d4cab5;
-  --color-paper: #10182b;
-  --color-muted: #4a5164;
-  --color-faint: #5a6072;
-  --color-brass: #10182b;
-  --color-brass-soft: #2b3652;
-  --color-brass-deep: #070d1a;
-  --color-trust: #1d6b4f;
-  --color-ok: #1d6b4f;
-  --color-warn: #8a5300;
-  --color-danger: #b3311a;
-  --color-gold: #8a6424;
+/* Tema oscuro opcional: la identidad v4 «Élite» (negro de estadio, marfil y oro). */
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --color-ink: #0b0d12;
+  --color-surface: #13161d;
+  --color-surface-2: #1b1f28;
+  --color-line: #262b36;
+  --color-line-strong: #3a4050;
+  --color-paper: #f4efe4;
+  --color-muted: #bab4a6;
+  --color-faint: #9d9789;
+  --color-brass: #e6cf8f;
+  --color-brass-soft: #f2e3b8;
+  --color-brass-deep: #c9a24a;
+  --color-trust: #6fcf9f;
+  --color-ok: #6fcf9f;
+  --color-warn: #f0c26b;
+  --color-danger: #f08a78;
+  --color-gold: #d9b867;
+  --color-night: #07080b;
+  --color-night-2: #151821;
+  --color-lime: #e6cf8f;
 }
 
 /* Alto contraste (accesibilidad, WCAG AAA en texto principal). */
@@ -139,18 +153,19 @@ body {
   padding-bottom: var(--cookie-banner-space, 0px);
 }
 
-/* Titulares de marcador: Anton condensada en mayúsculas; las palabras en <em> pasan a Fraunces itálica dorada (firma de marca). */
+/* Titulares de marcador: Barlow Condensed cursiva en mayúsculas (velocidad). Las palabras en <em> van en azul pista. */
 h1, h2, .font-display {
   font-family: var(--font-display);
-  font-weight: 400;
+  font-weight: 800;
+  font-style: italic;
   text-transform: uppercase;
-  letter-spacing: 0.005em;
-  line-height: 0.98;
+  letter-spacing: -0.005em;
+  line-height: 0.95;
 }
-.font-display.font-bold, .font-display.font-medium { font-weight: 400; }
+.font-display.font-bold, .font-display.font-medium { font-weight: 800; }
 .font-display em, h1 em, h2 em {
-  font-family: var(--font-serif); font-style: italic; font-weight: 400; text-transform: none;
-  letter-spacing: -0.02em; color: var(--color-gold);
+  font-family: var(--font-display); font-style: italic; font-weight: 900; text-transform: inherit;
+  letter-spacing: inherit; color: var(--color-gold);
 }
 /* Textos largos que heredan .font-display pero deben leerse en frase. */
 .font-display.normal-case { text-transform: none; }
@@ -290,24 +305,30 @@ html:not(.js) .reveal { opacity: 1; transform: none; }
    `.carbon` y `.light-scope` remapean los tokens dentro de una sección, así los componentes
    existentes (que usan bg-surface, text-paper, etc.) se adaptan sin reescribirse.
    ============================================================================= */
+/* v5 «Pista»: `.carbon` ya no oscurece (el Passport y las fichas públicas van en claro). */
 .carbon {
-  --color-ink: #0a0a0c;
-  --color-surface: #141418;
-  --color-surface-2: #1c1c22;
-  --color-line: #2a2a32;
-  --color-line-strong: #3d3d48;
-  --color-paper: #f5f5f7;
-  --color-muted: #a8a8b3;
-  --color-faint: #8e8e9a;
-  --color-brass: #e9d9b4;
-  --color-brass-soft: #f1e6c9;
-  --color-brass-deep: #cdb57e;
-  --color-trust: #6fcf9f;
-  --color-ok: #6fcf9f;
-  --color-warn: #f5b942;
-  --color-danger: #f06b5b;
-  --color-lavender: #c9c9d4;
   background: var(--color-ink);
+  color: var(--color-paper);
+}
+/* Bloques azul noche a propósito (consola de demo, red de la alianza, tarjeta Passport): texto claro y acento naranja. */
+.night-scope {
+  --color-ink: #0d1321;
+  --color-surface: #18223a;
+  --color-surface-2: #212c47;
+  --color-line: #2a3654;
+  --color-line-strong: #3a4868;
+  --color-paper: #f4f6fb;
+  --color-muted: #b7c0d4;
+  --color-faint: #97a2ba;
+  --color-brass: #ff8a4a;
+  --color-brass-soft: #ffa774;
+  --color-brass-deep: #ff6a1a;
+  --color-gold: #ff8a4a;
+  --color-lime: #ff8a4a;
+  --color-trust: #5fd3a0;
+  --color-ok: #5fd3a0;
+  --color-warn: #ffc56b;
+  --color-danger: #ff8f7a;
   color: var(--color-paper);
 }
 .light-scope {
@@ -331,8 +352,8 @@ html:not(.js) .reveal { opacity: 1; transform: none; }
 }
 
 /* Tipografía editorial: titulares enormes, compactos, en mayúsculas. */
-.display-xl { font-family: var(--font-display); font-weight: 400; line-height: 0.92; text-transform: uppercase; font-size: clamp(3.4rem, 9vw, 8.5rem); }
-.display-lg { font-family: var(--font-display); font-weight: 400; line-height: 0.95; text-transform: uppercase; font-size: clamp(2.6rem, 6.2vw, 5.5rem); }
+.display-xl { font-family: var(--font-display); font-weight: 800; font-style: italic; line-height: 0.92; text-transform: uppercase; font-size: clamp(3.4rem, 9vw, 8.5rem); }
+.display-lg { font-family: var(--font-display); font-weight: 800; font-style: italic; line-height: 0.95; text-transform: uppercase; font-size: clamp(2.6rem, 6.2vw, 5.5rem); }
 .eyebrow { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; }
 
 /* Superficies de cristal muy sutiles. */
@@ -416,8 +437,6 @@ html:not(.js) .reveal { opacity: 1; transform: none; }
 .bridge-card { animation: float 6s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .route-flow, .city-pulse, .node-ring, .bridge-card { animation: none; } .route-flow { stroke-dasharray: none; opacity: 0.35; } }
 
-/* La portada siempre en oscuro, aunque la app esté en tema claro (contraste de secciones night y del SVG). */
-html[data-theme="light"] .landing-dark { --color-ink: #0b0d12; --color-night: #07080b; --color-surface: #13161d; --color-line: #262b36; --color-line-strong: #3a4050; --color-paper: #f4efe4; --color-muted: #bab4a6; --color-faint: #9d9789; --color-brass: #e6cf8f; --color-gold: #d9b867; }
 /* La cabecera fija no tapa el foco al tabular. */
 html { scroll-padding-top: 6rem; }
 /* Pausa de movimiento elegida por la persona (WCAG 2.2.2). */
