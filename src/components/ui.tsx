@@ -5,7 +5,7 @@ const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).jo
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
 const variantClass: Record<Variant, string> = {
-  primary: 'btn-shine bg-brass font-semibold text-ink shadow-[var(--shadow-gold)] hover:bg-brass-soft disabled:bg-brass-deep disabled:text-ink/70',
+  primary: 'btn-shine bg-brass font-bold text-ink shadow-[var(--shadow-gold)] hover:bg-brass-soft disabled:bg-brass-deep disabled:text-ink/70',
   secondary: 'border border-line-strong bg-surface/60 text-paper backdrop-blur-sm hover:border-brass/50 hover:bg-surface-2',
   ghost: 'text-muted hover:bg-surface hover:text-paper',
   danger: 'border border-danger/40 text-danger hover:bg-danger/10',
@@ -16,8 +16,8 @@ const base =
 type Size = 'sm' | 'md';
 /** sm: acciones dentro de listas y tarjetas (mín. 36 px de alto); md: acción principal (mín. 44 px, táctil). */
 const sizeClass: Record<Size, string> = {
-  sm: 'min-h-9 rounded-lg px-3 py-1.5 text-xs',
-  md: 'min-h-11 rounded-xl px-4 py-2.5 text-sm',
+  sm: 'min-h-9 rounded-full px-3.5 py-1.5 text-xs',
+  md: 'min-h-11 rounded-full px-5 py-2.5 text-sm',
 };
 
 /** Clase única de botón para formularios de servidor y enlaces: toda la app usa la misma línea visual. */

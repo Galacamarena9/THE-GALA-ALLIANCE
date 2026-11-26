@@ -8,12 +8,12 @@ import { PublicFooter, PublicHeader } from '@/components/PublicShell';
 import { BRAND } from '@/content/brand';
 import { PLANS } from '@/content/plans';
 import { CountUp, DrawLine, MotionRoot, ParallaxMedia, Rise, WordsIn } from '@/components/landing/elite/Motion';
-import { BridgeMap, BridgePassport } from '@/components/landing/bridge/BridgeMap';
 import { AllianceNetwork } from '@/components/landing/bridge/AllianceNetwork';
 import { AgentConsole } from '@/components/landing/bridge/AgentConsole';
 import { MotionToggle } from '@/components/landing/bridge/MotionToggle';
 
 /*
+ * Portada v6 «Estadio» (26-nov-2026): marketplace deportivo claro con foto de estadio, verde césped y flúor; mismo contenido que la v5.
  * Portada «La alianza» (v5, 23-nov-2026): la misión de la v1, el negro y oro de la v4 y el puente Europa → NCAA.
  * El agente es el protagonista; el atleta, el centro. Sin fotos de stock: vídeo real, ilustración propia y la fundadora.
  * Negro de estadio, marfil y oro; titulares en Anton con la palabra clave en Fraunces itálica.
@@ -41,7 +41,24 @@ const TRUST = [
   { Icon: Lock, title: 'Tú decides quién ve qué', text: 'Permisos con fecha de caducidad. Descarga y borrado cuando quieras.' },
 ];
 
-const TICKER = ['Valencia → NCAA D-I', 'Belgrado → D-II', 'Madrid → NAIA', 'Kaunas → NCAA D-I', 'Lisboa → JUCO', 'Atenas → NCAA D-I', 'París → D-II'];
+const MARKET = [
+  { org: 'NCAA D1', title: 'Beca de fútbol masculino', meta: 'Universidad de ejemplo · Mediocentro · 2027', value: '18.000 US$/año', tag: 'Beca', img: '/media/university-campus-sm.webp' },
+  { org: 'Club verificado', title: 'Prueba de selección · Showcase', meta: 'Valencia · Baloncesto · Sub-18', value: 'Gratis', tag: '12 plazas', img: '/media/club-training-sm.webp' },
+  { org: 'NCAA D2', title: 'Beca parcial de baloncesto femenino', meta: 'College de ejemplo · Base · 2027', value: '12.000 US$/año', tag: 'Beca', img: '/media/founder-entrance-sm.webp' },
+];
+
+const APP_STATS = [
+  { n: 12, label: 'atletas', hot: false },
+  { n: 4, label: 'necesitan atención', hot: true },
+  { n: 7, label: 'ofertas que encajan', hot: false },
+  { n: 2, label: 'ofertas vivas', hot: false },
+];
+
+const APP_TASKS = [
+  { when: '3 días', tone: 'hot', title: 'Oferta de Harbor Tech caduca', meta: 'Sofía Martín · 18.000 US$/año', cta: 'Revisar oferta' },
+  { when: 'Vencido', tone: 'late', title: 'Pedir el expediente traducido', meta: 'Marcos Jiménez · College de ejemplo', cta: 'Hacer tarea' },
+  { when: 'Mañana', tone: 'calm', title: 'Llamada con el assistant coach', meta: 'Marcos Jiménez · 18:00', cta: 'Abrir proceso' },
+];
 
 const FAQ: [string, string][] = [
   ['¿Cuánto cuesta?', 'Para atletas es gratis para siempre. Las agencias tienen planes mensuales con precio fundador y las familias pueden contratar servicios de pago único. Todos los precios están publicados.'],
@@ -52,94 +69,132 @@ const FAQ: [string, string][] = [
   ['¿Es seguro para menores?', 'Sí, por diseño: perfiles privados, contacto solo de organizaciones verificadas, la familia siempre en el circuito y sin publicidad perfilada.'],
 ];
 
-function priceNumber(name: string) {
-  const p = PLANS.find((x) => x.audience === 'agent' && x.name === name)?.price ?? '';
-  const n = Number.parseInt(p, 10);
-  return Number.isFinite(n) ? n : null;
+/** Precio de lista y precio fundador de un plan de agente, leídos del catálogo por su nombre interno (en castellano, nunca traducido). */
+function agentPrices(name: string) {
+  const plan = PLANS.find((x) => x.audience === 'agent' && x.name === name);
+  const list = Number.parseInt(plan?.price ?? '', 10);
+  const founder = Number.parseInt(/fundador:\s*(\d+)/.exec(plan?.priceNote ?? '')?.[1] ?? '', 10);
+  return { list: Number.isFinite(list) ? list : null, founder: Number.isFinite(founder) ? founder : null };
 }
 
 export default async function Home() {
   const tx = await getT();
-  const solo = priceNumber(tx('Agente'));
-  const team = priceNumber(tx('Agencia'));
+  const solo = agentPrices('Agente');
+  const team = agentPrices('Agencia');
   return (
     <I18nProvider locale={tx.locale}>
     <MotionRoot>
-      <div className="landing-dark relative overflow-x-clip bg-ink" lang={tx.locale}>
+      <div className="relative overflow-x-clip bg-ink" lang={tx.locale}>
         <JsonLd data={{ '@context': 'https://schema.org', '@type': 'Organization', name: BRAND.name, url: siteUrl(), description: BRAND.secondary, slogan: BRAND.claim }} />
         <JsonLd data={{ '@context': 'https://schema.org', '@type': 'WebSite', name: BRAND.name, url: siteUrl(), inLanguage: tx.locale }} />
         <JsonLd data={{ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: FAQ.map(([q, a]) => ({ '@type': 'Question', name: tx(q), acceptedAnswer: { '@type': 'Answer', text: tx(a) } })) }} />
-        <PublicHeader overlay locale={tx.locale} />
+        <PublicHeader locale={tx.locale} />
 
         <main id="main-content">
-          {/* 1 · Portada: la misión y el puente Europa → NCAA */}
-          <section aria-labelledby="hero-title" className="relative isolate overflow-hidden">
-            <ParallaxMedia className="-z-10">
-              <video className="hero-video h-full w-full object-cover opacity-50" autoPlay muted loop playsInline preload="metadata" poster="/media/hero-bg-poster.jpg" aria-hidden>
-                <source src="/media/hero-bg.mp4" type="video/mp4" />
-              </video>
-            </ParallaxMedia>
-            <div className="elite-hero-shade absolute inset-0 -z-10" aria-hidden />
-            <div className="bg-gradient-to-r from-ink via-ink/85 to-ink/40 absolute inset-0 -z-10" aria-hidden />
-            <div className="grain absolute inset-0 -z-10" aria-hidden />
+          {/* 0 · Barra en vivo (v6 «Estadio») */}
+          <div className="bg-night text-[13px] font-bold">
+            <div className="mx-auto flex max-w-7xl items-center gap-8 overflow-hidden whitespace-nowrap px-5 py-2.5 sm:px-8">
+              <span className="inline-flex items-center gap-2 text-lime"><span className="live-dot" aria-hidden />{tx('EN VIVO · becas y pruebas de organizaciones verificadas')}</span>
+              <span className="hidden text-[#cfe3d9] md:inline">{tx('Perfiles validados por su club')}</span>
+              <span className="hidden text-[#cfe3d9] lg:inline">{tx('Gratis para atletas, familias y clubes')}</span>
+            </div>
+          </div>
 
-            <div className="mx-auto grid min-h-[100svh] w-full max-w-7xl items-center gap-10 px-5 pb-16 pt-32 sm:px-8 lg:grid-cols-[1.05fr_1fr] lg:pb-20">
-              <div>
+          {/* 1 · Portada: calcada del artboard C «Estadio» (26-nov-2026) */}
+          <section aria-labelledby="hero-title" className="mx-auto max-w-7xl px-3 pt-3 sm:px-8 sm:pt-5">
+            <div className="relative isolate overflow-hidden rounded-[24px] bg-night lg:min-h-[540px]">
+              <img src="/media/club-training.webp" srcSet="/media/club-training-sm.webp 720w, /media/club-training.webp 1280w" sizes="(min-width: 1280px) 1280px, 100vw" alt="" className="absolute inset-0 -z-20 h-full w-full object-cover" fetchPriority="high" />
+              <div className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgb(11_61_46/0.94)_0%,rgb(11_61_46/0.78)_45%,rgb(11_61_46/0)_75%)] max-lg:bg-[linear-gradient(180deg,rgb(11_61_46/0.75)_0%,rgb(11_61_46/0.95)_65%)]" aria-hidden />
+              <div className="max-w-[900px] px-6 pb-32 pt-10 text-white sm:px-14 sm:pt-14 lg:pb-14">
                 <Rise y={12}>
-                  <p className="flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.32em] text-brass">
-                    <span className="h-px w-10 bg-brass" aria-hidden />{' '}{tx('Europa → NCAA · Reclutamiento deportivo')}
-                  </p>
+                  <p className="inline-block -skew-x-[10deg] bg-lime px-3 py-1.5 text-[13px] font-extrabold uppercase text-night">{tx('Europa → NCAA')}</p>
                 </Rise>
-                <h1 id="hero-title" className="mt-6 text-[clamp(2.9rem,6.2vw,5.6rem)] leading-[0.9] text-paper">
+                <h1 id="hero-title" className="night-scope mt-5 text-[clamp(2.4rem,5vw,4.5rem)] leading-[0.95] text-white">
                   <span className="sr-only">{tx('Si tienes nivel, tienes que poder optar.')}</span>
                   <span aria-hidden><WordsIn parts={[tx('Si tienes nivel, tienes que poder'), { em: tx('optar.') }]} /></span>
                 </h1>
                 <Rise delay={0.6}>
-                  <p className="mt-4 font-serif text-[clamp(1.6rem,3vw,2.4rem)] italic leading-tight text-paper/75">{tx('Tengas o no los contactos.')}</p>
-                </Rise>
-                <Rise delay={0.75}>
-                  <p className="mt-8 max-w-xl text-lg leading-relaxed text-paper/80">
-                    {tx('The Gala Alliance une a atletas europeos, familias, clubes y universidades de la NCAA, y le da al agente el sistema para llevar cada fichaje del primer vídeo a la firma.')}
+                  <p className="mt-5 max-w-[540px] text-lg leading-relaxed text-[#dcebe3]">
+                    {tx('El marketplace que conecta a atletas europeos con universidades de EE. UU., con agencias y familias en el mismo equipo.')}
                   </p>
-                  <div className="mt-9 flex flex-wrap gap-3">
-                    <Link href="/demo/agente" className="btn-sweep group inline-flex min-h-14 items-center gap-3 rounded-full bg-brass px-8 text-[15px] font-bold text-night">
-                      <span className="relative z-10">{tx('Soy agente · ver la demo')}</span>
-                      <ArrowRight className="relative z-10 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" aria-hidden />
-                    </Link>
-                    <Link href="/signup?role=athlete" className="inline-flex min-h-14 items-center gap-3 rounded-full border border-paper/30 px-7 text-[15px] font-semibold text-paper backdrop-blur-sm transition-colors hover:border-brass hover:text-brass">
-                      {tx('Soy atleta · gratis')}
+                  <div className="mt-7 flex flex-wrap gap-3">
+                    <Link href="/signup?role=athlete" className="inline-flex min-h-[52px] items-center rounded-full bg-lime px-6 text-[15px] font-extrabold text-night transition-transform hover:-translate-y-0.5">{tx('Soy atleta')}</Link>
+                    <Link href="/para/agentes" className="inline-flex min-h-[52px] items-center rounded-full bg-white px-6 text-[15px] font-extrabold text-night transition-transform hover:-translate-y-0.5">{tx('Soy agencia')}</Link>
+                    <Link href="/demo/agente" className="group inline-flex min-h-[52px] items-center gap-2 rounded-full border-[1.5px] border-white/50 px-5 text-[15px] font-bold text-white transition-colors hover:border-white">
+                      {tx('Ver la demo')} <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden />
                     </Link>
                   </div>
-                  <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3 text-xs text-paper/60">
-                    <span>{tx('Gratis para atletas')}</span><span>{tx('Precios publicados')}</span><span>{tx('Menores protegidos por diseño')}</span>
-                    <MotionToggle />
-                  </div>
+                  <div className="night-scope mt-5 w-fit"><MotionToggle /></div>
                 </Rise>
               </div>
-              <Rise delay={0.5} className="relative pb-6 sm:pb-24 lg:scale-110 lg:origin-left">
-                <BridgeMap />
-                <BridgePassport className="relative mx-auto -mt-6 sm:absolute sm:-bottom-24 sm:left-0 sm:mt-0 lg:-left-6" />
-              </Rise>
+              <dl className="absolute bottom-5 right-5 flex gap-6 rounded-2xl bg-surface px-5 py-3.5 text-paper sm:bottom-7 sm:right-7">
+                <div><dt className="sr-only">{tx('Deportes')}</dt><dd className="font-display text-[34px] leading-none">3</dd><dd className="text-xs text-faint">{tx('deportes')}</dd></div>
+                <div><dt className="sr-only">{tx('Actores')}</dt><dd className="font-display text-[34px] leading-none">6</dd><dd className="text-xs text-faint">{tx('actores')}</dd></div>
+                <div><dt className="sr-only">{tx('Precio')}</dt><dd className="font-display text-[34px] leading-none text-night">0 €</dd><dd className="text-xs text-faint">{tx('atletas y clubes')}</dd></div>
+              </dl>
             </div>
           </section>
 
-          {/* 2 · Cinta de rutas */}
-          <div className="relative z-10 -mt-px -rotate-[1.2deg] scale-[1.03] border-y border-brass-deep/50 bg-brass py-4 text-night" aria-hidden>
-            <div className="flex w-max marquee">
-              {[0, 1].map((k) => (
-                <ul key={k} className="flex shrink-0 items-center">
-                  {TICKER.map((t) => (
-                    <li key={t} className="flex items-center font-display text-2xl tracking-[0.04em] sm:text-3xl">
-                      <span className="px-6">{tx(t)}</span><span className="text-night/40">✦</span>
-                    </li>
-                  ))}
+          {/* 2 · Mercado abierto (ejemplos ilustrativos), como en el artboard C */}
+          <section aria-labelledby="mercado-title">
+            <div className="mx-auto max-w-7xl px-5 pt-10 sm:px-8">
+              <div className="flex flex-wrap items-end justify-between gap-4">
+                <h2 id="mercado-title" className="text-[clamp(1.9rem,3vw,2.6rem)] leading-none text-paper">{tx('Mercado abierto')}</h2>
+                <ul className="flex flex-wrap gap-2 text-[13px] font-bold" aria-label={tx('Filtrar por deporte')}>
+                  <li><Link href="/oportunidades" className="inline-flex min-h-10 items-center rounded-[10px] bg-night px-3.5 text-lime">{tx('Todas')}</Link></li>
+                  <li><Link href="/oportunidades?sport=basketball" className="inline-flex min-h-10 items-center rounded-[10px] bg-surface px-3.5 text-paper hover:bg-surface-2">{tx('Baloncesto')}</Link></li>
+                  <li><Link href="/oportunidades?sport=football" className="inline-flex min-h-10 items-center rounded-[10px] bg-surface px-3.5 text-paper hover:bg-surface-2">{tx('Fútbol')}</Link></li>
+                  <li><Link href="/oportunidades?sport=tennis" className="inline-flex min-h-10 items-center rounded-[10px] bg-surface px-3.5 text-paper hover:bg-surface-2">{tx('Tenis')}</Link></li>
                 </ul>
-              ))}
+              </div>
+              <ul className="mt-5 grid gap-[18px] md:grid-cols-3">
+                {MARKET.map((o, i) => (
+                  <li key={o.title}>
+                    <Rise delay={i * 0.08} className="hover-lift h-full overflow-hidden rounded-[18px] bg-surface">
+                      <img src={o.img} alt="" loading="lazy" className="h-[150px] w-full object-cover" />
+                      <div className="p-4">
+                        <div className="flex justify-between gap-2 text-xs font-extrabold uppercase text-night"><span>{tx(o.org)}</span><span className="shrink-0 rounded-md bg-lime px-2 py-0.5">{tx(o.tag)}</span></div>
+                        <h3 className="mt-1.5 text-[17px] font-extrabold text-paper">{tx(o.title)}</h3>
+                        <p className="text-[13px] text-muted">{tx(o.meta)}</p>
+                        <p className="mt-3 font-display text-[22px] leading-none text-paper">{tx(o.value)}</p>
+                      </div>
+                    </Rise>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-3 text-xs text-faint">{tx('Ejemplos ilustrativos: las ofertas reales las publican organizaciones verificadas dentro de la plataforma.')}</p>
             </div>
-          </div>
+          </section>
+
+          {/* 3 · Dentro de la app (agencia), como en el artboard C. Datos de ejemplo. */}
+          <section aria-labelledby="app-title" className="mx-auto max-w-7xl px-5 pt-10 sm:px-8">
+            <div className="grid gap-6 rounded-[24px] bg-surface p-6 lg:grid-cols-[1fr_1.6fr]">
+              <div>
+                <p className="text-xs font-extrabold uppercase text-night">{tx('Dentro de la app · Agencia')} <span className="ml-1 font-semibold normal-case text-faint">({tx('datos de ejemplo')})</span></p>
+                <h2 id="app-title" className="mt-2 text-[clamp(1.9rem,3vw,2.4rem)] leading-none text-paper">{tx('Hola, Carlos')}</h2>
+                <dl className="mt-4 grid grid-cols-2 gap-2.5">
+                  {APP_STATS.map((st) => (
+                    <div key={st.label} className={`rounded-[14px] p-3 ${st.hot ? 'bg-night' : 'bg-ink'}`}>
+                      <dd className={`font-display text-3xl leading-none ${st.hot ? 'text-lime' : 'text-paper'}`}>{st.n}</dd>
+                      <dt className={`text-xs ${st.hot ? 'text-[#cfe3d9]' : 'text-muted'}`}>{tx(st.label)}</dt>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+              <ul>
+                {APP_TASKS.map((t, i) => (
+                  <li key={t.title} className={`flex flex-wrap items-center gap-3.5 py-3.5 ${i < APP_TASKS.length - 1 ? 'border-b border-line' : ''}`}>
+                    <span className={`rounded-md px-2 py-1 font-display text-[13px] ${t.tone === 'hot' ? 'bg-lime text-night' : t.tone === 'late' ? 'bg-[#fde2dc] text-[#a3321c]' : 'bg-ink text-paper'}`}>{tx(t.when)}</span>
+                    <div className="min-w-0 flex-1"><p className="font-extrabold text-paper">{tx(t.title)}</p><p className="text-[13px] text-muted">{tx(t.meta)}</p></div>
+                    <Link href="/demo/agente" className={`inline-flex min-h-10 items-center rounded-full px-4 text-[13px] font-bold ${t.tone === 'hot' ? 'bg-night text-white' : 'border-[1.5px] border-line-strong text-paper'}`}>{tx(t.cta)}</Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </section>
 
           {/* 3 · El momento: datos de la NCAA */}
-          <section aria-labelledby="momento-title" className="mx-auto max-w-7xl px-5 pb-20 pt-28 sm:px-8 lg:pb-28 lg:pt-36">
+          <section aria-labelledby="momento-title" className="mx-auto max-w-7xl px-5 pb-20 pt-24 sm:px-8 lg:pb-28 lg:pt-28">
             <div className="grid gap-12 lg:grid-cols-[1fr_1.3fr] lg:items-end">
               <Rise>
                 <p className="eyebrow text-brass">{tx('El momento es ahora')}</p>
@@ -159,7 +214,7 @@ export default async function Home() {
           </section>
 
           {/* 4 · La alianza: todos conectados alrededor del atleta */}
-          <section aria-labelledby="alianza-title" className="relative isolate overflow-hidden bg-night">
+          <section aria-labelledby="alianza-title" className="night-scope relative isolate overflow-hidden bg-night">
             <div className="court-lines absolute inset-0 -z-10 opacity-[0.05]" aria-hidden />
             <div className="mx-auto max-w-7xl px-5 py-24 sm:px-8 lg:py-32">
               <div className="grid gap-10 lg:grid-cols-[1fr_1.4fr] lg:items-center">
@@ -185,19 +240,19 @@ export default async function Home() {
               </Rise>
               <Rise delay={0.15}><p className="max-w-sm text-lg text-muted">{tx('Un solo sitio para tus atletas, sus familias, las universidades y cada papel. Lo que hoy llevas en hojas de cálculo y WhatsApp.')}</p></Rise>
             </div>
-            <Rise delay={0.1} className="mt-14"><AgentConsole /></Rise>
+            <Rise delay={0.1} className="night-scope mt-14 rounded-2xl"><AgentConsole /></Rise>
             <ol className="mt-16 grid gap-12 md:grid-cols-2 lg:grid-cols-4">
               {AGENT_POINTS.map((p, i) => (
                 <li key={p.n}>
                   <Rise delay={i * 0.08}>
-                    <span className="block font-display text-6xl leading-none text-transparent [-webkit-text-stroke:1.2px_var(--color-brass)]" aria-hidden>{p.n}</span>
+                    <span className="block font-display text-6xl leading-none text-transparent [-webkit-text-stroke:1.5px_var(--color-brass)]" aria-hidden>{p.n}</span>
                     <h3 className="mt-4 font-display text-3xl text-paper">{tx(p.title)}</h3>
                     <p className="mt-3 leading-relaxed text-muted">{tx(p.text)}</p>
                   </Rise>
                 </li>
               ))}
             </ol>
-            <div className="mt-20 grid gap-6 rounded-[22px] border border-brass/40 bg-gradient-to-br from-brass/[0.10] to-transparent p-8 sm:p-10 lg:grid-cols-[1.2fr_1fr] lg:items-center">
+            <div className="mt-20 grid gap-6 rounded-[24px] bg-surface-2 p-8 sm:p-10 lg:grid-cols-[1.2fr_1fr] lg:items-center">
               <div>
                 <p className="eyebrow text-brass">{tx('Precio fundador')}</p>
                 <p className="mt-3 font-display text-4xl text-paper sm:text-5xl">{tx('−40 % de por vida para las')}{' '}<em>{tx('15 primeras')}</em>.</p>
@@ -207,10 +262,11 @@ export default async function Home() {
                 {[{ name: 'Agente', price: solo }, { name: 'Agencia', price: team }].map((p) => (
                   <div key={p.name}>
                     <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted">{tx(p.name)}</p>
-                    <p className="mt-2 font-display text-6xl leading-none text-paper">{p.price !== null ? <CountUp to={p.price} /> : '—'}<span className="ml-1 text-2xl text-brass">€</span><span className="ml-1 text-sm font-sans normal-case text-muted">{tx('/mes')}</span></p>
+                    <p className="mt-2 font-display text-6xl leading-none text-paper">{p.price.founder !== null ? <CountUp to={p.price.founder} /> : '—'}<span className="ml-1 text-2xl text-gold">€</span><span className="ml-1 text-sm font-sans normal-case text-muted">{tx('/mes')}</span></p>
+                    {p.price.list !== null ? <p className="mt-1 text-sm text-faint"><s>{p.price.list} €</s> {tx('precio de lista')}</p> : null}
                   </div>
                 ))}
-                <Link href="/demo/agente" className="btn-sweep group inline-flex min-h-14 items-center gap-3 rounded-full bg-brass px-8 text-[15px] font-bold text-night">
+                <Link href="/demo/agente" className="btn-sweep group inline-flex min-h-14 items-center gap-3 rounded-full bg-pop px-8 text-[15px] font-bold text-paper">
                   <span className="relative z-10">{tx('Ver la demo')}</span><ArrowRight className="relative z-10 h-4 w-4" aria-hidden />
                 </Link>
               </div>
@@ -218,15 +274,16 @@ export default async function Home() {
           </section>
 
           {/* 6 · Fundadora: la esencia */}
-          <section aria-labelledby="origen-title" className="relative isolate overflow-hidden bg-night">
+          <section aria-labelledby="origen-title" className="relative isolate overflow-hidden bg-surface-2">
             <div className="mx-auto grid max-w-7xl items-center gap-12 px-5 py-24 sm:px-8 lg:grid-cols-[1.05fr_1fr] lg:py-32">
               <Rise className="relative">
                 <div className="relative aspect-[4/5] overflow-hidden rounded-[22px] sm:aspect-[5/4] lg:aspect-[4/5]">
                   <img src="/media/founder-entrance.webp" alt={tx('Gala, fundadora de The Gala Alliance, saltando a la pista en un partido de la NCAA')} loading="lazy" className="h-full w-full object-cover object-[30%_center]" />
-                  <span className="absolute inset-0 bg-gradient-to-t from-night via-transparent to-transparent" aria-hidden />
-                  <span className="grain absolute inset-0" aria-hidden />
+                  <div className="absolute inset-x-4 bottom-4 flex items-center justify-between gap-3 rounded-2xl bg-surface/95 px-4 py-3 shadow-[var(--shadow-elevated)]">
+                    <div><p className="text-xs text-faint">{tx('Fundadora · ex jugadora NCAA D-I')}</p><p className="font-bold text-paper">{tx('Gala · University of Evansville')}</p></div>
+                    <span className="font-display text-2xl text-brass">D1</span>
+                  </div>
                 </div>
-                <p className="absolute -bottom-6 -right-2 font-display text-[clamp(5rem,14vw,11rem)] leading-none text-transparent [-webkit-text-stroke:1px_rgb(230_207_143/0.55)] sm:-right-8" aria-hidden>D1</p>
               </Rise>
               <div>
                 <Rise><p className="eyebrow text-brass">{tx('Por qué existe')}</p></Rise>
@@ -236,15 +293,15 @@ export default async function Home() {
                   </h2>
                 </Rise>
                 <Rise delay={0.2}>
-                  <p className="mt-8 max-w-lg text-lg leading-relaxed text-paper/80">
+                  <p className="mt-8 max-w-lg text-lg leading-relaxed text-muted">
                     {tx('Salí de España para jugar al baloncesto en la NCAA División I con beca completa. Sé lo que cuesta que alguien te vea desde el otro lado del Atlántico, lo que pesan los papeles y lo sola que se siente una familia en el proceso.')}
                   </p>
-                  <p className="mt-4 max-w-lg text-lg leading-relaxed text-paper/80">
+                  <p className="mt-4 max-w-lg text-lg leading-relaxed text-muted">
                     {tx('The Gala Alliance es lo que me habría gustado tener: una alianza honesta entre todos los que ayudan a un atleta a llegar.')}
                   </p>
                 </Rise>
                 <Rise delay={0.3}>
-                  <p className="mt-10 font-serif text-3xl italic text-brass">{tx('— Gala')}</p>
+                  <p className="mt-10 font-display text-3xl text-brass">{tx('— Gala')}</p>
                   <p className="mt-1 text-xs uppercase tracking-[0.28em] text-muted">{tx('Fundadora · ex jugadora NCAA D-I')}</p>
                 </Rise>
               </div>
@@ -259,8 +316,8 @@ export default async function Home() {
             </Rise>
             <ul className="mt-14 grid gap-px overflow-hidden rounded-[22px] border border-line bg-line sm:grid-cols-2 lg:grid-cols-4">
               {ROLES.map((r, i) => (
-                <li key={r.key} className="bg-ink">
-                  <Link href={r.href} className="group flex h-full min-h-[280px] flex-col p-7 transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brass">
+                <li key={r.key} className="bg-surface">
+                  <Link href={r.href} className="group flex h-full min-h-[280px] flex-col p-7 transition-colors hover:bg-brass/[0.04] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brass">
                     <span className="font-display text-sm text-brass">{String(i + 1).padStart(2, '0')}</span>
                     <p className="mt-6 text-[11px] font-semibold uppercase tracking-[0.28em] text-muted">{tx(r.kicker)}</p>
                     <h3 className="mt-2 font-display text-5xl text-paper">{tx(r.name)}</h3>
@@ -276,8 +333,8 @@ export default async function Home() {
           </section>
 
           {/* 8 · Confianza */}
-          <section aria-labelledby="confianza-title" className="diagonal-top relative bg-surface">
-            <div className="mx-auto max-w-7xl px-5 pb-20 pt-28 sm:px-8 lg:pb-24 lg:pt-32">
+          <section aria-labelledby="confianza-title" className="relative bg-surface-2">
+            <div className="mx-auto max-w-7xl px-5 py-20 sm:px-8 lg:py-24">
               <h2 id="confianza-title" className="sr-only">{tx('Seguridad y confianza')}</h2>
               <ul className="grid gap-10 md:grid-cols-3">
                 {TRUST.map(({ Icon, title, text }, i) => (
@@ -316,19 +373,18 @@ export default async function Home() {
           </section>
 
           {/* 10 · Cierre */}
-          <section aria-labelledby="cierre-title" className="relative isolate overflow-hidden bg-night">
-            <div className="court-lines absolute inset-0 -z-10 opacity-[0.06]" aria-hidden />
-            <div className="grain absolute inset-0 -z-10" aria-hidden />
+          <section aria-labelledby="cierre-title" className="relative isolate overflow-hidden bg-brass">
+            <div className="court-lines absolute inset-0 -z-10 opacity-[0.5]" aria-hidden />
             <div className="mx-auto max-w-7xl px-5 py-32 text-center sm:px-8 lg:py-44">
               <Rise>
-                <h2 id="cierre-title" className="mx-auto max-w-[15ch] text-[clamp(3.2rem,9vw,8rem)] leading-[0.9] text-paper">{tx('El talento ya está en Europa. Que lo')}{' '}<em>{tx('vean')}</em>.</h2>
+                <h2 id="cierre-title" className="mx-auto max-w-[15ch] text-[clamp(2.4rem,6.5vw,5.6rem)] leading-[0.92] text-white night-scope">{tx('El talento ya está en Europa. Que lo')}{' '}<em>{tx('vean')}</em>.</h2>
               </Rise>
               <Rise delay={0.2}>
                 <div className="mt-12 flex flex-wrap justify-center gap-3">
-                  <Link href="/demo/agente" className="btn-sweep group inline-flex min-h-14 items-center gap-3 rounded-full bg-brass px-9 text-[15px] font-bold text-night">
+                  <Link href="/demo/agente" className="group inline-flex min-h-14 items-center gap-3 rounded-full bg-pop px-9 text-[15px] font-bold text-paper">
                     <span className="relative z-10">{tx('Soy agente · ver la demo')}</span><ArrowRight className="relative z-10 h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden />
                   </Link>
-                  <Link href="/signup?role=athlete" className="inline-flex min-h-14 items-center rounded-full border border-paper/30 px-8 text-[15px] font-semibold text-paper transition-colors hover:border-brass hover:text-brass">{tx('Soy atleta · gratis')}</Link>
+                  <Link href="/signup?role=athlete" className="inline-flex min-h-14 items-center rounded-full bg-white px-8 text-[15px] font-bold text-brass-deep transition-colors hover:bg-white/90">{tx('Soy atleta · gratis')}</Link>
                 </div>
               </Rise>
             </div>

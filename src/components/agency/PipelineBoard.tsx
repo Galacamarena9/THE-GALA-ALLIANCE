@@ -80,7 +80,7 @@ export function PipelineBoard({ cases, view, sportName, actions, today = new Dat
                   return (
                     <li key={c.id} data-testid="case-card" data-state={a.state} className="rounded-xl border border-line bg-surface p-4 transition-colors hover:border-brass/50">
                       <div className="flex items-start gap-3">
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-night font-display text-sm text-brass" aria-hidden>{initials(c.athleteName)}</span>
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-night font-display text-sm text-lime" aria-hidden>{initials(c.athleteName)}</span>
                         <div className="min-w-0">
                           <Link href={`/app/pipeline/${c.id}`} className="block truncate font-semibold text-paper hover:text-brass">{c.athleteName}</Link>
                           <p className="truncate text-sm text-muted">{c.institutionName}</p>

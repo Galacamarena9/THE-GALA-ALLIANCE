@@ -17,24 +17,24 @@ export async function AllianceNetwork() {
   return (
     <div>
       <svg viewBox="0 0 1000 560" className="h-auto w-full" aria-hidden>
-        <circle cx={c.x} cy={c.y} r="210" fill="none" stroke="#f4efe4" strokeOpacity="0.06" />
-        <circle cx={c.x} cy={c.y} r="130" fill="none" stroke="#f4efe4" strokeOpacity="0.08" strokeDasharray="2 6" />
+        <circle cx={c.x} cy={c.y} r="210" fill="none" stroke="#f3f4ef" strokeOpacity="0.06" />
+        <circle cx={c.x} cy={c.y} r="130" fill="none" stroke="#f3f4ef" strokeOpacity="0.08" strokeDasharray="2 6" />
         {NODES.map((n, i) => (
           <g key={n.key}>
-            <line x1={c.x} y1={c.y} x2={n.x} y2={n.y} stroke={'lead' in n ? '#e6cf8f' : '#f4efe4'} strokeOpacity={'lead' in n ? 0.8 : 0.22} strokeWidth={'lead' in n ? 2 : 1} />
-            <line x1={c.x} y1={c.y} x2={n.x} y2={n.y} stroke="#e6cf8f" strokeWidth="2.4" strokeLinecap="round" className="route-flow" style={{ animationDelay: `${i * 0.7}s` }} />
+            <line x1={c.x} y1={c.y} x2={n.x} y2={n.y} stroke={'lead' in n ? '#d7ff3a' : '#f3f4ef'} strokeOpacity={'lead' in n ? 0.8 : 0.22} strokeWidth={'lead' in n ? 2 : 1} />
+            <line x1={c.x} y1={c.y} x2={n.x} y2={n.y} stroke="#d7ff3a" strokeWidth="2.4" strokeLinecap="round" className="route-flow" style={{ animationDelay: `${i * 0.7}s` }} />
             <text x={(c.x + n.x) / 2} y={(c.y + n.y) / 2 - 10} textAnchor="middle" className="fill-paper/70 text-[19px] italic" style={{ fontFamily: 'var(--font-serif)' }}>{tx(n.flow)}</text>
           </g>
         ))}
         {/* Nodos */}
         {NODES.map((n) => (
           <g key={`${n.key}-n`}>
-            <circle cx={n.x} cy={n.y} r={'lead' in n ? 46 : 34} fill="#0b0d12" stroke={'lead' in n ? '#e6cf8f' : '#3a4050'} strokeWidth={'lead' in n ? 2 : 1} />
-            {'lead' in n && <circle cx={n.x} cy={n.y} r="58" fill="none" stroke="#e6cf8f" strokeOpacity="0.35" className="node-ring" />}
+            <circle cx={n.x} cy={n.y} r={'lead' in n ? 46 : 34} fill="#0f4a38" stroke={'lead' in n ? '#d7ff3a' : '#2d7d63'} strokeWidth={'lead' in n ? 2 : 1} />
+            {'lead' in n && <circle cx={n.x} cy={n.y} r="58" fill="none" stroke="#d7ff3a" strokeOpacity="0.35" className="node-ring" />}
             <text x={n.x} y={n.y + ('lead' in n ? 76 : 60)} textAnchor="middle" className={'lead' in n ? 'fill-brass text-[28px] uppercase' : 'fill-paper text-[24px] uppercase'} style={{ fontFamily: 'var(--font-display)' }}>{tx(n.label)}</text>
           </g>
         ))}
-        <circle cx={c.x} cy={c.y} r="64" fill="#e6cf8f" />
+        <circle cx={c.x} cy={c.y} r="64" fill="#d7ff3a" />
         <text x={c.x} y={c.y + 10} textAnchor="middle" className="fill-night text-[30px] uppercase" style={{ fontFamily: 'var(--font-display)' }}>{tx('Atleta')}</text>
       </svg>
       <ul className="sr-only" aria-label={tx('Conexiones con el atleta, en el centro')}>

@@ -7,6 +7,8 @@
 @import "@fontsource-variable/fraunces/wght-italic.css";
 @import "@fontsource/anton/latin-400.css";
 @import "@fontsource/anton/latin-ext-400.css";
+@import "@fontsource-variable/archivo/wdth.css";
+@import "@fontsource-variable/archivo/wdth-italic.css";
 
 /*
  * Identidad v3 «Editorial premium» (22-nov-2026): marfil, tinta azul noche y un toque dorado.
@@ -20,30 +22,36 @@
  * brass = color de acento (índigo en claro, lima en oscuro).
  */
 @theme {
-  /* Identidad v4 «Élite deportiva» (22-nov-2026): negro de estadio, marfil y oro. Oscura por defecto. */
-  --color-ink: #0b0d12;
-  --color-surface: #13161d;
-  --color-surface-2: #1b1f28;
-  --color-line: #262b36;
-  --color-line-strong: #3a4050;
-  --color-paper: #f4efe4;
-  --color-muted: #bab4a6;
-  --color-faint: #9d9789;
-  --color-brass: #e6cf8f;
-  --color-brass-soft: #f2e3b8;
-  --color-brass-deep: #c9a24a;
-  --color-trust: #6fcf9f;
-  --color-ok: #6fcf9f;
-  --color-warn: #f0c26b;
-  --color-danger: #f08a78;
-  --color-gold: #d9b867;
+  /* Identidad v6 «Estadio» (26-nov-2026): marketplace deportivo claro con energía de estadio.
+     Hueso #F3F4EF de fondo, verde césped #0B3D2E (acción, confianza, bloques) y flúor #D7FF3A (energía:
+     solo sobre verde o con texto verde oscuro encima, nunca como texto sobre claro).
+     Titulares en Archivo extra ancha y cursiva (marcador de estadio); interfaz en Inter. Pares de texto WCAG AA.
+     La identidad v4 «Élite» (negro y oro) queda como tema oscuro opcional: html[data-theme="dark"]. */
+  --color-ink: #f3f4ef;
+  --color-surface: #ffffff;
+  --color-surface-2: #e9ebe3;
+  --color-line: #e0e3d9;
+  --color-line-strong: #c5ccbf;
+  --color-paper: #0f1a14;
+  --color-muted: #3c4a42;
+  --color-faint: #55635a;
+  --color-brass: #0b3d2e;
+  --color-brass-soft: #12523e;
+  --color-brass-deep: #06281e;
+  --color-trust: #085e3b;
+  --color-ok: #085e3b;
+  --color-warn: #7a4500;
+  --color-danger: #9e2b16;
+  --color-gold: #0f7a4a;
+  --color-pop: #d7ff3a;
+  --color-pop-soft: #e4ff74;
 
-  /* Marca fija (no cambia con el tema). */
-  --color-night: #07080b;
-  --color-night-2: #151821;
-  /* «lime» se conserva como nombre: ahora es champán, el acento claro sobre tinta. */
-  --color-lime: #e6cf8f;
-  --color-lavender: #d8d2c2;
+  /* Marca fija (no cambia con el tema): bloques destacados en verde césped profundo. */
+  --color-night: #0b3d2e;
+  --color-night-2: #0f4a38;
+  /* «lime»: el acento flúor sobre verde. */
+  --color-lime: #d7ff3a;
+  --color-lavender: #c5ccbf;
 
   /* Un color por deporte (texto blanco encima: contraste ≥ 5:1). */
   --color-sport-basketball: #c2410c;
@@ -56,13 +64,13 @@
 
   --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Fraunces Variable", Georgia, serif;
-  --font-display: "Anton", "Impact", "Arial Narrow", sans-serif;
+  --font-display: "Archivo Variable", "Arial Black", "Impact", sans-serif;
 
-  --radius-card: 14px;
+  --radius-card: 18px;
 
-  --shadow-gold: 0 10px 30px -10px rgb(201 162 74 / 0.45);
-  --shadow-elevated: 0 1px 2px rgb(18 19 26 / 0.04), 0 6px 20px rgb(18 19 26 / 0.06);
-  --shadow-premium: 0 40px 80px -30px rgb(0 0 0 / 0.7);
+  --shadow-gold: 0 10px 26px -12px rgb(11 61 46 / 0.45);
+  --shadow-elevated: 0 1px 2px rgb(15 26 20 / 0.05), 0 10px 30px -8px rgb(15 26 20 / 0.12);
+  --shadow-premium: 0 30px 60px -28px rgb(15 26 20 / 0.35);
 
   --animate-fade-in-up: fade-in-up 0.6s ease-out both;
   --animate-float: float 4s ease-in-out infinite;
@@ -85,29 +93,32 @@
 }
 
 html {
-  color-scheme: dark;
+  color-scheme: light;
   background: var(--color-ink);
 }
 
-/* Tema claro opcional (editorial v3): marfil y tinta, para quien prefiera leer sobre claro. */
-html[data-theme="light"] {
-  color-scheme: light;
-  --color-ink: #f6f3ec;
-  --color-surface: #ffffff;
-  --color-surface-2: #efeadf;
-  --color-line: #e6e0d3;
-  --color-line-strong: #d4cab5;
-  --color-paper: #10182b;
-  --color-muted: #4a5164;
-  --color-faint: #5a6072;
-  --color-brass: #10182b;
-  --color-brass-soft: #2b3652;
-  --color-brass-deep: #070d1a;
-  --color-trust: #1d6b4f;
-  --color-ok: #1d6b4f;
-  --color-warn: #8a5300;
-  --color-danger: #b3311a;
-  --color-gold: #8a6424;
+/* Tema oscuro opcional: la identidad v4 «Élite» (negro de estadio, marfil y oro). */
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --color-ink: #0b0d12;
+  --color-surface: #13161d;
+  --color-surface-2: #1b1f28;
+  --color-line: #262b36;
+  --color-line-strong: #3a4050;
+  --color-paper: #f4efe4;
+  --color-muted: #bab4a6;
+  --color-faint: #9d9789;
+  --color-brass: #e6cf8f;
+  --color-brass-soft: #f2e3b8;
+  --color-brass-deep: #c9a24a;
+  --color-trust: #6fcf9f;
+  --color-ok: #6fcf9f;
+  --color-warn: #f0c26b;
+  --color-danger: #f08a78;
+  --color-gold: #d9b867;
+  --color-night: #07080b;
+  --color-night-2: #151821;
+  --color-lime: #e6cf8f;
 }
 
 /* Alto contraste (accesibilidad, WCAG AAA en texto principal). */
@@ -139,19 +150,26 @@ body {
   padding-bottom: var(--cookie-banner-space, 0px);
 }
 
-/* Titulares de marcador: Anton condensada en mayúsculas; las palabras en <em> pasan a Fraunces itálica dorada (firma de marca). */
+/* Titulares de marcador: Archivo extra ancha, cursiva y en mayúsculas (estadio). Las palabras en <em> van en verde vivo (flúor sobre verde). */
 h1, h2, .font-display {
   font-family: var(--font-display);
-  font-weight: 400;
+  font-stretch: 125%;
+  font-weight: 900;
+  font-style: italic;
   text-transform: uppercase;
-  letter-spacing: 0.005em;
-  line-height: 0.98;
+  letter-spacing: -0.01em;
+  line-height: 0.95;
 }
-.font-display.font-bold, .font-display.font-medium { font-weight: 400; }
+.font-display.font-bold, .font-display.font-medium { font-weight: 900; }
 .font-display em, h1 em, h2 em {
-  font-family: var(--font-serif); font-style: italic; font-weight: 400; text-transform: none;
-  letter-spacing: -0.02em; color: var(--color-gold);
+  font-family: var(--font-display); font-stretch: 125%; font-style: italic; font-weight: 900; text-transform: inherit;
+  letter-spacing: inherit; color: var(--color-gold);
 }
+/* Móvil: la Archivo extra ancha se estrecha un poco para que palabras largas («UNIVERSIDADES») no desborden. */
+@media (max-width: 639px) {
+  h1, h2, .font-display, .display-xl, .display-lg, .font-display em, h1 em, h2 em { font-stretch: 106%; }
+}
+h1, h2 { overflow-wrap: break-word; hyphens: auto; }
 /* Textos largos que heredan .font-display pero deben leerse en frase. */
 .font-display.normal-case { text-transform: none; }
 h3 {
@@ -290,24 +308,33 @@ html:not(.js) .reveal { opacity: 1; transform: none; }
    `.carbon` y `.light-scope` remapean los tokens dentro de una sección, así los componentes
    existentes (que usan bg-surface, text-paper, etc.) se adaptan sin reescribirse.
    ============================================================================= */
+/* v5 «Pista»: `.carbon` ya no oscurece (el Passport y las fichas públicas van en claro). */
+/* Piezas oscuras a propósito (passport, ficha pública): verde estadio con flúor. */
 .carbon {
-  --color-ink: #0a0a0c;
-  --color-surface: #141418;
-  --color-surface-2: #1c1c22;
-  --color-line: #2a2a32;
-  --color-line-strong: #3d3d48;
-  --color-paper: #f5f5f7;
-  --color-muted: #a8a8b3;
-  --color-faint: #8e8e9a;
-  --color-brass: #e9d9b4;
-  --color-brass-soft: #f1e6c9;
-  --color-brass-deep: #cdb57e;
-  --color-trust: #6fcf9f;
-  --color-ok: #6fcf9f;
-  --color-warn: #f5b942;
-  --color-danger: #f06b5b;
-  --color-lavender: #c9c9d4;
   background: var(--color-ink);
+  color: var(--color-paper);
+}
+/* Sobre verde, la palabra destacada de un titular va en flúor. */
+:is(.bg-night, .bg-brass, .night-scope, .carbon) :is(h1, h2, .font-display) em { color: var(--color-lime); }
+/* Bloques azul noche a propósito (consola de demo, red de la alianza, tarjeta Passport): texto claro y acento naranja. */
+.night-scope, .carbon {
+  --color-ink: #0b3d2e;
+  --color-surface: #0f4a38;
+  --color-surface-2: #145a44;
+  --color-line: #1f6a52;
+  --color-line-strong: #2d7d63;
+  --color-paper: #f3f4ef;
+  --color-muted: #cfe3d9;
+  --color-faint: #a9c7b8;
+  --color-brass: #d7ff3a;
+  --color-brass-soft: #e4ff74;
+  --color-brass-deep: #c4ef1f;
+  --color-gold: #d7ff3a;
+  --color-lime: #d7ff3a;
+  --color-trust: #8ef0b8;
+  --color-ok: #8ef0b8;
+  --color-warn: #ffd36b;
+  --color-danger: #ffb4a3;
   color: var(--color-paper);
 }
 .light-scope {
@@ -331,8 +358,8 @@ html:not(.js) .reveal { opacity: 1; transform: none; }
 }
 
 /* Tipografía editorial: titulares enormes, compactos, en mayúsculas. */
-.display-xl { font-family: var(--font-display); font-weight: 400; line-height: 0.92; text-transform: uppercase; font-size: clamp(3.4rem, 9vw, 8.5rem); }
-.display-lg { font-family: var(--font-display); font-weight: 400; line-height: 0.95; text-transform: uppercase; font-size: clamp(2.6rem, 6.2vw, 5.5rem); }
+.display-xl { font-family: var(--font-display); font-stretch: 125%; font-weight: 900; font-style: italic; line-height: 0.92; text-transform: uppercase; font-size: clamp(3.4rem, 9vw, 8.5rem); }
+.display-lg { font-family: var(--font-display); font-stretch: 125%; font-weight: 900; font-style: italic; line-height: 0.95; text-transform: uppercase; font-size: clamp(2.6rem, 6.2vw, 5.5rem); }
 .eyebrow { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; }
 
 /* Superficies de cristal muy sutiles. */
@@ -416,8 +443,6 @@ html:not(.js) .reveal { opacity: 1; transform: none; }
 .bridge-card { animation: float 6s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .route-flow, .city-pulse, .node-ring, .bridge-card { animation: none; } .route-flow { stroke-dasharray: none; opacity: 0.35; } }
 
-/* La portada siempre en oscuro, aunque la app esté en tema claro (contraste de secciones night y del SVG). */
-html[data-theme="light"] .landing-dark { --color-ink: #0b0d12; --color-night: #07080b; --color-surface: #13161d; --color-line: #262b36; --color-line-strong: #3a4050; --color-paper: #f4efe4; --color-muted: #bab4a6; --color-faint: #9d9789; --color-brass: #e6cf8f; --color-gold: #d9b867; }
 /* La cabecera fija no tapa el foco al tabular. */
 html { scroll-padding-top: 6rem; }
 /* Pausa de movimiento elegida por la persona (WCAG 2.2.2). */

@@ -41,7 +41,7 @@ export function PublicHeader({ overlay = false, locale }: { overlay?: boolean; l
                 <Link href={NAV[0].href} className="rounded-lg px-3 py-2 text-[13px] font-medium text-muted transition-colors hover:text-paper">{tx(NAV[0].label)}</Link>
               </li>
               <li className="group relative">
-                <Link href="/#para-quien" className="flex items-center gap-1 rounded-lg px-3 py-2 text-[13px] font-medium text-muted transition-colors hover:text-paper group-focus-within:text-paper">
+                <Link href="/#para-quien" className="flex items-center gap-1 whitespace-nowrap rounded-lg px-3 py-2 text-[13px] font-medium text-muted transition-colors hover:text-paper group-focus-within:text-paper">
                   {tx('Para quién')} <ChevronDown className="h-3.5 w-3.5 transition-transform group-hover:rotate-180" aria-hidden />
                 </Link>
                 {/* Desplegable accesible con ratón y teclado (focus-within), sin JavaScript. */}
@@ -68,8 +68,8 @@ export function PublicHeader({ overlay = false, locale }: { overlay?: boolean; l
             </ul>
           </nav>
           <div className="hidden items-center gap-2 md:flex">
-            <ButtonLink href="/login" variant="ghost" className="h-9 px-3 text-[13px]">{tx('Iniciar sesión')}</ButtonLink>
-            <ButtonLink href="/#para-quien" className="h-9 rounded-full px-5 text-[13px] font-bold">{tx('Empezar gratis')}</ButtonLink>
+            <ButtonLink href="/login" variant="ghost" className="h-9 whitespace-nowrap px-3 text-[13px]">{tx('Iniciar sesión')}</ButtonLink>
+            <ButtonLink href="/#para-quien" className="h-10 whitespace-nowrap rounded-full !bg-night px-5 text-[13px] font-bold !text-white hover:!bg-brass-soft">{tx('Empezar gratis')}</ButtonLink>
           </div>
           {locale && <LanguageSwitcher current={locale} />}
           <MobileMenu items={[...NAV.map((n) => ({ ...n, label: tx(n.label) })), { href: '/inversores', label: tx('Inversores') }, ...ACTORS.map((a) => ({ href: `/para/${a.slug}`, label: locale === 'en' ? `For ${tx(a.plural).toLowerCase()}` : `Para ${a.plural.toLowerCase()}` }))]} />
