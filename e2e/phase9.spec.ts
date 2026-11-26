@@ -52,11 +52,14 @@ test.describe('fase 9 · procesos, mensajes y documentos', () => {
     await open(page, '/preview/agent-inbox');
     const groups = page.getByTestId('inbox-group');
     await expect(groups).toHaveCount(3);
-    await expect(groups.first().getByRole('heading')).toHaveText(/Daniel Kim/i);
-    await expect(groups.first().getByTestId('group-context')).toContainText('Bloqueado');
+    // Primero lo que espera tu respuesta; después lo que pide acción (bloqueado, vencido…).
+    await expect(groups.first().getByText('Te toca responder').first()).toBeVisible();
+    await expect(groups.filter({ hasText: 'Daniel Kim' }).getByTestId('group-context')).toContainText('Bloqueado');
     const sofia = groups.filter({ hasText: 'Sofía Martín' });
     await expect(sofia.getByText('Menor: la familia ve la conversación')).toBeVisible();
-    await expect(sofia.getByRole('link', { name: /Norte Sports Management/ })).toHaveAttribute('href', /^\/app\/inbox\/[0-9a-f-]{36}$/);
+    // Cada hilo se nombra por la contraparte (no por la propia agencia) y abre la conversación.
+    await expect(sofia.getByRole('link', { name: /Norte Sports Management/ })).toHaveCount(0);
+    await expect(sofia.locator('a[href^="/app/inbox/"]').first()).toHaveAttribute('href', /^\/app\/inbox\/[0-9a-f-]{36}$/);
   });
 
   test('conversación: panel de contexto con fase, siguiente acción, documentos y enlaces', async ({ page }) => {

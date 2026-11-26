@@ -16,7 +16,7 @@ export function PhaseMoveButtons({ caseId, stage, athleteName }: { caseId: strin
   if (!prev && !next) return null;
   const btn = 'inline-flex min-h-9 items-center gap-1 rounded-full border border-line px-2.5 text-xs font-semibold text-muted hover:border-brass hover:text-paper focus-visible:outline-2 focus-visible:outline-brass';
   return (
-    <div className="mt-2 flex items-center justify-between gap-2" data-testid="phase-move">
+    <div className="mt-2 flex items-center justify-between gap-2" data-testid="case-phase-move">
       {prev ? (
         <form action={moveCase}>
           <input type="hidden" name="id" value={caseId} /><input type="hidden" name="stage" value={prev.stage} />
