@@ -16,6 +16,7 @@ import { Reveal } from '@/components/Reveal';
 import { AgentHome } from './AgentHome';
 import { RoleHero } from '@/components/RoleHero';
 import { PlanUnlocks } from '@/components/PlanUnlocks';
+import { paysThroughFamily } from '@/lib/domain/minor-guard';
 import { isoDaysAgo } from '@/lib/domain/funnel';
 import { loadAthleteDashboard } from '@/lib/data/dashboard';
 import { AthleteCommandCenter } from '@/components/dashboard/AthleteCommandCenter';
@@ -206,7 +207,7 @@ export default async function HomePage() {
         </Card>
       </div>
 
-      {plan && plan === 'free' && <PlanUnlocks plan={plan} />}
+      {plan && plan === 'free' && <PlanUnlocks plan={plan} askFamily={paysThroughFamily(session)} />}
 
       <details className="rounded-[var(--radius-card)] border border-line bg-surface p-5">
         <summary className="cursor-pointer text-sm font-semibold text-paper">¿Algo que mejorar? Cuéntanoslo</summary>

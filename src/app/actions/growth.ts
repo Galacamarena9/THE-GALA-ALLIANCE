@@ -11,6 +11,7 @@ import { getSession, requireSession } from '@/lib/session';
 import type { FormState } from '@/app/actions/auth';
 import { TOPICS } from '@/content/academy';
 import { planByCode } from '@/content/plans';
+import { familyPaysPlan } from '@/lib/domain/minor-guard';
 
 // ---------------------------------------------------------------- Academia
 const topicIds = new Set(TOPICS.map((t) => t.id));
@@ -141,6 +142,8 @@ export async function requestPlan(_prev: FormState, formData: FormData): Promise
   if (!session) return { error: 'Inicia sesión o crea tu cuenta gratis para solicitarlo.' };
   const plan = planByCode(String(formData.get('plan_code') ?? ''));
   if (!plan || plan.cta === 'signup') return { error: 'Plan no válido.' };
+  // QA menores: la contratación de un plan de familia la decide y la solicita el tutor.
+  if (familyPaysPlan(session, plan.audience)) return { error: 'Pídeselo a tu familia: la contratación la hace tu madre, padre o tutor desde su cuenta.' };
   const parsed = z.object({
     message: z.string().trim().max(1000).optional(),
     organization_id: z.string().uuid().optional().or(z.literal('')),
