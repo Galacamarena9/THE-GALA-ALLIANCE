@@ -66,7 +66,7 @@ export function RecruitingCardView({ card: c }: { card: RecruitingCard }) {
         <p className="text-right text-xs leading-relaxed text-faint">Private link<span className="block">Active until {expires}</span></p>
       </header>
 
-      <main className="mx-auto max-w-[720px] px-5 pb-20">
+      <main id="main-content" className="mx-auto max-w-[720px] px-5 pb-20">
         {/* Ficha pública: el vídeo se abre en su web (sin incrustar terceros ni cookies aquí). */}
         {video && (
           <a href={c.video_url ?? video.src} target="_blank" rel="noopener noreferrer" className="group relative flex aspect-video items-center justify-center overflow-hidden rounded-2xl border border-line bg-surface shadow-[var(--shadow-premium)] transition-colors hover:border-brass/50">

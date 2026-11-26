@@ -8,6 +8,7 @@ import { TALENT_FILTER_KEYS, parseTalentFilters } from '@/lib/domain/talent-sear
 import { DIRECTORY_DIVISIONS } from '@/lib/data/directory';
 import { createClient } from '@/lib/supabase/server';
 import { getSession, requireSession } from '@/lib/session';
+import { requireAdmin } from '@/lib/admin-guard';
 import type { FormState } from '@/app/actions/auth';
 import { TOPICS } from '@/content/academy';
 import { planByCode } from '@/content/plans';
@@ -164,8 +165,7 @@ export async function requestPlan(_prev: FormState, formData: FormData): Promise
 }
 
 export async function updateServiceRequest(formData: FormData) {
-  const session = await requireSession(['admin']);
-  if (!session.roles.includes('admin')) return;
+  await requireAdmin();
   const parsed = z.object({
     id: z.string().uuid(),
     status: z.enum(['new', 'contacted', 'won', 'lost']),

@@ -10,7 +10,13 @@ import { startCheckout } from '@/app/actions/autonomy';
 import { getSession } from '@/lib/session';
 import { familyPaysPlan, FAMILY_ASK_HREF } from '@/lib/domain/minor-guard';
 import { createClient } from '@/lib/supabase/server';
-import { AUDIENCE_LABEL, PLANS, VISIBILITY_PROMISE, type PlanAudience } from '@/content/plans';
+import { AUDIENCE_LABEL, PLANS, VISIBILITY_PROMISE, type Plan, type PlanAudience } from '@/content/plans';
+
+/** Tipo de cuenta con el que se da de alta cada público (para que el alta no diga «gratis para atletas» a una agencia). */
+const SIGNUP_ROLE: Record<PlanAudience, string> = { athlete: 'athlete', family: 'parent', organization: 'university', academy: 'coach', agent: 'agent', brand: 'brand' };
+/** Alta con el plan elegido; tras crear la cuenta vuelve a /precios con la sesión abierta para enviar la solicitud. */
+const signupHref = (p: Plan, withNext = false) =>
+  `/signup?role=${SIGNUP_ROLE[p.audience]}&plan=${p.code}${withNext ? `&next=${encodeURIComponent(`/precios?plan=${p.code}`)}` : ''}`;
 
 export async function generateMetadata(): Promise<Metadata> {
   const tx = await getT();
@@ -20,10 +26,11 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
+/** Agencias primero: es quien paga (QA web-admin #6). */
 const GROUPS: { id: string; title: string; intro: string; audiences: PlanAudience[]; cols: string }[] = [
+  { id: 'agencias', title: 'Agencias', intro: 'Programa fundador: las 15 primeras agencias pagan un 40 % menos de por vida (47 €/mes Agente, 119 €/mes Agencia). Todas empiezan con 30 días gratis y cancelan cuando quieran. Precios sin IVA. Nunca cobramos comisión por atleta ni por contactar.', audiences: ['agent'], cols: 'md:grid-cols-3' },
   { id: 'personas', title: 'Atletas y familias', intro: 'El perfil es gratis. Core y Elite se generan al momento desde tu Passport, sin esperas ni citas. Signature es el acompañamiento personal de la fundadora.', audiences: ['athlete', 'family'], cols: 'md:grid-cols-2 xl:grid-cols-4' },
   { id: 'organizaciones', title: 'Universidades, academias y marcas', intro: 'Se verifican solas con el correo de su dominio oficial. Gratis durante el piloto.', audiences: ['organization', 'academy', 'brand'], cols: 'md:grid-cols-3' },
-  { id: 'agencias', title: 'Agencias', intro: 'Programa fundador: las 15 primeras agencias pagan un 40 % menos de por vida (47 €/mes Agente, 119 €/mes Agencia). Todas empiezan con 30 días gratis y cancelan cuando quieran. Precios sin IVA. Nunca cobramos comisión por atleta ni por contactar.', audiences: ['agent'], cols: 'md:grid-cols-3' },
 ];
 
 export default async function PricingPage() {
@@ -31,6 +38,8 @@ export default async function PricingPage() {
   // Página pública: si la autenticación no responde, se muestra igualmente como visitante.
   const session = await getSession().catch(() => null);
   const payments = Boolean(process.env.STRIPE_SECRET_KEY);
+  // Contacto ya existente en la configuración (el de la fundadora, que usa /inversores). Sin él, solo el formulario.
+  const contactEmail = process.env.NEXT_PUBLIC_INVESTOR_EMAIL || null;
   let orgs: { id: string; name: string }[] = [];
   const founder = founderSeats(await (async () => {
     try { const { data } = await (await createClient()).rpc('agency_founder_status'); return (data as { cap: number; taken: number; remaining: number }[] | null)?.[0]; } catch { return null; }
@@ -45,7 +54,7 @@ export default async function PricingPage() {
     <I18nProvider locale={tx.locale}>
     <div className="relative" lang={tx.locale}>
       <PublicHeader locale={tx.locale} />
-      <main className="mx-auto max-w-6xl px-5 py-14 sm:px-8">
+      <main id="main-content" className="mx-auto max-w-6xl px-5 py-14 sm:px-8">
         <p className="text-xs font-medium uppercase tracking-[0.22em] text-brass">{tx('Planes y servicios')}</p>
         <h1 className="mt-3 max-w-3xl text-4xl text-paper sm:text-5xl">{tx('Pagas por ayuda experta, nunca por que te vean')}</h1>
         <p className="mt-5 max-w-2xl text-lg text-muted">{tx(VISIBILITY_PROMISE)}</p>
@@ -77,7 +86,7 @@ export default async function PricingPage() {
                         </p>
                       )}
                       {p.cta === 'signup' ? (
-                        <ButtonLink href={session ? '/app' : p.audience === 'athlete' ? '/signup?role=athlete' : '/signup'} className="w-full justify-center">{session ? tx('Ir a mi espacio') : p.audience === 'athlete' ? 'Crear mi Passport gratis' : tx('Crear cuenta gratis')}</ButtonLink>
+                        <ButtonLink href={session ? '/app' : signupHref(p)} className="w-full justify-center">{session ? tx('Ir a mi espacio') : p.audience === 'athlete' ? tx('Crear mi Passport gratis') : p.audience === 'agent' ? tx('Probar 30 días gratis') : tx('Crear cuenta gratis')}</ButtonLink>
                       ) : session && familyPaysPlan(session, p.audience) ? (
                         <div className="grid gap-2" data-testid="family-pays">
                           <p className="text-xs text-muted">{tx('Como eres menor de edad, este plan lo contrata tu madre, padre o tutor desde su cuenta.')}</p>
@@ -94,8 +103,18 @@ export default async function PricingPage() {
                         </form>
                       ) : session ? (
                         <PlanRequestForm planCode={p.code} organizations={['organization', 'academy', 'agent', 'brand'].includes(p.audience) ? orgs : []} />
+                      ) : p.cta === 'checkout' ? (
+                        <ButtonLink href={signupHref(p)} className="w-full justify-center">{`${tx('Empezar con')} ${tx(p.name)}`}</ButtonLink>
                       ) : (
-                        <ButtonLink href="/signup" variant={p.cta === 'checkout' ? 'primary' : 'secondary'} className="w-full justify-center">{p.cta === 'checkout' ? `${tx('Empezar con')} ${tx(p.name)}` : tx('Solicitar plaza')}</ButtonLink>
+                        // «Solicitar plaza» sin sesión: alta con el plan y vuelta aquí para enviar la solicitud (formulario real);
+                        // si está configurado el contacto de la fundadora, también se le puede escribir directamente.
+                        <div className="grid gap-2">
+                          <ButtonLink href={signupHref(p, true)} variant="secondary" className="w-full justify-center">{tx('Solicitar plaza')}</ButtonLink>
+                          {contactEmail && (
+                            <a href={`mailto:${contactEmail}?subject=${encodeURIComponent(`The Gala Alliance · ${tx(p.name)}`)}`} className="text-center text-xs text-brass underline underline-offset-2">{tx('O escribe a la fundadora')}</a>
+                          )}
+                          <p className="text-center text-[11px] text-faint">{tx('Crea tu cuenta gratis y envía la solicitud: te escribimos para cerrar el alcance. No se cobra nada sin tu confirmación por escrito.')}</p>
+                        </div>
                       )}
                     </div>
                   </article>

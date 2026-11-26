@@ -14,7 +14,8 @@ import { previewPipelineActions } from '@/lib/preview/pipeline';
 export const metadata: Metadata = {
   title: 'Demo para agentes',
   description: 'Prueba el espacio de trabajo de la agencia con datos de ejemplo, sin registrarte.',
-  robots: { index: false, follow: true },
+  // follow:false: la demo contiene enlaces de la app real (/app/*, /athletes/a1…) que fuera de una sesión no llevan a nada.
+  robots: { index: false, follow: false },
 };
 
 /**
@@ -30,14 +31,15 @@ export default function AgentDemoPage() {
         <div className="sticky top-16 z-30 border-b border-line bg-night text-[#f6f3ec]">
           <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-5 py-3 sm:px-8">
             <p className="text-sm"><strong className="font-semibold">Demo con datos de ejemplo.</strong> Así es tu agencia en The Gala Alliance; nada de lo que ves es real.</p>
-            <Link href="/signup?role=agent" className="inline-flex min-h-11 items-center gap-2 rounded-full bg-lime px-5 text-sm font-semibold text-night">
+            <Link href="/signup?role=agent&plan=agent_solo" className="inline-flex min-h-11 items-center gap-2 rounded-full bg-lime px-5 text-sm font-semibold text-night">
               Probar 30 días gratis <ArrowRight className="h-4 w-4" aria-hidden />
             </Link>
           </div>
         </div>
         <div className="mx-auto max-w-6xl space-y-12 px-5 py-10 sm:px-8">
           <p className="text-xs text-faint">En la demo los botones no abren nada: es una vista de ejemplo.</p>
-          <div className="pointer-events-none select-none space-y-12" aria-describedby="demo-nota">
+          {/* `inert`: ni ratón, ni teclado, ni lector de pantalla llegan a los enlaces de la app (antes solo pointer-events-none). */}
+          <div inert className="select-none space-y-12" aria-describedby="demo-nota">
           <AgentHomeView displayName="Carlos Ruiz" data={previewAgentHome('full')} />
           <section aria-labelledby="demo-procesos">
             <p className="eyebrow text-gold">Procesos</p>
@@ -58,13 +60,13 @@ export default function AgentDemoPage() {
               {solo ? `${solo.name}: ${solo.price}${solo.priceNote ? ` (${solo.priceNote})` : ''}. ` : ''}Importa tus procesos y contactos desde Excel (CSV) y empieza hoy. Sin comisiones ni cobro por contactar.
             </p>
             <div className="mt-6 flex flex-wrap justify-center gap-3">
-              <Link href="/signup?role=agent" className="inline-flex min-h-12 items-center rounded-full bg-paper px-6 font-semibold text-ink">Crear mi agencia</Link>
+              <Link href="/signup?role=agent&plan=agent_solo" className="inline-flex min-h-12 items-center rounded-full bg-paper px-6 font-semibold text-ink">Crear mi agencia</Link>
               <Link href="/precios" className="inline-flex min-h-12 items-center rounded-full border border-line-strong px-6 font-semibold text-paper">Ver precios</Link>
             </div>
           </section>
         </div>
       </main>
-      <PublicFooter />
+      <PublicFooter audience="agent" />
     </div>
   );
 }

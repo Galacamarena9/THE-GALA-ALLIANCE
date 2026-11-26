@@ -16,8 +16,8 @@ export async function enforceMfaChallenge(next: string) {
 }
 
 /** Pantallas de administración: doble factor obligatorio y verificado en esta sesión. */
-export async function requireAdminMfa() {
+export async function requireAdminMfa(next = '/app/admin') {
   const step = mfaStep({ ...(await getAal()), admin: true });
-  if (step === 'challenge') redirect('/mfa?next=/app/admin');
+  if (step === 'challenge') redirect(`/mfa?next=${encodeURIComponent(next)}`);
   if (step === 'enroll') redirect('/app/settings?mfa=required#doble-factor');
 }

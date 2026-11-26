@@ -79,6 +79,29 @@ Cambios (rama `fix/agente-flujos`):
 Pruebas: unit 306/306; RLS 455/455 (nueva: marcas de lectura); tsc OK; build OK.
 Pendiente de Gala (L5): claves Stripe live; si quiere envío real de invitaciones por email (Resend) y que reclamar la invitación acepte la representación.
 
+## [QA web-admin] 2026-11-26 · Menú móvil, MFA en todo el admin, dominio de organizaciones y camino de compra de agencias
+
+### Hecho
+- **Menú móvil público**: el panel se pinta con un portal en `<body>` (dentro de la cabecera con `backdrop-filter`
+  medía 49 px). Verificado con Playwright a 390 px en /precios, /para/agentes, /guia, /legal/terminos, /herramientas
+  y la portada tras scroll: panel de 390×780 px, los 14 enlaces visibles, cierra con Escape.
+- **MFA admin**: guarda única `requireAdmin()` (`src/lib/admin-guard.ts`: rol admin + aal2) en `app/app/admin/layout.tsx`,
+  en cada página de /app/admin/* y en todas las server actions de admin (admin, admin-ops, safety, outreach, guardian,
+  showcase, growth, universities, autonomy). Tras el reto MFA se vuelve a la pantalla de origen.
+- **Dominio al verificar organizaciones**: `emailDomainMatchesWebsite` (mismo host o subdominio con punto; test
+  unitario). Si no coincide, «Verificar» exige marcar la confirmación y el servidor lo vuelve a comprobar.
+- **DSA**: cerrar una denuncia exige motivo ≥ 10; «Actuar» exige medida y la registra con `moderation_act`.
+  Borrar organización (doble aprobación) muestra nombre, tipo, miembros, oportunidades y quién lo pidió, y pide escribir
+  el nombre. Las acciones de admin que fallan vuelven con `?aviso=`.
+- **/precios**: agencias primero; «Probar 30 días gratis» → `/signup?role=agent&plan=<plan>`; «Solicitar plaza» → alta
+  con plan y vuelta a /precios para enviar la solicitud (y mailto a la fundadora si `NEXT_PUBLIC_INVESTOR_EMAIL` existe).
+  Pie de /para/agentes y /demo/agente con CTA de agencia.
+- **/test-opciones** con `OptionsQuiz`; `id="main-content"` en todas las páginas públicas; demo del agente `inert`;
+  `<html lang>` sigue al idioma en las pantallas traducidas.
+
+### Pruebas ejecutadas
+- Unitarias 301/301 · RLS 454/454 (BD propia) · `tsc` sin errores · `next build` OK · Playwright 390 px (arriba).
+
 ## [QA trials/familia] 2026-11-26 · Candidatura a trials, «Invitar a prueba» y encaje capado por el coste
 
 ### Hecho
