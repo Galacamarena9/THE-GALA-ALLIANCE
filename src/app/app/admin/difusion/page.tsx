@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: 'Difusión' };
 
 export default async function OutreachPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const session = await requireSession(['admin']);
-  await requireAdminMfa();
+  await requireAdminMfa('/app/admin/difusion');
   if (!session.roles.includes('admin')) redirect('/app');
   const sp = await searchParams;
   const supabase = await createClient();

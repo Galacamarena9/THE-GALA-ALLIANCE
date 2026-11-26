@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { getSession, requireSession } from '@/lib/session';
+import { requireAdmin } from '@/lib/admin-guard';
 import type { FormState } from '@/app/actions/auth';
 import { logEvent } from '@/lib/events';
 import { createHash } from 'node:crypto';
@@ -225,8 +226,7 @@ export async function startCheckout(formData: FormData) {
 
 // ---------------------------------------------------------------- Admin
 export async function runRetentionNow() {
-  const session = await requireSession(['admin']);
-  if (!session.roles.includes('admin')) return;
+  await requireAdmin('/app/admin/panel');
   const supabase = await createClient();
   must(await supabase.rpc('run_retention'), 'rpc.run_retention');
   revalidatePath('/app/admin/panel');

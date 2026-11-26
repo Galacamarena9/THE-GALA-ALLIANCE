@@ -35,7 +35,7 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
         <Logo href="/onboarding" />
         <LanguageSwitcher current={locale} />
       </header>
-      <main className="mx-auto max-w-3xl px-5 pb-20 pt-4 sm:px-8">
+      <main id="main-content" className="mx-auto max-w-3xl px-5 pb-20 pt-4 sm:px-8">
         <p className="text-[13px] font-semibold text-brass">{t.hello(session.displayName)}</p>
         <h1 className="mt-2 text-4xl text-paper">{add === '1' ? t.titleAdd : t.title}</h1>
         <p className="mt-3 text-muted">{t.intro}</p>

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { requireSession } from '@/lib/session';
+import { requireAdmin } from '@/lib/admin-guard';
 import { createClient } from '@/lib/supabase/server';
 import { Card, CardTitle, Notice, PageHeader } from '@/components/ui';
 
@@ -38,7 +38,7 @@ const money = (cents: number, cur: string) => new Intl.NumberFormat('es-ES', { s
  * grupos de menos de 5 ocultos y sin ningún ranking de personas. El dinero real sale de Stripe, no de lo declarado.
  */
 export default async function AnalyticsPage({ searchParams }: { searchParams: Promise<{ d?: string }> }) {
-  await requireSession(['admin']);
+  await requireAdmin('/app/admin/analytics');
   const sp = await searchParams;
   const days = [7, 30, 90].includes(Number(sp.d)) ? Number(sp.d) : 30;
   const supabase = await createClient();

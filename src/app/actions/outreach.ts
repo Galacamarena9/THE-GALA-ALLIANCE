@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
-import { requireSession } from '@/lib/session';
+import { requireAdmin as requireAdminGuard } from '@/lib/admin-guard';
 import { siteUrl } from '@/lib/env';
 import { OUTREACH_SEED } from '@/content/outreach-seed';
 import { CHANNELS, MAX_INVITES_PER_BATCH, OUTREACH_SEGMENTS, RESPONSE_ANSWERS, canAutoInvite, invitationEmail, type OutreachSegment } from '@/lib/domain/outreach';
@@ -13,11 +13,7 @@ import { outreachNotifyEmail, outreachReplyTo, outreachSenderName, sendEmail } f
 
 const PATH = '/app/admin/difusion';
 
-async function requireAdmin() {
-  const session = await requireSession(['admin']);
-  if (!session.roles.includes('admin')) throw new Error('admin_only');
-  return session;
-}
+const requireAdmin = () => requireAdminGuard(PATH);
 
 const back = (aviso: string): never => redirect(`${PATH}?aviso=${encodeURIComponent(aviso)}`);
 

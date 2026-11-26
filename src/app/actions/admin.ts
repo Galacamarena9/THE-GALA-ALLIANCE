@@ -2,75 +2,164 @@
 
 import { must } from '@/lib/supabase/must';
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
-import { requireSession } from '@/lib/session';
+import { requireAdmin } from '@/lib/admin-guard';
+import { domainOf } from '@/lib/domain/labels';
+import { emailDomainMatchesWebsite } from '@/lib/domain/org-domain';
+import { REPORT_MEASURES } from '@/lib/domain/moderation-measures';
 import type { FormState } from './auth';
 
-async function requireAdmin() {
-  const session = await requireSession(['admin']);
-  if (!session.roles.includes('admin')) throw new Error('admin_only');
-  return session;
-}
+
+/**
+ * Las acciones de las colas de /app/admin vuelven a la página con `?aviso=` (como difusión): el admin siempre ve
+ * si se guardó o por qué no, en vez de una página que no cambia.
+ */
+const back = (aviso: string, view?: 'moderation'): never =>
+  redirect(`/app/admin?${view ? `view=${view}&` : ''}aviso=${encodeURIComponent(aviso)}`);
+const logFail = (what: string, e: { code?: string; message: string }) => console.error(`[admin-action-failed] ${what}: ${e.code ?? ''} ${e.message}`);
 
 export async function reviewOrganization(formData: FormData) {
   await requireAdmin();
-  const parsed = z.object({ id: z.string().uuid(), status: z.enum(['verified', 'rejected']), institution_id: z.string().uuid().optional().or(z.literal('')) }).safeParse(Object.fromEntries(formData));
-  if (!parsed.success) return;
+  const parsed = z.object({
+    id: z.string().uuid(),
+    status: z.enum(['verified', 'rejected']),
+    institution_id: z.string().uuid().optional().or(z.literal('')),
+    confirm_mismatch: z.literal('on').optional(),
+  }).safeParse(Object.fromEntries(formData));
+  if (!parsed.success) back('Solicitud no válida: vuelve a intentarlo.');
+  const d = parsed.data!;
   const supabase = await createClient();
-  must(await supabase
+  if (d.status === 'verified') {
+    // El servidor recalcula la coincidencia de dominio: no se fía de lo que pinte la interfaz.
+    const { data: org, error } = await supabase.from('organizations').select('website, requester_email_domain').eq('id', d.id).maybeSingle();
+    if (error || !org) back('No se ha encontrado la organización.');
+    const match = emailDomainMatchesWebsite(org!.requester_email_domain, domainOf(org!.website));
+    if (match !== true && d.confirm_mismatch !== 'on') back('El dominio del email no coincide con la web oficial: marca la confirmación de que has revisado la documentación antes de verificar.');
+  }
+  const { error } = await supabase
     .from('organizations')
-    .update({ verification_status: parsed.data.status, ...(parsed.data.institution_id ? { institution_id: parsed.data.institution_id } : {}) })
-    .eq('id', parsed.data.id), 'organizations.update');
+    .update({ verification_status: d.status, ...(d.institution_id ? { institution_id: d.institution_id } : {}) })
+    .eq('id', d.id);
+  if (error) { logFail('organizations.update', error); back('No se ha podido guardar la verificación.'); }
   revalidatePath('/app/admin');
+  back(d.status === 'verified' ? 'Organización verificada.' : 'Organización rechazada.');
 }
+
+const reviewSchema = z.object({ id: z.string().uuid(), status: z.enum(['published', 'rejected']), review_note: z.string().trim().max(1000).optional() })
+  .refine((v) => v.status !== 'rejected' || (v.review_note ?? '').length >= 10, { message: 'note_required' });
 
 export async function reviewOpportunity(formData: FormData) {
   await requireAdmin();
-  const parsed = z.object({ id: z.string().uuid(), status: z.enum(['published', 'rejected']), review_note: z.string().max(1000).optional() }).safeParse(Object.fromEntries(formData));
-  if (!parsed.success) return;
+  const parsed = reviewSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) back('Para rechazar, explica el motivo a la organización (mínimo 10 caracteres).');
+  const d = parsed.data!;
   const supabase = await createClient();
-  must(await supabase.from('opportunities').update({ status: parsed.data.status, review_note: parsed.data.review_note || null }).eq('id', parsed.data.id), 'opportunities.update');
+  const { error } = await supabase.from('opportunities').update({ status: d.status, review_note: d.review_note || null }).eq('id', d.id);
+  if (error) { logFail('opportunities.update', error); back('No se ha podido guardar la revisión de la oportunidad.'); }
   revalidatePath('/app/admin');
+  back(d.status === 'published' ? 'Oportunidad publicada.' : 'Oportunidad rechazada con nota.');
 }
 
 export async function reviewCampaign(formData: FormData) {
   await requireAdmin();
-  const parsed = z.object({ id: z.string().uuid(), status: z.enum(['published', 'rejected']), review_note: z.string().max(1000).optional() }).safeParse(Object.fromEntries(formData));
-  if (!parsed.success) return;
+  const parsed = reviewSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) back('Para rechazar, explica el motivo a la marca (mínimo 10 caracteres).');
+  const d = parsed.data!;
   const supabase = await createClient();
-  must(await supabase.from('brand_campaigns').update({ status: parsed.data.status, review_note: parsed.data.review_note || null }).eq('id', parsed.data.id), 'brand_campaigns.update');
+  const { error } = await supabase.from('brand_campaigns').update({ status: d.status, review_note: d.review_note || null }).eq('id', d.id);
+  if (error) { logFail('brand_campaigns.update', error); back('No se ha podido guardar la revisión de la oferta.'); }
   revalidatePath('/app/admin');
+  back(d.status === 'published' ? 'Oferta publicada.' : 'Oferta rechazada con nota.');
 }
 
+/** ¿Sobre quién recae la medida? Persona u organización responsable del contenido denunciado. */
+async function reportSubject(supabase: Awaited<ReturnType<typeof createClient>>, type: string, id: string): Promise<{ user: string | null; org: string | null }> {
+  const one = async (table: string, cols: string) => (await supabase.from(table).select(cols).eq('id', id).maybeSingle()).data as Record<string, string | null> | null;
+  switch (type) {
+    case 'organization': return { user: null, org: id };
+    case 'athlete_profile': return { user: id, org: null };
+    case 'opportunity': return { user: null, org: (await one('opportunities', 'organization_id'))?.organization_id ?? null };
+    case 'campaign': return { user: null, org: (await one('brand_campaigns', 'organization_id'))?.organization_id ?? null };
+    case 'contact_request': { const r = await one('contact_requests', 'organization_id, requested_by'); return { user: r?.requested_by ?? null, org: r?.organization_id ?? null }; }
+    case 'news_post': { const r = await one('news_posts', 'organization_id, author_id'); return { user: r?.organization_id ? null : r?.author_id ?? null, org: r?.organization_id ?? null }; }
+    default: return { user: null, org: null };
+  }
+}
+
+/**
+ * Denuncias (DSA): cerrar exige una decisión motivada (≥ 10 caracteres). «Actuar» exige además elegir la medida y
+ * la registra con `moderation_act` (auditoría, aviso a la persona/organización afectada y posibilidad de apelar).
+ */
 export async function decideReport(formData: FormData) {
-  await requireAdmin();
-  const parsed = z.object({ id: z.string().uuid(), status: z.enum(['actioned', 'dismissed', 'reviewing']), decision_reason: z.string().max(2000).optional() }).safeParse(Object.fromEntries(formData));
-  if (!parsed.success) return;
+  const session = await requireAdmin();
+  const parsed = z.object({
+    id: z.string().uuid(),
+    status: z.enum(['actioned', 'dismissed', 'reviewing']),
+    decision_reason: z.string().trim().max(2000).optional(),
+    measure: z.enum(REPORT_MEASURES).optional().or(z.literal('')),
+  }).safeParse(Object.fromEntries(formData));
+  if (!parsed.success) back('Solicitud no válida.', 'moderation');
+  const d = parsed.data!;
   const supabase = await createClient();
-  must(await supabase.from('content_reports').update({ status: parsed.data.status, decision_reason: parsed.data.decision_reason || null }).eq('id', parsed.data.id), 'content_reports.update');
+  if (d.status === 'reviewing') {
+    const { error } = await supabase.from('content_reports').update({ status: 'reviewing' }).eq('id', d.id);
+    if (error) { logFail('content_reports.update', error); back('No se ha podido marcar en revisión.', 'moderation'); }
+    revalidatePath('/app/admin');
+    back('Denuncia marcada en revisión.', 'moderation');
+  }
+  const reason = d.decision_reason ?? '';
+  if (reason.length < 10) back('Explica el motivo de la decisión (mínimo 10 caracteres): la DSA exige una decisión motivada.', 'moderation');
+  if (d.status === 'dismissed') {
+    const { error } = await supabase.from('content_reports')
+      .update({ status: 'dismissed', decision_reason: reason, decided_by: session.userId, decided_at: new Date().toISOString() }).eq('id', d.id);
+    if (error) { logFail('content_reports.update', error); back('No se ha podido desestimar la denuncia.', 'moderation'); }
+    revalidatePath('/app/admin');
+    back('Denuncia desestimada con motivo.', 'moderation');
+  }
+  if (!d.measure) back('Elige la medida que se aplica (o desestima la denuncia).', 'moderation');
+  const { data: report } = await supabase.from('content_reports').select('entity_type, entity_id').eq('id', d.id).maybeSingle();
+  if (!report) back('No se ha encontrado la denuncia.', 'moderation');
+  const subject = await reportSubject(supabase, report!.entity_type, report!.entity_id);
+  if (!subject.user && !subject.org) back('No se puede saber a quién aplicar la medida: gestiona esta denuncia desde Trust & Safety.', 'moderation');
+  const { error } = await supabase.rpc('moderation_act', {
+    p_action: d.measure, p_reason: reason, p_subject_user: subject.user, p_subject_org: subject.org,
+    p_scopes: [], p_days: null, p_case: null, p_report: d.id,
+  });
+  if (error) {
+    logFail('rpc.moderation_act', error);
+    back(error.message.includes('admin_only') ? 'Necesitas el rol de Trust & Safety para aplicar medidas.' : error.message.includes('cannot_moderate_self') ? 'No puedes sancionarte a ti mismo.' : 'No se ha podido aplicar la medida.', 'moderation');
+  }
   revalidatePath('/app/admin');
+  revalidatePath('/app/admin/safety');
+  back('Medida aplicada, registrada y notificada. La denuncia queda como actuada.', 'moderation');
 }
 
 export async function verifyAthleteLink(formData: FormData) {
-  await requireAdmin();
-  const session = await requireSession();
-  const id = z.string().uuid().parse(formData.get('id'));
+  const session = await requireAdmin();
+  const id = z.string().uuid().safeParse(formData.get('id'));
+  if (!id.success) back('Enlace no válido.');
   const supabase = await createClient();
-  must(await supabase.from('athlete_links').update({ verified: true, verified_by: session.userId, verified_at: new Date().toISOString() }).eq('id', id), 'athlete_links.update');
+  const { error } = await supabase.from('athlete_links').update({ verified: true, verified_by: session.userId, verified_at: new Date().toISOString() }).eq('id', id.data!);
+  if (error) { logFail('athlete_links.update', error); back('No se ha podido verificar el enlace.'); }
   revalidatePath('/app/admin');
+  back('Enlace verificado.');
 }
 
 export async function resolveDataRequest(formData: FormData) {
   await requireAdmin();
   const parsed = z.object({ id: z.string().uuid(), status: z.enum(['in_progress', 'completed', 'rejected']) }).safeParse(Object.fromEntries(formData));
-  if (!parsed.success) return;
+  if (!parsed.success) back('Solicitud no válida.');
+  const d = parsed.data!;
   const supabase = await createClient();
-  must(await supabase
+  const { error } = await supabase
     .from('data_subject_requests')
-    .update({ status: parsed.data.status, resolved_at: parsed.data.status === 'in_progress' ? null : new Date().toISOString() })
-    .eq('id', parsed.data.id), 'opportunities.update');
+    .update({ status: d.status, resolved_at: d.status === 'in_progress' ? null : new Date().toISOString() })
+    .eq('id', d.id);
+  if (error) { logFail('data_subject_requests.update', error); back('No se ha podido actualizar la solicitud de derechos.'); }
   revalidatePath('/app/admin');
+  back('Solicitud de derechos actualizada.');
 }
 
 /**

@@ -34,7 +34,7 @@ export default async function ForActorPage({ params }: { params: Promise<{ slug:
   return (
     <>
       <PublicHeader />
-      <main className="mx-auto max-w-6xl px-5 py-16 sm:px-8">
+      <main id="main-content" className="mx-auto max-w-6xl px-5 py-16 sm:px-8">
         <p className="text-[13px] font-semibold text-brass">Para {a.plural.toLowerCase()}</p>
         <h1 className="mt-3 max-w-4xl text-[40px] leading-tight text-paper sm:text-6xl">{a.promise}</h1>
         <div className="mt-12 grid gap-px overflow-hidden rounded-[var(--radius-card)] border border-line bg-line sm:grid-cols-2">
@@ -52,12 +52,12 @@ export default async function ForActorPage({ params }: { params: Promise<{ slug:
         )}
         <p className="mt-6 text-sm text-muted">Además, como todos los usuarios: escaparate de atletas, becas y oportunidades, directorio de universidades con datos oficiales, centro de información, calculadora de becas, mensajes seguros, Actualidad y Gala IA.</p>
         <div className="mt-10 flex flex-wrap gap-3">
-          <ButtonLink href={`/signup?role=${a.role}`} className="px-6 py-3">Crear cuenta de {a.label.toLowerCase()}</ButtonLink>
+          <ButtonLink href={slug === 'agentes' ? '/signup?role=agent&plan=agent_solo' : `/signup?role=${a.role}`} className="px-6 py-3">Crear cuenta de {a.label.toLowerCase()}</ButtonLink>
           {slug === 'agentes' && <ButtonLink href="/demo/agente" variant="secondary" className="px-6 py-3">Ver la demo sin registrarte</ButtonLink>}
           <ButtonLink href="/guia" variant="secondary" className="px-6 py-3">Leer la guía</ButtonLink>
         </div>
       </main>
-      <PublicFooter />
+      <PublicFooter audience={slug === 'agentes' ? 'agent' : 'athlete'} />
     </>
   );
 }

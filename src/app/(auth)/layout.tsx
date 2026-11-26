@@ -10,7 +10,7 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
         <header className="px-5 py-6 sm:px-8">
           <Logo />
         </header>
-        <main className="flex flex-1 items-start justify-center px-5 pb-16 pt-6 sm:pt-12">
+        <main id="main-content" className="flex flex-1 items-start justify-center px-5 pb-16 pt-6 sm:pt-12">
           <div className="w-full max-w-md">{children}</div>
         </main>
       </div>
