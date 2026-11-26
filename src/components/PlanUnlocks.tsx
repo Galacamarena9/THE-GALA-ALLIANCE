@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { ArrowRight, CalendarDays, CheckCircle2, FileText, GraduationCap, Lock, Plane, Scale, ScrollText, Users } from 'lucide-react';
 import { planByCode } from '@/content/plans';
 import { PREMIUM_FEATURES, featureState, unlockSummary, type AnyFamilyPlan } from '@/lib/domain/unlocks';
+import { FAMILY_ASK_HREF } from '@/lib/domain/minor-guard';
 
 const ICON = { report: FileText, cv: ScrollText, shortlist: GraduationCap, calendar: CalendarDays, offers: Scale, memo: CheckCircle2, visa: Plane, family: Users } as const;
 
@@ -9,8 +10,9 @@ const ICON = { report: FileText, cv: ScrollText, shortlist: GraduationCap, calen
  * Escaparate de funciones de pago: se ven todas, desbloqueadas o no, con una vista previa difuminada
  * de lo que contiene cada una. Así el usuario sabe exactamente qué gana antes de pagar.
  */
-export function PlanUnlocks({ plan }: { plan: AnyFamilyPlan }) {
+export function PlanUnlocks({ plan, askFamily = false }: { plan: AnyFamilyPlan; /** Atleta menor: no hay CTA de pago, se pide a la familia. */ askFamily?: boolean }) {
   const { unlocked, total, next } = unlockSummary(plan);
+  const buyHref = askFamily ? FAMILY_ASK_HREF : '/precios';
   const nextPlan = next ? planByCode(next) : null;
   return (
     <section aria-labelledby="unlocks-title" className="rise-in overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface">
@@ -24,8 +26,8 @@ export function PlanUnlocks({ plan }: { plan: AnyFamilyPlan }) {
           </div>
         </div>
         {nextPlan && (
-          <Link href="/precios" className="group inline-flex items-center gap-2 rounded-xl bg-night px-5 py-2.5 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5">
-            Desbloquear con {nextPlan.name} · {nextPlan.price} <ArrowRight className="h-4 w-4 text-lime transition-transform group-hover:translate-x-1" aria-hidden />
+          <Link href={buyHref} className="group inline-flex items-center gap-2 rounded-xl bg-night px-5 py-2.5 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5">
+            {askFamily ? <>Pídeselo a tu familia · {nextPlan.name}</> : <>Desbloquear con {nextPlan.name} · {nextPlan.price}</>} <ArrowRight className="h-4 w-4 text-lime transition-transform group-hover:translate-x-1" aria-hidden />
           </Link>
         )}
       </header>
@@ -50,8 +52,8 @@ export function PlanUnlocks({ plan }: { plan: AnyFamilyPlan }) {
               <ul className={`mt-3 space-y-1 rounded-xl border border-line bg-surface-2 p-3 text-xs text-paper ${open ? '' : 'select-none blur-[3px] transition-[filter] duration-500 group-hover:blur-[1.5px]'}`} aria-hidden={!open}>
                 {f.preview.map((x) => <li key={x} className="flex items-center gap-2"><CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-ok" aria-hidden />{x}</li>)}
               </ul>
-              <Link href={open ? f.href : '/precios'} className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-brass after:absolute after:inset-0">
-                {open ? 'Abrir' : `Desbloquear con ${p?.name}`} <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden />
+              <Link href={open ? f.href : buyHref} className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-brass after:absolute after:inset-0">
+                {open ? 'Abrir' : askFamily ? 'Pídeselo a tu familia' : `Desbloquear con ${p?.name}`} <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden />
               </Link>
             </li>
           );
