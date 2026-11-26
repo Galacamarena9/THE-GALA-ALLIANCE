@@ -12,7 +12,7 @@ export function safeRedirectPath(next: string | null | undefined, fallback = '/a
 }
 
 /** Destinos a los que se vuelve tras crear la cuenta (invitaciones y la app). Si no, ninguno. */
-const AFTER_SIGNUP = ['/invite', '/join', '/roster', '/difusion', '/oportunidades', '/app'];
+const AFTER_SIGNUP = ['/invite', '/join', '/roster', '/difusion', '/oportunidades', '/precios', '/app'];
 export function afterSignupPath(next: string | null | undefined): string | null {
   const p = safeRedirectPath(next, '');
   return p && AFTER_SIGNUP.some((root) => p === root || p.startsWith(`${root}/`) || p.startsWith(`${root}?`)) ? p : null;

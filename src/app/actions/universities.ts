@@ -4,6 +4,7 @@ import { must } from '@/lib/supabase/must';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { requireSession } from '@/lib/session';
+import { requireAdmin } from '@/lib/admin-guard';
 import { createClient } from '@/lib/supabase/server';
 import type { FormState } from './auth';
 
@@ -62,8 +63,7 @@ export async function claimInstitution(_prev: FormState, formData: FormData): Pr
 
 /** Admin: aprobar o rechazar una reclamación (la base de datos vincula la organización al aprobar). */
 export async function reviewClaim(formData: FormData) {
-  const session = await requireSession();
-  if (!session.roles.includes('admin')) return;
+  await requireAdmin();
   const id = z.string().uuid().parse(formData.get('id'));
   const status = z.enum(['approved', 'rejected']).parse(formData.get('status'));
   const supabase = await createClient();

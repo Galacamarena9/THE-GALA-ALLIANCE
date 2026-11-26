@@ -22,7 +22,7 @@ export default async function RecruitingCardPage({ params }: { params: Promise<{
     return (
       <div className="min-h-dvh">
         <header className="mx-auto flex max-w-[720px] items-center px-5 py-5"><Logo href="/" /></header>
-        <main className="mx-auto max-w-[720px] px-5 pt-16 text-center">
+        <main id="main-content" className="mx-auto max-w-[720px] px-5 pt-16 text-center">
           <Lock className="mx-auto h-8 w-8 text-faint" aria-hidden />
           <h1 className="mt-4 font-display text-2xl font-bold text-paper">This link is no longer active</h1>
           <p className="mx-auto mt-2 max-w-md text-muted">Recruiting links expire or can be revoked by the athlete and their family. Ask them for a new one.</p>

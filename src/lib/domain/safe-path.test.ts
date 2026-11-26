@@ -15,6 +15,7 @@ test('tras el alta solo se vuelve a invitaciones, oportunidades o la app', () =>
   assert.equal(afterSignupPath(`/invite/agencia/${tok}`), `/invite/agencia/${tok}`);
   assert.equal(afterSignupPath('/app'), '/app');
   assert.equal(afterSignupPath('/oportunidades/123'), '/oportunidades/123');
+  assert.equal(afterSignupPath('/precios?plan=agent_scale'), '/precios?plan=agent_scale');
   assert.equal(afterSignupPath('/legal/terminos'), null);
   assert.equal(afterSignupPath('//evil.com'), null);
   assert.equal(afterSignupPath('/apple'), null);

@@ -7,7 +7,9 @@ import { createClient } from '@/lib/supabase/server';
 import { ORG_TYPE_LABEL, LINK_KIND_LABEL, daysSince, domainOf, usd } from '@/lib/domain/labels';
 import type { OrgType } from '@/lib/types';
 import { classifyOfficialLink } from '@/lib/domain/official-sources';
-import { Badge, Card, CardTitle, PageHeader, inputClass, buttonClass } from '@/components/ui';
+import { emailDomainMatchesWebsite } from '@/lib/domain/org-domain';
+import { REPORT_MEASURES, REPORT_MEASURE_LABEL } from '@/lib/domain/moderation-measures';
+import { Badge, Card, CardTitle, Notice, PageHeader, inputClass, buttonClass } from '@/components/ui';
 import { ScorecardImportForm } from '@/components/forms';
 import { ScorecardBulkImport } from '@/components/ScorecardBulkImport';
 import { reviewClaim } from '@/app/actions/universities';
@@ -21,11 +23,13 @@ const REASON: Record<string, string> = { child_safety: 'Seguridad infantil', har
   payment_request: 'Pago sospechoso', unauthorized_document_use: 'Uso no autorizado de documentos',
   false_guarantee: 'Garantía falsa', incorrect_cost: 'Coste incorrecto' };
 
-export default async function AdminPage({ searchParams }: { searchParams: Promise<{ view?: string }> }) {
+export default async function AdminPage({ searchParams }: { searchParams: Promise<{ view?: string; aviso?: string }> }) {
   // Verificación y Moderación son dos destinos de Operaciones Gala sobre la misma página.
-  const moderation = (await searchParams).view === 'moderation';
+  const sp = await searchParams;
+  const moderation = sp.view === 'moderation';
+  const aviso = typeof sp.aviso === 'string' ? sp.aviso.slice(0, 300) : null;
   const session = await requireSession(['admin']);
-  await requireAdminMfa();
+  await requireAdminMfa('/app/admin');
   if (!session.roles.includes('admin')) redirect('/app');
   const supabase = await createClient();
 
@@ -51,6 +55,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         ? <PageHeader kicker="Operaciones Gala" title="Moderación" description="Denuncias por prioridad. Cada decisión queda en el registro de auditoría." />
         : <PageHeader kicker="Operaciones Gala" title="Verificación" description="Organizaciones, becas, campañas, enlaces y reclamaciones antes de publicarse. Cada decisión queda en el registro de auditoría." />}
       <div className="space-y-5">
+        {aviso && <Notice tone="neutral">{aviso}</Notice>}
 {!moderation && (<>
         {aiRow && (
           <Card>
@@ -85,10 +90,14 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                 {r.details && <p className="mt-1 text-sm text-muted">{r.details}</p>}
                 <form action={decideReport} className="mt-2 flex flex-wrap gap-2">
                   <input type="hidden" name="id" value={r.id} />
-                  <input name="decision_reason" placeholder="Motivo de la decisión (obligatorio para cerrar)" aria-label="Motivo" className={`${inputClass} max-w-md py-1.5`} />
+                  <input name="decision_reason" required minLength={10} maxLength={2000} placeholder="Motivo de la decisión (obligatorio, mín. 10 caracteres)" aria-label="Motivo de la decisión" className={`${inputClass} max-w-md py-1.5`} />
+                  <select name="measure" defaultValue="" aria-label="Medida si actúas" className={`${inputClass} w-auto py-1.5`}>
+                    <option value="">Medida (obligatoria para actuar)…</option>
+                    {REPORT_MEASURES.map((m) => <option key={m} value={m}>{REPORT_MEASURE_LABEL[m]}</option>)}
+                  </select>
                   <button name="status" value="actioned" className={buttonClass('primary', 'sm')}>Actuar</button>
                   <button name="status" value="dismissed" className={buttonClass('secondary', 'sm')}>Desestimar</button>
-                  <button name="status" value="reviewing" className="text-xs text-muted">Marcar en revisión</button>
+                  <button name="status" value="reviewing" formNoValidate className="text-xs text-muted">Marcar en revisión</button>
                 </form>
               </li>
             ))}
@@ -102,7 +111,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           <ul className="divide-y divide-line">
             {(orgs.data ?? []).map((o) => {
               const web = domainOf(o.website);
-              const match = web && o.requester_email_domain ? o.requester_email_domain.endsWith(web) : null;
+              const match = emailDomainMatchesWebsite(o.requester_email_domain, web);
               return (
                 <li key={o.id} className="py-3">
                   <p className="text-paper">{o.name} <span className="text-faint">· {ORG_TYPE_LABEL[o.type as OrgType]}</span></p>
@@ -117,6 +126,12 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                         <option value="">Vincular institución oficial…</option>
                         {(insts.data ?? []).map((i) => <option key={i.id} value={i.id}>{i.name} ({i.state})</option>)}
                       </select>
+                    )}
+                    {match !== true && (
+                      <label className="flex w-full items-center gap-2 text-xs text-warn">
+                        <input type="checkbox" name="confirm_mismatch" />
+                        El dominio no coincide (o no se puede comprobar): confirmo que he revisado la documentación oficial antes de verificar.
+                      </label>
                     )}
                     <button name="status" value="verified" className={buttonClass('primary', 'sm')}>Verificar</button>
                     <button name="status" value="rejected" className={buttonClass('secondary', 'sm')}>Rechazar</button>
@@ -139,7 +154,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                     <p className="text-xs text-muted">{org?.name} {org?.verification_status !== 'verified' && <span className="text-warn">(organización sin verificar: no se puede publicar)</span>} · coste {usd(o.annual_cost_usd)} · ayuda {usd(o.aid_amount_usd)}</p>
                     <form action={reviewOpportunity} className="mt-2 flex gap-2">
                       <input type="hidden" name="id" value={o.id} />
-                      <input name="review_note" placeholder="Nota (si rechazas)" aria-label="Nota" className={`${inputClass} py-1.5`} />
+                      <input name="review_note" maxLength={1000} placeholder="Motivo (obligatorio si rechazas)" aria-label="Motivo del rechazo" className={`${inputClass} py-1.5`} />
                       <button name="status" value="published" className={buttonClass('primary', 'sm')}>Publicar</button>
                       <button name="status" value="rejected" className={buttonClass('secondary', 'sm')}>Rechazar</button>
                     </form>
@@ -157,7 +172,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                   <p className="text-xs text-muted">{(c.organizations as unknown as { name: string } | null)?.name} · {c.compensation_kind} {c.compensation_usd != null ? usd(c.compensation_usd) : ''}</p>
                   <form action={reviewCampaign} className="mt-2 flex gap-2">
                     <input type="hidden" name="id" value={c.id} />
-                    <input name="review_note" placeholder="Nota (si rechazas)" aria-label="Nota" className={`${inputClass} py-1.5`} />
+                    <input name="review_note" maxLength={1000} placeholder="Motivo (obligatorio si rechazas)" aria-label="Motivo del rechazo" className={`${inputClass} py-1.5`} />
                     <button name="status" value="published" className={buttonClass('primary', 'sm')}>Publicar</button>
                     <button name="status" value="rejected" className={buttonClass('secondary', 'sm')}>Rechazar</button>
                   </form>

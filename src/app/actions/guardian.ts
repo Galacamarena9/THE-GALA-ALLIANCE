@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { requireSession } from '@/lib/session';
+import { requireAdmin } from '@/lib/admin-guard';
 import { createClient } from '@/lib/supabase/server';
 import { logEvent } from '@/lib/events';
 import { GUARDIAN_STATEMENT_VERSION } from '@/lib/domain/guardian-verification';
@@ -25,7 +26,7 @@ export async function attestGuardian(formData: FormData) {
 
 /** Administración: aprobar o rechazar la verificación de un tutor, siempre con motivo (queda auditado). */
 export async function reviewGuardian(formData: FormData) {
-  await requireSession(['admin']);
+  await requireAdmin('/app/admin/safety');
   const p = z.object({ link: uuid, decision: z.enum(['approve', 'reject']), reason: z.string().trim().min(10).max(300) }).safeParse(Object.fromEntries(formData));
   if (!p.success) redirect('/app/admin/safety?tutor=motivo');
   const supabase = await createClient();

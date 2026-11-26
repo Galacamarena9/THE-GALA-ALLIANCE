@@ -22,7 +22,7 @@ export default async function PublicGuideChapter({ params }: { params: Promise<{
   return (
     <>
       <PublicHeader />
-      <main className="mx-auto max-w-6xl px-5 py-14 sm:px-8">
+      <main id="main-content" className="mx-auto max-w-6xl px-5 py-14 sm:px-8">
         <GuideArticle chapter={chapter} base="/guia" />
         <div className="mt-12 max-w-3xl rounded-[var(--radius-card)] border border-brass/40 bg-surface p-6">
           <p className="font-display text-xl text-paper">¿Y en tu caso?</p>

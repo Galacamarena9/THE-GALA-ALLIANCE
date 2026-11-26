@@ -805,6 +805,13 @@ export const EN: Record<string, string> = {
   "🔒 Vídeo no compartido contigo": "🔒 Video not shared with you",
   "🛡️ Protecciones de menor activas: el contacto pasa por Gala y su familia.": "🛡️ Minor protections active: contact goes through Gala and their family.",
   "🛡️ Protecciones de menor activas: sin datos de contacto directos; cualquier contacto o solicitud pasa por Gala y su familia.": "🛡️ Minor protections active: no direct contact details; any contact or request goes through Gala and their family.",
+  // — QA web-admin: precios (agencias primero) y pie según el público —
+  "Crear mi Passport gratis": "Create my free Passport",
+  "Probar 30 días gratis": "Try it free for 30 days",
+  "O escribe a la fundadora": "Or write to the founder",
+  "Crea tu cuenta gratis y envía la solicitud: te escribimos para cerrar el alcance. No se cobra nada sin tu confirmación por escrito.": "Create your free account and send the request: we'll write to you to agree the scope. Nothing is charged without your written confirmation.",
+  "Lleva tu agencia con un solo sistema": "Run your agency on one system",
+  "30 días gratis. Sin comisión por atleta ni por contactar. Cancelas cuando quieras.": "30 days free. No per-athlete or contact fees. Cancel anytime.",
 };
 
 const pl = (n: string, one: string, many: string) => (n === '1' ? one : many);

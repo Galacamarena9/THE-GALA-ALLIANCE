@@ -2,11 +2,16 @@
 
 import { useT } from '@/lib/i18n/client';
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
 
-/** Menú móvil de la cabecera pública: panel a pantalla completa con desenfoque. */
+/**
+ * Menú móvil de la cabecera pública: panel a pantalla completa con desenfoque.
+ * El panel se pinta con un portal en <body>: dentro de la cabecera (que lleva `backdrop-filter`) un `position: fixed`
+ * queda atrapado en la caja de la cabecera y el panel medía ~49 px en lugar de ocupar la pantalla.
+ */
 export function MobileMenu({ items }: { items: { href: string; label: string }[] }) {
   const tx = useT();
   const [open, setOpen] = useState(false);
@@ -19,7 +24,9 @@ export function MobileMenu({ items }: { items: { href: string; label: string }[]
   }
   useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    if (open) document.addEventListener('keydown', onKey);
+    return () => { document.body.style.overflow = ''; document.removeEventListener('keydown', onKey); };
   }, [open]);
 
   return (
@@ -34,8 +41,8 @@ export function MobileMenu({ items }: { items: { href: string; label: string }[]
       >
         {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
       </button>
-      {open && (
-        <div id="mobile-menu" className="fixed inset-x-0 bottom-0 top-16 z-50 overflow-y-auto border-t border-line bg-ink/95 px-5 py-6 backdrop-blur-xl">
+      {open && createPortal(
+        <div id="mobile-menu" className="fixed inset-x-0 bottom-0 top-16 z-50 overflow-y-auto md:hidden border-t border-line bg-ink/95 px-5 py-6 backdrop-blur-xl">
           <ul className="space-y-1">
             {items.map((i) => (
               <li key={i.href}>
@@ -49,7 +56,8 @@ export function MobileMenu({ items }: { items: { href: string; label: string }[]
             <Link href="/signup" className="btn-shine rounded-xl bg-brass px-4 py-3 text-center font-bold text-ink">{tx('Crear cuenta gratis')}</Link>
             <Link href="/login" className="rounded-xl border border-line-strong px-4 py-3 text-center text-paper">{tx('Iniciar sesión')}</Link>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
