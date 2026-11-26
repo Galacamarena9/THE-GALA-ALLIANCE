@@ -144,9 +144,9 @@ export function OnboardingForm({
                   </select>
                 </Field>
                 {role === 'university' && (
-                  <Field label={t.division} htmlFor="division">
-                    <select id="division" name="division" className={inputClass} defaultValue="">
-                      <option value="">—</option>
+                  <Field label={t.division} htmlFor="division" hint={t.divisionHint} error={fe.division}>
+                    <select id="division" name="division" required className={inputClass} defaultValue="">
+                      <option value="" disabled>{t.divisionPick}</option>
                       {Object.entries(DIVISION_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                     </select>
                   </Field>

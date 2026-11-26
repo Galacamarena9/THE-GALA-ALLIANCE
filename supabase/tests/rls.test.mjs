@@ -979,6 +979,37 @@ try {
     await as(u.coach, `insert into contact_requests (organization_id, requested_by, athlete_id, message)
       values ($1, $2, $3, 'Hola, nos interesa tu perfil para la temporada que viene.')`, [uniId, u.coach, teen]);
   });
+  await check('QA coach #1 · una solicitud de información también respeta la ventana NCAA', async () => {
+    await db.query(`update athlete_profiles set graduation_year = $2 where user_id = $1`, [teen, farYear]);
+    const before = (await db.query(`select count(*)::int n from notifications where user_id = $1`, [teen])).rows[0].n;
+    await expectError(() => as(u.coach, `insert into info_requests (organization_id, athlete_id, requested_by, kind, message)
+      values ($1, $2, $3, 'transcript', 'Queremos tu expediente aunque aún seas sophomore.')`, [uniId, teen, u.coach]), /ncaa_contact_window_closed/);
+    eq((await db.query(`select count(*)::int n from notifications where user_id = $1`, [teen])).rows[0].n, before, 'sin notificación al atleta');
+    await db.query(`update athlete_profiles set graduation_year = 2027 where user_id = $1`, [teen]);
+  });
+  await check('QA coach #3 · universidad sin división: se aplica la regla D-I (conservadora); D-III declarada no se bloquea', async () => {
+    await db.query(`update athlete_profiles set graduation_year = $2 where user_id = $1`, [teen, farYear]);
+    await db.query(`delete from contact_requests where athlete_id = $1`, [teen]);
+    await db.query(`update organizations set division = null where id = $1`, [uniId]);
+    try {
+      await expectError(() => as(u.coach, `insert into contact_requests (organization_id, requested_by, athlete_id, message)
+        values ($1, $2, $3, 'Hola, nos interesa tu perfil para dentro de unos años.')`, [uniId, u.coach, teen]), /ncaa_contact_window_closed/);
+      await expectError(() => as(u.coach, `insert into info_requests (organization_id, athlete_id, requested_by, kind, message)
+        values ($1, $2, $3, 'transcript', 'Queremos tu expediente académico.')`, [uniId, teen, u.coach]), /ncaa_contact_window_closed/);
+      await db.query(`update organizations set division = 'ncaa_d3' where id = $1`, [uniId]);
+      await as(u.coach, `insert into contact_requests (organization_id, requested_by, athlete_id, message)
+        values ($1, $2, $3, 'Hola, en D-III no hay ventana de contacto electrónico.')`, [uniId, u.coach, teen]);
+    } finally {
+      await db.query(`update organizations set division = 'ncaa_d1' where id = $1`, [uniId]);
+      await db.query(`delete from contact_requests where athlete_id = $1`, [teen]);
+      await db.query(`update athlete_profiles set graduation_year = 2027 where user_id = $1`, [teen]);
+    }
+  });
+  await check('la comprobación NCAA interna no se puede consultar desde la API (revela el año de graduación)', async () => {
+    for (const role of ['anon', 'authenticated']) {
+      eq((await db.query(`select has_function_privilege($1, 'public.ncaa_contact_closed(uuid, uuid)', 'execute') p`, [role])).rows[0].p, false, role);
+    }
+  });
 
   results.push('\nEndurecimiento: funciones internas sin acceso anónimo');
   for (const fn of ['has_role(\'admin\')', 'is_verified_recruiter()', `is_blocked_by_athlete('${teen}')`, `has_connection_with_athlete('${teen}')`]) {
@@ -1720,6 +1751,24 @@ try {
     const reg = (await as(u.minor, `select status, origin, invitation_id, guardian_status from opportunity_registrations where opportunity_id = $1 and athlete_id = $2`, [inviteTrial, u.minor])).rows[0];
     eq(reg.status, 'registered'); eq(reg.origin, 'club_invite'); eq(reg.invitation_id, inv); eq(reg.guardian_status, 'approved');
     eq((await as(u.minor, `select status from opportunity_invitations where id = $1`, [inv])).rows[0].status, 'converted_to_registration');
+  });
+
+  await check('QA coach #2 · una universidad no invita a su campus antes de la ventana NCAA (división null → regla D-I)', async () => {
+    const camp = await makeOpp(u.uni, uniId, { type: 'camp_showcase', mode: 'invitation_only', title: 'Campus de verano' });
+    await db.query(`update athlete_profiles set graduation_year = $2 where user_id = $1`, [teen, farYear]);
+    try {
+      await expectError(() => as(u.uni, `select trial_org_invite($1, $2, 'discovery', null, 'Ven a nuestro campus')`, [camp, teen]), /ncaa_contact_window_closed/);
+      eq((await db.query(`select count(*)::int n from opportunity_invitations where opportunity_id = $1`, [camp])).rows[0].n, 0, 'sin invitación');
+      await db.query(`update organizations set division = null where id = $1`, [uniId]);
+      await expectError(() => as(u.uni, `select trial_org_invite($1, $2)`, [camp, teen]), /ncaa_contact_window_closed/);
+      await db.query(`update organizations set division = 'ncaa_d1' where id = $1`, [uniId]);
+      await db.query(`update athlete_profiles set graduation_year = 2027 where user_id = $1`, [teen]);
+      const inv = (await as(u.uni, `select trial_org_invite($1, $2) id`, [camp, teen])).rows[0].id;
+      eq(typeof inv, 'string', 'con la ventana abierta sí invita');
+    } finally {
+      await db.query(`update organizations set division = 'ncaa_d1' where id = $1`, [uniId]);
+      await db.query(`update athlete_profiles set graduation_year = 2027 where user_id = $1`, [teen]);
+    }
   });
 
   await check('11A escenario 4 · programa de academia: candidatura → aceptada → plaza ofrecida → aceptada → matrícula (aceptado ≠ matriculado)', async () => {

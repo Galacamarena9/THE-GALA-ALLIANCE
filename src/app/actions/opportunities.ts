@@ -44,6 +44,7 @@ const eventSchema = z.object({
 import { createClient } from '@/lib/supabase/server';
 import { requireSession } from '@/lib/session';
 import type { FormState } from './auth';
+import { opportunityTypeAllowed } from '@/lib/domain/ncaa';
 
 const optInt = (min: number, max: number) =>
   z.union([z.literal(''), z.coerce.number().int().min(min).max(max)]).optional().transform((v) => (v === '' || v == null ? null : v));
@@ -112,6 +113,11 @@ export async function createOpportunity(_prev: FormState, formData: FormData): P
   }
   const e = ev?.success ? ev.data : null;
   const supabase = await createClient();
+  // Universidades/colleges no publican «tryout» (NO COMPROBADO normativamente; pendiente del abogado NCAA).
+  const { data: orgRow } = await supabase.from('organizations').select('type').eq('id', parsed.data.organization_id).maybeSingle();
+  if (!opportunityTypeAllowed(orgRow?.type as string | undefined, parsed.data.type)) {
+    return { fieldErrors: { type: 'Una universidad no puede publicar pruebas (tryouts): usa «Campus / Showcase».' }, error: 'Revisa los campos marcados.' };
+  }
   const { data: cats } = e?.ev_cat ? await supabase.from('age_categories').select('code').eq('code', e.ev_cat.toUpperCase().replace(/\s+/g, '_')).maybeSingle() : { data: null };
   const { submit, ...data } = parsed.data;
   // Siempre se crea como borrador; el envío a revisión es un paso aparte que la base de datos valida.
