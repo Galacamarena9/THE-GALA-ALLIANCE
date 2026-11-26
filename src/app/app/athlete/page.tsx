@@ -4,7 +4,7 @@ import { requireSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
 import { loadPassport } from '@/lib/data/athlete';
 import { roadmapFor } from '@/lib/domain/roadmap';
-import { matchAthleteToOpportunity, TIER_LABEL } from '@/lib/domain/match';
+import { matchAthleteToOpportunity, OVER_BUDGET_LABEL, TIER_LABEL } from '@/lib/domain/match';
 import { ATHLETE_STATUS_LABEL } from '@/lib/domain/labels';
 import type { ApplicationStatus, Opportunity } from '@/lib/types';
 import { Badge, ButtonLink, Card, CardTitle, EmptyState, Meter, PageHeader, cx } from '@/components/ui';
@@ -103,7 +103,7 @@ export default async function MyPathPage() {
               <li key={o.id}>
                 <Link href={`/app/opportunities/${o.id}`} className="flex h-full flex-col rounded-xl border border-line bg-ink/40 p-4 transition-colors hover:border-brass/60">
                   <span className="flex items-center justify-between">
-                    <Badge tone={m.tier === 'strong' ? 'ok' : 'brass'}>{TIER_LABEL[m.tier]}</Badge>
+                    <span className="flex flex-wrap items-center gap-1.5"><Badge tone={m.tier === 'strong' ? 'ok' : 'brass'}>{TIER_LABEL[m.tier]}</Badge>{m.overBudget && <Badge tone="danger">{OVER_BUDGET_LABEL}</Badge>}</span>
                     <span className="font-display text-2xl tabular-nums text-paper">{m.score}</span>
                   </span>
                   <span className="mt-3 text-sm font-medium text-paper">{o.title}</span>

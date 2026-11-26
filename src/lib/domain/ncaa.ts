@@ -14,6 +14,28 @@ export function ncaaContactOpensOn(gradYear: number | null, division: Division |
   return null;
 }
 
+/** Universidades y colleges: la división es obligatoria (de ella depende la ventana de contacto NCAA). */
+export const needsDivision = (orgType: string | null | undefined) => orgType === 'university' || orgType === 'college';
+
+/**
+ * División efectiva para la ventana de contacto (espejo de public.ncaa_contact_closed): una universidad/college sin
+ * división declarada se trata como D-I (la regla más restrictiva). Otros tipos de organización no tienen ventana.
+ */
+export function effectiveNcaaDivision(orgType: string | null | undefined, division: Division | null): Division | null {
+  if (!needsDivision(orgType)) return null;
+  return division ?? 'ncaa_d1';
+}
+
+/**
+ * Tipos de oportunidad que puede publicar cada organización. Universidades y colleges no publican «tryout» (prueba):
+ * NO COMPROBADO normativamente (según el QA, la NCAA D-I prohíbe tryouts a prospects, Bylaw 13.11, y D-II los limita);
+ * pendiente de revisión con el abogado NCAA. Ofrecen «Campus / Showcase» en su lugar.
+ */
+export const COLLEGE_BLOCKED_OPPORTUNITY_TYPES = ['tryout'] as const;
+export function opportunityTypeAllowed(orgType: string | null | undefined, oppType: string): boolean {
+  return !(needsDivision(orgType) && (COLLEGE_BLOCKED_OPPORTUNITY_TYPES as readonly string[]).includes(oppType));
+}
+
 export function ncaaWindow(gradYear: number | null, division: Division | null, sport: string | null, today = new Date()) {
   const opensOn = ncaaContactOpensOn(gradYear, division, sport);
   return { open: !opensOn || today.toISOString().slice(0, 10) >= opensOn, opensOn };

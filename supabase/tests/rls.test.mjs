@@ -210,7 +210,7 @@ try {
     await as(u.admin, `update organizations set verification_status = 'verified' where id = $1`, [uniId]);
     eq((await as(u.admin, `select count(*)::int n from audit_logs where entity_id = $1 and details->>'to' = 'verified'`, [uniId])).rows[0].n, 1);
   });
-  await check('coach de universidad verificada SÍ ve al menor', async () => eq(await countVisible(u.coach, u.minor), 1));
+  await check('coach de universidad verificada NO ve a un menor sin tutor activo vinculado (QA menores)', async () => eq(await countVisible(u.coach, u.minor), 0));
   await check('cambiar el tipo de una organización verificada la devuelve a revisión', async () => {
     const brandOrg = (await as(u.brand, `insert into organizations (name, type, created_by) values ('Brand Co', 'brand', $1) returning id`, [u.brand])).rows[0].id;
     await as(u.admin, `update organizations set verification_status = 'verified' where id = $1`, [brandOrg]);
@@ -318,6 +318,7 @@ try {
   await check('el atleta acepta y la familia ve perfil y académico', async () => {
     await as(u.minor, `select accept_family_invitation($1)`, [token]);
     eq(await countVisible(u.parent, u.minor), 1);
+    eq(await countVisible(u.coach, u.minor), 1, 'con tutor activo, el coach de la universidad verificada SÍ ve al menor:');
     eq((await as(u.parent, `select count(*)::int n from athlete_academics where athlete_id = $1`, [u.minor])).rows[0].n, 1);
   });
   await check('la familia no puede ampliarse permisos', async () => {
@@ -327,8 +328,14 @@ try {
   await check('una marca no puede usar el token para vincularse', async () => {
     await expectError(() => as(u.brand, `select accept_family_invitation($1)`, [token]), /invitation_invalid/);
   });
-  await check('el atleta revoca y la familia deja de verle', async () => {
-    await as(u.minor, `update parent_athlete_links set status = 'revoked' where athlete_id = $1`, [u.minor]);
+  await check('un atleta menor NO puede desvincular ni pausar a su tutor (guardian_change_requires_guardian)', async () => {
+    await expectError(() => as(u.minor, `update parent_athlete_links set status = 'revoked' where athlete_id = $1`, [u.minor]), /guardian_change_requires_guardian/);
+    const link = (await db.query(`select id from parent_athlete_links where athlete_id = $1 and parent_id = $2`, [u.minor, u.parent])).rows[0].id;
+    await expectError(() => as(u.minor, `select family_link_restrict($1, true, 'pausa')`, [link]), /guardian_change_requires_guardian/);
+    eq(await countVisible(u.parent, u.minor), 1, 'la familia sigue viéndole');
+  });
+  await check('el tutor sí puede renunciar y deja de ver al menor', async () => {
+    await as(u.parent, `update parent_athlete_links set status = 'revoked' where parent_id = $1 and athlete_id = $2`, [u.parent, u.minor]);
     eq(await countVisible(u.parent, u.minor), 0);
   });
 
@@ -358,7 +365,8 @@ try {
     orgToken = (await as(u.uni, `insert into organization_invitations (organization_id, invited_by) values ($1, $2) returning token`, [uniId, u.uni])).rows[0].token;
     await as(u.coach2, `select accept_organization_invitation($1)`, [orgToken]);
     eq((await as(u.coach2, `select count(*)::int n from organization_members where organization_id = $1 and user_id = $2`, [uniId, u.coach2])).rows[0].n, 1);
-    eq(await countVisible(u.coach2, u.minor), 1, 'el coach de la universidad verificada ve al menor:');
+    eq((await as(u.coach2, `select public.is_verified_recruiter() v`)).rows[0].v, true, 'reclutador verificado');
+    eq(await countVisible(u.coach2, u.minor), 0, 'el menor sin tutor activo (su familia renunció) no es visible:');
   });
   await check('un coach no admin no puede crear invitaciones', async () => {
     await expectError(() => as(u.coach2, `insert into organization_invitations (organization_id, invited_by) values ($1, $2)`, [uniId, u.coach2]));
@@ -970,6 +978,37 @@ try {
     await db.query(`update athlete_profiles set graduation_year = 2027 where user_id = $1`, [teen]);
     await as(u.coach, `insert into contact_requests (organization_id, requested_by, athlete_id, message)
       values ($1, $2, $3, 'Hola, nos interesa tu perfil para la temporada que viene.')`, [uniId, u.coach, teen]);
+  });
+  await check('QA coach #1 · una solicitud de información también respeta la ventana NCAA', async () => {
+    await db.query(`update athlete_profiles set graduation_year = $2 where user_id = $1`, [teen, farYear]);
+    const before = (await db.query(`select count(*)::int n from notifications where user_id = $1`, [teen])).rows[0].n;
+    await expectError(() => as(u.coach, `insert into info_requests (organization_id, athlete_id, requested_by, kind, message)
+      values ($1, $2, $3, 'transcript', 'Queremos tu expediente aunque aún seas sophomore.')`, [uniId, teen, u.coach]), /ncaa_contact_window_closed/);
+    eq((await db.query(`select count(*)::int n from notifications where user_id = $1`, [teen])).rows[0].n, before, 'sin notificación al atleta');
+    await db.query(`update athlete_profiles set graduation_year = 2027 where user_id = $1`, [teen]);
+  });
+  await check('QA coach #3 · universidad sin división: se aplica la regla D-I (conservadora); D-III declarada no se bloquea', async () => {
+    await db.query(`update athlete_profiles set graduation_year = $2 where user_id = $1`, [teen, farYear]);
+    await db.query(`delete from contact_requests where athlete_id = $1`, [teen]);
+    await db.query(`update organizations set division = null where id = $1`, [uniId]);
+    try {
+      await expectError(() => as(u.coach, `insert into contact_requests (organization_id, requested_by, athlete_id, message)
+        values ($1, $2, $3, 'Hola, nos interesa tu perfil para dentro de unos años.')`, [uniId, u.coach, teen]), /ncaa_contact_window_closed/);
+      await expectError(() => as(u.coach, `insert into info_requests (organization_id, athlete_id, requested_by, kind, message)
+        values ($1, $2, $3, 'transcript', 'Queremos tu expediente académico.')`, [uniId, teen, u.coach]), /ncaa_contact_window_closed/);
+      await db.query(`update organizations set division = 'ncaa_d3' where id = $1`, [uniId]);
+      await as(u.coach, `insert into contact_requests (organization_id, requested_by, athlete_id, message)
+        values ($1, $2, $3, 'Hola, en D-III no hay ventana de contacto electrónico.')`, [uniId, u.coach, teen]);
+    } finally {
+      await db.query(`update organizations set division = 'ncaa_d1' where id = $1`, [uniId]);
+      await db.query(`delete from contact_requests where athlete_id = $1`, [teen]);
+      await db.query(`update athlete_profiles set graduation_year = 2027 where user_id = $1`, [teen]);
+    }
+  });
+  await check('la comprobación NCAA interna no se puede consultar desde la API (revela el año de graduación)', async () => {
+    for (const role of ['anon', 'authenticated']) {
+      eq((await db.query(`select has_function_privilege($1, 'public.ncaa_contact_closed(uuid, uuid)', 'execute') p`, [role])).rows[0].p, false, role);
+    }
   });
 
   results.push('\nEndurecimiento: funciones internas sin acceso anónimo');
@@ -1714,6 +1753,24 @@ try {
     eq((await as(u.minor, `select status from opportunity_invitations where id = $1`, [inv])).rows[0].status, 'converted_to_registration');
   });
 
+  await check('QA coach #2 · una universidad no invita a su campus antes de la ventana NCAA (división null → regla D-I)', async () => {
+    const camp = await makeOpp(u.uni, uniId, { type: 'camp_showcase', mode: 'invitation_only', title: 'Campus de verano' });
+    await db.query(`update athlete_profiles set graduation_year = $2 where user_id = $1`, [teen, farYear]);
+    try {
+      await expectError(() => as(u.uni, `select trial_org_invite($1, $2, 'discovery', null, 'Ven a nuestro campus')`, [camp, teen]), /ncaa_contact_window_closed/);
+      eq((await db.query(`select count(*)::int n from opportunity_invitations where opportunity_id = $1`, [camp])).rows[0].n, 0, 'sin invitación');
+      await db.query(`update organizations set division = null where id = $1`, [uniId]);
+      await expectError(() => as(u.uni, `select trial_org_invite($1, $2)`, [camp, teen]), /ncaa_contact_window_closed/);
+      await db.query(`update organizations set division = 'ncaa_d1' where id = $1`, [uniId]);
+      await db.query(`update athlete_profiles set graduation_year = 2027 where user_id = $1`, [teen]);
+      const inv = (await as(u.uni, `select trial_org_invite($1, $2) id`, [camp, teen])).rows[0].id;
+      eq(typeof inv, 'string', 'con la ventana abierta sí invita');
+    } finally {
+      await db.query(`update organizations set division = 'ncaa_d1' where id = $1`, [uniId]);
+      await db.query(`update athlete_profiles set graduation_year = 2027 where user_id = $1`, [teen]);
+    }
+  });
+
   await check('11A escenario 4 · programa de academia: candidatura → aceptada → plaza ofrecida → aceptada → matrícula (aceptado ≠ matriculado)', async () => {
     program = await makeOpp(u.coach, academyC, { type: 'academy', price: 'paid', amount: 8000, title: 'Programa anual', extraCosts: [
       { type: 'accommodation', label: 'Alojamiento', amount: 4500 }, { type: 'registration', label: 'Matrícula', amount: 250 }, { type: 'meals', label: 'Comidas', included: true },
@@ -1827,6 +1884,24 @@ try {
     eq((await as(v.viewerA, `select count(*)::int n from applications where id = $1`, [app])).rows[0].n, 0, 'viewer no ve candidaturas');
     await expectError(() => as(v.ownerB, `select application_org_decide($1, 'accepted')`, [app]), /not_allowed/);
     eq((await as(u.coach2, `select application_org_decide($1, 'waitlisted') s`, [app])).rows[0].s, 'waitlisted');
+  });
+
+  await check('Trials «primero candidatura» (QA atleta #2): el atleta presenta candidatura, el club la ve y la acepta → queda inscrito', async () => {
+    const t = await makeOpp(u.coach2, clubA, { mode: 'application_required', title: 'Trial candidatura adulto' });
+    // Sin candidatura aceptada no hay inscripción directa.
+    await expectError(() => as(u.adult, `select trial_register($1, $2)`, [t, u.adult]), /application_required/);
+    // Nadie presenta candidatura por otro (ni la familia ni el club): solo el propio atleta.
+    await expectError(() => as(u.parent, `insert into applications (opportunity_id, athlete_id) values ($1, $2)`, [t, u.minor]), /row-level security/);
+    await expectError(() => as(u.coach2, `insert into applications (opportunity_id, athlete_id) values ($1, $2)`, [t, u.adult]), /row-level security/);
+    const app = (await as(u.adult, `insert into applications (opportunity_id, athlete_id, athlete_message) values ($1, $2, 'Disponible todo junio') returning id, status, guardian_consent_status`, [t, u.adult])).rows[0];
+    eq(app.status, 'applied'); eq(app.guardian_consent_status, 'not_required', 'adulto: sin tutor');
+    await expectError(() => as(u.adult, `insert into applications (opportunity_id, athlete_id) values ($1, $2)`, [t, u.adult]), /duplicate key|unique/);
+    // El club la ve (con el mensaje); otra organización no.
+    eq((await as(u.coach2, `select athlete_message from applications where id = $1`, [app.id])).rows[0]?.athlete_message, 'Disponible todo junio');
+    eq((await as(v.ownerB, `select count(*)::int n from applications where id = $1`, [app.id])).rows[0].n, 0, 'otro club no ve la candidatura');
+    eq((await as(u.coach2, `select application_org_decide($1, 'accepted') s`, [app.id])).rows[0].s, 'accepted');
+    const reg = (await as(u.adult, `select status, origin, guardian_status from opportunity_registrations where opportunity_id = $1 and athlete_id = $2`, [t, u.adult])).rows[0];
+    eq(reg.status, 'registered'); eq(reg.origin, 'application'); eq(reg.guardian_status, 'not_required');
   });
 
   await check('11B documentos: concesión con finalidad y caducidad; otro club, caducada o revocada → nada; los muy sensibles, solo nominales', async () => {
@@ -2240,6 +2315,8 @@ try {
     }
   }
   const n = async (who, sql, params) => (await as(who, sql, params)).rows[0].n;
+  // Pausa hecha por administración (canal de protección): un atleta menor ya no puede pausar a su tutor.
+  const pauseLink = (id) => db.query(`update parent_athlete_links set status = 'restricted', restricted_at = now() where id = $1`, [id]);
 
   await check('P10 otras familias · el tutor de A no ve ni escribe nada de B (aunque cambie el athlete_id)', async () => {
     eq(await n(fam.mom, `select count(*)::int n from athlete_finances where athlete_id = $1`, [fam.other]), 0, 'presupuesto ajeno');
@@ -2297,6 +2374,74 @@ try {
     await as(fam.grown, `update parent_athlete_links set status = 'revoked' where id = $1`, [fam.momGrown]);
     eq(await n(fam.mom, `select count(*)::int n from athlete_finances where athlete_id = $1`, [fam.grown]), 0, 'revocado');
     await expectError(() => as(fam.mom, `insert into family_notes (athlete_id, author_id, body) values ($1, $2, 'Sigo aquí')`, [fam.grown, fam.mom]), /row-level security/);
+  });
+
+  // ---------------------------------------------------------------- QA menores (20261223000100)
+  {
+    const solo = randomUUID(); const aunt = randomUUID();
+    for (const [id, key, role, age] of [[solo, 'solo', 'athlete', 15], [aunt, 'aunt', 'parent', 40]]) {
+      await db.query(`insert into auth.users (id, email, raw_user_meta_data) values ($1, $2, $3)`, [id, `${key}@menores.test`, { display_name: key }]);
+      await db.query(`insert into user_roles (user_id, role) values ($1, $2)`, [id, role]);
+      await db.query(`insert into private_profile_data (user_id, date_of_birth) values ($1, $2)`, [id, yearsAgo(age)]);
+    }
+    await db.query(`insert into athlete_profiles (user_id, sport_id, graduation_year, profile_visibility) values ($1, 'basketball', 2029, 'verified_orgs')`, [solo]);
+    const sees = async (who) => (await as(who, `select public.can_view_athlete($1) v`, [solo])).rows[0].v;
+    let soloLink;
+
+    await check('MEN-3 · un menor sin tutor activo NO es visible para un reclutador verificado (deny by default)', async () => {
+      eq((await as(u.coach, `select public.is_verified_recruiter() v`)).rows[0].v, true, 'el coach es reclutador verificado');
+      eq(await sees(u.coach), false, 'sin familia');
+      eq(await sees(solo), true, 'él mismo sí');
+      eq(await sees(u.admin), true, 'admin sí');
+      soloLink = (await db.query(`insert into parent_athlete_links (parent_id, athlete_id, invited_by, status, approved_at, relationship, guardian_consent_given, verification_status)
+        values ($1, $2, $2, 'approved', now(), 'legal_guardian', true, 'athlete_confirmed') returning id`, [aunt, solo])).rows[0].id;
+      eq(await sees(u.coach), true, 'con tutor activo, como antes');
+      eq(await sees(fam.otherMom), false, 'otra familia, no');
+    });
+
+    await check('MEN-1 · el menor no puede desvincular ni pausar a su tutor activo (BD, no solo UI)', async () => {
+      await expectError(() => as(solo, `update parent_athlete_links set status = 'revoked' where id = $1`, [soloLink]), /guardian_change_requires_guardian/);
+      await expectError(() => as(solo, `select family_link_restrict($1, true, 'quiero quitarle')`, [soloLink]), /guardian_change_requires_guardian/);
+      eq((await db.query(`select status::text s from parent_athlete_links where id = $1`, [soloLink])).rows[0].s, 'approved');
+      eq(await sees(u.coach), true, 'sigue supervisado');
+    });
+
+    await check('MEN-1 · el menor sí retira una invitación pendiente (aún no es tutor)', async () => {
+      const inv = (await as(solo, `insert into parent_athlete_links (athlete_id, invited_by) values ($1, $1) returning id`, [solo])).rows[0].id;
+      eq((await as(solo, `update parent_athlete_links set status = 'revoked' where id = $1`, [inv])).rowCount, 1);
+    });
+
+    await check('MEN-1 · soporte (admin) pausa por protección y el menor puede reanudar; pausado = invisible para reclutadores', async () => {
+      eq((await as(u.admin, `select family_link_restrict($1, true, 'revisión de soporte') r`, [soloLink])).rows[0].r, 'restricted');
+      eq(await sees(u.coach), false, 'sin tutor activo');
+      eq((await as(solo, `select family_link_restrict($1, false) r`, [soloLink])).rows[0].r, 'approved');
+      eq(await sees(u.coach), true);
+    });
+
+    await check('MEN-1 · el tutor sí puede renunciar; el menor vuelve a quedar oculto', async () => {
+      eq((await as(aunt, `update parent_athlete_links set status = 'revoked' where id = $1`, [soloLink])).rowCount, 1);
+      eq(await sees(u.coach), false);
+    });
+
+    await check('MEN-1 · un atleta mayor de edad sí pausa y desvincula a su familia', async () => {
+      const adultLink = (await db.query(`insert into parent_athlete_links (parent_id, athlete_id, invited_by, status, approved_at, relationship, guardian_consent_given, verification_status, last_reviewed_at)
+        values ($1, $2, $2, 'approved', now(), 'mother', false, 'athlete_confirmed', now()) returning id`, [aunt, u.adult])).rows[0].id;
+      eq((await as(u.adult, `select family_link_restrict($1, true, null) r`, [adultLink])).rows[0].r, 'restricted');
+      eq((await as(u.adult, `update parent_athlete_links set status = 'revoked' where id = $1`, [adultLink])).rowCount, 1);
+    });
+  }
+
+  await check('MEN-4 · el tutor de un menor fija el presupuesto sin «editar perfil»; sin permiso de presupuesto, no', async () => {
+    await db.query(`update parent_athlete_links set can_edit_profile = false where id in ($1, $2)`, [fam.momKid, fam.dadKid]);
+    eq((await as(fam.mom, `update athlete_finances set annual_budget_usd = 22000 where athlete_id = $1`, [fam.kid])).rowCount, 1, 'mamá (presupuesto sí, editar no)');
+    await db.query(`update parent_athlete_links set can_view_budget = false where id = $1`, [fam.dadKid]);
+    try {
+      eq((await as(fam.dad, `update athlete_finances set annual_budget_usd = 1 where athlete_id = $1`, [fam.kid])).rowCount, 0, 'papá sin permiso de presupuesto');
+    } finally { await db.query(`update parent_athlete_links set can_view_budget = true where id = $1`, [fam.dadKid]); }
+    for (const who of [u.coach, u.agent, u.brand, u.uni]) {
+      eq((await as(who, `update athlete_finances set annual_budget_usd = 1 where athlete_id = $1`, [fam.kid]).catch(() => ({ rowCount: 0 }))).rowCount, 0, 'organización');
+    }
+    await db.query(`update athlete_finances set annual_budget_usd = 15000 where athlete_id = $1`, [fam.kid]);
   });
 
   await check('P10 notas familiares · solo tutores o familia; nunca organizaciones; sin HTML activo', async () => {
@@ -2384,7 +2529,7 @@ try {
     const req = (await as(u.coach2, `insert into contact_requests (organization_id, athlete_id, message) values ($1, $2, 'Nos gustaría invitarte a nuestro trial U18.') returning id, status`, [clubA, fam.kid])).rows[0];
     eq(req.status, 'pending_guardian');
     eq(await n(fam.mom, `select count(*)::int n from contact_requests where id = $1`, [req.id]), 1, 'mamá activa');
-    await as(fam.kid, `select family_link_restrict($1, true, 'pausa')`, [fam.momKid]);
+    await pauseLink(fam.momKid); // un menor ya no pausa a su tutor: lo hace soporte (admin)
     eq(await n(fam.mom, `select count(*)::int n from contact_requests where id = $1`, [req.id]), 0, 'pausada: no ve');
     eq((await as(fam.mom, `update contact_requests set status = 'pending' where id = $1`, [req.id])).rowCount, 0, 'pausada: no aprueba');
     await as(fam.kid, `select family_link_restrict($1, false)`, [fam.momKid]);
@@ -2449,7 +2594,7 @@ try {
     await expectError(() => as(fam.dad, `select consent_record($1, 'contact', 'organization', $2, $2, true, 'v1')`, [fam.grown, clubA]), /not_allowed/); // adulto: nadie consiente por él
     await expectError(() => as(fam.mom, `select consent_record($1, 'document_sharing', 'document', $2, $3, true, 'v1')`, [fam.kid, docT, clubA]), /document_mismatch/);
     await expectError(() => as(fam.mom, `select consent_record($1, 'contact', 'organization', $2, $2, true, 'v1', now() - interval '1 day')`, [fam.kid, clubA]), /consent_already_expired/);
-    await as(fam.kid, `select family_link_restrict($1, true, null)`, [fam.momKid]);
+    await pauseLink(fam.momKid);
     await expectError(() => as(fam.mom, `select consent_record($1, 'contact', 'organization', $2, $2, true, 'v1')`, [fam.kid, clubA]), /not_allowed/);
     await as(fam.kid, `select family_link_restrict($1, false)`, [fam.momKid]);
     await expectError(() => as(fam.mom, `update consents set granted = false where id = $1`, [c1]), /permission denied|immutable|row-level/);
@@ -2655,7 +2800,7 @@ try {
     eq((await as(u.coach2, `select count(*)::int n from athlete_documents where id = $1`, [doc])).rows[0].n, 1);
     eq((await as(fam.mom, `update document_access_grants set revoked_at = now() where id = $1 and revoked_at is null`, [g])).rowCount, 1, 'retirado');
     eq((await as(u.coach2, `select count(*)::int n from athlete_documents where id = $1`, [doc])).rows[0].n, 0);
-    await as(fam.kid, `select family_link_restrict($1, true, null)`, [fam.momKid]);
+    await pauseLink(fam.momKid);
     try {
       await expectError(() => as(fam.mom, `insert into document_access_grants (document_id, athlete_id, organization_id, purpose, expires_at) values ($1, $2, $3, 'application_review', now() + interval '10 days')`, [doc, fam.kid, clubA]), /not_allowed|row-level/);
     } finally { await as(fam.kid, `select family_link_restrict($1, false)`, [fam.momKid]); }

@@ -16,6 +16,7 @@ import { Reveal } from '@/components/Reveal';
 import { AgentHome } from './AgentHome';
 import { RoleHero } from '@/components/RoleHero';
 import { PlanUnlocks } from '@/components/PlanUnlocks';
+import { paysThroughFamily } from '@/lib/domain/minor-guard';
 import { isoDaysAgo } from '@/lib/domain/funnel';
 import { loadAthleteDashboard } from '@/lib/data/dashboard';
 import { AthleteCommandCenter } from '@/components/dashboard/AthleteCommandCenter';
@@ -61,14 +62,16 @@ async function stepsFor(session: SessionContext): Promise<{ steps: Step[]; score
   }
   if (r.some((x) => ['university', 'coach', 'agent', 'brand'].includes(x))) {
     const { data: orgs } = await supabase.from('organization_members').select('organizations(verification_status)').eq('user_id', session.userId);
+    // Universidad y coach trabajan en el espacio de recruiting (/app/recruit/*), no en el escaparate antiguo.
+    const recruitFlow = r.includes('university') || r.includes('coach');
     const verified = (orgs ?? []).some((o) => (o.organizations as unknown as { verification_status: string } | null)?.verification_status === 'verified');
     return {
       score: null,
       steps: [
         { label: 'Registra tu organización con el correo de tu dominio oficial', href: '/app/organization', done: (orgs ?? []).length > 0 },
         { label: 'Verificación de la organización', href: '/app/organization', done: verified },
-        { label: r.includes('brand') ? 'Publica tu primera campaña' : 'Explora el escaparate de atletas', href: r.includes('brand') ? '/app/campaigns?view=mine' : '/app/discover' },
-        { label: 'Guarda una búsqueda con alertas', href: '/app/discover' },
+        { label: r.includes('brand') ? 'Publica tu primera campaña' : 'Explora el escaparate de atletas', href: r.includes('brand') ? '/app/campaigns?view=mine' : recruitFlow ? '/app/recruit/discover' : '/app/discover' },
+        { label: 'Guarda una búsqueda con alertas', href: recruitFlow ? '/app/recruit/discover' : '/app/discover' },
       ],
     };
   }
@@ -102,6 +105,9 @@ export default async function HomePage() {
   const primary = session.primaryRole ?? session.roles[0];
   // El agente tiene un inicio propio (Agent Workspace) centrado en su cartera.
   if (primary === 'agent') return <AgentHome session={session} />;
+  // QA coach #4: universidad y coach aterrizan directamente en su panel de recruiting (siguiente mejor acción,
+  // embudo, tareas). Los primeros pasos viven dentro de ese panel; esta checklist genérica nunca se completaba.
+  if (primary === 'university' || primary === 'coach') redirect('/app/recruit');
   // El atleta tiene su Command Center: qué hacer ahora, por qué y qué se acerca, con datos reales.
   if (primary === 'athlete') {
     const d = await loadAthleteDashboard(session.userId, session.isMinor);
@@ -206,7 +212,7 @@ export default async function HomePage() {
         </Card>
       </div>
 
-      {plan && plan === 'free' && <PlanUnlocks plan={plan} />}
+      {plan && plan === 'free' && <PlanUnlocks plan={plan} askFamily={paysThroughFamily(session)} />}
 
       <details className="rounded-[var(--radius-card)] border border-line bg-surface p-5">
         <summary className="cursor-pointer text-sm font-semibold text-paper">¿Algo que mejorar? Cuéntanoslo</summary>

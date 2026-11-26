@@ -1,8 +1,9 @@
 import { Badge, Card, CardTitle } from '@/components/ui';
 import { TrialButton } from './TrialButtons';
+import { TrialApplyForm } from './TrialApply';
 import {
   ATTENDANCE_LABEL, AVAILABILITY_LABEL, COST_TYPE_LABEL, INVITATION_STATUS_LABEL, OUTCOME_LABEL, REGISTRATION_STATUS_LABEL,
-  capacityLabel, costLine, eventWhen, knownRequiredCost, money, priceLabel,
+  capacityLabel, costLine, eventWhen, knownRequiredCost, money, priceLabel, trialApplyState,
   type AttendanceStatus, type CostComponent, type InvitationStatus, type Outcome, type PriceStatus, type RegistrationStatus,
 } from '@/lib/domain/trials';
 import { REQUIRED_MATERIAL_LABEL } from '@/lib/domain/recruit';
@@ -54,10 +55,10 @@ function requirementText(r: PanelRequirement) {
  * Trial: transparencia antes del botón (quién, cuándo, dónde, cuánto —obligatorio vs opcional—, requisitos, qué pasa después)
  * y, según quién mira, inscribirse / responder a la invitación (atleta), aprobar (familia) o gestionar (club).
  */
-export function TrialPanel({ opportunityId, open, details, core, costs, requirements, materials, confirmed, me, registrations, invitations, applications, asClub, asFamily, preview, participantFilter = 'all', filterHref, participantQuery = '' }: {
+export function TrialPanel({ opportunityId, open, details, core, costs, requirements, materials, confirmed, me, registrations, invitations, applications, asClub, asFamily, preview, participantFilter = 'all', filterHref, participantQuery = '', isMinor = false }: {
   opportunityId: string; open: boolean; details: PanelDetails | null; core: PanelCore; costs: CostComponent[]; requirements: PanelRequirement[]; materials: PanelMaterial[];
   confirmed: number; me: string | null; registrations: PanelRegistration[]; invitations: PanelInvitation[]; applications: PanelApplication[];
-  asClub: boolean; asFamily: boolean; preview: boolean; participantFilter?: ParticipantFilter; filterHref?: (f: ParticipantFilter) => string; participantQuery?: string;
+  asClub: boolean; asFamily: boolean; preview: boolean; participantFilter?: ParticipantFilter; filterHref?: (f: ParticipantFilter) => string; participantQuery?: string; isMinor?: boolean;
 }) {
   const d = details;
   const price = d?.price_status ?? 'price_not_provided';
@@ -72,6 +73,7 @@ export function TrialPanel({ opportunityId, open, details, core, costs, requirem
   const guardianPending = asFamily ? registrations.filter((r) => r.guardian_status === 'pending') : [];
   const costPending = asFamily ? registrations.filter((r) => r.needs_athlete_ok) : [];
   const invitePending = asFamily ? invitations.filter((i) => i.guardian_required && ['sent', 'viewed', 'interested'].includes(i.status) && !registrations.some((r) => r.athlete_id === i.athlete_id)) : [];
+  const applyState = trialApplyState({ open, mode: d?.registration_mode, application: myApp, registered: !!mine && mine.status !== 'withdrawn' });
   const canRegister = open && (d?.registration_mode === 'direct' || (d?.registration_mode === 'invitation_only' && !!myInvite) || (d?.registration_mode === 'application_required' && myApp?.status === 'accepted'));
   const costConfirm = `Coste obligatorio: ${known.total != null && known.currency ? money(known.total, known.currency) : known.total === 0 ? 'Gratis' : fee}. ¿Enviar la inscripción?`;
 
@@ -142,7 +144,10 @@ export function TrialPanel({ opportunityId, open, details, core, costs, requirem
             {mine?.needs_athlete_ok && <TrialButton call={{ kind: 'respond', registration: mine.id, action: 'confirm_cost', opportunity: opportunityId }} label="Aceptar coste e inscribirme" variant="primary" confirm={`Tu agente te propone este trial. ${costConfirm}`} />}
             {mine && activeReg(mine.status) && <TrialButton call={{ kind: 'respond', registration: mine.id, action: 'withdraw', opportunity: opportunityId }} label="Retirarme" variant="danger" confirm="¿Seguro? Se avisará al club." />}
             {!mine && !myInvite && open && d?.registration_mode === 'invitation_only' && <p className="text-sm text-muted">Este trial es solo por invitación del club.</p>}
-            {!mine && open && d?.registration_mode === 'application_required' && myApp?.status !== 'accepted' && <p className="text-sm text-muted">{myApp ? 'Tu candidatura está en revisión. Si el club la acepta, podrás inscribirte.' : 'Primero presenta tu candidatura; si el club la acepta, podrás inscribirte.'}</p>}
+            {applyState === 'apply' && <TrialApplyForm opportunityId={opportunityId} isMinor={isMinor} />}
+            {applyState === 'in_review' && <p className="text-sm text-muted">Tu candidatura está en revisión. Si el club la acepta, quedarás inscrito{isMinor ? ' (con la aprobación de tu familia)' : ''}.</p>}
+            {applyState === 'declined' && <p className="text-sm text-muted">El club no continuará con tu candidatura a este trial.</p>}
+            {applyState === 'withdrawn' && <p className="text-sm text-muted">Retiraste tu candidatura a este trial.</p>}
             {!mine && !open && <p className="text-sm text-muted">La inscripción está cerrada.</p>}
           </div>
         </Card>
@@ -194,13 +199,13 @@ export function TrialPanel({ opportunityId, open, details, core, costs, requirem
                     <span className="min-w-0">
                       <span className="block text-paper">{a.name}</span>
                       <span className="block text-[11px] text-muted">
-                        {a.guardian_consent_status === 'pending' ? 'Familia: pendiente' : a.guardian_consent_status === 'approved' ? 'Familia ✓' : 'Sin tutor requerido'}
+                        {a.guardian_consent_status === 'pending' ? 'Menor: la familia aprobará tras aceptar' : a.guardian_consent_status === 'granted' ? 'Familia ✓' : 'Sin tutor requerido'}
                         {a.materials_complete != null ? ` · Documentos ${a.materials_complete ? '✓' : 'pendientes'}` : ''}
                       </span>
                     </span>
                     {['applied', 'reviewed', 'information_requested', 'waitlisted'].includes(a.status) ? (
                       <span className="flex flex-wrap gap-2">
-                        <TrialButton call={{ kind: 'decide', application: a.id, decision: 'accepted', opportunity: opportunityId }} label="Aceptar" variant="primary" confirm={`¿Aceptar a ${a.name}? Familia: ${a.guardian_consent_status === 'pending' ? 'pendiente (no se confirmará la plaza hasta que apruebe)' : a.guardian_consent_status === 'approved' ? 'aprobada' : 'no requerida'}${a.materials_complete === false ? ' · Documentos pendientes' : ''}.`} />
+                        <TrialButton call={{ kind: 'decide', application: a.id, decision: 'accepted', opportunity: opportunityId }} label="Aceptar" variant="primary" confirm={`¿Aceptar a ${a.name}? Familia: ${a.guardian_consent_status === 'pending' ? 'pendiente (no se confirmará la plaza hasta que apruebe)' : a.guardian_consent_status === 'granted' ? 'aprobada' : 'no requerida'}${a.materials_complete === false ? ' · Documentos pendientes' : ''}.`} />
                         {a.status !== 'waitlisted' && <TrialButton call={{ kind: 'decide', application: a.id, decision: 'waitlisted', opportunity: opportunityId }} label="Lista de espera" />}
                         <TrialButton call={{ kind: 'decide', application: a.id, decision: 'declined', opportunity: opportunityId }} label="No continuar" variant="danger" confirm="Se avisará al atleta." />
                       </span>

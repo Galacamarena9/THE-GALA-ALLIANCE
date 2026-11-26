@@ -137,6 +137,41 @@ export function localToInstant(date: string, time: string | null, timezone: stri
   return new Date(guess - (asIfUtc - guess)).toISOString();
 }
 
+/* ----------------------------------------------------------------------------------- Candidatura a un trial */
+/**
+ * Trials con inscripción «primero candidatura»: qué ve el atleta en su tarjeta.
+ * La candidatura es una fila de `applications` (la RLS solo deja insertar al propio atleta); si el club la acepta,
+ * `application_org_decide` crea la inscripción (pendiente de la familia si es menor). Sin inscripción, nunca hay plaza.
+ */
+export type TrialApplyState = 'not_applicable' | 'apply' | 'closed' | 'in_review' | 'accepted' | 'declined' | 'withdrawn';
+export function trialApplyState(i: { open: boolean; mode: string | null | undefined; application: { status: string } | null | undefined; registered: boolean }): TrialApplyState {
+  if (i.mode !== 'application_required' || i.registered) return 'not_applicable';
+  if (!i.application) return i.open ? 'apply' : 'closed';
+  if (i.application.status === 'accepted') return 'accepted';
+  if (i.application.status === 'declined') return 'declined';
+  if (i.application.status === 'withdrawn') return 'withdrawn';
+  return 'in_review';
+}
+
+/* ----------------------------------------------------------------------------------- Invitar a un trial */
+/**
+ * Solo clubes y academias invitan a sus trials desde la ficha de un atleta. Universidades y colleges no: su contacto
+ * está sujeto a la ventana NCAA y no se les ofrece este botón (la guarda de la base de datos va aparte).
+ */
+export const TRIAL_INVITER_ORG_TYPES = ['club', 'academy'] as const;
+export interface InviterOrg { id: string; type: string; verification_status: string }
+export interface InvitableOpp { id: string; organization_id: string; type: string; status: string; deadline: string | null; start_at: string | null }
+export function canInviteToTrials(orgs: InviterOrg[]) {
+  return orgs.some((o) => o.verification_status === 'verified' && (TRIAL_INVITER_ORG_TYPES as readonly string[]).includes(o.type));
+}
+/** Trials publicados, con plazo y fecha por delante, de las organizaciones (club/academia verificadas) del usuario. */
+export function invitableTrials<T extends InvitableOpp>(orgs: InviterOrg[], opps: T[], now = new Date()): T[] {
+  const ok = new Set(orgs.filter((o) => o.verification_status === 'verified' && (TRIAL_INVITER_ORG_TYPES as readonly string[]).includes(o.type)).map((o) => o.id));
+  const today = now.toISOString().slice(0, 10);
+  return opps.filter((o) => ok.has(o.organization_id) && isTrialType(o.type) && o.status === 'published'
+    && (!o.deadline || o.deadline >= today) && (!o.start_at || new Date(o.start_at).getTime() > now.getTime()));
+}
+
 /* ----------------------------------------------------------------------------------- Publicación */
 export const PUBLISH_GAP_LABEL: Record<string, string> = {
   location: 'Añade la ciudad y el país antes de publicar.',
@@ -193,6 +228,7 @@ export function boardGroup(r: { status: RegistrationStatus | InvitationStatus; n
 
 /* ----------------------------------------------------------------------------------- Errores */
 export const TRIAL_ERROR: Record<string, string> = {
+  ncaa_contact_window_closed: 'Normas NCAA: vuestra universidad aún no puede invitar a este atleta por su curso. Podrás hacerlo cuando se abra la ventana de contacto.',
   not_allowed: 'No tienes permiso para hacer esto (comprueba tu rol, el programa o la representación).',
   opportunity_not_open: 'La oportunidad ya no está abierta.',
   registration_closed: 'El plazo de inscripción ha terminado.',

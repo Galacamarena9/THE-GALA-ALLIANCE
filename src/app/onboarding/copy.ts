@@ -26,6 +26,8 @@ export const ONBOARDING_COPY = {
     orgName: { brand: 'Nombre de la marca', agent: 'Nombre de la agencia', university: 'Universidad o college', coach: 'Club o academia' },
     orgType: 'Tipo',
     division: 'División',
+    divisionPick: 'Elige la división…',
+    divisionHint: 'Obligatoria: de ella depende cuándo puedes contactar con atletas (ventana NCAA).',
     website: 'Web oficial',
     websiteHint: 'La usamos para verificar tu organización (dominio oficial).',
     review: (what: 'staff' | 'brand' | 'agent') =>
@@ -61,6 +63,8 @@ export const ONBOARDING_COPY = {
     orgName: { brand: 'Brand name', agent: 'Agency name', university: 'University or college', coach: 'Club or academy' },
     orgType: 'Type',
     division: 'Division',
+    divisionPick: 'Choose the division…',
+    divisionHint: 'Required: it determines when you may contact athletes (NCAA contact window).',
     website: 'Official website',
     websiteHint: 'We use it to verify your organization (official domain).',
     review: (what: 'staff' | 'brand' | 'agent') =>

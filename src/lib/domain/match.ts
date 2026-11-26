@@ -44,6 +44,8 @@ export interface MatchResult {
   confidence: MatchConfidence;
   /** Porcentaje del peso total que se pudo evaluar con datos reales. */
   coverage: number;
+  /** El coste neto publicado supera el presupuesto anual de la familia (capa la etiqueta de encaje). */
+  overBudget: boolean;
   version: string;
 }
 
@@ -166,6 +168,7 @@ export function matchAthleteToOpportunity(
   let mandatoryFailed = false;
   let mandatoryMissing = false;
   let withData = 0;
+  let overBudget = false;
   const byArea = new Map<MatchArea, { earned: number; weight: number; evaluated: number; total: number }>();
 
   for (const c of criteria) {
@@ -186,6 +189,7 @@ export function matchAthleteToOpportunity(
     } else if (r === false) {
       unmet.push(c.label);
       if (c.mandatory) mandatoryFailed = true;
+      if (c.area === 'financial') overBudget = true;
     } else {
       missing.push(c.missingLabel ?? c.label);
       if (c.mandatory) mandatoryMissing = true;
@@ -193,7 +197,7 @@ export function matchAthleteToOpportunity(
   }
 
   const score = Math.round((earned / total) * 100);
-  const tier: MatchTier = mandatoryFailed
+  const raw: MatchTier = mandatoryFailed
     ? 'not_eligible'
     : mandatoryMissing
       ? 'potential'
@@ -202,6 +206,8 @@ export function matchAthleteToOpportunity(
         : score >= 55
           ? 'potential'
           : 'reach';
+  // Una opción que la familia no puede pagar nunca sale como «Encaje fuerte» ni «posible»: como mucho, «Exigente».
+  const tier = capTierByBudget(raw, overBudget);
 
   const coverage = Math.round((withData / total) * 100);
   const confidence: MatchConfidence = coverage >= 85 ? 'high' : coverage >= 60 ? 'medium' : 'low';
@@ -212,8 +218,16 @@ export function matchAthleteToOpportunity(
       return { area: k, score: a.weight ? Math.round((a.earned / a.weight) * 100) : null, evaluated: a.evaluated, total: a.total };
     });
 
-  return { score, tier, met, unmet, missing, areas, confidence, coverage, version: MATCH_ENGINE_VERSION };
+  return { score, tier, met, unmet, missing, areas, confidence, coverage, overBudget, version: MATCH_ENGINE_VERSION };
 }
+
+/** Coste fuera de presupuesto: el encaje queda, como mucho, en «Exigente» (no se oculta: se etiqueta). */
+export function capTierByBudget(tier: MatchTier, overBudget: boolean): MatchTier {
+  if (!overBudget) return tier;
+  return tier === 'strong' || tier === 'potential' ? 'reach' : tier;
+}
+
+export const OVER_BUDGET_LABEL = 'Fuera de vuestro presupuesto';
 
 export const TIER_LABEL: Record<MatchTier, string> = {
   strong: 'Encaje fuerte',

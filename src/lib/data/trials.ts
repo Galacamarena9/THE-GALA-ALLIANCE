@@ -1,7 +1,7 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
 import { myOrganizations } from '@/lib/data/orgs';
-import { TRIAL_TYPES, trialFit, type CostComponent, type PriceStatus, type RegistrationStatus, type InvitationStatus, type TrialFit } from '@/lib/domain/trials';
+import { TRIAL_INVITER_ORG_TYPES, TRIAL_TYPES, canInviteToTrials, invitableTrials, trialFit, type InvitableOpp, type CostComponent, type PriceStatus, type RegistrationStatus, type InvitationStatus, type TrialFit } from '@/lib/domain/trials';
 
 const OPP_COLS = 'id, title, type, sport_id, position_ids, graduation_years, deadline, expires_at, start_at, timezone, city, country, organizations(name, verification_status)';
 
@@ -105,4 +105,19 @@ export async function loadAgentTrials(userId: string) {
     .filter((s) => s.fits.length > 0);
 
   return { agencies, athletes, registrations, suggestions };
+}
+
+/**
+ * Trials a los que el usuario puede invitar desde la ficha de un atleta: solo staff de clubes y academias verificados
+ * (nunca universidades/colleges). Devuelve [] si no le corresponde el botón; la RLS filtra las oportunidades.
+ */
+export async function loadInvitableTrials(userId: string): Promise<{ allowed: boolean; trials: { id: string; organization_id: string; title: string; start_at: string | null; timezone: string | null }[] }> {
+  const orgs = await myOrganizations(userId);
+  if (!canInviteToTrials(orgs)) return { allowed: false, trials: [] };
+  const ids = orgs.filter((o) => (TRIAL_INVITER_ORG_TYPES as readonly string[]).includes(o.type)).map((o) => o.id);
+  const supabase = await createClient();
+  const { data } = await supabase.from('opportunities').select('id, organization_id, type, status, deadline, start_at, timezone, title')
+    .in('organization_id', ids).in('type', [...TRIAL_TYPES]).eq('status', 'published').order('start_at', { ascending: true }).limit(50);
+  const rows = (data ?? []) as unknown as (InvitableOpp & { title: string; timezone: string | null })[];
+  return { allowed: true, trials: invitableTrials(orgs, rows).map((o) => ({ id: o.id, organization_id: o.organization_id, title: o.title, start_at: o.start_at, timezone: o.timezone })) };
 }

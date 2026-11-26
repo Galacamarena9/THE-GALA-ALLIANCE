@@ -64,6 +64,56 @@ Cambios: rama `feat/fee-attestation-founder-cap`; migración `20261217000100_fee
 Pruebas: unit 266/266; RLS 438/438 (C3-1, C3-2); e2e 370 OK + `founder-pricing.spec.ts`; build OK.
 Riesgos abiertos: representaciones anteriores sin declaración (se muestran con aviso «pídesela»); claves Stripe live y `free_until` (gate de Gala); validación legal NCAA del texto.
 
+## [QA trials/familia] 2026-11-26 · Candidatura a trials, «Invitar a prueba» y encaje capado por el coste
+
+### Hecho
+- **Trials «primero candidatura» (crítica, QA atleta #2):** el atleta ya puede presentar la candidatura desde la ficha
+  del trial (`TrialApplyForm` + action `applyToTrial`, inserta en `applications` con la RLS existente). Si es menor, se
+  le avisa de que la familia aprobará la participación; el club la ve y la acepta en «Candidaturas» y
+  `application_org_decide` crea la inscripción (pendiente de la familia si es menor). Estados «en revisión / no
+  continúa / retirada» visibles para el atleta. Corregido el estado familiar de la candidatura (`granted`, no `approved`).
+- **«Invitar a prueba» (QA club #8):** botón en `/athletes/[id]` y en la ficha de candidato para staff de **clubes y
+  academias verificados** (selector de trials publicados + mensaje opcional), conectado a `inviteToTrial`. No se ofrece
+  a universidades/colleges (y la action lo rechaza); la función SQL `trial_org_invite` no se toca.
+- **Encaje y coste (QA familia #5, #6, #9):** una dimensión al 0 % es «no encaja» (no «parcial»); coste por encima del
+  presupuesto capa la etiqueta (rules-1.1: como mucho «Exigente» + badge «Fuera de vuestro presupuesto»; Gala Match:
+  como mucho «Encaje parcial», «Buen encaje» si está a ≤ 25 %). La comparación de costes de la familia pasa a tarjetas
+  en móvil (< 640 px) y sus textos usan `tx()`.
+
+### Pruebas ejecutadas
+- `npm run -s test:unit` (nuevo `trial-participation.test.ts`, 12 pruebas) · `npm run -s test:rls` (455 OK, nueva
+  prueba del flujo de candidatura) · `npx tsc --noEmit -p .` · `next build --webpack`.
+
+## [QA coach-club] 2026-11-26 · Ventana de contacto NCAA en todo contacto de una universidad
+Origen: QA coach-club, hallazgos #1 (crítica), #2, #3, #4, #7 y #13. GALA MONSTER OS: 05 Engineering, revisa 06 QA. Riesgo L3, fuera de producción.
+Cambios:
+- `20261223000200_ncaa_window_everywhere.sql`: función interna `ncaa_contact_closed(org, atleta)` (sin acceso para anon/authenticated); la usan `guard_contact_request`, `guard_info_request` (antes no comprobaba la ventana) y `trial_org_invite` (antes tampoco). Universidad/college sin división → regla D-I (conservadora). ROLLBACK en cabecera.
+- Onboarding: la división es obligatoria para universidad/college (select `required`, validación en la action, textos ES/EN).
+- «Hoy» (/app): universidad y coach van directos a /app/recruit; los enlaces al escaparate apuntan a /app/recruit/discover.
+- Ficha de candidato: badge «Contacto disponible / Contacto desde <fecha>» y formularios de contacto e información sustituidos por un aviso con la ventana cerrada.
+- Nueva oportunidad: una universidad/college no ve ni puede crear «Prueba» (tryout). NO COMPROBADO normativamente: revisar con el abogado NCAA.
+Pruebas: RLS 458/458 (4 nuevas); unit 300/300; tsc OK; build (webpack) OK.
+Pendiente de Gala / compliance: validar con el abogado NCAA la regla tryout y la decisión «división null → D-I»; atletas sin `graduation_year` no se bloquean; faltan excepciones por deporte (football, hockey…).
+
+## [QA menores] 2026-11-26 · Un menor no se desvincula de su tutor, no paga y no es visible sin familia
+
+### Hecho (migración `20261223000100_minor_guardian_protection.sql`)
+- CRÍTICA: trigger `guard_minor_guardian_change`: un atleta menor no puede revocar ni pausar a un tutor adulto con vínculo
+  activo (también por `family_link_restrict`). Error `guardian_change_requires_guardian`. El tutor puede renunciar,
+  el adulto decide, soporte (admin) puede pausar; reanudar sigue permitido. UI: sin «Pausar/Desvincular» para menores,
+  con enlace a soporte; pausar (adultos) pide confirmación.
+- ALTA: `startCheckout` y `requestPlan` rechazan a atletas menores; `/precios`, `PlanUnlocks` y `/app/plan` muestran
+  «Pídeselo a tu familia» (→ `/app/settings#familia`).
+- ALTA: `can_view_athlete`: menor sin `minor_has_active_family` → invisible para reclutadores verificados.
+- Presupuesto: el tutor activo de un menor con permiso de presupuesto lo fija sin «editar perfil»
+  (`guardian_sets_family_budget`); la lectura no cambia (nunca clubes ni agentes).
+
+### Pruebas ejecutadas
+- RLS 462/462 · unitarias 302/302 (nueva `minor-guard.test.ts`) · `tsc --noEmit` sin errores.
+
+### Pendiente / decisión de Gala (L5)
+- Edad mínima de alta (13) y consentimiento parental por país (RGPD art. 8): sin cambios.
+
 ## [Fase 8 auditoría] 2026-11-25 · Mínimo privilegio y pulido
 Origen: auditoría integral (hallazgos S7, U5–U8). GALA MONSTER OS: 05 Engineering, 06 QA, 03 Design consultado. Riesgo L4 (privilegios) en staging.
 Cambios:

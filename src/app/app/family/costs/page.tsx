@@ -25,7 +25,13 @@ export default async function FamilyCostsPage({ searchParams }: { searchParams: 
   if (session.roles.includes('parent')) {
     links = (await guardianLinks(session)).filter((l) => l.active && l.scopes.costs);
     const current = links.find((l) => l.athleteId === sp.child) ?? links[0];
-    if (current) { athleteId = current.athleteId; name = current.name; canEditBudget = current.scopes.edit && current.scopes.budget; canSeeBudget = current.scopes.budget; }
+    if (current) {
+      athleteId = current.athleteId; name = current.name; canSeeBudget = current.scopes.budget;
+      // QA menores: el tutor de un menor fija el presupuesto con el permiso de presupuesto, sin «editar perfil».
+      // Misma regla que la RLS de athlete_finances (guardian_sets_family_budget).
+      canEditBudget = current.scopes.budget && (current.scopes.edit
+        || (await supabase.rpc('guardian_sets_family_budget', { p_athlete: current.athleteId })).data === true);
+    }
   } else {
     athleteId = session.userId; name = 'ti'; canEditBudget = true;
   }

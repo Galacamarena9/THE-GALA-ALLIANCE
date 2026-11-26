@@ -1,6 +1,7 @@
 'use server';
 
 import { getLocale } from '@/lib/i18n/server';
+import { getT } from '@/lib/i18n/server-t';
 import { must } from '@/lib/supabase/must';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
@@ -21,6 +22,7 @@ const optUuid = z.union([uuid, z.literal('')]).optional().transform((v) => v || 
 const optDate = z.union([z.literal(''), z.string().regex(/^\d{4}-\d{2}-\d{2}$/)]).optional().transform((v) => v || null);
 const intList = (s: unknown) => String(s ?? '').split(',').map((x) => Number(x.trim())).filter((n) => Number.isInteger(n) && n > 0).slice(0, 12);
 
+const NCAA_CLOSED = 'Normas NCAA: vuestra universidad aún no puede contactar ni pedir información a este atleta por su curso. Guárdalo en una lista y escríbele cuando se abra la ventana.';
 function friendly(msg: string) {
   if (msg.includes('assignee_not_member')) return 'Solo puedes asignar a miembros de tu organización.';
   if (msg.includes('assignee_not_authorized')) return 'Esa persona no tiene permiso para trabajar candidatos.';
@@ -30,6 +32,7 @@ function friendly(msg: string) {
   if (msg.includes('duplicate') || msg.includes('unique')) return 'Ya existe.';
   if (msg.includes('last_admin')) return 'La organización necesita al menos un administrador.';
   if (msg.includes('rate_limited')) return 'Has alcanzado el límite diario de solicitudes.';
+  if (msg.includes('ncaa_contact_window_closed')) return NCAA_CLOSED;
   return 'No se ha podido completar. Inténtalo de nuevo.';
 }
 function refresh(...paths: string[]) { for (const p of ['/app/recruit', ...paths]) revalidatePath(p); }
@@ -227,6 +230,7 @@ export async function requestInfo(_prev: FormState, formData: FormData): Promise
   if (!p.success) return { error: 'Explica qué necesitas (10-1000 caracteres).' };
   const supabase = await createClient();
   const { error } = await supabase.from('info_requests').insert({ organization_id: p.data.org, athlete_id: p.data.athlete, requested_by: session.userId, kind: p.data.kind, message: p.data.message });
+  if (error?.message.includes('ncaa_contact_window_closed')) return { error: (await getT())(NCAA_CLOSED) };
   if (error) return { error: error.code === '23505' ? 'Ya hay una solicitud abierta de este tipo.' : friendly(error.message) };
   await logEvent('document_requested', { kind: p.data.kind });
   refresh(`/app/recruit/candidates/${p.data.athlete}`);
