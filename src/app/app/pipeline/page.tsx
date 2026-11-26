@@ -8,7 +8,8 @@ import { isOverdue } from '@/lib/domain/portfolio';
 import { OpenCaseForm } from '@/components/agency/CaseForms';
 import { PipelineBoard } from '@/components/agency/PipelineBoard';
 import { loadNextActions } from '@/lib/data/next-actions';
-import { ButtonLink, Card, CardTitle, EmptyState, PageHeader, inputClass } from '@/components/ui';
+import { ButtonLink, Card, CardTitle, EmptyState, Notice, PageHeader, inputClass } from '@/components/ui';
+import { getT } from '@/lib/i18n/server-t';
 
 export const metadata: Metadata = { title: 'Procesos de recruiting' };
 
@@ -18,6 +19,7 @@ const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) 
 export default async function PipelinePage({ searchParams }: { searchParams: SP }) {
   const session = await requireSession(['agent']);
   const sp = await searchParams;
+  const tx = await getT();
   const view = one(sp.view) === 'table' ? 'table' : 'board';
   const athleteFilter = one(sp.athlete);
   const ownerFilter = one(sp.owner);
@@ -68,6 +70,10 @@ export default async function PipelinePage({ searchParams }: { searchParams: SP 
           </div>
         }
       />
+
+      {one(sp.movido) && (
+        <div className="mb-4"><Notice tone="danger">{one(sp.movido) === 'sin_permiso' ? tx('No se ha movido: tu rol en la agencia no permite cambiar la fase de este proceso.') : tx('No se ha podido mover el proceso. Inténtalo de nuevo; si se repite, ábrelo y cambia la fase desde su ficha.')}</Notice></div>
+      )}
 
       <dl className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
@@ -130,7 +136,7 @@ export default async function PipelinePage({ searchParams }: { searchParams: SP 
           Abre el primero: un atleta, una universidad y una temporada. A partir de ahí, cada cambio de fase queda registrado con fecha y autor.
         </EmptyState>
       ) : (
-        <PipelineBoard cases={cases} view={view} sportName={sportName} actions={actions} />
+        <PipelineBoard cases={cases} view={view} sportName={sportName} actions={actions} canMove={new Set(writable.map((a) => a.id))} />
       )}
 
       <Card className="mt-8">

@@ -588,6 +588,16 @@ try {
     eq((await as(u.parent, `select count(*)::int n from contact_messages where request_id = $1`, [minorReq])).rows[0].n, 1);
     eq((await as(u.brand, `select count(*)::int n from contact_messages where request_id = $1`, [minorReq])).rows[0].n, 0);
   });
+  await check('marcas de lectura: solo quien participa marca; cada uno ve solo las suyas; nada de escritura directa', async () => {
+    await as(u.coach, `select contact_mark_read($1)`, [reqId]);
+    await as(u.adult, `select contact_mark_read($1)`, [reqId]);
+    eq((await as(u.coach, `select count(*)::int n from contact_thread_reads where request_id = $1`, [reqId])).rows[0].n, 1, 'coach ve solo la suya:');
+    eq((await as(u.adult, `select count(*)::int n from contact_thread_reads where user_id = $1`, [u.coach])).rows[0].n, 0, 'el atleta no ve la del coach:');
+    await expectError(() => as(u.brand, `select contact_mark_read($1)`, [reqId]), /not_allowed/);
+    await expectError(() => as(u.coach, `insert into contact_thread_reads (request_id, user_id) values ($1, $2)`, [reqId, u.adult]), /permission denied/);
+    await expectError(() => as(u.coach, `update contact_thread_reads set last_read_at = now() - interval '1 year'`), /permission denied/);
+    await expectError(() => as(null, `select contact_mark_read($1)`, [reqId]), /permission denied|not_allowed/);
+  });
   await check('el admin solo lee una conversación con denuncia abierta, y queda auditado', async () => {
     eq((await as(u.admin, `select count(*)::int n from contact_messages`)).rows[0].n, 0, 'sin acceso directo:');
     const rep = (await as(u.parent, `insert into content_reports (entity_type, entity_id, reason) values ('contact_request', $1, 'harassment') returning id`, [minorReq])).rows[0].id;

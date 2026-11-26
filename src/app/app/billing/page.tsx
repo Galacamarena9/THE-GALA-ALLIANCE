@@ -1,12 +1,16 @@
 import { FOUNDER_PRICE_CENTS, founderSeats } from '@/lib/domain/fee-attestation';
 import type { Metadata } from 'next';
-import type { AgencyPlanStatus } from '@/lib/domain/plan-limits';
+import { checkoutTrialDays, type AgencyPlanStatus } from '@/lib/domain/plan-limits';
+import { planByCode } from '@/content/plans';
+import { PlanRequestForm } from '@/components/growth';
+import { getT } from '@/lib/i18n/server-t';
+import Link from 'next/link';
 import { PlanUsage } from '@/components/agency/PlanUsage';
 import { requireSession } from '@/lib/session';
 import { logEvent } from '@/lib/events';
 import { createClient } from '@/lib/supabase/server';
 import { myOrganizations } from '@/lib/data/orgs';
-import { Badge, Card, CardTitle, EmptyState, Notice, PageHeader, buttonClass } from '@/components/ui';
+import { Badge, Card, CardTitle, EmptyState, Notice, PageHeader, buttonClass, cx } from '@/components/ui';
 import { assignSeat, openBillingPortal, startSubscription } from '@/app/actions/billing';
 
 export const metadata: Metadata = { title: 'Facturación' };
@@ -35,6 +39,7 @@ const eur = (c: number, cur: string) => new Intl.NumberFormat('es-ES', { style: 
 export default async function BillingPage({ searchParams }: { searchParams: Promise<{ estado?: string }> }) {
   const session = await requireSession(['agent', 'coach', 'university', 'brand']);
   const sp = await searchParams;
+  const tx = await getT();
   void logEvent('billing_viewed');
   // Solo se ofrece «Contratar» si el pago online está configurado en este entorno (sin claves: nunca un botón roto).
   const canPay = Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_WEBHOOK_SECRET);
@@ -74,6 +79,8 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
           const plans = (catalog ?? []).filter((p) => p.audience === audienceOf[o.type as string]);
           const ps = planStatus.get(o.id);
           const team = (members ?? []).filter((m) => m.organization_id === o.id);
+          // Misma regla que el checkout: solo se promete «sin cargo» si queda prueba de la app y nunca hubo suscripción.
+          const trialLeft = checkoutTrialDays({ audience: audienceOf[o.type as string], status: ps ?? null, hadSubscription: (acct?.subscriptions.length ?? 0) > 0 });
           return (
             <Card key={o.id}>
               <CardTitle kicker={o.name} action={sub ? <Badge tone={STATUS[sub.status]?.tone ?? 'neutral'}>{STATUS[sub.status]?.label ?? sub.status}</Badge> : <Badge>Sin suscripción</Badge>}>
@@ -119,8 +126,25 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
                         );
                       })()}
                       {canPay && (p.stripe_price_id || (p.price_cents as number | null))
-                        ? <form action={startSubscription} className="mt-2"><input type="hidden" name="org_id" value={o.id} /><input type="hidden" name="plan_code" value={p.code as string} /><button className={buttonClass('primary', 'md')}>{p.audience === 'agent' ? 'Empezar 30 días gratis' : 'Contratar'}</button></form>
-                        : <p className="mt-2 text-xs text-faint">Contratación online próximamente.</p>}
+                        ? (
+                          <form action={startSubscription} className="mt-2"><input type="hidden" name="org_id" value={o.id} /><input type="hidden" name="plan_code" value={p.code as string} />
+                            <button className={buttonClass('primary', 'md')}>{tx('Contratar')}</button>
+                            {trialLeft > 0 && <p className="mt-1 text-xs text-muted">{tx(trialLeft === 1 ? 'Sin cargo hasta que acabe tu prueba (queda 1 día).' : `Sin cargo hasta que acabe tu prueba (quedan ${trialLeft} días).`)}</p>}
+                          </form>
+                        )
+                        : (
+                          // Sin pago online en este entorno: nunca un callejón sin salida. Se registra la solicitud (service_requests)
+                          // y el equipo contacta para dar de alta el plan; no se cobra nada sin confirmación.
+                          <details className="mt-2" data-testid="plan-request">
+                            <summary className={cx(buttonClass('primary', 'md'), 'cursor-pointer list-none')}>{tx('Solicitar alta')}</summary>
+                            <p className="mt-2 text-xs text-muted">{tx('El pago online aún no está activo. Envíanos la solicitud y te escribimos para dar de alta el plan; no se cobra nada sin tu confirmación.')}</p>
+                            <div className="mt-2">
+                              {planByCode(p.code as string)
+                                ? <PlanRequestForm planCode={p.code as string} organizations={[{ id: o.id, name: o.name as string }]} />
+                                : <Link href="/app/support" className="text-sm font-semibold text-brass hover:underline">{tx('Escribir a soporte')}</Link>}
+                            </div>
+                          </details>
+                        )}
                     </li>
                   ))}
                 </ul>

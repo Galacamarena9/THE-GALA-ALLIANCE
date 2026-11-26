@@ -2822,6 +2822,39 @@ export type Database = {
           },
         ]
       }
+      contact_thread_reads: {
+        Row: {
+          last_read_at: string
+          request_id: string
+          user_id: string
+        }
+        Insert: {
+          last_read_at?: string
+          request_id: string
+          user_id: string
+        }
+        Update: {
+          last_read_at?: string
+          request_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_thread_reads_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "contact_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_thread_reads_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_requests: {
         Row: {
           athlete_id: string
@@ -10109,6 +10142,10 @@ export type Database = {
       admin_agency_trial_extend: {
         Args: { p_org: string; p_days: number; p_reason: string }
         Returns: string
+      }
+      contact_mark_read: {
+        Args: { p_request: string }
+        Returns: undefined
       }
       agency_plan_status: {
         Args: { p_org: string }

@@ -6,6 +6,7 @@ import { ACTOR_LABEL, STATE_LABEL, TURN_LABEL, compareActions, type ActionState,
 import { initials } from '@/lib/domain/portfolio';
 import { Badge, Card } from '@/components/ui';
 import type { CaseRow } from '@/lib/data/agency-cases';
+import { PhaseMoveButtons } from '@/components/agency/PhaseMoveButtons';
 
 const STATE_TONE: Record<ActionState, string> = {
   blocked: 'border-danger/50 bg-danger/10 text-danger',
@@ -22,8 +23,10 @@ const fallback = (c: CaseRow): NextAction => ({ key: 'none', action: c.nextActio
  * Pipeline en 5 fases (fase 9). Cada tarjeta: atleta, organización, contexto, UNA siguiente acción (motor determinista),
  * como mucho UN bloqueo y UN botón principal. Server component sin datos propios: lo usan la página y el probador.
  */
-export function PipelineBoard({ cases, view, sportName, actions, today = new Date().toISOString().slice(0, 10) }: {
+export function PipelineBoard({ cases, view, sportName, actions, today = new Date().toISOString().slice(0, 10), canMove }: {
   cases: CaseRow[]; view: 'board' | 'table'; sportName: Map<string, string>; actions: Map<string, NextAction>; today?: string;
+  /** Agencias en las que tu rol puede mover procesos (sin él, no se muestran los botones). */
+  canMove?: Set<string>;
 }) {
   const open = cases.filter((c) => c.stage !== 'closed');
   const closed = cases.length - open.length;
@@ -98,6 +101,7 @@ export function PipelineBoard({ cases, view, sportName, actions, today = new Dat
                         className={`mt-3 inline-flex min-h-10 w-full items-center justify-center rounded-full px-3 text-sm font-semibold ${mine && a.state !== 'done' ? 'bg-brass text-ink hover:bg-brass-soft' : 'border border-line-strong text-paper hover:border-brass'}`}>
                         {a.cta.label}
                       </Link>
+                      {canMove?.has(c.agencyId) && <PhaseMoveButtons caseId={c.id} stage={c.stage} athleteName={c.athleteName} />}
                     </li>
                   );
                 })}

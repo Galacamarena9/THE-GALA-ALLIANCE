@@ -3,12 +3,12 @@ import { FileText, Search, ShieldCheck, UserRound } from 'lucide-react';
 import { dueText } from '@/lib/domain/agent-home';
 import { STATE_LABEL, TURN_LABEL, phaseOf, type NextAction } from '@/lib/domain/next-action';
 import { THREAD_STATUS_LABEL, type InboxGroup } from '@/lib/domain/inbox';
-import { EmptyState, PageHeader } from '@/components/ui';
+import { Badge, EmptyState, PageHeader } from '@/components/ui';
 
 const when = (iso: string) => new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
 
 /** Bandeja única del agente: una fila por atleta con lo más urgente de sus procesos y sus conversaciones debajo. */
-export function AgentInboxView({ groups, today = new Date().toISOString().slice(0, 10) }: { groups: InboxGroup[]; today?: string }) {
+export function AgentInboxView({ groups, today = new Date().toISOString().slice(0, 10), tx = (s: string) => s }: { groups: InboxGroup[]; today?: string; tx?: (s: string) => string }) {
   return (
     <>
       <PageHeader kicker="Mensajes · Por atleta" title={<>Conversaciones que <em>avanzan</em></>} description="Una sola bandeja, ordenada por atleta. Cada conversación lleva su contexto: en qué fase está y qué toca hacer." />
@@ -24,6 +24,7 @@ export function AgentInboxView({ groups, today = new Date().toISOString().slice(
                 <div className="min-w-0">
                   <h2 className="text-2xl text-paper">{g.athleteName}</h2>
                   {g.isMinor && <p className="mt-1 inline-flex items-center gap-1 text-xs text-muted"><ShieldCheck className="h-3.5 w-3.5 text-brass" aria-hidden />Menor: la familia ve la conversación</p>}
+                  {g.awaiting > 0 && <p className="mt-1 text-xs font-semibold text-warn">{tx(g.awaiting === 1 ? '1 conversación espera tu respuesta' : `${g.awaiting} conversaciones esperan tu respuesta`)}</p>}
                 </div>
                 {g.top ? (
                   <div className="max-w-sm text-right" data-testid="group-context">
@@ -36,10 +37,22 @@ export function AgentInboxView({ groups, today = new Date().toISOString().slice(
               <ul className="divide-y divide-line">
                 {g.threads.map((t) => (
                   <li key={t.id}>
-                    <Link href={`/app/inbox/${t.id}`} className="flex min-h-14 items-center justify-between gap-3 px-5 py-3 hover:bg-surface-2/60">
+                    {/* La contraparte es el atleta (y su familia si es menor), nunca tu propia agencia (QA agente, hallazgo 5). */}
+                    <Link href={`/app/inbox/${t.id}`} data-testid="inbox-thread" data-unread={t.unread ? 'true' : undefined} data-awaiting={t.awaitingReply ? 'true' : undefined}
+                      aria-label={[t.isMinor ? tx(`Conversación con ${t.athleteName} y su familia`) : tx(`Conversación con ${t.athleteName}`), t.unread ? tx('sin leer') : null, t.awaitingReply ? tx('te toca responder') : null].filter(Boolean).join(', ')}
+                      className="flex min-h-14 items-center justify-between gap-3 px-5 py-3 hover:bg-surface-2/60">
                       <span className="min-w-0">
-                        <span className="block truncate font-semibold text-paper">{t.organization}</span>
-                        <span className="text-xs text-muted">{THREAD_STATUS_LABEL[t.status] ?? t.status}</span>
+                        <span className="flex items-center gap-2">
+                          {t.unread && <span className="inline-block h-2 w-2 shrink-0 rounded-full bg-brass" aria-hidden />}
+                          <span className={`truncate text-paper ${t.unread ? 'font-bold' : 'font-semibold'}`}>{t.isMinor ? tx(`${t.athleteName} y su familia`) : t.athleteName}</span>
+                          {t.awaitingReply && <Badge tone="warn">{tx('Te toca responder')}</Badge>}
+                        </span>
+                        {t.excerpt && (
+                          <span className="block truncate text-sm text-muted">
+                            <span className="text-faint">{t.lastFrom === 'us' ? tx('Tu agencia') : t.lastFrom === 'family' ? tx('Familia') : t.athleteName.split(' ')[0]}: </span>{t.excerpt}
+                          </span>
+                        )}
+                        <span className="text-xs text-faint">{THREAD_STATUS_LABEL[t.status] ?? t.status}</span>
                       </span>
                       <span className="shrink-0 text-xs text-faint">{when(t.lastMessageAt ?? t.createdAt)}</span>
                     </Link>

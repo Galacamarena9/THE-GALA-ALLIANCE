@@ -6,6 +6,7 @@ import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { requireSession } from '@/lib/session';
+import { checkoutTrialDays, type AgencyPlanStatus } from '@/lib/domain/plan-limits';
 
 /**
  * 15 · Suscripciones de organizaciones con Stripe. El navegador nunca toca claves ni decide el estado:
@@ -52,6 +53,19 @@ async function ensureCustomer(orgId: string, key: string): Promise<string | null
   return customer.id;
 }
 
+/** Días de prueba que quedan para el checkout de una agencia: 0 si la prueba ya acabó o si ya tuvo una suscripción. */
+async function agencyCheckoutTrialDays(orgId: string): Promise<number> {
+  const supabase = await createClient();
+  const [{ data: status, error: statusError }, { data: accounts, error: subsError }] = await Promise.all([
+    supabase.rpc('agency_plan_status', { p_org: orgId }),
+    supabase.from('billing_accounts').select('subscriptions(id)').eq('organization_id', orgId),
+  ]);
+  // Si no se puede comprobar, no se regala nada: sin prueba (el cliente lo ve en Stripe antes de pagar).
+  if (statusError || subsError) return 0;
+  const hadSubscription = ((accounts ?? []) as unknown as { subscriptions: { id: string }[] | null }[]).some((a) => (a.subscriptions ?? []).length > 0);
+  return checkoutTrialDays({ audience: 'agent', status: (status as AgencyPlanStatus[] | null)?.[0] ?? null, hadSubscription });
+}
+
 export async function startSubscription(formData: FormData) {
   await requireSession(['agent', 'coach', 'university', 'brand']);
   const p = z.object({ org_id: z.string().uuid(), plan_code: z.string().regex(/^[a-z_]+$/) }).safeParse(Object.fromEntries(formData));
@@ -65,14 +79,15 @@ export async function startSubscription(formData: FormData) {
   if (!key || !plan || !['month', 'year'].includes(plan.billing_interval as string) || (!plan.stripe_price_id && !(cents && cents > 0))) redirect('/app/billing?estado=no_disponible');
   const customer = await ensureCustomer(p.data.org_id, key);
   if (!customer) redirect('/app/billing?estado=no_permitido');
+  const trialDays = plan.audience === 'agent' ? await agencyCheckoutTrialDays(p.data.org_id) : 0;
   const site = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
   const session = await stripe('/checkout/sessions', key, new URLSearchParams({
     mode: 'subscription', customer,
     // Precio por plan (no por asiento): cantidad 1. Sin precio guardado en Stripe, se crea al vuelo desde el catálogo.
     ...linePrice(plan as unknown as CatalogPlan),
     'line_items[0][quantity]': '1',
-    // Agencias: 30 días de prueba; no se cobra nada hasta que acaba.
-    ...(plan.audience === 'agent' ? { 'subscription_data[trial_period_days]': '30' } : {}),
+    // Agencias: solo lo que quede de la prueba de 30 días de la app (nunca una prueba nueva encima; ver checkoutTrialDays).
+    ...(trialDays > 0 ? { 'subscription_data[trial_period_days]': String(trialDays) } : {}),
     'subscription_data[metadata][plan_code]': plan.code as string,
     'subscription_data[metadata][plan_version]': String(plan.version),
     'subscription_data[metadata][organization_id]': p.data.org_id,

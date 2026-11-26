@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { groupInbox, type InboxThread } from './inbox.ts';
+import { excerptOf, groupInbox, threadFlags, type InboxThread } from './inbox.ts';
 import { nextAction } from './next-action.ts';
 import { documentChecklist } from './athlete-360.ts';
 
@@ -45,4 +45,30 @@ test('documentos: fecha recomendada, respaldo de Evidence y qué procesos los ne
   // Sin permiso: se ve qué hace falta y para qué, nunca el estado ni el respaldo.
   const locked = documentChecklist(defs, [], [], false, { cases: [{ institution: 'Lakeshore', stage: 'academic_review' }] });
   assert.ok(locked.every((r) => r.state === 'locked' && r.verification === null && r.sharedTitle === null));
+});
+
+test('bandeja: quién escribió lo último, «te toca responder» y no leídos', () => {
+  const ours = new Set(['agent1', 'agent2']);
+  const base = { status: 'accepted', athleteId: 'a1', ours };
+  assert.deepEqual(threadFlags({ ...base, lastSenderId: 'a1', lastAt: '2026-11-20T10:00:00Z', readAt: null }), { lastFrom: 'athlete', awaitingReply: true, unread: true });
+  assert.deepEqual(threadFlags({ ...base, lastSenderId: 'a1', lastAt: '2026-11-20T10:00:00Z', readAt: '2026-11-21T00:00:00Z' }), { lastFrom: 'athlete', awaitingReply: true, unread: false });
+  // Responde un compañero de la agencia: ya no toca.
+  assert.deepEqual(threadFlags({ ...base, lastSenderId: 'agent2', lastAt: '2026-11-20T10:00:00Z', readAt: null }), { lastFrom: 'us', awaitingReply: false, unread: false });
+  // La familia de un menor también es «la otra parte».
+  assert.equal(threadFlags({ ...base, lastSenderId: 'parent9', lastAt: '2026-11-20T10:00:00Z', readAt: null }).lastFrom, 'family');
+  // Pendiente de aceptar: no se puede responder todavía.
+  assert.equal(threadFlags({ ...base, status: 'pending', lastSenderId: 'a1', lastAt: null, readAt: null }).awaitingReply, false);
+  assert.equal(excerptOf('  hola\n  qué tal '), 'hola qué tal');
+  assert.equal(excerptOf('x'.repeat(200))?.length, 110);
+  assert.equal(excerptOf(null), null);
+});
+
+test('bandeja: primero los atletas con conversaciones que esperan tu respuesta', () => {
+  const g = groupInbox([
+    t({ id: 'p', athleteId: 'a1', lastMessageAt: '2026-11-22T00:00:00Z' }),
+    t({ id: 'q', athleteId: 'a2', athleteName: 'Pablo', lastMessageAt: '2026-11-01T00:00:00Z', awaitingReply: true, unread: true }),
+  ], new Map());
+  assert.deepEqual(g.map((x) => x.athleteId), ['a2', 'a1']);
+  assert.equal(g[0].awaiting, 1);
+  assert.equal(g[0].unread, 1);
 });

@@ -6,6 +6,7 @@ import { Notice } from '@/components/ui';
 import { SubmitButton } from '@/components/SubmitButton';
 import { importPortfolio, reissueInvite, revokeInvite, type ImportState } from '@/app/actions/portfolio-invites';
 import { inviteMessage } from '@/lib/domain/portfolio-import';
+import { useT } from '@/lib/i18n/client';
 
 export interface InviteRow { id: string; full_name: string; email: string | null; sport: string | null; graduation_year: number | null; status: string; expires_at: string; created_at: string }
 
@@ -68,13 +69,14 @@ export function PortfolioImport({ agencyId, agencyName, invites }: { agencyId: s
   const [state, action] = useActionState<ImportState, FormData>(importPortfolio, {});
   const [csv, setCsv] = useState('');
   const pending = invites.filter((i) => i.status !== 'revoked');
+  const tx = useT();
   return (
-    <section aria-labelledby="import-h" className="rounded-[var(--radius-card)] border border-line bg-surface p-5" data-testid="portfolio-import">
+    <section id="importar" aria-labelledby="import-h" className="scroll-mt-24 rounded-[var(--radius-card)] border border-line bg-surface p-5" data-testid="portfolio-import">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
           <p className="eyebrow flex items-center gap-3 text-brass"><span aria-hidden className="h-px w-8 bg-brass" />Tu cartera actual</p>
           <h2 id="import-h" className="mt-2 font-display text-3xl text-paper">Trae a tus <em>atletas</em> en un minuto</h2>
-          <p className="mt-1 max-w-2xl text-sm text-muted">Sube tu Excel guardado como CSV (columnas: Nombre, Email, Deporte, Promoción) o pégalo aquí. Cada atleta recibe un enlace personal; cuando entra con su cuenta, ya puedes enviarle tu propuesta. Nada se comparte sin su permiso.</p>
+          <p className="mt-1 max-w-2xl text-sm text-muted">{tx('Sube tu Excel guardado como CSV (columnas: Nombre, Email, Deporte, Promoción) o pégalo aquí. Te damos un enlace personal por atleta para que se lo envíes tú (copiar, WhatsApp o email): la plataforma no lo envía por ti. Cuando entra con su cuenta, ya puedes enviarle tu propuesta. Nada se comparte sin su permiso.')}</p>
         </div>
         {pending.length > 0 && <p className="text-sm text-muted"><span className="font-display text-2xl text-paper">{pending.filter((i) => i.status === 'claimed').length}</span> de {pending.length} ya están dentro</p>}
       </div>
@@ -88,7 +90,7 @@ export function PortfolioImport({ agencyId, agencyName, invites }: { agencyId: s
         <label className="block text-xs font-semibold uppercase tracking-wide text-muted" htmlFor="csv">O pégalo aquí</label>
         <textarea id="csv" name="csv" rows={4} value={csv} onChange={(e) => setCsv(e.target.value)} placeholder={'Nombre;Email;Deporte;Promoción\nLucía Marín;lucia@correo.com;Baloncesto;2027'}
           className="w-full rounded-xl border border-line bg-ink p-3 font-mono text-xs text-paper placeholder:text-faint focus:border-brass focus:outline-none" />
-        <SubmitButton pendingText="Importando…"><Upload className="h-4 w-4" aria-hidden /> Importar e invitar</SubmitButton>
+        <SubmitButton pendingText="Importando…"><Upload className="h-4 w-4" aria-hidden /> {tx('Importar y crear enlaces')}</SubmitButton>
       </form>
 
       {state.error && <div className="mt-3"><Notice tone="danger">{state.error}</Notice></div>}
