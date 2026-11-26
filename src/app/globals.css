@@ -165,6 +165,11 @@ h1, h2, .font-display {
   font-family: var(--font-display); font-stretch: 125%; font-style: italic; font-weight: 900; text-transform: inherit;
   letter-spacing: inherit; color: var(--color-gold);
 }
+/* Móvil: la Archivo extra ancha se estrecha un poco para que palabras largas («UNIVERSIDADES») no desborden. */
+@media (max-width: 639px) {
+  h1, h2, .font-display, .display-xl, .display-lg, .font-display em, h1 em, h2 em { font-stretch: 106%; }
+}
+h1, h2 { overflow-wrap: break-word; hyphens: auto; }
 /* Textos largos que heredan .font-display pero deben leerse en frase. */
 .font-display.normal-case { text-transform: none; }
 h3 {
