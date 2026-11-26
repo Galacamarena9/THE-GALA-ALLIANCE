@@ -12,6 +12,7 @@ import { roleHome } from '@/lib/domain/roles';
 import { SPAIN_DIGITAL_CONSENT_AGE } from '@/lib/domain/age';
 import type { FormState } from './auth';
 import { getLocale } from '@/lib/i18n/server';
+import { needsDivision } from '@/lib/domain/ncaa';
 
 const LEGAL_VERSION = '2026-11-borrador';
 
@@ -68,6 +69,7 @@ const EN: Record<string, string> = {
   'Esta organización ya existe en Gala.': 'This organization is already on Gala.',
   'No hemos podido crear tu organización. Revisa los datos.': 'We could not create your organization. Please check the details.',
   'No hemos podido completar el registro. Inténtalo de nuevo.': 'We could not complete your registration. Please try again.',
+  'Elige la división de tu universidad': "Choose your university's division",
 };
 function toEnglish(m: string): string {
   const exists = m.match(/^«(.+)» ya está en Gala: no crees otra/);
@@ -139,6 +141,10 @@ async function completeOnboardingEs(_prev: FormState, formData: FormData): Promi
     if (createOrg && data.org_name.length < 2) return { fieldErrors: { org_name: 'Nombre de la organización' } };
     if (createOrg && !(ORG_TYPES_BY_ROLE[data.role] as readonly string[]).includes(data.org_type)) {
       return { fieldErrors: { org_type: 'Tipo de organización no válido para tu perfil' } };
+    }
+    // Cumplimiento NCAA (QA coach #3): la ventana de contacto depende de la división; sin ella no se crea la universidad.
+    if (createOrg && needsDivision(data.org_type) && !data.division) {
+      return { fieldErrors: { division: 'Elige la división de tu universidad' }, error: 'Revisa los campos marcados.' };
     }
     const { data: existing } = await supabase
       .from('organization_members')

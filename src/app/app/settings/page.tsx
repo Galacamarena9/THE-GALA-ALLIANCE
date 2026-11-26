@@ -11,6 +11,9 @@ import { DeleteAccountForm } from '@/components/autonomy';
 import { CookiePrefsButton } from './CookiePrefsButton';
 import { unblockUser } from '@/app/actions/blocks';
 import { TwoFactorCard } from '@/components/TwoFactorCard';
+import { getT } from '@/lib/i18n/server-t';
+import { athleteCanRemoveGuardian } from '@/lib/domain/minor-guard';
+import Link from 'next/link';
 
 export const metadata: Metadata = { title: 'Privacidad y datos' };
 
@@ -22,9 +25,10 @@ function todayIso() {
   return new Date().toISOString().slice(0, 10);
 }
 
-export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ mfa?: string }> }) {
+export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ mfa?: string; familia?: string }> }) {
   const session = await requireSession();
-  const { mfa } = await searchParams;
+  const { mfa, familia } = await searchParams;
+  const tx = await getT();
   const supabase = await createClient();
   const isAthlete = session.roles.includes('athlete');
 
@@ -78,6 +82,12 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         {isAthlete && (
           <Card id="familia">
             <CardTitle kicker="Familia">Personas vinculadas</CardTitle>
+            {familia === 'tutor' && (
+              <p role="alert" className="mb-4 rounded-lg border border-brass/40 bg-brass/10 p-3 text-sm text-paper">
+                {tx('Como eres menor de edad, no puedes pausar ni desvincular a tu madre, padre o tutor por tu cuenta. Si tienes un problema con tu familia, escríbenos: lo tratamos con confidencialidad.')}{' '}
+                <Link href="/app/support" className="text-brass underline underline-offset-2">{tx('Escribir a soporte')}</Link>
+              </p>
+            )}
             {links?.length ? (
               <ul className="space-y-4">
                 {links.map((l) => {
@@ -126,19 +136,40 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                         <p className="text-xs text-faint sm:col-span-2">Tus notas privadas nunca son visibles para tu familia.</p>
                         <button className="justify-self-start rounded-lg border border-line-strong px-3 py-1 text-xs text-paper hover:border-brass">Guardar permisos</button>
                       </form>
-                      <form action={restrictFamilyLink} className="mt-3 inline-block">
-                        <input type="hidden" name="id" value={l.id} />
-                        <input type="hidden" name="restrict" value={paused ? 'no' : 'yes'} />
-                        <button className="mr-4 text-xs text-muted hover:text-paper">{paused ? 'Reanudar acceso' : 'Pausar acceso'}</button>
-                      </form>
-                      <details className="mt-3">
-                        <summary className="cursor-pointer text-xs text-faint hover:text-danger">Desvincular</summary>
-                        <form action={revokeFamilyLink} className="mt-2 rounded-lg border border-line p-3 text-xs text-muted">
-                          <input type="hidden" name="id" value={l.id} /><input type="hidden" name="confirm" value="yes" />
-                          <p>Dejará de ver tu información desde ahora. Tus candidaturas, documentos y ofertas no cambian.</p>
-                          <button className={buttonClass('danger', 'md', 'mt-2')}>Sí, desvincular</button>
+                      {paused && (
+                        <form action={restrictFamilyLink} className="mt-3 inline-block">
+                          <input type="hidden" name="id" value={l.id} />
+                          <input type="hidden" name="restrict" value="no" />
+                          <button className="mr-4 text-xs text-muted hover:text-paper">Reanudar acceso</button>
                         </form>
-                      </details>
+                      )}
+                      {athleteCanRemoveGuardian({ athleteIsMinor: session.isMinor, linkStatus: String(l.status) }) ? (
+                        <>
+                          {!paused && (
+                            <details className="mt-3">
+                              <summary className="cursor-pointer text-xs text-muted hover:text-paper">{tx('Pausar acceso')}</summary>
+                              <form action={restrictFamilyLink} className="mt-2 rounded-lg border border-line p-3 text-xs text-muted">
+                                <input type="hidden" name="id" value={l.id} /><input type="hidden" name="restrict" value="yes" /><input type="hidden" name="confirm" value="yes" />
+                                <p>{tx('Dejará de ver tu información hasta que reanudes su acceso. La relación no se borra.')}</p>
+                                <button className={buttonClass('secondary', 'md', 'mt-2')}>{tx('Sí, pausar acceso')}</button>
+                              </form>
+                            </details>
+                          )}
+                          <details className="mt-3">
+                            <summary className="cursor-pointer text-xs text-faint hover:text-danger">Desvincular</summary>
+                            <form action={revokeFamilyLink} className="mt-2 rounded-lg border border-line p-3 text-xs text-muted">
+                              <input type="hidden" name="id" value={l.id} /><input type="hidden" name="confirm" value="yes" />
+                              <p>Dejará de ver tu información desde ahora. Tus candidaturas, documentos y ofertas no cambian.</p>
+                              <button className={buttonClass('danger', 'md', 'mt-2')}>Sí, desvincular</button>
+                            </form>
+                          </details>
+                        </>
+                      ) : (
+                        <p className="mt-3 text-xs text-faint">
+                          {tx('Mientras seas menor, tu tutor sigue vinculado para protegerte: solo él o ella puede dejar de estarlo. Si algo no va bien, escríbenos.')}{' '}
+                          <Link href="/app/support" className="text-brass underline underline-offset-2">{tx('Escribir a soporte')}</Link>
+                        </p>
+                      )}
                     </li>
                   );
                 })}

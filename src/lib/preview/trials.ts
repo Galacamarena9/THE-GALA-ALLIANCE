@@ -39,7 +39,7 @@ export const previewTrialPanel = {
   invitations: [],
   applications: [
     { id: '00000000-0000-0000-0000-0000000000a1', athlete_id: 'x1', status: 'applied', name: 'Elena F. (ficticia)', guardian_consent_status: 'pending', materials_complete: false },
-    { id: '00000000-0000-0000-0000-0000000000a2', athlete_id: 'x2', status: 'applied', name: 'Irene C. (ficticia)', guardian_consent_status: 'approved', materials_complete: true },
+    { id: '00000000-0000-0000-0000-0000000000a2', athlete_id: 'x2', status: 'applied', name: 'Irene C. (ficticia)', guardian_consent_status: 'granted', materials_complete: true },
   ],
 };
 

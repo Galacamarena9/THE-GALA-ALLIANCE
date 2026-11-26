@@ -7,18 +7,26 @@ import { Card, CardTitle, Field, inputClass } from '@/components/ui';
 import { createOpportunity } from '@/app/actions/opportunities';
 import { DIVISION_LABEL, OPPORTUNITY_TYPE_LABEL } from '@/lib/domain/labels';
 import { CLUB_TYPES, PROGRAM_TYPES } from '@/lib/domain/trials';
+import { opportunityTypeAllowed, needsDivision } from '@/lib/domain/ncaa';
+import { useT } from '@/lib/i18n/client';
 import { CONTACT_METHOD_LABEL, INTERNATIONAL_LABEL, REQUIRED_MATERIAL_LABEL, SCHOLARSHIP_LABEL } from '@/lib/domain/recruit';
 
 interface Props {
-  orgs: { id: string; name: string; verification_status: string }[];
+  orgs: { id: string; name: string; type: string; verification_status: string; division?: string | null }[];
   /** Necesidades internas activas por organización (nunca se publican solas). */
   needs?: { id: string; organization_id: string; title: string }[];
   catalog: { sports: { id: string; name_es: string }[]; positions: { id: number; sport_id: string; name_es: string }[] };
 }
 
 export function OpportunityForm({ orgs, catalog, needs = [] }: Props) {
+  const tx = useT();
   const [org, setOrg] = useState(orgs[0]?.id ?? '');
-  const [type, setType] = useState(Object.keys(OPPORTUNITY_TYPE_LABEL)[0]);
+  const orgType = orgs.find((o) => o.id === org)?.type;
+  const isCollege = needsDivision(orgType);
+  // Universidades/colleges: sin «Prueba» (tryout). NO COMPROBADO normativamente: pendiente del abogado NCAA.
+  const typeOptions = Object.entries(OPPORTUNITY_TYPE_LABEL).filter(([k]) => opportunityTypeAllowed(orgType, k));
+  const [typeChoice, setType] = useState(Object.keys(OPPORTUNITY_TYPE_LABEL)[0]);
+  const type = typeOptions.some(([k]) => k === typeChoice) ? typeChoice : typeOptions[0]?.[0] ?? typeChoice;
   const [fee, setFee] = useState<'free' | 'paid' | 'price_not_provided'>('price_not_provided');
   const [acc, setAcc] = useState('unknown');
   const isTrial = (CLUB_TYPES as readonly string[]).includes(type);
@@ -40,12 +48,13 @@ export function OpportunityForm({ orgs, catalog, needs = [] }: Props) {
                   {orgs.map((o) => <option key={o.id} value={o.id}>{o.name}{o.verification_status !== 'verified' ? ' (pendiente de verificar)' : ''}</option>)}
                 </select>
               </Field>
-              <Field label="Tipo" htmlFor="type">
+              <Field label="Tipo" htmlFor="type" error={fe.type}>
                 <select id="type" name="type" value={type} onChange={(e) => setType(e.target.value)} className={inputClass}>
-                  {Object.entries(OPPORTUNITY_TYPE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                  {typeOptions.map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                 </select>
               </Field>
             </div>
+            {isCollege && <p className="mt-3 text-xs text-muted">{tx('Universidades y colleges: no se publican pruebas (tryouts) por las normas NCAA. Usa «Campus / Showcase».')}</p>}
             <div className="mt-5 space-y-5">
               <Field label="Título" htmlFor="title" hint="Ej.: Beca deportiva · Base · Clase 2027" error={fe.title}>
                 <input id="title" name="title" required maxLength={160} className={inputClass} />

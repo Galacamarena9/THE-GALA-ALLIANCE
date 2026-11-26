@@ -31,13 +31,13 @@ export const ROLE_SHORTCUTS: Partial<Record<AppRole, Shortcut[]>> = {
     { href: '/app/calculator', title: 'Coste a 4 años', text: 'Con viajes, seguro y subidas' },
   ],
   university: [
-    { href: '/app/discover', title: 'Escaparate', text: 'Talento filtrable y comparable' },
+    { href: '/app/recruit/discover', title: 'Escaparate', text: 'Talento filtrable y comparable' },
     { href: '/app/applications', title: 'Candidatos', text: 'Cinco fases, notas privadas' },
     { href: '/app/opportunities/new', title: 'Publicar beca', text: 'Sale al pasar los controles' },
   ],
   coach: [
-    { href: '/app/discover', title: 'Escaparate', text: 'Talento filtrable y comparable' },
-    { href: '/app/lists', title: 'Listas', text: 'Atletas que sigues' },
+    { href: '/app/recruit/discover', title: 'Escaparate', text: 'Talento filtrable y comparable' },
+    { href: '/app/recruit/shortlists', title: 'Listas', text: 'Atletas que sigues' },
     { href: '/app/applications', title: 'Candidatos', text: 'Cinco fases, notas privadas' },
   ],
   brand: [

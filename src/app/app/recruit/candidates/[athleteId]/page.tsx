@@ -7,6 +7,9 @@ import { requireSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
 import { loadCatalog } from '@/lib/data/athlete';
 import { currentRecruitOrg, loadCandidate } from '@/lib/data/recruit';
+import { loadInvitableTrials } from '@/lib/data/trials';
+import { canInviteToTrials, eventWhen } from '@/lib/domain/trials';
+import { InviteToTrialButton } from '@/components/trials/TrialApply';
 import { INFO_KIND_LABEL, INTERNAL_STAGES, INTERNAL_STAGE_LABEL, needFit, type InternalStage, type NeedCriteria } from '@/lib/domain/recruit';
 import { PROVENANCE_LABEL } from '@/lib/domain/passport';
 import { Badge, Card, CardTitle, Notice, PageHeader, buttonClass } from '@/components/ui';
@@ -16,6 +19,7 @@ import { AddToShortlist, InfoRequestForm, OrgNoteForm, OrgOfferForm, OrgTaskForm
 import { ContactRequestForm, ReportButton } from '@/components/forms';
 import { addCandidate, deleteOrgNote, openSharedDocument, toggleOrgTask, updateCandidate } from '@/app/actions/recruit';
 import type { DataSource } from '@/lib/types';
+import { effectiveNcaaDivision, ncaaWindow, needsDivision } from '@/lib/domain/ncaa';
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getT())('Candidato') };
@@ -47,6 +51,9 @@ export default async function CandidatePage({ params, searchParams }: { params: 
     supabase.from('org_shortlists').select('id, name').eq('organization_id', org.id).is('archived_at', null),
   ]);
   const minor = minorRow !== false;
+  // «Invitar a prueba»: solo clubes y academias verificados con permiso de contacto (nunca universidades/colleges).
+  const invitable = org.caps.has('contact') && canInviteToTrials([org]) ? await loadInvitableTrials(session.userId) : { allowed: false, trials: [] };
+  const orgTrials = invitable.trials.filter((t) => t.organization_id === org.id).map((t) => ({ id: t.id, title: t.title, when: eventWhen(t.start_at, t.timezone) }));
   const need = (needs ?? []).find((n) => n.id === sp.need) ?? (needs ?? [])[0];
   const verifiedStats = d.stats.filter((s) => s.source !== 'self_reported').length;
   const fit = need ? needFit(need as NeedCriteria, { ...d.dir, academics_documented: d.academics ? d.academics.gpa_source !== 'self_reported' : null, verified_stats: d.stats.length ? verifiedStats : null }) : null;
@@ -55,13 +62,27 @@ export default async function CandidatePage({ params, searchParams }: { params: 
   const memberName = new Map(d.members.map((m) => [m.id, m.name]));
   const c = d.candidate;
   const highlight = d.videos.find((v) => v.kind === 'highlight') ?? d.videos[0];
+  // QA coach #7 · Ventana NCAA visible antes de escribir (espejo de public.ncaa_contact_closed; la BD es quien bloquea).
+  const isCollege = needsDivision(org.type);
+  const ncaa = isCollege ? ncaaWindow(d.dir.graduation_year ?? null, effectiveNcaaDivision(org.type, org.division), d.dir.sport_id ?? null) : null;
+  const ncaaClosed = !!ncaa && !ncaa.open;
+  const opensLabel = ncaa?.opensOn ? new Intl.DateTimeFormat(dateLocale(tx.locale), { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(`${ncaa.opensOn}T12:00:00Z`)) : '';
+  const ncaaBadge = ncaa && (ncaaClosed
+    ? <Badge tone="warn">{tx('Contacto desde')} {opensLabel}</Badge>
+    : <Badge tone="ok">{tx('Contacto disponible')}</Badge>);
+  const ncaaNotice = ncaaClosed && (
+    <Notice tone="warn">
+      {tx('Ventana de contacto NCAA cerrada hasta el')} {opensLabel}. {tx('Hasta entonces no se pueden enviar solicitudes de contacto, de información ni invitaciones.')}
+      {!org.division && <> {tx('Vuestra organización no tiene división declarada: se aplica la regla D-I.')}</>}
+    </Notice>
+  );
 
   return (
     <>
       <p className="mb-2 text-sm"><Link href="/app/recruit/candidates" className="text-muted hover:text-brass">{tx('← Pipeline')}</Link></p>
       <PageHeader kicker={[sport, pos, d.dir.graduation_year && `${tx('Clase')} ${d.dir.graduation_year}`].filter(Boolean).join(' · ') || tx('Candidato')} title={d.dir.display_name}
         description={<>{d.dir.country ?? ''}{d.dir.height_cm ? ` · ${(d.dir.height_cm / 100).toFixed(2)} m` : ''}{d.dir.current_team ? ` · ${d.dir.current_team}` : ''}</>}
-        action={<span className="flex flex-wrap gap-2"><Link href={`/athletes/${athleteId}`} className="inline-flex min-h-11 items-center rounded-full border border-line px-4 text-sm font-semibold text-paper">{tx('Passport completo')}</Link><AddToShortlist athlete={athleteId} lists={(lists ?? []).map((l) => ({ id: l.id, name: l.name }))} fit={fit?.score ?? null} /></span>} />
+        action={<span className="flex flex-wrap items-center gap-2">{ncaaBadge}<Link href={`/athletes/${athleteId}`} className="inline-flex min-h-11 items-center rounded-full border border-line px-4 text-sm font-semibold text-paper">{tx('Passport completo')}</Link><AddToShortlist athlete={athleteId} lists={(lists ?? []).map((l) => ({ id: l.id, name: l.name }))} fit={fit?.score ?? null} /></span>} />
       <RecruitShell org={org} orgs={orgs} active="/app/recruit/candidates">
         {minor && <Notice tone="brass">{tx('🛡️ Protecciones de menor activas: sin datos de contacto directos; cualquier contacto o solicitud pasa por Gala y su familia.')}</Notice>}
         <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
@@ -219,14 +240,22 @@ export default async function CandidatePage({ params, searchParams }: { params: 
                 </ul>
               )}
               <p className="mb-2 text-[11px] text-faint">{tx('«Disponible en el Passport» no significa «compartido con vosotros»: solo verás documentos que el atleta (o su familia) comparta, y hasta la fecha que elija.')}</p>
-              {org.caps.has('request_info') ? <InfoRequestForm org={org.id} athlete={athleteId} minor={minor} /> : <p className="text-xs text-muted">{tx('Tu rol no permite solicitar información.')}</p>}
+              {!org.caps.has('request_info') ? <p className="text-xs text-muted">{tx('Tu rol no permite solicitar información.')}</p>
+                : ncaaClosed ? ncaaNotice : <InfoRequestForm org={org.id} athlete={athleteId} minor={minor} />}
             </Card>
 
             {org.caps.has('contact') && (
               <Card>
                 <CardTitle kicker={tx('Comunicación segura')}>{tx('Contactar en Gala')}</CardTitle>
                 <p className="mb-2 text-xs text-muted">{minor ? tx('Al ser menor, la solicitud llega primero a su familia. Nunca se muestran teléfono ni email personales.') : tx('El atleta decide si acepta. La conversación queda en Gala, con historial y opción de denuncia.')}</p>
-                <ContactRequestForm organizations={[{ id: org.id, name: org.name }]} athleteId={athleteId} isMinor={minor} />
+                {ncaaClosed ? ncaaNotice : <ContactRequestForm organizations={[{ id: org.id, name: org.name }]} athleteId={athleteId} isMinor={minor} />}
+              </Card>
+            )}
+
+            {invitable.allowed && (
+              <Card>
+                <CardTitle kicker={tx('Trials')}>{tx('Invitar a prueba')}</CardTitle>
+                <InviteToTrialButton athleteId={athleteId} trials={orgTrials} isMinor={minor} source={c ? 'shortlist' : 'discovery'} />
               </Card>
             )}
 

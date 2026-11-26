@@ -10,12 +10,13 @@ import { SAT_DATES } from '@/content/academy';
 import { planByCode } from '@/content/plans';
 import { Badge, ButtonLink, Card, CardTitle, EmptyState, Meter, Notice, PageHeader } from '@/components/ui';
 import { seedDocumentChecklist } from '@/app/actions/autonomy';
+import { paysThroughFamily, FAMILY_ASK_HREF } from '@/lib/domain/minor-guard';
 
 export const metadata: Metadata = { title: 'Mi plan' };
 
 const PLAN_NAME: Record<FamilyPlan, string> = { free: 'Passport (gratis)', family_core: 'Core', family_elite: 'Elite', family_signature: 'Signature 1:1' };
 
-function Locked({ plan, children }: { plan: 'family_core' | 'family_elite'; children: React.ReactNode }) {
+function Locked({ plan, askFamily = false, children }: { plan: 'family_core' | 'family_elite'; askFamily?: boolean; children: React.ReactNode }) {
   const p = planByCode(plan);
   return (
     <div className="relative min-h-[150px] overflow-hidden rounded-2xl border border-line bg-surface-2">
@@ -26,7 +27,7 @@ function Locked({ plan, children }: { plan: 'family_core' | 'family_elite'; chil
       <div className="absolute inset-0 flex flex-col items-start justify-center gap-2 bg-gradient-to-r from-surface via-surface/90 to-surface/40 p-4 text-sm text-muted">
         <span className="inline-flex items-center gap-1 rounded-full bg-night px-2.5 py-1 text-xs font-semibold text-lime">🔒 {p?.name}</span>
         <p className="max-w-md">{children}</p>
-        <Link href="/precios" className="rounded-lg bg-brass px-3 py-1.5 text-xs font-semibold text-ink hover:bg-brass-soft">Desbloquear por {p?.price}</Link>
+        <Link href={askFamily ? FAMILY_ASK_HREF : '/precios'} className="rounded-lg bg-brass px-3 py-1.5 text-xs font-semibold text-ink hover:bg-brass-soft">{askFamily ? 'Pídeselo a tu familia' : `Desbloquear por ${p?.price}`}</Link>
       </div>
     </div>
   );
@@ -45,6 +46,8 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
     );
   }
   const athlete = athletes.find((a) => a.id === sp.a) ?? athletes[0];
+  // QA menores: el atleta menor no ve CTA de pago; se lo pide a su familia (invitación/vínculo en Privacidad › Familia).
+  const askFamily = paysThroughFamily(session);
   const [plan, passport] = await Promise.all([familyPlan([session.userId, athlete.id]), loadPassport(athlete.id)]);
   const core = PLAN_RANK[plan] >= PLAN_RANK.family_core;
   const elite = PLAN_RANK[plan] >= PLAN_RANK.family_elite;
@@ -63,8 +66,11 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
         kicker="Mi plan"
         title={`Plan ${PLAN_NAME[plan]}`}
         description="Todo se genera desde el Passport y datos oficiales, y se actualiza solo cuando lo mejoras."
-        action={!elite ? <ButtonLink href="/precios">Mejorar plan</ButtonLink> : undefined}
+        action={!elite ? <ButtonLink href={askFamily ? FAMILY_ASK_HREF : '/precios'}>{askFamily ? 'Pídeselo a tu familia' : 'Mejorar plan'}</ButtonLink> : undefined}
       />
+      {(sp.pago === 'familia' || (askFamily && !elite)) && (
+        <div className="mb-5"><Notice tone="brass">Como eres menor de edad, los planes de pago los contrata tu madre, padre o tutor desde su cuenta. Si aún no está vinculado, invítale desde <Link href={FAMILY_ASK_HREF} className="underline">Privacidad › Familia</Link>.</Notice></div>
+      )}
       {sp.pago === 'ok' && <div className="mb-5"><Notice tone="ok">Pago recibido. El plan se activa en cuanto Stripe confirma el cobro (normalmente en segundos); si aún no lo ves, recarga la página.</Notice></div>}
       {athletes.length > 1 && (
         <nav className="mb-5 flex flex-wrap gap-2" aria-label="Atleta">
@@ -88,7 +94,7 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
               </ol>
             ) : <p className="mt-4 text-sm text-ok">Tu Passport está completo.</p>
           ) : (
-            <div className="mt-4"><Locked plan="family_core">El informe ordena todas las mejoras por el impacto que tienen en cómo te ve un coach.</Locked></div>
+            <div className="mt-4"><Locked askFamily={askFamily} plan="family_core">El informe ordena todas las mejoras por el impacto que tienen en cómo te ve un coach.</Locked></div>
           )}
         </Card>
 
@@ -96,14 +102,14 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
           <CardTitle kicker="2 · Sports CV">Currículum deportivo en inglés</CardTitle>
           <p className="text-sm text-muted">Generado desde tu Passport con el formato que esperan los coaches de EE. UU.: datos deportivos, académicos, inglés, vídeo y contacto a través de la plataforma.</p>
           <div className="mt-4">
-            {core ? <ButtonLink href={`/print/cv?a=${athlete.id}`}>Abrir y guardar en PDF</ButtonLink> : <Locked plan="family_core">Tu Sports CV listo para enviar en un clic.</Locked>}
+            {core ? <ButtonLink href={`/print/cv?a=${athlete.id}`}>Abrir y guardar en PDF</ButtonLink> : <Locked askFamily={askFamily} plan="family_core">Tu Sports CV listo para enviar en un clic.</Locked>}
           </div>
         </Card>
 
         <Card className="lg:col-span-2">
           <CardTitle kicker="3 · Lista automática">Universidades que encajan contigo</CardTitle>
           {!core ? (
-            <Locked plan="family_core">Hasta 15 universidades reales del directorio oficial que ofrecen tu deporte, ordenadas por encaje y coste.</Locked>
+            <Locked askFamily={askFamily} plan="family_core">Hasta 15 universidades reales del directorio oficial que ofrecen tu deporte, ordenadas por encaje y coste.</Locked>
           ) : !passport.profile?.sport_id ? (
             <p className="text-sm text-muted">Indica tu deporte en el <Link href="/app/athlete/passport" className="text-brass hover:underline">Passport</Link> para generarla.</p>
           ) : shortlist.length === 0 ? (
@@ -137,7 +143,7 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
         <Card>
           <CardTitle kicker="4 · Calendario">Exámenes y documentos</CardTitle>
           {!core ? (
-            <Locked plan="family_core">Fechas de SAT y de cada documento calculadas según tu promoción.</Locked>
+            <Locked askFamily={askFamily} plan="family_core">Fechas de SAT y de cada documento calculadas según tu promoción.</Locked>
           ) : (
             <>
               <p className="text-xs uppercase tracking-wide text-faint">Próximos SAT (inscripción)</p>
@@ -169,7 +175,7 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
               <li><Link href={`/app/documents?a=${athlete.id}`} className="text-brass hover:underline">Checklist de visado y llegada (I-20, SEVIS, DS-160) →</Link></li>
             </ul>
           ) : (
-            <Locked plan="family_elite">Compara hasta 5 ofertas, obtén un memo con la opción más sólida y prepara el visado con fechas.</Locked>
+            <Locked askFamily={askFamily} plan="family_elite">Compara hasta 5 ofertas, obtén un memo con la opción más sólida y prepara el visado con fechas.</Locked>
           )}
           {plan === 'family_signature' && <div className="mt-4"><Notice tone="brass">Tienes Signature: Gala te acompaña personalmente. Escríbele desde los datos de contacto que recibiste al confirmar tu plaza.</Notice></div>}
         </Card>

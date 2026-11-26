@@ -421,6 +421,27 @@ export function galaMatch(a: AthleteContext, t: MatchTarget, now = new Date()): 
   };
 }
 
+/**
+ * Estado de una dimensión para los chips del resumen (icono + palabra):
+ * bloqueo (requisito obligatorio no cumplido) · encaja (≥ 75) · encaje parcial (40–74) · no encaja (< 40) · datos insuficientes.
+ * Un 0 % nunca es «parcial», y un coste por encima del presupuesto hace que «Económico» sea «no encaja».
+ */
+export type DimensionState = 'ok' | 'warn' | 'no' | 'blocked' | 'unknown';
+export function dimensionState(d: { score: number | null; factors: Pick<Factor, 'id' | 'kind' | 'status'>[] }): DimensionState {
+  if (d.factors.some((f) => f.kind === 'hard' && f.status === 'unmet')) return 'blocked';
+  if (d.factors.some((f) => f.id === 'budget' && f.status === 'unmet')) return 'no';
+  if (d.score == null) return 'unknown';
+  if (d.score >= 75) return 'ok';
+  if (d.score >= 40) return 'warn';
+  return 'no';
+}
+
+/** Estado del factor «presupuesto» (null si no se evalúa, p. ej. en la vista del agente). */
+export function budgetStatus(m: Pick<GalaMatch, 'dimensions'>): FactorStatus | null {
+  for (const d of m.dimensions) for (const f of d.factors) if (f.id === 'budget') return f.status;
+  return null;
+}
+
 /** Orden de resultados: bloqueadas al final; luego porcentaje y confianza. */
 export function compareMatches(x: GalaMatch, y: GalaMatch) {
   if (x.blocked !== y.blocked) return x.blocked ? 1 : -1;

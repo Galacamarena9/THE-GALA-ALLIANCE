@@ -165,7 +165,7 @@ export default async function PreviewPage({ params, searchParams }: { params: Pr
           <RecruitShell
             active="/app/recruit/discover"
             orgs={[]}
-            org={{ id: 'demo', name: 'Demo State University', type: 'university', verification_status: 'pending', institution_id: null, role: 'head_coach', program_ids: [], verified: false, caps: new Set<Cap>(['discover', 'shortlist', 'candidates', 'needs', 'tasks']) }}
+            org={{ id: 'demo', name: 'Demo State University', type: 'university', verification_status: 'pending', institution_id: null, division: 'ncaa_d1', role: 'head_coach', program_ids: [], verified: false, caps: new Set<Cap>(['discover', 'shortlist', 'candidates', 'needs', 'tasks']) }}
           >
             <p>—</p>
           </RecruitShell>

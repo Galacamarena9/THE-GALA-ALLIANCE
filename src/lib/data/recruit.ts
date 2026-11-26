@@ -1,5 +1,6 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
+import type { Division } from '@/lib/types';
 import { ROLE_CAPS, UNVERIFIED_CAPS, needFit, type AthleteFacts, type Cap, type NeedCriteria, type NeedFit, type OrgRole } from '@/lib/domain/recruit';
 
 /**
@@ -8,16 +9,18 @@ import { ROLE_CAPS, UNVERIFIED_CAPS, needFit, type AthleteFacts, type Cap, type 
  */
 export interface RecruitOrg {
   id: string; name: string; type: string; verification_status: string; institution_id: string | null;
+  /** División NCAA/NAIA/NJCAA declarada (de ella depende la ventana de contacto NCAA). */
+  division: Division | null;
   role: OrgRole; program_ids: string[]; verified: boolean; caps: Set<Cap>;
 }
 
 export async function loadRecruitOrgs(userId: string): Promise<RecruitOrg[]> {
   const supabase = await createClient();
   const { data } = await supabase.from('organization_members')
-    .select('member_role, program_ids, organizations(id, name, type, verification_status, institution_id)')
+    .select('member_role, program_ids, organizations(id, name, type, verification_status, institution_id, division)')
     .eq('user_id', userId);
   return (data ?? []).map((m) => {
-    const o = m.organizations as unknown as { id: string; name: string; type: string; verification_status: string; institution_id: string | null } | null;
+    const o = m.organizations as unknown as { id: string; name: string; type: string; verification_status: string; institution_id: string | null; division: Division | null } | null;
     if (!o || !['university', 'college', 'club', 'academy'].includes(o.type)) return null;
     const role = m.member_role as OrgRole;
     const verified = o.verification_status === 'verified';
