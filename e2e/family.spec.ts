@@ -48,11 +48,13 @@ for (const width of [375, 1280]) {
 
     test('costes: lo que falta se ve; la opción incompleta no es «la más barata»', async ({ page }) => {
       await page.goto('/preview/family-costs', { waitUntil: 'networkidle' });
-      await expect(page.getByText(/Coste estimado para la familia: 24\.200/)).toBeVisible();
-      await expect(page.getByText(/Coste conocido hasta ahora: 15\.000.*alojamiento, comidas sin conocer/)).toBeVisible();
-      await expect(page.getByText('Por encima del presupuesto')).toBeVisible();
-      await expect(page.getByText('Aún no se puede saber', { exact: true })).toBeVisible();
-      await expect(page.getByText('Desconocido').first()).toBeVisible();
+      // La comparación se pinta dos veces (tarjetas en móvil, tabla en escritorio); se comprueba la que está visible.
+      const shown = (t: string | RegExp, exact = false) => page.getByText(t, { exact }).filter({ visible: true }).first();
+      await expect(shown(/Coste estimado para la familia: 24\.200/)).toBeVisible();
+      await expect(shown(/Coste conocido hasta ahora: 15\.000.*alojamiento, comidas sin conocer/)).toBeVisible();
+      await expect(shown('Por encima del presupuesto')).toBeVisible();
+      await expect(shown('Aún no se puede saber', true)).toBeVisible();
+      await expect(shown('Desconocido')).toBeVisible();
     });
   });
 }
