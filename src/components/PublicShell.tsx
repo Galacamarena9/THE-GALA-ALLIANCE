@@ -69,7 +69,7 @@ export function PublicHeader({ overlay = false, locale }: { overlay?: boolean; l
           </nav>
           <div className="hidden items-center gap-2 md:flex">
             <ButtonLink href="/login" variant="ghost" className="h-9 whitespace-nowrap px-3 text-[13px]">{tx('Iniciar sesión')}</ButtonLink>
-            <ButtonLink href="/#para-quien" className="h-10 whitespace-nowrap rounded-full !bg-pop px-5 text-[13px] font-bold !text-paper hover:!bg-pop-soft">{tx('Empezar gratis')}</ButtonLink>
+            <ButtonLink href="/#para-quien" className="h-10 whitespace-nowrap rounded-full !bg-night px-5 text-[13px] font-bold !text-white hover:!bg-brass-soft">{tx('Empezar gratis')}</ButtonLink>
           </div>
           {locale && <LanguageSwitcher current={locale} />}
           <MobileMenu items={[...NAV.map((n) => ({ ...n, label: tx(n.label) })), { href: '/inversores', label: tx('Inversores') }, ...ACTORS.map((a) => ({ href: `/para/${a.slug}`, label: locale === 'en' ? `For ${tx(a.plural).toLowerCase()}` : `Para ${a.plural.toLowerCase()}` }))]} />

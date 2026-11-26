@@ -42,12 +42,23 @@ const TRUST = [
 ];
 
 const MARKET = [
-  { org: 'NCAA D1 · Universidad de ejemplo', title: 'Beca de fútbol masculino', meta: 'Mediocentro · Promoción 2027', value: 'Hasta 18.000 US$/año', tag: 'Beca', img: '/media/university-campus-sm.webp' },
-  { org: 'Club verificado · Valencia', title: 'Prueba de selección · Showcase', meta: 'Baloncesto · Sub-18 · 12 plazas', value: 'Gratis', tag: 'Prueba', img: '/media/club-training-sm.webp' },
-  { org: 'NCAA D2 · College de ejemplo', title: 'Beca parcial de baloncesto femenino', meta: 'Base · Promoción 2027', value: 'Hasta 12.000 US$/año', tag: 'Beca', img: '/media/arena-bg-sm.webp' },
+  { org: 'NCAA D1', title: 'Beca de fútbol masculino', meta: 'Universidad de ejemplo · Mediocentro · 2027', value: '18.000 US$/año', tag: 'Beca', img: '/media/university-campus-sm.webp' },
+  { org: 'Club verificado', title: 'Prueba de selección · Showcase', meta: 'Valencia · Baloncesto · Sub-18', value: 'Gratis', tag: '12 plazas', img: '/media/club-training-sm.webp' },
+  { org: 'NCAA D2', title: 'Beca parcial de baloncesto femenino', meta: 'College de ejemplo · Base · 2027', value: '12.000 US$/año', tag: 'Beca', img: '/media/founder-entrance-sm.webp' },
 ];
 
-const TICKER = ['Valencia → NCAA D-I', 'Belgrado → D-II', 'Madrid → NAIA', 'Kaunas → NCAA D-I', 'Lisboa → JUCO', 'Atenas → NCAA D-I', 'París → D-II'];
+const APP_STATS = [
+  { n: 12, label: 'atletas', hot: false },
+  { n: 4, label: 'necesitan atención', hot: true },
+  { n: 7, label: 'ofertas que encajan', hot: false },
+  { n: 2, label: 'ofertas vivas', hot: false },
+];
+
+const APP_TASKS = [
+  { when: '3 días', tone: 'hot', title: 'Oferta de Harbor Tech caduca', meta: 'Sofía Martín · 18.000 US$/año', cta: 'Revisar oferta' },
+  { when: 'Vencido', tone: 'late', title: 'Pedir el expediente traducido', meta: 'Marcos Jiménez · College de ejemplo', cta: 'Hacer tarea' },
+  { when: 'Mañana', tone: 'calm', title: 'Llamada con el assistant coach', meta: 'Marcos Jiménez · 18:00', cta: 'Abrir proceso' },
+];
 
 const FAQ: [string, string][] = [
   ['¿Cuánto cuesta?', 'Para atletas es gratis para siempre. Las agencias tienen planes mensuales con precio fundador y las familias pueden contratar servicios de pago único. Todos los precios están publicados.'],
@@ -58,16 +69,18 @@ const FAQ: [string, string][] = [
   ['¿Es seguro para menores?', 'Sí, por diseño: perfiles privados, contacto solo de organizaciones verificadas, la familia siempre en el circuito y sin publicidad perfilada.'],
 ];
 
-function priceNumber(name: string) {
-  const p = PLANS.find((x) => x.audience === 'agent' && x.name === name)?.price ?? '';
-  const n = Number.parseInt(p, 10);
-  return Number.isFinite(n) ? n : null;
+/** Precio de lista y precio fundador de un plan de agente, leídos del catálogo por su nombre interno (en castellano, nunca traducido). */
+function agentPrices(name: string) {
+  const plan = PLANS.find((x) => x.audience === 'agent' && x.name === name);
+  const list = Number.parseInt(plan?.price ?? '', 10);
+  const founder = Number.parseInt(/fundador:\s*(\d+)/.exec(plan?.priceNote ?? '')?.[1] ?? '', 10);
+  return { list: Number.isFinite(list) ? list : null, founder: Number.isFinite(founder) ? founder : null };
 }
 
 export default async function Home() {
   const tx = await getT();
-  const solo = priceNumber(tx('Agente'));
-  const team = priceNumber(tx('Agencia'));
+  const solo = agentPrices('Agente');
+  const team = agentPrices('Agencia');
   return (
     <I18nProvider locale={tx.locale}>
     <MotionRoot>
@@ -87,71 +100,101 @@ export default async function Home() {
             </div>
           </div>
 
-          {/* 1 · Portada: foto de estadio a todo el ancho, misión y cifras (v6 «Estadio») */}
-          <section aria-labelledby="hero-title" className="mx-auto max-w-7xl px-3 pt-3 sm:px-8 sm:pt-6">
-            <div className="relative isolate overflow-hidden rounded-[28px] bg-night [clip-path:polygon(0_0,100%_0,100%_92%,95%_100%,0_100%)]">
+          {/* 1 · Portada: calcada del artboard C «Estadio» (26-nov-2026) */}
+          <section aria-labelledby="hero-title" className="mx-auto max-w-7xl px-3 pt-3 sm:px-8 sm:pt-5">
+            <div className="relative isolate overflow-hidden rounded-[24px] bg-night lg:min-h-[540px]">
               <img src="/media/club-training.webp" srcSet="/media/club-training-sm.webp 720w, /media/club-training.webp 1280w" sizes="(min-width: 1280px) 1280px, 100vw" alt="" className="absolute inset-0 -z-20 h-full w-full object-cover" fetchPriority="high" />
-              <div className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgb(11_61_46/0.95)_0%,rgb(11_61_46/0.8)_48%,rgb(11_61_46/0.15)_85%)] max-lg:bg-[linear-gradient(180deg,rgb(11_61_46/0.7)_0%,rgb(11_61_46/0.95)_60%)]" aria-hidden />
-              <div className="grid gap-10 px-6 pb-24 pt-12 sm:px-12 sm:pt-16 lg:grid-cols-[1.25fr_1fr] lg:pb-28 lg:pt-20">
-                <div className="text-white">
-                  <Rise y={12}>
-                    <p className="inline-block -skew-x-12 bg-lime px-3 py-1.5 font-display text-[13px] text-night">{tx('Europa → NCAA')}</p>
-                  </Rise>
-                  <h1 id="hero-title" className="night-scope mt-6 max-w-[14ch] text-[clamp(2.4rem,5vw,4.6rem)] leading-[0.92] text-white">
-                    <span className="sr-only">{tx('Si tienes nivel, tienes que poder optar.')}</span>
-                    <span aria-hidden><WordsIn parts={[tx('Si tienes nivel, tienes que poder'), { em: tx('optar.') }]} /></span>
-                  </h1>
-                  <Rise delay={0.6}>
-                    <p className="mt-5 max-w-xl text-lg leading-relaxed text-[#e1efe7]">
-                      {tx('The Gala Alliance une a atletas europeos, familias, clubes y universidades de la NCAA, y le da al agente el sistema para llevar cada fichaje del primer vídeo a la firma.')}
-                    </p>
-                    <div className="mt-8 flex flex-wrap gap-3">
-                      <Link href="/demo/agente" className="btn-sweep group inline-flex min-h-14 items-center gap-3 rounded-full bg-lime px-7 text-[15px] font-extrabold text-night">
-                        <span className="relative z-10">{tx('Soy agente · ver la demo')}</span>
-                        <ArrowRight className="relative z-10 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" aria-hidden />
-                      </Link>
-                      <Link href="/signup?role=athlete" className="inline-flex min-h-14 items-center rounded-full bg-white px-7 text-[15px] font-extrabold text-night transition-colors hover:bg-white/90">{tx('Soy atleta · gratis')}</Link>
-                      <Link href="/#para-quien" className="inline-flex min-h-14 items-center rounded-full border border-white/50 px-6 text-[15px] font-bold text-white transition-colors hover:border-white">{tx('Soy familia, club o universidad')}</Link>
-                    </div>
-                    <div className="night-scope mt-6 w-fit"><MotionToggle /></div>
-                  </Rise>
-                </div>
-                <Rise delay={0.4} className="relative hidden min-h-[320px] lg:block">
-                  <p className="absolute right-0 top-0 -rotate-3 -skew-x-6 bg-lime px-4 py-2 font-display text-lg text-night shadow-[var(--shadow-premium)]">{tx('Perfil verificado')} ✓</p>
-                  <div className="absolute bottom-0 right-0 w-[300px] rounded-2xl bg-surface p-4 text-paper shadow-[var(--shadow-premium)]">
-                    <div className="flex items-center justify-between text-xs font-extrabold"><span className="text-night">{tx('NUEVA OFERTA')}</span><span className="rounded-md bg-lime px-2 py-0.5 text-night">{tx('Ejemplo')}</span></div>
-                    <p className="mt-2 font-bold">{tx('Beca parcial · NCAA D2')}</p>
-                    <p className="text-[13px] text-faint">{tx('Baloncesto femenino · Base · 2027')}</p>
-                    <div className="mt-3 h-2 rounded-full bg-surface-2"><div className="h-2 w-[86%] rounded-full bg-night" /></div>
-                    <p className="mt-1.5 text-xs text-muted">{tx('Encaje 86 % con tu perfil')}</p>
+              <div className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgb(11_61_46/0.94)_0%,rgb(11_61_46/0.78)_45%,rgb(11_61_46/0)_75%)] max-lg:bg-[linear-gradient(180deg,rgb(11_61_46/0.75)_0%,rgb(11_61_46/0.95)_65%)]" aria-hidden />
+              <div className="max-w-[900px] px-6 pb-32 pt-10 text-white sm:px-14 sm:pt-14 lg:pb-14">
+                <Rise y={12}>
+                  <p className="inline-block -skew-x-[10deg] bg-lime px-3 py-1.5 text-[13px] font-extrabold uppercase text-night">{tx('Europa → NCAA')}</p>
+                </Rise>
+                <h1 id="hero-title" className="night-scope mt-5 text-[clamp(2.4rem,5vw,4.5rem)] leading-[0.95] text-white">
+                  <span className="sr-only">{tx('Si tienes nivel, tienes que poder optar.')}</span>
+                  <span aria-hidden><WordsIn parts={[tx('Si tienes nivel, tienes que poder'), { em: tx('optar.') }]} /></span>
+                </h1>
+                <Rise delay={0.6}>
+                  <p className="mt-5 max-w-[540px] text-lg leading-relaxed text-[#dcebe3]">
+                    {tx('El marketplace que conecta a atletas europeos con universidades de EE. UU., con agencias y familias en el mismo equipo.')}
+                  </p>
+                  <div className="mt-7 flex flex-wrap gap-3">
+                    <Link href="/signup?role=athlete" className="inline-flex min-h-[52px] items-center rounded-full bg-lime px-6 text-[15px] font-extrabold text-night transition-transform hover:-translate-y-0.5">{tx('Soy atleta')}</Link>
+                    <Link href="/para/agentes" className="inline-flex min-h-[52px] items-center rounded-full bg-white px-6 text-[15px] font-extrabold text-night transition-transform hover:-translate-y-0.5">{tx('Soy agencia')}</Link>
+                    <Link href="/demo/agente" className="group inline-flex min-h-[52px] items-center gap-2 rounded-full border-[1.5px] border-white/50 px-5 text-[15px] font-bold text-white transition-colors hover:border-white">
+                      {tx('Ver la demo')} <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden />
+                    </Link>
                   </div>
+                  <div className="night-scope mt-5 w-fit"><MotionToggle /></div>
                 </Rise>
               </div>
-              <dl className="absolute bottom-5 left-6 flex gap-6 rounded-2xl bg-surface px-5 py-3 text-paper sm:left-12 lg:bottom-8">
-                <div><dt className="sr-only">{tx('Deportes')}</dt><dd className="font-display text-3xl leading-none">3</dd><dd className="text-xs text-faint">{tx('deportes')}</dd></div>
-                <div><dt className="sr-only">{tx('Actores')}</dt><dd className="font-display text-3xl leading-none">6</dd><dd className="text-xs text-faint">{tx('actores')}</dd></div>
-                <div><dt className="sr-only">{tx('Precio')}</dt><dd className="font-display text-3xl leading-none text-night">0 €</dd><dd className="text-xs text-faint">{tx('atletas y clubes')}</dd></div>
+              <dl className="absolute bottom-5 right-5 flex gap-6 rounded-2xl bg-surface px-5 py-3.5 text-paper sm:bottom-7 sm:right-7">
+                <div><dt className="sr-only">{tx('Deportes')}</dt><dd className="font-display text-[34px] leading-none">3</dd><dd className="text-xs text-faint">{tx('deportes')}</dd></div>
+                <div><dt className="sr-only">{tx('Actores')}</dt><dd className="font-display text-[34px] leading-none">6</dd><dd className="text-xs text-faint">{tx('actores')}</dd></div>
+                <div><dt className="sr-only">{tx('Precio')}</dt><dd className="font-display text-[34px] leading-none text-night">0 €</dd><dd className="text-xs text-faint">{tx('atletas y clubes')}</dd></div>
               </dl>
             </div>
           </section>
 
-          {/* 2 · Cinta de rutas */}
-          <div className="relative z-10 mt-10 -rotate-[1.2deg] scale-[1.03] bg-lime py-3.5 text-night" aria-hidden>
-            <div className="flex w-max marquee">
-              {[0, 1].map((k) => (
-                <ul key={k} className="flex shrink-0 items-center">
-                  {TICKER.map((t) => (
-                    <li key={t} className="flex items-center font-display text-xl sm:text-2xl">
-                      <span className="px-6">{tx(t)}</span><span>✦</span>
-                    </li>
-                  ))}
+          {/* 2 · Mercado abierto (ejemplos ilustrativos), como en el artboard C */}
+          <section aria-labelledby="mercado-title">
+            <div className="mx-auto max-w-7xl px-5 pt-10 sm:px-8">
+              <div className="flex flex-wrap items-end justify-between gap-4">
+                <h2 id="mercado-title" className="text-[clamp(1.9rem,3vw,2.6rem)] leading-none text-paper">{tx('Mercado abierto')}</h2>
+                <ul className="flex flex-wrap gap-2 text-[13px] font-bold" aria-label={tx('Filtrar por deporte')}>
+                  <li><Link href="/oportunidades" className="inline-flex min-h-10 items-center rounded-[10px] bg-night px-3.5 text-lime">{tx('Todas')}</Link></li>
+                  <li><Link href="/oportunidades?sport=basketball" className="inline-flex min-h-10 items-center rounded-[10px] bg-surface px-3.5 text-paper hover:bg-surface-2">{tx('Baloncesto')}</Link></li>
+                  <li><Link href="/oportunidades?sport=football" className="inline-flex min-h-10 items-center rounded-[10px] bg-surface px-3.5 text-paper hover:bg-surface-2">{tx('Fútbol')}</Link></li>
+                  <li><Link href="/oportunidades?sport=tennis" className="inline-flex min-h-10 items-center rounded-[10px] bg-surface px-3.5 text-paper hover:bg-surface-2">{tx('Tenis')}</Link></li>
                 </ul>
-              ))}
+              </div>
+              <ul className="mt-5 grid gap-[18px] md:grid-cols-3">
+                {MARKET.map((o, i) => (
+                  <li key={o.title}>
+                    <Rise delay={i * 0.08} className="hover-lift h-full overflow-hidden rounded-[18px] bg-surface">
+                      <img src={o.img} alt="" loading="lazy" className="h-[150px] w-full object-cover" />
+                      <div className="p-4">
+                        <div className="flex justify-between gap-2 text-xs font-extrabold uppercase text-night"><span>{tx(o.org)}</span><span className="shrink-0 rounded-md bg-lime px-2 py-0.5">{tx(o.tag)}</span></div>
+                        <h3 className="mt-1.5 text-[17px] font-extrabold text-paper">{tx(o.title)}</h3>
+                        <p className="text-[13px] text-muted">{tx(o.meta)}</p>
+                        <p className="mt-3 font-display text-[22px] leading-none text-paper">{tx(o.value)}</p>
+                      </div>
+                    </Rise>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-3 text-xs text-faint">{tx('Ejemplos ilustrativos: las ofertas reales las publican organizaciones verificadas dentro de la plataforma.')}</p>
             </div>
-          </div>
+          </section>
+
+          {/* 3 · Dentro de la app (agencia), como en el artboard C. Datos de ejemplo. */}
+          <section aria-labelledby="app-title" className="mx-auto max-w-7xl px-5 pt-10 sm:px-8">
+            <div className="grid gap-6 rounded-[24px] bg-surface p-6 lg:grid-cols-[1fr_1.6fr]">
+              <div>
+                <p className="text-xs font-extrabold uppercase text-night">{tx('Dentro de la app · Agencia')} <span className="ml-1 font-semibold normal-case text-faint">({tx('datos de ejemplo')})</span></p>
+                <h2 id="app-title" className="mt-2 text-[clamp(1.9rem,3vw,2.4rem)] leading-none text-paper">{tx('Hola, Carlos')}</h2>
+                <dl className="mt-4 grid grid-cols-2 gap-2.5">
+                  {APP_STATS.map((st) => (
+                    <div key={st.label} className={`rounded-[14px] p-3 ${st.hot ? 'bg-night' : 'bg-ink'}`}>
+                      <dd className={`font-display text-3xl leading-none ${st.hot ? 'text-lime' : 'text-paper'}`}>{st.n}</dd>
+                      <dt className={`text-xs ${st.hot ? 'text-[#cfe3d9]' : 'text-muted'}`}>{tx(st.label)}</dt>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+              <ul>
+                {APP_TASKS.map((t, i) => (
+                  <li key={t.title} className={`flex flex-wrap items-center gap-3.5 py-3.5 ${i < APP_TASKS.length - 1 ? 'border-b border-line' : ''}`}>
+                    <span className={`rounded-md px-2 py-1 font-display text-[13px] ${t.tone === 'hot' ? 'bg-lime text-night' : t.tone === 'late' ? 'bg-[#fde2dc] text-[#a3321c]' : 'bg-ink text-paper'}`}>{tx(t.when)}</span>
+                    <div className="min-w-0 flex-1"><p className="font-extrabold text-paper">{tx(t.title)}</p><p className="text-[13px] text-muted">{tx(t.meta)}</p></div>
+                    <Link href="/demo/agente" className={`inline-flex min-h-10 items-center rounded-full px-4 text-[13px] font-bold ${t.tone === 'hot' ? 'bg-night text-white' : 'border-[1.5px] border-line-strong text-paper'}`}>{tx(t.cta)}</Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </section>
 
           {/* 3 · El momento: datos de la NCAA */}
-          <section aria-labelledby="momento-title" className="mx-auto max-w-7xl px-5 pb-20 pt-28 sm:px-8 lg:pb-28 lg:pt-36">
+          <section aria-labelledby="momento-title" className="mx-auto max-w-7xl px-5 pb-20 pt-24 sm:px-8 lg:pb-28 lg:pt-28">
             <div className="grid gap-12 lg:grid-cols-[1fr_1.3fr] lg:items-end">
               <Rise>
                 <p className="eyebrow text-brass">{tx('El momento es ahora')}</p>
@@ -168,40 +211,6 @@ export default async function Home() {
               <li><Rise delay={0.2}><p className="font-display text-[clamp(5rem,10vw,8rem)] leading-none text-paper">1.ª</p><p className="mt-3 max-w-[26ch] text-sm text-muted">{tx('Europa es la región fuera de EE. UU. que más jugadores aporta al baloncesto de División I')}</p></Rise></li>
             </ul>
             <p className="mt-10 text-xs text-faint">{tx('Fuente: NCAA, «March Madness across the world: NCAA basketball’s global impact» (18 de marzo de 2025).')}</p>
-          </section>
-
-          {/* 3b · El mercado: así se ven las oportunidades (ejemplos ilustrativos) */}
-          <section aria-labelledby="mercado-title" className="bg-surface">
-            <div className="mx-auto max-w-7xl px-5 py-20 sm:px-8 lg:py-24">
-              <div className="flex flex-wrap items-end justify-between gap-6">
-                <Rise>
-                  <p className="eyebrow text-brass">{tx('El mercado')}</p>
-                  <h2 id="mercado-title" className="mt-3 text-[clamp(2.2rem,4.6vw,3.8rem)] text-paper">{tx('Mercado')}{' '}<em>{tx('abierto')}</em></h2>
-                </Rise>
-                <Link href="/oportunidades" className="inline-flex min-h-11 items-center gap-2 rounded-full border border-line-strong px-5 text-sm font-bold text-paper transition-colors hover:border-brass hover:text-brass">{tx('Ver todas')} <ArrowRight className="h-4 w-4" aria-hidden /></Link>
-              </div>
-              <ul className="mt-10 grid gap-5 md:grid-cols-3">
-                {MARKET.map((o, i) => (
-                  <li key={o.title}>
-                    <Rise delay={i * 0.08} className="hover-lift h-full overflow-hidden rounded-[20px] border border-line bg-surface">
-                      <div className="relative h-40">
-                        <img src={o.img} alt="" loading="lazy" className="h-full w-full object-cover" />
-                        <span className="absolute left-3 top-3 rounded-md bg-night px-2.5 py-1 text-xs font-extrabold uppercase text-lime">{tx(o.org)}</span>
-                      </div>
-                      <div className="p-5">
-                        <h3 className="text-lg font-bold text-paper">{tx(o.title)}</h3>
-                        <p className="mt-0.5 text-[13px] text-faint">{tx(o.meta)}</p>
-                        <div className="mt-4 flex items-center justify-between">
-                          <span className="font-display text-lg leading-tight text-paper">{tx(o.value)}</span>
-                          <span className="rounded-md bg-lime px-2.5 py-1 text-xs font-extrabold uppercase text-night">{tx(o.tag)}</span>
-                        </div>
-                      </div>
-                    </Rise>
-                  </li>
-                ))}
-              </ul>
-              <p className="mt-5 text-xs text-faint">{tx('Ejemplos ilustrativos: las ofertas reales las publican organizaciones verificadas dentro de la plataforma.')}</p>
-            </div>
           </section>
 
           {/* 4 · La alianza: todos conectados alrededor del atleta */}
@@ -253,7 +262,8 @@ export default async function Home() {
                 {[{ name: 'Agente', price: solo }, { name: 'Agencia', price: team }].map((p) => (
                   <div key={p.name}>
                     <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted">{tx(p.name)}</p>
-                    <p className="mt-2 font-display text-6xl leading-none text-paper">{p.price !== null ? <CountUp to={p.price} /> : '—'}<span className="ml-1 text-2xl text-gold">€</span><span className="ml-1 text-sm font-sans normal-case text-muted">{tx('/mes')}</span></p>
+                    <p className="mt-2 font-display text-6xl leading-none text-paper">{p.price.founder !== null ? <CountUp to={p.price.founder} /> : '—'}<span className="ml-1 text-2xl text-gold">€</span><span className="ml-1 text-sm font-sans normal-case text-muted">{tx('/mes')}</span></p>
+                    {p.price.list !== null ? <p className="mt-1 text-sm text-faint"><s>{p.price.list} €</s> {tx('precio de lista')}</p> : null}
                   </div>
                 ))}
                 <Link href="/demo/agente" className="btn-sweep group inline-flex min-h-14 items-center gap-3 rounded-full bg-pop px-8 text-[15px] font-bold text-paper">
