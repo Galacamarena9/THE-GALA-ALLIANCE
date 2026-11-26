@@ -17,7 +17,10 @@
     "check:erd": "node scripts/erd/check.mjs",
     "diagnose:db": "node scripts/erd/diagnose.mjs",
     "drift": "node scripts/supabase/drift.mjs",
-    "schema:fingerprint": "node scripts/supabase/fingerprint.mjs"
+    "schema:fingerprint": "node scripts/supabase/fingerprint.mjs",
+    "cf:build": "opennextjs-cloudflare build",
+    "cf:preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "cf:deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",
@@ -26,6 +29,7 @@
     "@fontsource-variable/sora": "^5.3.0",
     "@fontsource/anton": "^5.3.0",
     "@fontsource/lora": "^5.3.0",
+    "@opennextjs/cloudflare": "^1.20.19",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.119.0",
     "lucide-react": "^1.72.0",
@@ -47,6 +51,7 @@
     "eslint-config-next": "16.4.6",
     "pg": "^8.23.1",
     "tailwindcss": "4.3.3",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wrangler": "^4.168.0"
   }
 }
