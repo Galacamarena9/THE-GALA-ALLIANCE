@@ -54,7 +54,7 @@ export const ACTORS: {
     label: 'Coach',
     plural: 'Coaches',
     promise: 'Encuentra talento con datos comparables, sin depender de quién tiene mejor agente.',
-    home: '/app/discover',
+    home: '/app/recruit/discover',
     adultsOnly: true,
     services: ['Búsqueda avanzada por deporte, posición, año, nota…', 'Shortlists privadas con notas', 'Pipeline de tu universidad o club', 'Gala IA: búsqueda en lenguaje natural'],
   },

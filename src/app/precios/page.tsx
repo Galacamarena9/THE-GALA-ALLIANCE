@@ -8,6 +8,7 @@ import { ButtonLink } from '@/components/ui';
 import { PlanRequestForm } from '@/components/growth';
 import { startCheckout } from '@/app/actions/autonomy';
 import { getSession } from '@/lib/session';
+import { familyPaysPlan, FAMILY_ASK_HREF } from '@/lib/domain/minor-guard';
 import { createClient } from '@/lib/supabase/server';
 import { AUDIENCE_LABEL, PLANS, VISIBILITY_PROMISE, type PlanAudience } from '@/content/plans';
 
@@ -77,6 +78,11 @@ export default async function PricingPage() {
                       )}
                       {p.cta === 'signup' ? (
                         <ButtonLink href={session ? '/app' : p.audience === 'athlete' ? '/signup?role=athlete' : '/signup'} className="w-full justify-center">{session ? tx('Ir a mi espacio') : p.audience === 'athlete' ? 'Crear mi Passport gratis' : tx('Crear cuenta gratis')}</ButtonLink>
+                      ) : session && familyPaysPlan(session, p.audience) ? (
+                        <div className="grid gap-2" data-testid="family-pays">
+                          <p className="text-xs text-muted">{tx('Como eres menor de edad, este plan lo contrata tu madre, padre o tutor desde su cuenta.')}</p>
+                          <ButtonLink href={FAMILY_ASK_HREF} className="w-full justify-center">{tx('Pídeselo a tu familia')}</ButtonLink>
+                        </div>
                       ) : p.cta === 'checkout' && payments && session ? (
                         <form action={startCheckout} className="grid gap-2">
                           <input type="hidden" name="plan_code" value={p.code} />

@@ -1,5 +1,13 @@
 /** Diccionario castellano → inglés de la interfaz (fase 4b: recruiting). Se completa por pantallas. */
 export const EN: Record<string, string> = {
+  // — QA coach #1/#3/#7/#13: ventana de contacto NCAA —
+  "Contacto disponible": "Contact available",
+  "Contacto desde": "Contact from",
+  "Ventana de contacto NCAA cerrada hasta el": "NCAA contact window closed until",
+  "Hasta entonces no se pueden enviar solicitudes de contacto, de información ni invitaciones.": "Until then you cannot send contact requests, information requests or invitations.",
+  "Vuestra organización no tiene división declarada: se aplica la regla D-I.": "Your organization has no declared division: the D-I rule applies.",
+  "Normas NCAA: vuestra universidad aún no puede contactar ni pedir información a este atleta por su curso. Guárdalo en una lista y escríbele cuando se abra la ventana.": "NCAA rules: your university cannot contact or request information from this athlete yet because of their school year. Save them to a list and write when the window opens.",
+  "Universidades y colleges: no se publican pruebas (tryouts) por las normas NCAA. Usa «Campus / Showcase».": "Universities and colleges don't post tryouts under NCAA rules. Use “Camp / Showcase”.",
   // — Fase 7: errores y sin acceso dentro de la app —
   "Algo no ha ido bien": "Something went wrong",
   "No es culpa tuya. Si estabas guardando algo, no se ha guardado: vuelve a intentarlo. Si se repite, escríbenos y lo arreglamos.": "It's not your fault. If you were saving something, it wasn't saved: please try again. If it happens again, write to us and we'll fix it.",
@@ -860,6 +868,14 @@ export const EN: Record<string, string> = {
   "Beca deportiva": "Athletic scholarship",
   "Ayuda académica": "Academic aid",
   "Otra ayuda confirmada": "Other confirmed aid",
+  // — QA menores: tutor y pagos —
+  "Como eres menor de edad, no puedes pausar ni desvincular a tu madre, padre o tutor por tu cuenta. Si tienes un problema con tu familia, escríbenos: lo tratamos con confidencialidad.": "As you're under 18, you can't pause or unlink your mother, father or guardian on your own. If you have a problem with your family, write to us: we handle it confidentially.",
+  "Pausar acceso": "Pause access",
+  "Dejará de ver tu información hasta que reanudes su acceso. La relación no se borra.": "They'll stop seeing your information until you resume their access. The link isn't deleted.",
+  "Sí, pausar acceso": "Yes, pause access",
+  "Mientras seas menor, tu tutor sigue vinculado para protegerte: solo él o ella puede dejar de estarlo. Si algo no va bien, escríbenos.": "While you're under 18, your guardian stays linked to protect you: only they can step away. If something isn't right, write to us.",
+  "Como eres menor de edad, este plan lo contrata tu madre, padre o tutor desde su cuenta.": "As you're under 18, this plan is purchased by your mother, father or guardian from their account.",
+  "Pídeselo a tu familia": "Ask your family",
 };
 
 const pl = (n: string, one: string, many: string) => (n === '1' ? one : many);

@@ -228,6 +228,7 @@ export function boardGroup(r: { status: RegistrationStatus | InvitationStatus; n
 
 /* ----------------------------------------------------------------------------------- Errores */
 export const TRIAL_ERROR: Record<string, string> = {
+  ncaa_contact_window_closed: 'Normas NCAA: vuestra universidad aún no puede invitar a este atleta por su curso. Podrás hacerlo cuando se abra la ventana de contacto.',
   not_allowed: 'No tienes permiso para hacer esto (comprueba tu rol, el programa o la representación).',
   opportunity_not_open: 'La oportunidad ya no está abierta.',
   registration_closed: 'El plazo de inscripción ha terminado.',
