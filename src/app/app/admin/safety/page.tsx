@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { requireSession } from '@/lib/session';
+import { requireAdmin } from '@/lib/admin-guard';
 import { createClient } from '@/lib/supabase/server';
-import { Badge, Card, CardTitle, EmptyState, PageHeader } from '@/components/ui';
+import { Badge, Card, CardTitle, EmptyState, Notice, PageHeader } from '@/components/ui';
 import { DecideAppealForm, ModerateForm, OpenCaseForm } from '@/components/safety/SafetyForms';
 import { revertModeration } from '@/app/actions/safety';
 import { GuardianReviewQueue, type GuardianReviewRow } from '@/components/safety/GuardianReviewQueue';
@@ -20,9 +20,9 @@ const date = (d: string) => new Intl.DateTimeFormat('es-ES', { day: 'numeric', m
  * 14 · Cola de Trust & Safety: denuncias sin caso, casos abiertos con su historia y su medida, apelaciones y
  * sanciones activas. Solo la ve quien tiene el rol interno de Trust & Safety (lo decide la base de datos).
  */
-export default async function SafetyQueuePage({ searchParams }: { searchParams: Promise<{ tutor?: string }> }) {
-  const { tutor } = await searchParams;
-  await requireSession(['admin']);
+export default async function SafetyQueuePage({ searchParams }: { searchParams: Promise<{ tutor?: string; aviso?: string }> }) {
+  const { tutor, aviso } = await searchParams;
+  await requireAdmin('/app/admin/safety');
   const supabase = await createClient();
   const { data: canTs } = await supabase.rpc('has_admin_role', { p_role: 'trust_safety' });
   if (!canTs) return (<><PageHeader kicker="Admin" title="Trust & Safety" /><EmptyState title="Sin acceso">Esta cola requiere el rol interno de Trust & Safety.</EmptyState></>);
@@ -41,6 +41,7 @@ export default async function SafetyQueuePage({ searchParams }: { searchParams: 
   return (
     <>
       <PageHeader kicker="Admin" title="Trust & Safety" description="Denuncias, casos, apelaciones y medidas activas. Cada decisión necesita un motivo y queda auditada." />
+      {typeof aviso === 'string' && <div className="mb-5"><Notice tone="neutral">{aviso.slice(0, 300)}</Notice></div>}
       <div className="mb-6"><GuardianReviewQueue rows={(guardians ?? []) as GuardianReviewRow[]} notice={tutor} /></div>
       <div className="grid gap-5 xl:grid-cols-2">
         <Card>

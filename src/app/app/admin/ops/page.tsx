@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { requireSession } from '@/lib/session';
+import { requireAdmin } from '@/lib/admin-guard';
+import { ORG_TYPE_LABEL } from '@/lib/domain/labels';
+import type { OrgType } from '@/lib/types';
 import { createClient } from '@/lib/supabase/server';
 import { Badge, Card, CardTitle, Notice, PageHeader, inputClass, buttonClass } from '@/components/ui';
 import { FlagForm } from '@/components/admin/OpsForms';
@@ -15,8 +17,8 @@ const SUPPORT_STATUS: Record<string, string> = { open: 'Abierto', waiting_user: 
  * 16 · Operaciones de Gala: interruptores, búsqueda, soporte, aprobaciones dobles, conflictos de representación y
  * jobs. Cada bloque solo aparece con el rol interno que lo permite; la base de datos lo vuelve a comprobar.
  */
-export default async function AdminOpsPage({ searchParams }: { searchParams: Promise<{ q?: string; aprobacion?: string; view?: string }> }) {
-  await requireSession(['admin']);
+export default async function AdminOpsPage({ searchParams }: { searchParams: Promise<{ q?: string; aprobacion?: string; view?: string; aviso?: string }> }) {
+  await requireAdmin('/app/admin/ops');
   const sp = await searchParams;
   const supabase = await createClient();
   const roles = await Promise.all(['super_admin', 'support', 'finance', 'trust_safety'].map((r) => supabase.rpc('has_admin_role', { p_role: r }).then((x) => [r, x.data === true] as const)));
@@ -28,10 +30,28 @@ export default async function AdminOpsPage({ searchParams }: { searchParams: Pro
     supabase.from('feature_flags').select('key, enabled, description, kill_switch, updated_at').order('key'),
     q.length >= 3 && (can.support || can.trust_safety) ? supabase.rpc('admin_search', { p_query: q }) : Promise.resolve({ data: null }),
     can.support ? supabase.from('support_cases').select('id, subject, body, category, status, created_at').in('status', ['open', 'waiting_user', 'in_progress']).order('created_at').limit(30) : Promise.resolve({ data: [] }),
-    can.finance || can.super_admin ? supabase.from('admin_approvals').select('id, action, payload, reason, status, created_at').eq('status', 'pending').order('created_at') : Promise.resolve({ data: [] }),
+    can.finance || can.super_admin ? supabase.from('admin_approvals').select('id, action, payload, reason, status, created_at, requested_by').eq('status', 'pending').order('created_at') : Promise.resolve({ data: [] }),
     can.trust_safety ? supabase.from('admin_representation_conflicts').select('*').eq('status', 'open').order('detected_at') : Promise.resolve({ data: [] }),
     supabase.rpc('admin_jobs'),
   ]);
+  // Borrados de organización pendientes: qué organización es, cuánto afecta y quién lo pidió (para no aprobar a ciegas).
+  const deleteIds = (approvals ?? []).filter((a) => a.action === 'organization_delete').map((a) => (a.payload as { organization_id?: string }).organization_id).filter((x): x is string => !!x);
+  const requesterIds = [...new Set((approvals ?? []).map((a) => a.requested_by as string).filter(Boolean))];
+  const [{ data: delOrgs }, { data: requesters }, delCounts] = await Promise.all([
+    deleteIds.length ? supabase.from('organizations').select('id, name, type, verification_status').in('id', deleteIds) : Promise.resolve({ data: [] as { id: string; name: string; type: string; verification_status: string }[] }),
+    requesterIds.length ? supabase.from('profiles').select('id, display_name').in('id', requesterIds) : Promise.resolve({ data: [] as { id: string; display_name: string | null }[] }),
+    Promise.all(deleteIds.map(async (id) => {
+      const [m, o] = await Promise.all([
+        supabase.from('organization_members').select('user_id', { count: 'exact', head: true }).eq('organization_id', id),
+        supabase.from('opportunities').select('id', { count: 'exact', head: true }).eq('organization_id', id),
+      ]);
+      return [id, { members: m.count, opps: o.count }] as const;
+    })),
+  ]);
+  const orgById = new Map((delOrgs ?? []).map((o) => [o.id, o]));
+  const nameById = new Map((requesters ?? []).map((r) => [r.id, r.display_name]));
+  const countsById = new Map(delCounts);
+  const aviso = typeof sp.aviso === 'string' ? sp.aviso.slice(0, 300) : null;
   const { data: healthRaw } = await supabase.rpc('admin_platform_health');
   const h = (healthRaw ?? {}) as Record<string, number | boolean | string[] | null>;
   const alarms = [
@@ -49,6 +69,9 @@ export default async function AdminOpsPage({ searchParams }: { searchParams: Pro
         ? <PageHeader kicker="Operaciones Gala" title="Soporte" description="Búsqueda mínima de personas y organizaciones, y casos abiertos. Gala opera: no curiosea." />
         : <PageHeader kicker="Operaciones Gala" title="Cumplimiento" description="Salud de la plataforma, interruptores, aprobaciones dobles, conflictos de representación y jobs." />}
       {sp.aprobacion === 'misma_persona' && <div className="mb-5"><Notice tone="warn">Una aprobación la da otra persona distinta de quien la pidió.</Notice></div>}
+      {sp.aprobacion === 'confirmar_nombre' && <div className="mb-5"><Notice tone="warn">Para aprobar el borrado escribe el nombre exacto de la organización.</Notice></div>}
+      {sp.aprobacion === 'error' && <div className="mb-5"><Notice tone="danger">No se ha podido registrar la decisión. Vuelve a intentarlo.</Notice></div>}
+      {aviso && <div className="mb-5"><Notice tone="neutral">{aviso}</Notice></div>}
       {sp.aprobacion === 'ok' && <div className="mb-5"><Notice tone="ok">Decisión registrada.</Notice></div>}
 
 {!support && (<>
@@ -121,15 +144,32 @@ export default async function AdminOpsPage({ searchParams }: { searchParams: Pro
         <Card className="mt-5">
           <CardTitle kicker="Doble aprobación" action={<Badge>{approvals?.length ?? 0}</Badge>}>Pendientes</CardTitle>
           <ul className="divide-y divide-line">
-            {(approvals ?? []).map((a) => (
-              <li key={a.id} className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm">
-                <span><span className="text-paper">{a.action === 'entitlement_grant' ? `Conceder ${(a.payload as { plan_code?: string }).plan_code}` : 'Borrar organización'}</span> <span className="text-faint">· {a.reason}</span></span>
-                <span className="flex gap-2">
-                  <form action={decideApproval}><input type="hidden" name="id" value={a.id} /><input type="hidden" name="decision" value="approve" /><button className={buttonClass('primary', 'sm')}>Aprobar</button></form>
-                  <form action={decideApproval}><input type="hidden" name="id" value={a.id} /><input type="hidden" name="decision" value="reject" /><button className={buttonClass('secondary', 'sm')}>Rechazar</button></form>
-                </span>
-              </li>
-            ))}
+            {(approvals ?? []).map((a) => {
+              const orgId = (a.payload as { organization_id?: string }).organization_id;
+              const org = orgId ? orgById.get(orgId) : undefined;
+              const n = orgId ? countsById.get(orgId) : undefined;
+              const isDelete = a.action === 'organization_delete';
+              return (
+                <li key={a.id} className="py-3 text-sm">
+                  <p><span className="text-paper">{isDelete ? 'Borrar organización' : `Conceder ${(a.payload as { plan_code?: string }).plan_code}`}</span> <span className="text-faint">· pedido por {nameById.get(a.requested_by as string) ?? 'otra persona del equipo'} · {date(a.created_at)}</span></p>
+                  {isDelete && (
+                    <p className="mt-1 text-danger">
+                      {org ? <>«{org.name}» · {ORG_TYPE_LABEL[org.type as OrgType] ?? org.type} · {org.verification_status} · {n?.members ?? '?'} miembro(s) · {n?.opps ?? '?'} oportunidad(es) · id {org.id}</> : <>La organización ({orgId ?? 'sin id'}) ya no existe o no es visible.</>}
+                      {' '}Es irreversible.
+                    </p>
+                  )}
+                  <p className="mt-1 text-muted">Motivo: {a.reason}</p>
+                  <span className="mt-2 flex flex-wrap items-end gap-2">
+                    <form action={decideApproval} className="flex flex-wrap items-end gap-2">
+                      <input type="hidden" name="id" value={a.id} /><input type="hidden" name="decision" value="approve" />
+                      {isDelete && org && <input name="confirm_name" required placeholder={`Escribe «${org.name}» para confirmar`} aria-label="Nombre de la organización para confirmar el borrado" className={`${inputClass} w-auto py-1.5`} />}
+                      <button disabled={isDelete && !org} className={buttonClass('primary', 'sm')}>{isDelete ? 'Aprobar borrado' : 'Aprobar'}</button>
+                    </form>
+                    <form action={decideApproval}><input type="hidden" name="id" value={a.id} /><input type="hidden" name="decision" value="reject" /><button className={buttonClass('secondary', 'sm')}>Rechazar</button></form>
+                  </span>
+                </li>
+              );
+            })}
             {!(approvals ?? []).length && <li className="py-3 text-sm text-muted">Nada pendiente.</li>}
           </ul>
         </Card>

@@ -865,6 +865,13 @@ export const EN: Record<string, string> = {
   'Ejemplos ilustrativos: las ofertas reales las publican organizaciones verificadas dentro de la plataforma.': 'Illustrative examples: real offers are published by verified organizations inside the platform.',
   'Gala · University of Evansville': 'Gala · University of Evansville',
   'precio de lista': 'list price',
+  // — QA web-admin: precios (agencias primero) y pie según el público —
+  "Crear mi Passport gratis": "Create my free Passport",
+  "Probar 30 días gratis": "Try it free for 30 days",
+  "O escribe a la fundadora": "Or write to the founder",
+  "Crea tu cuenta gratis y envía la solicitud: te escribimos para cerrar el alcance. No se cobra nada sin tu confirmación por escrito.": "Create your free account and send the request: we'll write to you to agree the scope. Nothing is charged without your written confirmation.",
+  "Lleva tu agencia con un solo sistema": "Run your agency on one system",
+  "30 días gratis. Sin comisión por atleta ni por contactar. Cancelas cuando quieras.": "30 days free. No per-athlete or contact fees. Cancel anytime.",
   // — Trials: candidatura, invitar a prueba; comparación de costes de la familia —
   "Primero presenta tu candidatura; si el club la acepta, quedarás inscrito en el trial.": "First submit your application; if the club accepts it, you'll be registered for the trial.",
   "Eres menor: si el club te acepta, tu familia tendrá que aprobar tu participación antes de que se confirme la plaza.": "You're a minor: if the club accepts you, your family will have to approve your participation before your spot is confirmed.",

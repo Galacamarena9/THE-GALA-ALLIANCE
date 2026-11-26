@@ -19,7 +19,7 @@ export default async function LegalPage({ params }: { params: Promise<{ doc: str
   return (
     <>
       <PublicHeader />
-      <main className="mx-auto max-w-3xl px-5 py-14">
+      <main id="main-content" className="mx-auto max-w-3xl px-5 py-14">
         <p className="mb-3 inline-block rounded border border-warn/50 px-2 py-0.5 text-xs text-warn">Borrador · pendiente de revisión jurídica</p>
         <h1 className="text-4xl text-paper">{d.title}</h1>
         <div className="mt-8 space-y-8">

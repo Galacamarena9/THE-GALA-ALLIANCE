@@ -1,10 +1,11 @@
 'use server';
 
-import { must } from '@/lib/supabase/must';
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { requireSession } from '@/lib/session';
+import { requireAdmin } from '@/lib/admin-guard';
 import type { FormState } from './auth';
 
 /**
@@ -24,7 +25,7 @@ const ERR: Record<string, string> = {
 const friendly = (m: string) => Object.entries(ERR).find(([k]) => m.includes(k))?.[1] ?? (m.includes('check constraint') ? 'Revisa el motivo (mínimo 10 caracteres).' : 'No se ha podido completar.');
 
 export async function openSafetyCase(_prev: FormState, formData: FormData): Promise<FormState> {
-  await requireSession(['admin']);
+  await requireAdmin('/app/admin/safety');
   const p = z.object({
     title: z.string().trim().min(3).max(200),
     category: z.enum(['minor', 'fraud', 'payment', 'organization', 'messaging', 'impersonation', 'privacy', 'other']),
@@ -43,7 +44,7 @@ export async function openSafetyCase(_prev: FormState, formData: FormData): Prom
 }
 
 export async function moderate(_prev: FormState, formData: FormData): Promise<FormState> {
-  await requireSession(['admin']);
+  await requireAdmin('/app/admin/safety');
   const p = z.object({
     action: z.enum(['no_action', 'warning', 'content_removed', 'opportunity_paused', 'user_restricted', 'organization_restricted', 'suspended', 'verification_revoked', 'escalate']),
     reason: z.string().trim().min(10, 'Explica el motivo (mínimo 10 caracteres).').max(2000),
@@ -63,16 +64,19 @@ export async function moderate(_prev: FormState, formData: FormData): Promise<Fo
 }
 
 export async function revertModeration(formData: FormData) {
-  await requireSession(['admin']);
+  await requireAdmin('/app/admin/safety');
+  const back = (m: string): never => redirect(`/app/admin/safety?aviso=${encodeURIComponent(m)}`);
   const p = z.object({ id: uuid, reason: z.string().trim().min(3).max(2000) }).safeParse(Object.fromEntries(formData));
-  if (!p.success) return;
+  if (!p.success) back('Explica por qué se revierte la medida.');
   const supabase = await createClient();
-  must(await supabase.rpc('moderation_revert', { p_action: p.data.id, p_reason: p.data.reason }), 'rpc.moderation_revert');
+  const { error } = await supabase.rpc('moderation_revert', { p_action: p.data!.id, p_reason: p.data!.reason });
+  if (error) back(friendly(error.message));
   revalidatePath('/app/admin/safety');
+  back('Medida revertida.');
 }
 
 export async function decideAppeal(_prev: FormState, formData: FormData): Promise<FormState> {
-  await requireSession(['admin']);
+  await requireAdmin('/app/admin/safety');
   const p = z.object({ id: uuid, decision: z.enum(['overturn', 'uphold']), reason: z.string().trim().min(10, 'Explica la decisión.').max(2000) }).safeParse(Object.fromEntries(formData));
   if (!p.success) return { error: p.error.issues[0]?.message ?? 'Revisa los campos.' };
   const supabase = await createClient();

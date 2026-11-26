@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { requireSession } from '@/lib/session';
+import { requireAdmin } from '@/lib/admin-guard';
 
 const entry = z.object({ event_id: z.string().uuid(), athlete_id: z.string().uuid() });
 
@@ -35,7 +36,7 @@ const event = z.object({
 
 /** Solo administración (lo impone también la base de datos). */
 export async function createShowcaseEvent(formData: FormData) {
-  await requireSession(['admin']);
+  await requireAdmin('/app/showcase');
   const p = event.safeParse(Object.fromEntries(formData));
   if (!p.success) return;
   const supabase = await createClient();

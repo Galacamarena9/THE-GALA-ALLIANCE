@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 type Tool = { Icon: typeof Calculator; name: string; question: string; text: string; href: string; cta: string };
 
 const OPEN: Tool[] = [
-  { Icon: Sparkles, name: 'Test de opciones', question: '¿Tengo opciones de beca en EE. UU.?', text: 'Cuatro preguntas: dónde encajarías (NCAA, NAIA, JUCO), qué te haría subir de nivel y tu roadmap.', href: '/#test', cta: 'Hacer el test' },
+  { Icon: Sparkles, name: 'Test de opciones', question: '¿Tengo opciones de beca en EE. UU.?', text: 'Cuatro preguntas: dónde encajarías (NCAA, NAIA, JUCO), qué te haría subir de nivel y tu roadmap.', href: '/test-opciones', cta: 'Hacer el test' },
   { Icon: Calculator, name: 'Calculadora del coste real', question: '¿Cuánto pagaría de verdad?', text: 'Coste y ayudas de cada oferta en tres escenarios, el total a 4 años y un comparador de hasta 5 opciones.', href: '/calculadora', cta: 'Calcular' },
   { Icon: BookOpen, name: 'Guía oficial del proceso', question: '¿Por dónde empiezo?', text: 'Divisiones, becas, admisión, visado y plazos, con la fuente oficial en cada capítulo.', href: '/guia', cta: 'Leer la guía' },
   { Icon: Search, name: 'Explorador de oportunidades', question: '¿Qué oportunidades hay?', text: 'Becas, pruebas y eventos publicados por organizaciones verificadas, con su sello de confianza.', href: '/oportunidades', cta: 'Explorar' },

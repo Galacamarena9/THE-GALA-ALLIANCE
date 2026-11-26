@@ -80,18 +80,25 @@ export function PublicHeader({ overlay = false, locale }: { overlay?: boolean; l
   );
 }
 
-export function PublicFooter({ locale }: { locale?: Locale } = {}) {
+/** Llamada final del pie según quién lee la página: en las páginas de agencias no se invita a crear un Passport de atleta. */
+const FOOTER_CTA = {
+  athlete: { title: 'Empieza hoy, es gratis para atletas', text: 'Tu Passport en minutos. La visibilidad nunca se paga.', href: '/signup?role=athlete', label: 'Crear mi Passport' },
+  agent: { title: 'Lleva tu agencia con un solo sistema', text: '30 días gratis. Sin comisión por atleta ni por contactar. Cancelas cuando quieras.', href: '/signup?role=agent&plan=agent_solo', label: 'Probar 30 días gratis' },
+} as const;
+
+export function PublicFooter({ locale, audience = 'athlete' }: { locale?: Locale; audience?: keyof typeof FOOTER_CTA } = {}) {
   const tx = makeT(locale ?? 'es');
+  const cta = FOOTER_CTA[audience];
   return (
     <footer className="border-t border-line/60 bg-ink">
       <div className="border-b border-line/40">
         <div className="mx-auto flex max-w-5xl flex-col items-start justify-between gap-6 px-6 py-10 md:flex-row md:items-center">
           <div>
-            <h3 className="mb-1 text-lg font-bold text-paper">{tx('Empieza hoy, es gratis para atletas')}</h3>
-            <p className="text-sm text-muted">{tx('Tu Passport en minutos. La visibilidad nunca se paga.')}</p>
+            <h3 className="mb-1 text-lg font-bold text-paper">{tx(cta.title)}</h3>
+            <p className="text-sm text-muted">{tx(cta.text)}</p>
           </div>
-          <ButtonLink href="/signup?role=athlete" className="group px-6">
-            {tx('Crear mi Passport')} <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden />
+          <ButtonLink href={cta.href} className="group px-6">
+            {tx(cta.label)} <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden />
           </ButtonLink>
         </div>
       </div>
@@ -115,7 +122,7 @@ export function PublicFooter({ locale }: { locale?: Locale } = {}) {
             <li><Link href="/oportunidades" className="inline-block py-1 text-muted transition-colors hover:text-brass">{tx('Oportunidades')}</Link></li>
             <li><Link href="/herramientas" className="inline-block py-1 text-muted transition-colors hover:text-brass">{tx('Herramientas gratuitas')}</Link></li>
             <li><Link href="/guia" className="inline-block py-1 text-muted transition-colors hover:text-brass">{tx('Guía oficial del proceso')}</Link></li>
-            <li><Link href="/#test" className="inline-block py-1 text-muted transition-colors hover:text-brass">{tx('Test de opciones')}</Link></li>
+            <li><Link href="/test-opciones" className="inline-block py-1 text-muted transition-colors hover:text-brass">{tx('Test de opciones')}</Link></li>
             <li><Link href="/seguridad" className="inline-block py-1 text-muted transition-colors hover:text-brass">{tx('Seguridad y confianza')}</Link></li>
             <li><Link href="/calculadora" className="inline-block py-1 text-muted transition-colors hover:text-brass">{tx('Calculadora de coste real')}</Link></li>
             <li><Link href="/precios" className="inline-block py-1 text-muted transition-colors hover:text-brass">{tx('Planes y precios')}</Link></li>
