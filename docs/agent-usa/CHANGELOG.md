@@ -64,6 +64,17 @@ Cambios: rama `feat/fee-attestation-founder-cap`; migración `20261217000100_fee
 Pruebas: unit 266/266; RLS 438/438 (C3-1, C3-2); e2e 370 OK + `founder-pricing.spec.ts`; build OK.
 Riesgos abiertos: representaciones anteriores sin declaración (se muestran con aviso «pídesela»); claves Stripe live y `free_until` (gate de Gala); validación legal NCAA del texto.
 
+## [QA coach-club] 2026-11-26 · Ventana de contacto NCAA en todo contacto de una universidad
+Origen: QA coach-club, hallazgos #1 (crítica), #2, #3, #4, #7 y #13. GALA MONSTER OS: 05 Engineering, revisa 06 QA. Riesgo L3, fuera de producción.
+Cambios:
+- `20261223000200_ncaa_window_everywhere.sql`: función interna `ncaa_contact_closed(org, atleta)` (sin acceso para anon/authenticated); la usan `guard_contact_request`, `guard_info_request` (antes no comprobaba la ventana) y `trial_org_invite` (antes tampoco). Universidad/college sin división → regla D-I (conservadora). ROLLBACK en cabecera.
+- Onboarding: la división es obligatoria para universidad/college (select `required`, validación en la action, textos ES/EN).
+- «Hoy» (/app): universidad y coach van directos a /app/recruit; los enlaces al escaparate apuntan a /app/recruit/discover.
+- Ficha de candidato: badge «Contacto disponible / Contacto desde <fecha>» y formularios de contacto e información sustituidos por un aviso con la ventana cerrada.
+- Nueva oportunidad: una universidad/college no ve ni puede crear «Prueba» (tryout). NO COMPROBADO normativamente: revisar con el abogado NCAA.
+Pruebas: RLS 458/458 (4 nuevas); unit 300/300; tsc OK; build (webpack) OK.
+Pendiente de Gala / compliance: validar con el abogado NCAA la regla tryout y la decisión «división null → D-I»; atletas sin `graduation_year` no se bloquean; faltan excepciones por deporte (football, hockey…).
+
 ## [Fase 8 auditoría] 2026-11-25 · Mínimo privilegio y pulido
 Origen: auditoría integral (hallazgos S7, U5–U8). GALA MONSTER OS: 05 Engineering, 06 QA, 03 Design consultado. Riesgo L4 (privilegios) en staging.
 Cambios:
