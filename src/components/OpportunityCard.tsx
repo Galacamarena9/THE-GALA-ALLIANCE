@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Badge } from '@/components/ui';
 import { DIVISION_LABEL, OPPORTUNITY_STATUS_LABEL, OPPORTUNITY_TYPE_LABEL, daysUntil, usd } from '@/lib/domain/labels';
-import { TIER_LABEL, type MatchResult } from '@/lib/domain/match';
+import { OVER_BUDGET_LABEL, TIER_LABEL, type MatchResult } from '@/lib/domain/match';
 import type { Division, OpportunityStatus, OpportunityType } from '@/lib/types';
 import { assessOpportunity, TRUST_LABEL } from '@/lib/domain/trust';
 
@@ -50,6 +50,7 @@ export function OpportunityCard({ o, match, showStatus, href }: { o: Opportunity
         <Badge>{OPPORTUNITY_TYPE_LABEL[o.type]}</Badge>
         {o.division && <Badge>{DIVISION_LABEL[o.division]}</Badge>}
         {match && <Badge tone={match.tier === 'strong' ? 'ok' : match.tier === 'not_eligible' ? 'danger' : 'brass'}>{TIER_LABEL[match.tier]}</Badge>}
+        {match?.overBudget && <Badge tone="danger">{OVER_BUDGET_LABEL}</Badge>}
         {match?.confidence === 'low' && <Badge tone="warn">Faltan datos</Badge>}
         {assessed && <Badge tone={assessed.level >= 4 ? 'ok' : 'brass'}>Confianza {assessed.level}/5 · {TRUST_LABEL[assessed.level]}</Badge>}
         {assessed && assessed.flags.some((f) => f.severity === 'high') && <Badge tone="danger">Señal de alarma</Badge>}

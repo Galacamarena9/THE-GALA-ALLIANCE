@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { AlertTriangle, ArrowRight, Bookmark, BookmarkCheck, Check, CircleSlash, EyeOff, HelpCircle, X } from 'lucide-react';
-import { CONFIDENCE_LABEL, DIMENSION_LABEL, type Dimension, type Factor, type GalaMatch } from '@/lib/domain/gala-match/engine';
+import { CONFIDENCE_LABEL, DIMENSION_LABEL, dimensionState, type Dimension, type Factor, type GalaMatch } from '@/lib/domain/gala-match/engine';
 import { setHidden, toggleSaved } from '@/app/actions/match';
 
 /** Porcentaje honesto: "datos insuficientes" si no hay base; "no encaja ahora" si hay un bloqueo. */
@@ -31,16 +31,14 @@ export function ConfidenceBadge({ m }: { m: GalaMatch }) {
   return <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${tone}`}>Confianza {CONFIDENCE_LABEL[m.confidence].toLowerCase()}</span>;
 }
 
-const ICON = { ok: Check, warn: AlertTriangle, bad: X, unknown: HelpCircle } as const;
-/** Resumen por dimensión: icono + palabra (nunca solo color). */
+const ICON = { ok: Check, warn: AlertTriangle, no: X, blocked: CircleSlash, unknown: HelpCircle } as const;
+const ORDER = ['blocked', 'no', 'ok', 'warn', 'unknown'];
+/** Resumen por dimensión: icono + palabra (nunca solo color). Un 0 % o un coste fuera de presupuesto es «no encaja», no «parcial». */
 export function DimensionChips({ m, max = 6 }: { m: GalaMatch; max?: number }) {
-  const chips = m.dimensions.map((d) => {
-    const hasBlock = d.factors.some((f) => f.kind === 'hard' && f.status === 'unmet');
-    const state: keyof typeof ICON = hasBlock ? 'bad' : d.score == null ? 'unknown' : d.score >= 75 ? 'ok' : 'warn';
-    return { d: d.dimension, state };
-  }).sort((a, b) => ['bad', 'ok', 'warn', 'unknown'].indexOf(a.state) - ['bad', 'ok', 'warn', 'unknown'].indexOf(b.state)).slice(0, max);
-  const tone = { ok: 'text-ok', warn: 'text-warn', bad: 'text-danger', unknown: 'text-faint' } as const;
-  const sr = { ok: 'encaja', warn: 'encaje parcial', bad: 'bloqueo', unknown: 'datos insuficientes' } as const;
+  const chips = m.dimensions.map((d) => ({ d: d.dimension, state: dimensionState(d) }))
+    .sort((a, b) => ORDER.indexOf(a.state) - ORDER.indexOf(b.state)).slice(0, max);
+  const tone = { ok: 'text-ok', warn: 'text-warn', no: 'text-danger', blocked: 'text-danger', unknown: 'text-faint' } as const;
+  const sr = { ok: 'encaja', warn: 'encaje parcial', no: 'no encaja', blocked: 'bloqueo', unknown: 'datos insuficientes' } as const;
   return (
     <ul className="flex flex-wrap gap-x-3 gap-y-1">
       {chips.map(({ d, state }) => {

@@ -1,5 +1,5 @@
 import { CircleAlert, CircleCheck, CircleX, Info } from 'lucide-react';
-import { CONFIDENCE_LABEL, MATCH_AREA_LABEL, TIER_LABEL, type MatchResult } from '@/lib/domain/match';
+import { CONFIDENCE_LABEL, MATCH_AREA_LABEL, OVER_BUDGET_LABEL, TIER_LABEL, type MatchResult } from '@/lib/domain/match';
 import { cx } from '@/components/ui';
 
 /**
@@ -14,6 +14,7 @@ export function MatchBreakdown({ match, editHref = '/app/athlete/passport' }: { 
         <div>
           <p className="text-sm font-semibold text-brass">Gala Match</p>
           <p className="mt-1 text-lg font-bold text-paper">{TIER_LABEL[match.tier]}</p>
+          {match.overBudget && <p className="mt-1 inline-flex rounded-full border border-danger/50 px-2.5 py-0.5 text-[11px] font-semibold text-danger">{OVER_BUDGET_LABEL}</p>}
         </div>
         <p className={cx('font-display text-5xl font-bold tabular-nums leading-none', low ? 'text-faint' : 'text-paper')}>
           {low && <span className="sr-only">Estimación provisional: </span>}

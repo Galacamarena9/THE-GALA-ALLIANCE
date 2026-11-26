@@ -134,7 +134,7 @@ export function ProgramPanel({ opportunityId, details, core, costs, requirements
               <ul className="divide-y divide-line">
                 {applications.map((a) => (
                   <li key={a.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-sm">
-                    <span className="min-w-0"><span className="block text-paper">{a.name}</span><span className="block text-[11px] text-muted">{a.guardian_consent_status === 'pending' ? 'Familia: pendiente' : a.guardian_consent_status === 'approved' ? 'Familia ✓' : 'Sin tutor requerido'}</span></span>
+                    <span className="min-w-0"><span className="block text-paper">{a.name}</span><span className="block text-[11px] text-muted">{a.guardian_consent_status === 'pending' ? 'Familia: pendiente' : a.guardian_consent_status === 'granted' ? 'Familia ✓' : 'Sin tutor requerido'}</span></span>
                     {['applied', 'reviewed', 'information_requested', 'waitlisted'].includes(a.status) ? (
                       <span className="flex flex-wrap gap-2">
                         <TrialButton call={{ kind: 'decide', application: a.id, decision: 'accepted', opportunity: opportunityId }} label="Ofrecer plaza" variant="primary" confirm={`¿Ofrecer plaza a ${a.name}? Aceptar la candidatura no matricula: el atleta (y su familia si es menor) debe aceptar.`} />

@@ -7,6 +7,9 @@ import { requireSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
 import { loadCatalog } from '@/lib/data/athlete';
 import { currentRecruitOrg, loadCandidate } from '@/lib/data/recruit';
+import { loadInvitableTrials } from '@/lib/data/trials';
+import { canInviteToTrials, eventWhen } from '@/lib/domain/trials';
+import { InviteToTrialButton } from '@/components/trials/TrialApply';
 import { INFO_KIND_LABEL, INTERNAL_STAGES, INTERNAL_STAGE_LABEL, needFit, type InternalStage, type NeedCriteria } from '@/lib/domain/recruit';
 import { PROVENANCE_LABEL } from '@/lib/domain/passport';
 import { Badge, Card, CardTitle, Notice, PageHeader, buttonClass } from '@/components/ui';
@@ -48,6 +51,9 @@ export default async function CandidatePage({ params, searchParams }: { params: 
     supabase.from('org_shortlists').select('id, name').eq('organization_id', org.id).is('archived_at', null),
   ]);
   const minor = minorRow !== false;
+  // «Invitar a prueba»: solo clubes y academias verificados con permiso de contacto (nunca universidades/colleges).
+  const invitable = org.caps.has('contact') && canInviteToTrials([org]) ? await loadInvitableTrials(session.userId) : { allowed: false, trials: [] };
+  const orgTrials = invitable.trials.filter((t) => t.organization_id === org.id).map((t) => ({ id: t.id, title: t.title, when: eventWhen(t.start_at, t.timezone) }));
   const need = (needs ?? []).find((n) => n.id === sp.need) ?? (needs ?? [])[0];
   const verifiedStats = d.stats.filter((s) => s.source !== 'self_reported').length;
   const fit = need ? needFit(need as NeedCriteria, { ...d.dir, academics_documented: d.academics ? d.academics.gpa_source !== 'self_reported' : null, verified_stats: d.stats.length ? verifiedStats : null }) : null;
@@ -243,6 +249,13 @@ export default async function CandidatePage({ params, searchParams }: { params: 
                 <CardTitle kicker={tx('Comunicación segura')}>{tx('Contactar en Gala')}</CardTitle>
                 <p className="mb-2 text-xs text-muted">{minor ? tx('Al ser menor, la solicitud llega primero a su familia. Nunca se muestran teléfono ni email personales.') : tx('El atleta decide si acepta. La conversación queda en Gala, con historial y opción de denuncia.')}</p>
                 {ncaaClosed ? ncaaNotice : <ContactRequestForm organizations={[{ id: org.id, name: org.name }]} athleteId={athleteId} isMinor={minor} />}
+              </Card>
+            )}
+
+            {invitable.allowed && (
+              <Card>
+                <CardTitle kicker={tx('Trials')}>{tx('Invitar a prueba')}</CardTitle>
+                <InviteToTrialButton athleteId={athleteId} trials={orgTrials} isMinor={minor} source={c ? 'shortlist' : 'discovery'} />
               </Card>
             )}
 

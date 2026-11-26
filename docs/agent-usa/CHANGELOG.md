@@ -87,6 +87,26 @@ Riesgos abiertos: representaciones anteriores sin declaración (se muestran con 
 ### Pruebas ejecutadas
 - Unitarias 301/301 · RLS 454/454 (BD propia) · `tsc` sin errores · `next build` OK · Playwright 390 px (arriba).
 
+## [QA trials/familia] 2026-11-26 · Candidatura a trials, «Invitar a prueba» y encaje capado por el coste
+
+### Hecho
+- **Trials «primero candidatura» (crítica, QA atleta #2):** el atleta ya puede presentar la candidatura desde la ficha
+  del trial (`TrialApplyForm` + action `applyToTrial`, inserta en `applications` con la RLS existente). Si es menor, se
+  le avisa de que la familia aprobará la participación; el club la ve y la acepta en «Candidaturas» y
+  `application_org_decide` crea la inscripción (pendiente de la familia si es menor). Estados «en revisión / no
+  continúa / retirada» visibles para el atleta. Corregido el estado familiar de la candidatura (`granted`, no `approved`).
+- **«Invitar a prueba» (QA club #8):** botón en `/athletes/[id]` y en la ficha de candidato para staff de **clubes y
+  academias verificados** (selector de trials publicados + mensaje opcional), conectado a `inviteToTrial`. No se ofrece
+  a universidades/colleges (y la action lo rechaza); la función SQL `trial_org_invite` no se toca.
+- **Encaje y coste (QA familia #5, #6, #9):** una dimensión al 0 % es «no encaja» (no «parcial»); coste por encima del
+  presupuesto capa la etiqueta (rules-1.1: como mucho «Exigente» + badge «Fuera de vuestro presupuesto»; Gala Match:
+  como mucho «Encaje parcial», «Buen encaje» si está a ≤ 25 %). La comparación de costes de la familia pasa a tarjetas
+  en móvil (< 640 px) y sus textos usan `tx()`.
+
+### Pruebas ejecutadas
+- `npm run -s test:unit` (nuevo `trial-participation.test.ts`, 12 pruebas) · `npm run -s test:rls` (455 OK, nueva
+  prueba del flujo de candidatura) · `npx tsc --noEmit -p .` · `next build --webpack`.
+
 ## [QA coach-club] 2026-11-26 · Ventana de contacto NCAA en todo contacto de una universidad
 Origen: QA coach-club, hallazgos #1 (crítica), #2, #3, #4, #7 y #13. GALA MONSTER OS: 05 Engineering, revisa 06 QA. Riesgo L3, fuera de producción.
 Cambios:
