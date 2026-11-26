@@ -813,6 +813,14 @@ export const EN: Record<string, string> = {
   "🔒 Vídeo no compartido contigo": "🔒 Video not shared with you",
   "🛡️ Protecciones de menor activas: el contacto pasa por Gala y su familia.": "🛡️ Minor protections active: contact goes through Gala and their family.",
   "🛡️ Protecciones de menor activas: sin datos de contacto directos; cualquier contacto o solicitud pasa por Gala y su familia.": "🛡️ Minor protections active: no direct contact details; any contact or request goes through Gala and their family.",
+  // — QA menores: tutor y pagos —
+  "Como eres menor de edad, no puedes pausar ni desvincular a tu madre, padre o tutor por tu cuenta. Si tienes un problema con tu familia, escríbenos: lo tratamos con confidencialidad.": "As you're under 18, you can't pause or unlink your mother, father or guardian on your own. If you have a problem with your family, write to us: we handle it confidentially.",
+  "Pausar acceso": "Pause access",
+  "Dejará de ver tu información hasta que reanudes su acceso. La relación no se borra.": "They'll stop seeing your information until you resume their access. The link isn't deleted.",
+  "Sí, pausar acceso": "Yes, pause access",
+  "Mientras seas menor, tu tutor sigue vinculado para protegerte: solo él o ella puede dejar de estarlo. Si algo no va bien, escríbenos.": "While you're under 18, your guardian stays linked to protect you: only they can step away. If something isn't right, write to us.",
+  "Como eres menor de edad, este plan lo contrata tu madre, padre o tutor desde su cuenta.": "As you're under 18, this plan is purchased by your mother, father or guardian from their account.",
+  "Pídeselo a tu familia": "Ask your family",
 };
 
 const pl = (n: string, one: string, many: string) => (n === '1' ? one : many);

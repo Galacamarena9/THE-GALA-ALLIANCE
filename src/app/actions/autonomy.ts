@@ -12,6 +12,7 @@ import { createHash } from 'node:crypto';
 import { uploadMatches } from '@/lib/domain/file-sniff';
 import { DOC_CHECKLIST, DOC_KINDS, suggestedDueDate } from '@/content/documents';
 import { planByCode } from '@/content/plans';
+import { paysThroughFamily } from '@/lib/domain/minor-guard';
 
 
 // ---------------------------------------------------------------- Centro de documentos
@@ -189,6 +190,8 @@ export async function deleteMyAccount(_prev: FormState, formData: FormData): Pro
  */
 export async function startCheckout(formData: FormData) {
   const session = await requireSession();
+  // QA menores: un menor no firma un contrato de consumo ni renuncia al desistimiento. Paga su familia.
+  if (paysThroughFamily(session)) redirect('/app/plan?pago=familia');
   const plan = planByCode(String(formData.get('plan_code') ?? ''));
   const key = process.env.STRIPE_SECRET_KEY;
   if (!plan || !plan.checkoutCents || !key) redirect('/precios');

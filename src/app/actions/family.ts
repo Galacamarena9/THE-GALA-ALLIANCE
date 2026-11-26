@@ -7,6 +7,10 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { requireSession, getSession } from '@/lib/session';
 import type { FormState } from './auth';
+import { isGuardianChangeError } from '@/lib/domain/minor-guard';
+
+/** QA menores: un atleta menor no quita a su tutor (lo exige la BD); se explica en pantalla en vez de un error genérico. */
+const GUARDIAN_BLOCKED = '/app/settings?familia=tutor#familia';
 
 /** Crea una invitación (desde familia o desde atleta). El enlace se comparte fuera de la plataforma. */
 export async function createFamilyInvitation(): Promise<FormState> {
@@ -49,11 +53,13 @@ export async function revokeFamilyLink(formData: FormData) {
   const id = z.string().uuid().parse(formData.get('id'));
   if (formData.get('confirm') !== 'yes') return; // 10D: dejar de seguir siempre pasa por la confirmación
   const supabase = await createClient();
-  must(await supabase
+  const res = await supabase
     .from('parent_athlete_links')
     .update({ status: 'revoked' })
     .eq('id', id)
-    .or(`parent_id.eq.${session.userId},athlete_id.eq.${session.userId}`), 'parent_athlete_links.update');
+    .or(`parent_id.eq.${session.userId},athlete_id.eq.${session.userId}`);
+  if (isGuardianChangeError(res.error?.message)) redirect(GUARDIAN_BLOCKED);
+  must(res, 'parent_athlete_links.update');
   revalidatePath('/app/family');
   revalidatePath('/app/settings');
 }
@@ -96,8 +102,12 @@ export async function reviewFamilyLink(formData: FormData) {
 export async function restrictFamilyLink(formData: FormData) {
   await requireSession(['athlete']);
   const id = z.string().uuid().parse(formData.get('id'));
+  const restrict = formData.get('restrict') === 'yes';
+  if (restrict && formData.get('confirm') !== 'yes') return; // pausar a la familia siempre pasa por la confirmación
   const supabase = await createClient();
-  must(await supabase.rpc('family_link_restrict', { p_link: id, p_restrict: formData.get('restrict') === 'yes', p_reason: null }), 'rpc.family_link_restrict');
+  const res = await supabase.rpc('family_link_restrict', { p_link: id, p_restrict: restrict, p_reason: null });
+  if (isGuardianChangeError(res.error?.message)) redirect(GUARDIAN_BLOCKED);
+  must(res, 'rpc.family_link_restrict');
   revalidatePath('/app/settings');
 }
 
@@ -171,7 +181,7 @@ export async function saveFamilyBudget(_prev: FormState, formData: FormData): Pr
   const supabase = await createClient();
   const { error } = await supabase.from('athlete_finances')
     .upsert({ athlete_id: p.data.athlete, annual_budget_usd: p.data.amount, budget_mode: p.data.mode }, { onConflict: 'athlete_id' });
-  if (error) return { error: 'Solo quien puede editar el perfil del atleta puede cambiar el presupuesto.' };
+  if (error) return { error: 'No tienes permiso para cambiar el presupuesto. Si el atleta es mayor de edad, necesitas además permiso para editar su perfil.' };
   revalidatePath('/app/family/costs');
   return { ok: true, message: 'Presupuesto guardado. Es privado: ninguna universidad ni club lo ve.' };
 }

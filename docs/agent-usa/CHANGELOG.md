@@ -75,6 +75,25 @@ Cambios:
 Pruebas: RLS 458/458 (4 nuevas); unit 300/300; tsc OK; build (webpack) OK.
 Pendiente de Gala / compliance: validar con el abogado NCAA la regla tryout y la decisión «división null → D-I»; atletas sin `graduation_year` no se bloquean; faltan excepciones por deporte (football, hockey…).
 
+## [QA menores] 2026-11-26 · Un menor no se desvincula de su tutor, no paga y no es visible sin familia
+
+### Hecho (migración `20261223000100_minor_guardian_protection.sql`)
+- CRÍTICA: trigger `guard_minor_guardian_change`: un atleta menor no puede revocar ni pausar a un tutor adulto con vínculo
+  activo (también por `family_link_restrict`). Error `guardian_change_requires_guardian`. El tutor puede renunciar,
+  el adulto decide, soporte (admin) puede pausar; reanudar sigue permitido. UI: sin «Pausar/Desvincular» para menores,
+  con enlace a soporte; pausar (adultos) pide confirmación.
+- ALTA: `startCheckout` y `requestPlan` rechazan a atletas menores; `/precios`, `PlanUnlocks` y `/app/plan` muestran
+  «Pídeselo a tu familia» (→ `/app/settings#familia`).
+- ALTA: `can_view_athlete`: menor sin `minor_has_active_family` → invisible para reclutadores verificados.
+- Presupuesto: el tutor activo de un menor con permiso de presupuesto lo fija sin «editar perfil»
+  (`guardian_sets_family_budget`); la lectura no cambia (nunca clubes ni agentes).
+
+### Pruebas ejecutadas
+- RLS 462/462 · unitarias 302/302 (nueva `minor-guard.test.ts`) · `tsc --noEmit` sin errores.
+
+### Pendiente / decisión de Gala (L5)
+- Edad mínima de alta (13) y consentimiento parental por país (RGPD art. 8): sin cambios.
+
 ## [Fase 8 auditoría] 2026-11-25 · Mínimo privilegio y pulido
 Origen: auditoría integral (hallazgos S7, U5–U8). GALA MONSTER OS: 05 Engineering, 06 QA, 03 Design consultado. Riesgo L4 (privilegios) en staging.
 Cambios:
