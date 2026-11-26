@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { requireSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
 import { logEvent } from '@/lib/events';
-import { trialErrorMessage } from '@/lib/domain/trials';
+import { TRIAL_INVITER_ORG_TYPES, isTrialType, trialErrorMessage } from '@/lib/domain/trials';
 
 export type TrialResult = { ok: boolean; message: string };
 const uuid = z.string().uuid();
@@ -31,6 +31,36 @@ export async function registerForTrial(input: { opportunity: string; athlete: st
   if (reg?.needs_athlete_ok) return { ok: true, message: 'Propuesta enviada. El atleta debe aceptar el coste antes de que se envíe la inscripción.' };
   if (reg?.guardian_status === 'pending') return { ok: true, message: 'Pendiente de la aprobación de la familia.' };
   return { ok: true, message: 'Inscripción enviada. El club confirmará la plaza.' };
+}
+
+/**
+ * Candidatura a un trial «primero candidatura» (solo el propio atleta; la RLS `apps_insert` lo exige).
+ * Si es menor, la candidatura queda con el consentimiento familiar pendiente y, si el club la acepta, la inscripción
+ * no avanza hasta que la familia la apruebe (`application_org_decide` + `trial_respond`).
+ */
+export async function applyToTrial(input: { opportunity: string; message?: string }): Promise<TrialResult> {
+  const session = await requireSession(['athlete']);
+  const p = z.object({ opportunity: uuid, message: z.string().trim().max(2000).optional() }).safeParse(input);
+  if (!p.success) return { ok: false, message: 'Datos no válidos.' };
+  const supabase = await createClient();
+  const { data: o } = await supabase.from('opportunities').select('type, trial_details(registration_mode)').eq('id', p.data.opportunity).maybeSingle();
+  const td = o?.trial_details as unknown as { registration_mode: string } | { registration_mode: string }[] | null;
+  const mode = Array.isArray(td) ? td[0]?.registration_mode : td?.registration_mode;
+  if (!o || !isTrialType(o.type as string) || mode !== 'application_required') return { ok: false, message: 'Este trial no admite candidaturas.' };
+  const { error } = await supabase.from('applications').insert({ opportunity_id: p.data.opportunity, athlete_id: session.userId, athlete_message: p.data.message || null });
+  if (error) {
+    if (error.code === '23505') return { ok: false, message: 'Ya has presentado tu candidatura a este trial.' };
+    return { ok: false, message: trialErrorMessage(error.message) };
+  }
+  await logEvent('trial_applied', { by: 'athlete' });
+  refresh(p.data.opportunity);
+  revalidatePath('/app/applications');
+  return {
+    ok: true,
+    message: session.isMinor
+      ? 'Candidatura enviada. Si el club la acepta, tu familia tendrá que aprobar tu participación.'
+      : 'Candidatura enviada. Si el club la acepta, quedarás inscrito y te avisaremos.',
+  };
 }
 
 /** Respuestas del lado del atleta sobre una inscripción: aceptar coste, aprobación familiar, retirarse. */
@@ -77,6 +107,10 @@ export async function inviteToTrial(input: { opportunity: string; athlete: strin
   }).safeParse(input);
   if (!p.success) return { ok: false, message: 'Datos no válidos.' };
   const supabase = await createClient();
+  // Solo clubes y academias invitan a sus trials desde aquí (universidades/colleges: ventana NCAA; la BD tiene su propia guarda).
+  const { data: o } = await supabase.from('opportunities').select('type, organizations(type)').eq('id', p.data.opportunity).maybeSingle();
+  const orgType = (o?.organizations as unknown as { type: string } | null)?.type ?? '';
+  if (!o || !isTrialType(o.type as string) || !(TRIAL_INVITER_ORG_TYPES as readonly string[]).includes(orgType)) return { ok: false, message: 'Solo los clubes y academias pueden invitar a sus trials.' };
   const { error } = await supabase.rpc('trial_org_invite', {
     p_opportunity: p.data.opportunity, p_athlete: p.data.athlete, p_source: p.data.source, p_shortlist: p.data.shortlist ?? null, p_message: p.data.message ?? null,
   });

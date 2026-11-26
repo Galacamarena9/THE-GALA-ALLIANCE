@@ -1829,6 +1829,24 @@ try {
     eq((await as(u.coach2, `select application_org_decide($1, 'waitlisted') s`, [app])).rows[0].s, 'waitlisted');
   });
 
+  await check('Trials «primero candidatura» (QA atleta #2): el atleta presenta candidatura, el club la ve y la acepta → queda inscrito', async () => {
+    const t = await makeOpp(u.coach2, clubA, { mode: 'application_required', title: 'Trial candidatura adulto' });
+    // Sin candidatura aceptada no hay inscripción directa.
+    await expectError(() => as(u.adult, `select trial_register($1, $2)`, [t, u.adult]), /application_required/);
+    // Nadie presenta candidatura por otro (ni la familia ni el club): solo el propio atleta.
+    await expectError(() => as(u.parent, `insert into applications (opportunity_id, athlete_id) values ($1, $2)`, [t, u.minor]), /row-level security/);
+    await expectError(() => as(u.coach2, `insert into applications (opportunity_id, athlete_id) values ($1, $2)`, [t, u.adult]), /row-level security/);
+    const app = (await as(u.adult, `insert into applications (opportunity_id, athlete_id, athlete_message) values ($1, $2, 'Disponible todo junio') returning id, status, guardian_consent_status`, [t, u.adult])).rows[0];
+    eq(app.status, 'applied'); eq(app.guardian_consent_status, 'not_required', 'adulto: sin tutor');
+    await expectError(() => as(u.adult, `insert into applications (opportunity_id, athlete_id) values ($1, $2)`, [t, u.adult]), /duplicate key|unique/);
+    // El club la ve (con el mensaje); otra organización no.
+    eq((await as(u.coach2, `select athlete_message from applications where id = $1`, [app.id])).rows[0]?.athlete_message, 'Disponible todo junio');
+    eq((await as(v.ownerB, `select count(*)::int n from applications where id = $1`, [app.id])).rows[0].n, 0, 'otro club no ve la candidatura');
+    eq((await as(u.coach2, `select application_org_decide($1, 'accepted') s`, [app.id])).rows[0].s, 'accepted');
+    const reg = (await as(u.adult, `select status, origin, guardian_status from opportunity_registrations where opportunity_id = $1 and athlete_id = $2`, [t, u.adult])).rows[0];
+    eq(reg.status, 'registered'); eq(reg.origin, 'application'); eq(reg.guardian_status, 'not_required');
+  });
+
   await check('11B documentos: concesión con finalidad y caducidad; otro club, caducada o revocada → nada; los muy sensibles, solo nominales', async () => {
     docT = (await as(u.adult, `insert into athlete_documents (athlete_id, kind, title, storage_path, uploaded_at) values ($1, 'transcript', 'Expediente 2026', $2, now()) returning id`, [u.adult, `${u.adult}/exp.pdf`])).rows[0].id;
     docMed = (await as(u.adult, `insert into athlete_documents (athlete_id, kind, title, storage_path, uploaded_at) values ($1, 'medical', 'Reconocimiento médico', $2, now()) returning id`, [u.adult, `${u.adult}/med.pdf`])).rows[0].id;

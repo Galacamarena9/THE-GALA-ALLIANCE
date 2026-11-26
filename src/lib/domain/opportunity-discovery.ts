@@ -13,7 +13,7 @@ import type { Division } from '@/lib/types';
 import { formatUsd } from '../i18n/format.ts';
 import { DIVISION_LABEL } from './labels.ts';
 import {
-  CONFIDENCE_LABEL, DIMENSION_LABEL, compareMatches, galaMatch,
+  CONFIDENCE_LABEL, DIMENSION_LABEL, budgetStatus, compareMatches, galaMatch,
   type AthleteContext, type Dimension, type Factor, type FactorStatus, type GalaMatch, type InstitutionTarget, type MatchConfidence, type OpportunityTarget,
 } from './gala-match/engine.ts';
 
@@ -231,9 +231,12 @@ export function fitLevel(m: GalaMatch): FitLevel {
   if (m.score == null) return 'insufficient';
   // «Encaje fuerte» exige que ningún requisito obligatorio esté por confirmar.
   const hardUnknown = m.dimensions.some((d) => d.factors.some((f) => f.kind === 'hard' && f.status === 'unknown'));
-  if (m.score >= 80 && m.confidence !== 'low' && !hardUnknown) return 'strong';
-  if (m.score >= 60) return 'good';
-  return 'partial';
+  const level: FitLevel = m.score >= 80 && m.confidence !== 'low' && !hardUnknown ? 'strong' : m.score >= 60 ? 'good' : 'partial';
+  // El coste capa la etiqueta: fuera de presupuesto → como mucho «Encaje parcial»; cerca (≤ 25 % por encima) → como mucho «Buen encaje».
+  const budget = budgetStatus(m);
+  if (budget === 'unmet') return 'partial';
+  if (budget === 'partial' && level === 'strong') return 'good';
+  return level;
 }
 
 const aidText = (o: DiscoveryOpportunity) =>

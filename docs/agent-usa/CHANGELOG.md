@@ -64,6 +64,26 @@ Cambios: rama `feat/fee-attestation-founder-cap`; migración `20261217000100_fee
 Pruebas: unit 266/266; RLS 438/438 (C3-1, C3-2); e2e 370 OK + `founder-pricing.spec.ts`; build OK.
 Riesgos abiertos: representaciones anteriores sin declaración (se muestran con aviso «pídesela»); claves Stripe live y `free_until` (gate de Gala); validación legal NCAA del texto.
 
+## [QA trials/familia] 2026-11-26 · Candidatura a trials, «Invitar a prueba» y encaje capado por el coste
+
+### Hecho
+- **Trials «primero candidatura» (crítica, QA atleta #2):** el atleta ya puede presentar la candidatura desde la ficha
+  del trial (`TrialApplyForm` + action `applyToTrial`, inserta en `applications` con la RLS existente). Si es menor, se
+  le avisa de que la familia aprobará la participación; el club la ve y la acepta en «Candidaturas» y
+  `application_org_decide` crea la inscripción (pendiente de la familia si es menor). Estados «en revisión / no
+  continúa / retirada» visibles para el atleta. Corregido el estado familiar de la candidatura (`granted`, no `approved`).
+- **«Invitar a prueba» (QA club #8):** botón en `/athletes/[id]` y en la ficha de candidato para staff de **clubes y
+  academias verificados** (selector de trials publicados + mensaje opcional), conectado a `inviteToTrial`. No se ofrece
+  a universidades/colleges (y la action lo rechaza); la función SQL `trial_org_invite` no se toca.
+- **Encaje y coste (QA familia #5, #6, #9):** una dimensión al 0 % es «no encaja» (no «parcial»); coste por encima del
+  presupuesto capa la etiqueta (rules-1.1: como mucho «Exigente» + badge «Fuera de vuestro presupuesto»; Gala Match:
+  como mucho «Encaje parcial», «Buen encaje» si está a ≤ 25 %). La comparación de costes de la familia pasa a tarjetas
+  en móvil (< 640 px) y sus textos usan `tx()`.
+
+### Pruebas ejecutadas
+- `npm run -s test:unit` (nuevo `trial-participation.test.ts`, 12 pruebas) · `npm run -s test:rls` (455 OK, nueva
+  prueba del flujo de candidatura) · `npx tsc --noEmit -p .` · `next build --webpack`.
+
 ## [Fase 8 auditoría] 2026-11-25 · Mínimo privilegio y pulido
 Origen: auditoría integral (hallazgos S7, U5–U8). GALA MONSTER OS: 05 Engineering, 06 QA, 03 Design consultado. Riesgo L4 (privilegios) en staging.
 Cambios:
