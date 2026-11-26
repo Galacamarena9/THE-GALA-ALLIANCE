@@ -6,6 +6,8 @@ import { loadAgentHome, type AgentHomeData } from '@/lib/data/agent-home';
 import { EmptyState, Notice, buttonClass, cx } from '@/components/ui';
 import { AgentHomeSkeleton, AthletesPreview, AttentionList, PipelineStrip, SummaryStrip } from '@/components/agent/HomeParts';
 import { logEvent } from '@/lib/events';
+import { PlanBanner } from '@/components/agency/PlanBanner';
+import { ImportFirst } from '@/components/agent/ImportFirst';
 
 /**
  * Inicio del agente «Hoy» (reforma 180°): lo que toca hoy → mis atletas → procesos por fase.
@@ -61,6 +63,7 @@ export function AgentHomeView({ displayName, data, today = new Date().toISOStrin
       {!data.agency?.verified && (
         <Notice>Tu agencia está pendiente de verificación: los atletas verán tus propuestas cuando Gala la verifique. <Link href="/app/organization" className="font-semibold underline">Ver estado</Link></Notice>
       )}
+      <PlanBanner status={data.plan} />
       {data.partial.length > 0 && (
         <Notice tone="warn">No hemos podido cargar {data.partial.join(', ')}. El resto está al día; vuelve a cargar en un momento.</Notice>
       )}
@@ -69,14 +72,7 @@ export function AgentHomeView({ displayName, data, today = new Date().toISOStrin
       <SummaryStrip s={data.summary} className="order-last sm:order-none" />
 
       {noAthletes ? (
-        <EmptyState
-          title="Tu cartera está vacía"
-          action={<Link href="/app/discover" className={buttonClass('primary')}><Search className="h-4 w-4" aria-hidden /> Buscar talento</Link>}
-        >
-          {data.pendingProposals
-            ? `Tienes ${data.pendingProposals} ${data.pendingProposals === 1 ? 'propuesta' : 'propuestas'} esperando respuesta. Mientras tanto, busca atletas por deporte, posición, físico y nivel.`
-            : 'Busca atletas por deporte, posición, físico, nacionalidad y nivel, y propón representarlos. Solo verás sus datos con su permiso.'}
-        </EmptyState>
+        <ImportFirst pendingProposals={data.pendingProposals} />
       ) : (
         <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
           <AttentionList items={data.attention} today={today} className="lg:col-start-1 lg:row-start-1" />

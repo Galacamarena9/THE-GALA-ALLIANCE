@@ -23,10 +23,16 @@ test('reconoce fichas y páginas oficiales, y no se deja engañar por dominios p
 });
 
 test('búsquedas: primero la federación del país, nombre entrecomillado y codificado', () => {
-  const s = officialSearchLinks({ name: '  Ana  Pérez ', country: 'ES' });
+  const s = officialSearchLinks({ name: '  Ana  Pérez ', country: 'ES', sport: 'basketball' });
   assert.deepEqual(s.map((x) => x.id), ['federation', 'fiba', 'ncaa', 'espn', 'euroleague']);
   assert.ok(s[0].href.includes(encodeURIComponent('site:feb.es "Ana Pérez"')));
-  assert.equal(officialSearchLinks({ name: 'Ana', country: 'LT' })[0].href, 'https://about.fiba.basketball/en/regions/europe/national-federations/611-lithuania');
+  assert.equal(officialSearchLinks({ name: 'Ana', country: 'LT', sport: 'basketball' })[0].href, 'https://about.fiba.basketball/en/regions/europe/national-federations/611-lithuania');
   assert.equal(officialSearchLinks({ name: 'A' }).length, 0);
-  assert.equal(officialSearchLinks({ name: 'Ana', country: null })[0].id, 'fiba');
+  assert.equal(officialSearchLinks({ name: 'Ana', country: null, sport: 'basketball' })[0].id, 'fiba');
+});
+
+test('fuera del baloncesto no salen FIBA, EuroLeague ni la federación de baloncesto del país', () => {
+  assert.deepEqual(officialSearchLinks({ name: 'Nora Costa', country: 'PT', sport: 'tennis' }).map((x) => x.id), ['ncaa', 'espn']);
+  assert.deepEqual(officialSearchLinks({ name: 'Nora Costa', country: 'PT', sport: null }).map((x) => x.id), ['ncaa', 'espn']);
+  assert.deepEqual(officialSearchLinks({ name: 'Nora Costa', country: 'PT', sport: 'basketball' }).map((x) => x.id), ['federation', 'fiba', 'ncaa', 'espn', 'euroleague']);
 });

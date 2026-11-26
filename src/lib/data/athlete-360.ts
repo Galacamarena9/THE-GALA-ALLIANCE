@@ -132,7 +132,7 @@ export async function loadAthlete360(userId: string, athleteId: string, now: Dat
       stageLabel, noteBodies: access.noteBodies, nameOf, limit: 60,
     }),
     links: ((linksRes.data ?? []) as { id: string; kind: string; url: string; verified: boolean }[]).map((l) => ({ ...l, official: classifyOfficialLink(l.url) })),
-    officialSearch: officialSearchLinks({ name: e.name, country: e.country }),
+    officialSearch: officialSearchLinks({ name: e.name, country: e.country, sport: e.sportId }),
     conversation: convRes.data ? { id: convRes.data.id as string, status: convRes.data.status as string } : null,
     partial: [...new Set(partial)],
   };

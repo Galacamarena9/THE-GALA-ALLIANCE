@@ -75,3 +75,39 @@ export async function reportContent(_prev: FormState, formData: FormData): Promi
   if (error) return { error: 'No se ha podido enviar la denuncia.' };
   return { ok: true, message: 'Gracias. Nuestro equipo la revisará; las de seguridad infantil tienen prioridad máxima.' };
 }
+
+/**
+ * «Mensaje» desde la ficha 360 (QA agente, hallazgo 4): abre la conversación de la agencia con su atleta y, si aún no
+ * existe, la crea con el primer mensaje que escribe el agente. Solo con representación activa que incluya
+ * `messages.participate`; con un menor la solicitud pasa por su familia (lo decide la base de datos, no esta acción).
+ */
+export async function openAgencyThread(formData: FormData) {
+  const session = await requireSession(['agent']);
+  const parsed = z.object({ athlete_id: z.string().uuid(), message: z.string().trim().max(1500).optional() }).safeParse({
+    athlete_id: formData.get('athlete_id'), message: formData.get('message') ?? undefined,
+  });
+  if (!parsed.success) redirect('/app/portfolio');
+  const { athlete_id, message } = parsed.data;
+  const compose = (error?: string) => `/app/inbox/nuevo?atleta=${athlete_id}${error ? `&error=${error}` : ''}`;
+  const supabase = await createClient();
+  const { data: allowed } = await supabase.rpc('agent_can', { p_athlete: athlete_id, p_permission: 'messages.participate' });
+  if (!allowed) redirect(compose('sin_permiso'));
+  const { data: reps } = await supabase.from('agent_representations').select('agency_id').eq('athlete_id', athlete_id).eq('status', 'active');
+  const agencyIds = [...new Set(((reps ?? []) as { agency_id: string }[]).map((r) => r.agency_id))];
+  if (!agencyIds.length) redirect(compose('sin_permiso'));
+  const { data: open } = await supabase.from('contact_requests').select('id')
+    .eq('athlete_id', athlete_id).in('organization_id', agencyIds).in('status', ['pending_guardian', 'pending', 'accepted'])
+    .order('created_at', { ascending: false }).limit(1).maybeSingle();
+  if (open?.id) redirect(`/app/inbox/${open.id}`);
+  if (!message) redirect(compose());
+  if (message.length < 20) redirect(compose('corto'));
+  const { data: created, error } = await supabase.from('contact_requests')
+    .insert({ organization_id: agencyIds[0], athlete_id, message, requested_by: session.userId }).select('id').single();
+  if (error || !created) {
+    const code = error?.code === '23505' ? 'abierta' : Object.keys(ERRORS).find((k) => error?.message.includes(k)) ?? 'error';
+    redirect(compose(code));
+  }
+  await logEvent('contact_requested', { source: 'athlete_360' });
+  revalidatePath('/app/inbox');
+  redirect(`/app/inbox/${created.id}`);
+}

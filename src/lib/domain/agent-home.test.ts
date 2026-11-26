@@ -1,9 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  ATTENTION_RANK, athletesPreview, buildAttention, dueStateOf, pipelineCounts, safeInternalPath, summarize,
+  ATTENTION_RANK, athletesPreview, nextStepFor, phaseMove, buildAttention, dueStateOf, pipelineCounts, safeInternalPath, summarize,
   type AgentHomeInput,
 } from './agent-home.ts';
+import { crmRows } from './athletes-crm.ts';
 
 const NOW = new Date('2026-11-21T10:00:00Z');
 const T = '2026-11-21';
@@ -100,7 +101,25 @@ test('vista previa de atletas: primero quien necesita atención; procesos abiert
   assert.ok(rows.every((r) => r.needsAttention));
   const marcos = rows.find((r) => r.id === 'a1')!;
   assert.equal(marcos.processes, 2);
-  assert.equal(marcos.nextAction, 'Llamada');
+  // QA agente (hallazgo 8): una oferta que caduca manda sobre la próxima acción del proceso, igual que en Mis atletas.
+  assert.equal(marcos.nextAction, 'Oferta de Lakeshore caduca');
+});
+
+test('Hoy y Mis atletas dan la misma siguiente acción para cada atleta', () => {
+  const input = base();
+  const attention = buildAttention(input, NOW);
+  const entries = input.athletes.filter((a) => a.status === 'active').map((a) => ({
+    athleteId: a.id, name: a.name, avatarUrl: null, sportId: a.sportId, sportName: a.sportName, positionName: a.positionName,
+    country: null, graduationYear: a.graduationYear, status: 'active' as const, createdAt: '2026-01-01T00:00:00Z',
+    respondedAt: null, endedAt: null, lastNoteAt: null,
+  }));
+  const crm = new Map(crmRows(entries as never, input, attention, [], NOW).map((r) => [r.id, r]));
+  for (const r of athletesPreview(input, attention)) {
+    assert.equal(r.nextAction, crm.get(r.id)?.nextAction, r.name);
+    assert.equal(r.nextDue, crm.get(r.id)?.nextDue, r.name);
+  }
+  // Sin nada urgente, la próxima acción con fecha del proceso.
+  assert.deepEqual(nextStepFor('a1', input.cases.filter((c) => c.athleteId === 'a1'), []).action, input.cases.filter((c) => c.athleteId === 'a1' && c.nextActionDue).sort((x, y) => x.nextActionDue!.localeCompare(y.nextActionDue!))[0]?.nextAction ?? null);
 });
 
 test('estados de plazo', () => {
@@ -143,4 +162,15 @@ test('ciclo 2: email al coach sin respuesta a 10 días pide seguimiento; antes, 
   assert.equal(items.length, 1);
   assert.equal(items[0].title, 'State U no ha contestado');
   assert.equal(items[0].cta.href, '/app/pipeline/c1');
+});
+
+test('tablero: mover de fase con anterior/siguiente, sin saltarse el cierre ni mover cerrados', () => {
+  assert.deepEqual(phaseMove('contacted', 'next'), { stage: 'active_conversation', label: 'Evaluación' });
+  assert.equal(phaseMove('contacted', 'prev'), null);
+  assert.deepEqual(phaseMove('academic_review', 'prev'), { stage: 'response_received', label: 'Introducción' });
+  assert.deepEqual(phaseMove('offer_discussion', 'next'), { stage: 'decision_pending', label: 'Decisión o colocado' });
+  assert.deepEqual(phaseMove('decision_pending', 'prev'), { stage: 'offer_discussion', label: 'Oferta' });
+  assert.equal(phaseMove('decision_pending', 'next'), null);
+  assert.equal(phaseMove('committed', 'prev'), null);
+  assert.equal(phaseMove('closed', 'next'), null);
 });

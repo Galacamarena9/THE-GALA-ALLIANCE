@@ -1,7 +1,7 @@
 <!-- Generado por scripts/erd/generate.mjs a partir de las migraciones. No editar a mano: `npm run erd`. -->
 # 11 · Comunicación, avisos y seguridad
 
-Tablas: **12** · RLS activada en 12/12.
+Tablas: **13** · RLS activada en 13/13.
 Se relaciona con: `athlete_documents` (03), `athlete_profiles` (03), `auth_users`, `organizations` (05), `profiles` (01).
 
 ## AS-IS · Modelo actual
@@ -14,6 +14,8 @@ erDiagram
   PROFILES |o--o{ CONTACT_REQUESTS : "guardian_approved_by"
   ORGANIZATIONS ||--o{ CONTACT_REQUESTS : "organization_id"
   PROFILES ||--o{ CONTACT_REQUESTS : "requested_by"
+  CONTACT_REQUESTS ||--o{ CONTACT_THREAD_READS : "request_id"
+  PROFILES ||--o{ CONTACT_THREAD_READS : "user_id"
   SAFETY_CASES |o--o{ CONTENT_REPORTS : "case_id"
   PROFILES |o--o{ CONTENT_REPORTS : "decided_by"
   PROFILES |o--o{ CONTENT_REPORTS : "reporter_id"
@@ -62,6 +64,11 @@ erDiagram
     uuid guardian_approved_by FK
     timestamptz responded_at
     timestamptz created_at
+  }
+  CONTACT_THREAD_READS {
+    uuid request_id PK,FK
+    uuid user_id PK,FK
+    timestamptz last_read_at
   }
   CONTENT_REPORTS {
     uuid id PK
@@ -187,6 +194,7 @@ erDiagram
 |---|---|---|---|---|---|---|
 | `contact_messages` | Personal | Sí | persona (sender_id) → se borra | Inmutable; se borra con la conversación o la cuenta | Sí | KEEP |
 | `contact_requests` | Personal | Sí | atleta (athlete_id) → se borra<br>persona (guardian_approved_by) → se anonimiza<br>organización (organization_id) → se borra<br>persona (requested_by) → se borra | Mientras exista la cuenta | Sí | KEEP |
+| `contact_thread_reads` | Personal | Sí | persona (user_id) → se borra | Marca de lectura propia; se borra con la conversación o la cuenta | Sí | KEEP |
 | `content_reports` | Sensible | — | persona (decided_by) → se anonimiza<br>persona (reporter_id) → se anonimiza | Mientras exista la cuenta | No: Denuncias: protegen a quien denuncia y a quien es denunciado | KEEP |
 | `info_requests` | Personal | Sí | atleta (athlete_id) → se borra<br>organización (organization_id) → se borra<br>persona (requested_by) → se anonimiza<br>persona (responded_by) → se anonimiza | Mientras exista la cuenta | Sí | KEEP |
 | `moderation_actions` | Sensible | — | persona (created_by) → se anonimiza<br>persona (reverted_by) → se anonimiza<br>organización (subject_org) → se borra<br>persona (subject_user) → se borra | Mientras exista la cuenta | Sí | KEEP |

@@ -105,7 +105,7 @@ export function buildAttention(input: AgentHomeInput, now: Date = new Date()): A
     if (!o.deadline || o.deadline < today || o.deadline > addDays(today, OFFER_WINDOW_DAYS)) continue;
     push({ key: `offer:${o.id}`, kind: 'offer_expiring', athleteId: o.athleteId, title: `Oferta de ${o.university} caduca`,
       context: o.aidUsd ? formatUsd(o.aidUsd, 'es', { perYear: true })! : 'Ayuda sin indicar', due: o.deadline, dueState: dueStateOf(o.deadline, today),
-      cta: { label: 'Revisar oferta', href: `/app/portfolio/${o.athleteId}` } });
+      cta: { label: 'Revisar oferta', href: `/app/portfolio/${o.athleteId}?tab=oportunidades` } });
   }
 
   const open = input.cases.filter((c) => !FINAL.has(c.stage));
@@ -178,6 +178,22 @@ export const PIPELINE_BUCKETS = [
   { id: 'placed', label: 'Decisión o colocado', stages: ['decision_pending', 'committed'] },
 ] as const;
 
+/**
+ * Mover una tarjeta del tablero a la fase anterior o siguiente (QA agente, hallazgo 11). Al avanzar se entra por la
+ * primera fase interna del grupo de destino; al retroceder, por la última. Desde «Decisión o colocado» no se avanza
+ * (comprometerse o cerrar se hace en la ficha del proceso, con su motivo); un proceso cerrado no se mueve.
+ */
+export function phaseMove(stage: string, dir: 'prev' | 'next'): { stage: string; label: string } | null {
+  const i = PIPELINE_BUCKETS.findIndex((b) => (b.stages as readonly string[]).includes(stage));
+  if (i < 0 || stage === 'committed') return null;
+  const j = dir === 'next' ? i + 1 : i - 1;
+  const target = PIPELINE_BUCKETS[j];
+  if (!target) return null;
+  const stages = target.stages as readonly string[];
+  // «committed» nunca se elige desde el tablero: se entra en «Decisión o colocado» por decision_pending.
+  return { stage: dir === 'next' ? stages[0] : stages.filter((s) => s !== 'committed').at(-1)!, label: target.label };
+}
+
 export function pipelineCounts(cases: HomeCase[]) {
   return PIPELINE_BUCKETS.map((b) => ({ id: b.id, label: b.label, count: cases.filter((c) => (b.stages as readonly string[]).includes(c.stage)).length }));
 }
@@ -197,6 +213,20 @@ export function summarize(input: AgentHomeInput, attention: AttentionItem[], now
   };
 }
 
+/**
+ * La «siguiente acción» de un atleta, igual en Hoy y en Mis atletas (QA agente, hallazgo 8): manda lo que necesita
+ * atención (una oferta que caduca, un vencido, una respuesta, una visita) y, si no hay nada, la próxima acción con fecha
+ * de sus procesos abiertos. `attention` debe venir ordenada (buildAttention ya lo hace).
+ */
+export function nextStepFor(athleteId: string, openCases: HomeCase[], attention: AttentionItem[]): { action: string | null; due: string | null } {
+  const top = attention.find((i) => i.athleteId === athleteId && i.rank <= 4);
+  const next = openCases.filter((c) => c.athleteId === athleteId && c.nextActionDue).sort((x, y) => x.nextActionDue!.localeCompare(y.nextActionDue!))[0];
+  return {
+    action: top?.title ?? next?.nextAction ?? (next ? `Siguiente paso con ${next.institution}` : null),
+    due: top?.due ?? next?.nextActionDue ?? null,
+  };
+}
+
 export interface AthletePreviewRow { id: string; name: string; meta: string; status: string; nextAction: string | null; nextDue: string | null; processes: number; lastActivityAt: string | null; needsAttention: boolean }
 
 /** Vista previa de la cartera: primero los que necesitan atención, luego por siguiente fecha y actividad. */
@@ -204,14 +234,14 @@ export function athletesPreview(input: AgentHomeInput, attention: AttentionItem[
   const flagged = new Set(attention.filter((i) => i.rank <= 4).map((i) => i.athleteId));
   const rows = input.athletes.filter((a) => a.status === 'active').map((a) => {
     const open = input.cases.filter((c) => c.athleteId === a.id && !FINAL.has(c.stage));
-    const next = open.filter((c) => c.nextActionDue).sort((x, y) => x.nextActionDue!.localeCompare(y.nextActionDue!))[0];
+    const step = nextStepFor(a.id, open, attention);
     const last = [a.lastActivityAt, ...open.map((c) => c.updatedAt)].filter(Boolean).sort().at(-1) ?? null;
     const placed = input.cases.some((c) => c.athleteId === a.id && c.stage === 'committed');
     const offer = open.some((c) => c.stage === 'offer_discussion' || c.stage === 'decision_pending');
     return {
       id: a.id, name: a.name, meta: [a.sportName, a.positionName, a.graduationYear].filter(Boolean).join(' · '),
       status: placed ? 'Colocado' : offer ? 'Con oferta' : open.length ? 'En proceso' : 'Sin procesos',
-      nextAction: next?.nextAction ?? (next ? `Siguiente paso con ${next.institution}` : null), nextDue: next?.nextActionDue ?? null,
+      nextAction: step.action, nextDue: step.due,
       processes: open.length, lastActivityAt: last, needsAttention: flagged.has(a.id),
     };
   });

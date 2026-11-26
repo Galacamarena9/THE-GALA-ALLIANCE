@@ -82,7 +82,7 @@ export function previewAthlete360(variant: Preview360 = 'full'): Athlete360 {
       { id: 'l2', kind: 'ranking', url: 'https://www.fiba.basketball/en/players/000000-ejemplo', verified: false },
       { id: 'l3', kind: 'highlight_video', url: 'https://video.ejemplo.test/partido', verified: false },
     ].map((l) => ({ ...l, official: classifyOfficialLink(l.url) })),
-    officialSearch: officialSearchLinks({ name: current.name, country: current.country }),
+    officialSearch: officialSearchLinks({ name: current.name, country: current.country, sport: current.sportId }),
     partial: [],
   };
 }

@@ -8,6 +8,7 @@ import {
   athletesPreview, buildAttention, pipelineCounts, summarize,
   type AgentHomeInput, type AgentHomeSummary, type AthletePreviewRow, type AttentionItem, type HomeAthlete,
 } from '@/lib/domain/agent-home';
+import type { AgencyPlanStatus } from '@/lib/domain/plan-limits';
 
 /**
  * Contrato del Inicio del agente: SOLO estos campos llegan a la página (y al HTML). Se construye con la sesión
@@ -25,6 +26,20 @@ export interface AgentHomeData {
   partial: ('ofertas' | 'tareas' | 'oportunidades' | 'procesos')[];
   /** Atletas con propuesta pendiente (esperando su respuesta). */
   pendingProposals: number;
+  /** Prueba / plan de la agencia y cupo de atletas (null si no se ha podido leer: entonces no se avisa). */
+  plan?: AgencyPlanStatus | null;
+}
+
+/** Estado del plan de una agencia (cualquier miembro puede leerlo). Si falla, null: el aviso simplemente no sale. */
+export async function loadAgencyPlanStatus(orgId: string | undefined | null): Promise<AgencyPlanStatus | null> {
+  if (!orgId) return null;
+  try {
+    const { data, error } = await (await createClient()).rpc('agency_plan_status', { p_org: orgId });
+    if (error) return null;
+    return ((data as AgencyPlanStatus[] | null) ?? [])[0] ?? null;
+  } catch {
+    return null;
+  }
 }
 
 const EMPTY_SUMMARY: AgentHomeSummary = { athletes: 0, needAttention: 0, activeOpportunities: 0, offers: 0, deadlinesToday: 0 };
@@ -120,6 +135,7 @@ export async function loadAgentHome(userId: string, now: Date = new Date()): Pro
     const athletes = input.athletes;
     const cases = input.cases;
     const attention = buildAttention(input, now);
+    const plan = await loadAgencyPlanStatus(agency.id);
     return {
       state: 'ok', agency, attention,
       summary: summarize(input, attention, now),
@@ -127,6 +143,7 @@ export async function loadAgentHome(userId: string, now: Date = new Date()): Pro
       pipeline: pipelineCounts(cases),
       partial,
       pendingProposals: athletes.filter((a) => a.status === 'requested').length,
+      plan,
     };
   } catch {
     return empty('error');

@@ -163,6 +163,7 @@ export const TABLES = {
   // 11 · Comunicación
   contact_requests: { domain: '11-comunicacion', cls: 'personal', minors: true, decision: 'KEEP', export: true },
   contact_messages: { domain: '11-comunicacion', cls: 'personal', minors: true, decision: 'KEEP', export: true, retention: 'Inmutable; se borra con la conversación o la cuenta' },
+  contact_thread_reads: { domain: '11-comunicacion', cls: 'personal', minors: true, decision: 'KEEP', export: true, retention: 'Marca de lectura propia; se borra con la conversación o la cuenta' },
   info_requests: { domain: '11-comunicacion', cls: 'personal', minors: true, decision: 'KEEP', export: true },
   notifications: { domain: '11-comunicacion', cls: 'personal', decision: 'KEEP', export: true, retention: 'Leídas: 6 meses · todas: 12 meses' },
   outreach_contacts: { domain: '13-ia-analitica', cls: 'internal', decision: 'KEEP', noExport: 'Lista interna de Operaciones: solo organizaciones con contacto público, no usuarios', note: 'Lista de difusión. Solo admins (RLS). Invitación única que pide permiso (LSSI art. 21).' },

@@ -195,7 +195,7 @@ export default async function PreviewPage({ params, searchParams }: { params: Pr
           );
         })()}
         {(screen === 'pipeline' || screen === 'pipeline-table') && (
-          <PipelineBoard cases={previewCases} view={screen === 'pipeline' ? 'board' : 'table'} sportName={new Map(previewSports.map((s) => [s.id, s.name_es]))} actions={previewPipelineActions()} />
+          <PipelineBoard cases={previewCases} view={screen === 'pipeline' ? 'board' : 'table'} sportName={new Map(previewSports.map((s) => [s.id, s.name_es]))} actions={previewPipelineActions()} canMove={new Set(previewCases.map((c) => c.agencyId))} />
         )}
         {screen.startsWith('agent-home') && <AgentHomeView displayName="Carlos Ruiz" data={previewAgentHome(({ 'agent-home': 'full', 'agent-home-empty': 'empty', 'agent-home-partial': 'partial', 'agent-home-no-agency': 'no_agency', 'agent-home-error': 'error' } as const)[screen as 'agent-home'])} />}
         {(screen === 'athlete-home' || screen === 'coach-home') && (

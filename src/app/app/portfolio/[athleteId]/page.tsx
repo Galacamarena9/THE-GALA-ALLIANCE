@@ -6,6 +6,7 @@ import { loadAthlete360 } from '@/lib/data/athlete-360';
 import { ButtonLink, EmptyState } from '@/components/ui';
 import { a360Href, parseA360Tab } from '@/lib/domain/athlete-360';
 import { Athlete360View } from './Athlete360View';
+import { getT } from '@/lib/i18n/server-t';
 
 export const metadata: Metadata = { title: 'Ficha del atleta' };
 
@@ -28,5 +29,5 @@ export default async function Athlete360Page({
       </EmptyState>
     );
   }
-  return <Athlete360View data={data} tab={tab} userId={session.userId} />;
+  return <Athlete360View data={data} tab={tab} userId={session.userId} tx={await getT()} />;
 }

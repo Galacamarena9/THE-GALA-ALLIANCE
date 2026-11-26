@@ -6,6 +6,7 @@ import { Badge, Card, EmptyState, PageHeader, buttonClass } from '@/components/u
 import { respondContact } from '@/app/actions/connect';
 import { loadAgentInbox } from '@/lib/data/inbox';
 import { AgentInboxView } from '@/components/inbox/AgentInbox';
+import { getT } from '@/lib/i18n/server-t';
 
 export const metadata: Metadata = { title: 'Mensajes' };
 
@@ -21,7 +22,7 @@ export default async function InboxPage() {
   const session = await requireSession();
   // Agente (sin otros papeles de atleta, familia u organización): bandeja única por atleta con contexto.
   const agentOnly = session.roles.includes('agent') && !['athlete', 'parent', 'university', 'coach', 'brand'].some((r) => session.roles.includes(r as never));
-  if (agentOnly) return <AgentInboxView groups={await loadAgentInbox(session.userId)} />;
+  if (agentOnly) return <AgentInboxView groups={await loadAgentInbox(session.userId)} tx={await getT()} />;
   const supabase = await createClient();
   const { data: requests } = await supabase
     .from('contact_requests')
