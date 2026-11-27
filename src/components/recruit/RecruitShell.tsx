@@ -34,9 +34,9 @@ export async function RecruitShell({ org, orgs, active, children }: { org: Recru
         {orgs.length > 1 && <span className="ml-auto flex gap-2">{orgs.map((o) => <Link key={o.id} href={`/app/recruit?org=${o.id}`} className={`text-xs ${o.id === org.id ? 'font-semibold text-brass' : 'text-muted'}`}>{o.name}</Link>)}</span>}
       </div>
       <nav aria-label={tx('Portal de recruiting')} className="-mx-4 overflow-x-auto px-4">
-        <ul className="flex min-w-max gap-1 border-b border-line">
+        <ul className="flex min-w-max gap-2">
           {TABS.filter((t) => (!t.cap || org.caps.has(t.cap)) && (!('clubOnly' in t) || ['club', 'academy'].includes(org.type))).map((t) => (
-            <li key={t.href}><Link href={t.href} aria-current={active === t.href ? 'page' : undefined} className={`inline-flex min-h-11 items-center border-b-2 px-3 text-sm font-semibold ${active === t.href ? 'border-brass text-brass' : 'border-transparent text-muted hover:text-paper'}`}>{tx(t.label)}</Link></li>
+            <li key={t.href}><Link href={t.href} aria-current={active === t.href ? 'page' : undefined} className={`inline-flex min-h-11 items-center rounded-full px-4 text-sm font-bold transition-colors ${active === t.href ? 'bg-night text-lime' : 'bg-surface text-muted ring-1 ring-line hover:text-paper'}`}>{tx(t.label)}</Link></li>
           ))}
         </ul>
       </nav>

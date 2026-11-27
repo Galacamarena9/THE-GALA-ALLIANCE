@@ -63,9 +63,9 @@ export function FamilyHome({ links, current, home, action, today, switchHref, ve
 
       {current.active && home && (
         <>
-          <section aria-labelledby="family-action" className={`rounded-2xl border p-5 ${action.urgent ? 'border-brass bg-brass/10' : 'border-line bg-surface'}`}>
-            <p className="eyebrow flex items-center gap-3 text-brass"><span aria-hidden className="h-px w-10 bg-brass" />Acción de la familia</p>
-            <h2 id="family-action" className="mt-3 flex gap-2 font-display text-3xl text-paper sm:text-4xl"><span aria-hidden className="text-brass">→</span>{action.title}</h2>
+          <section aria-labelledby="family-action" className="stadium p-6 sm:p-8" style={{ ['--stadium-photo' as string]: 'url(/media/university-campus-sm.webp)' }}>
+            <p className="stadium-tag">Acción de la familia{action.urgent ? ' · urgente' : ''}</p>
+            <h2 id="family-action" className="mt-4 flex gap-2 font-display text-3xl text-white sm:text-[2.6rem]"><span aria-hidden className="text-brass">→</span>{action.title}</h2>
             <p className="mt-1 text-sm text-muted">{action.why}</p>
             <Link href={action.href} className="mt-3 inline-flex min-h-11 items-center rounded-full bg-brass px-5 text-sm font-semibold text-ink">
               {action.urgent ? 'Revisar ahora' : 'Abrir'}

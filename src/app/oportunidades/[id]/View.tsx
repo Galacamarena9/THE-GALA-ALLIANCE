@@ -23,13 +23,13 @@ export function PublicOpportunityView({ o, sport, positions }: { o: PublicOpport
     <>
       <Link href="/oportunidades" className="inline-flex items-center gap-1 text-sm text-muted hover:text-paper"><ArrowLeft className="h-4 w-4" aria-hidden />Todas las oportunidades</Link>
 
-      <header className="mt-6 max-w-3xl">
+      <header className="stadium mt-6 px-6 py-8 sm:px-10 sm:py-10" style={{ ['--stadium-photo' as string]: 'url(/media/university-campus-sm.webp)' }}>
         <p className="flex flex-wrap items-center gap-x-2 text-sm text-muted">
           {o.organization_id ? <Link href={`/organizaciones/${o.organization_id}`} className="font-semibold text-paper hover:text-brass">{o.organizations.name}</Link> : <span className="font-semibold text-paper">{o.organizations.name}</span>}
           <span className="inline-flex items-center gap-1 text-ok"><BadgeCheck className="h-4 w-4" aria-hidden />Organización verificada</span>
           {o.organizations.website && <span>· {domainOf(o.organizations.website)}</span>}
         </p>
-        <h1 className="mt-2 font-display text-4xl font-bold uppercase leading-[0.95] text-paper sm:text-5xl">{o.title}</h1>
+        <h1 className="mt-3 max-w-3xl font-display text-4xl font-bold uppercase leading-[0.95] text-white sm:text-5xl">{o.title}</h1>
         <div className="mt-4 flex flex-wrap gap-1.5">
           <Badge>{OPPORTUNITY_TYPE_LABEL[o.type]}</Badge>
           {o.division && <Badge>{DIVISION_LABEL[o.division]}</Badge>}

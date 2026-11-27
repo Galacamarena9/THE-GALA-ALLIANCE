@@ -77,14 +77,14 @@ export function AthleteCommandCenter({ d, firstName, isMinor }: { d: AthleteDash
   return (
     <div className="space-y-6">
       {/* 1. Saludo, etapa y NEXT BEST ACTION. */}
-      <section aria-labelledby="cc-hello" className="relative overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface p-5 sm:p-7">
+      <section aria-labelledby="cc-hello" className="stadium p-5 sm:p-8" style={{ ['--stadium-photo' as string]: 'url(/media/hero-athletes-sm.webp)' }}>
                 <div className="relative grid gap-6 lg:grid-cols-[1fr_340px] lg:items-center">
           <div>
-            <p className="eyebrow flex items-center gap-3 text-brass"><span aria-hidden className="h-px w-10 bg-brass" />Hoy · {stage.label}</p>
-            <h1 id="cc-hello" className="mt-4 font-display text-[2.8rem] leading-[0.95] text-paper sm:text-7xl">Hola, <em>{firstName}</em>.</h1>
+            <p className="stadium-tag">Hoy · {stage.label}</p>
+            <h1 id="cc-hello" className="mt-4 font-display text-[2.6rem] leading-[0.95] text-white sm:text-6xl">Hola, <em>{firstName}</em>.</h1>
             <p className="mt-4 max-w-xl text-base text-paper/80">{stage.focus}</p>
             {nba ? (
-              <div className="mt-5 rounded-2xl border border-brass/40 bg-brass/5 p-4">
+              <div className="mt-5 rounded-2xl bg-surface p-4">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-[11px] font-bold uppercase tracking-wide text-brass">Tu siguiente mejor acción</span>
                   <Badge tone={PRIORITY_TONE[nba.priority]}>{PRIORITY_LABEL[nba.priority]}</Badge>

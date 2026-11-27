@@ -35,7 +35,7 @@ export function ButtonLink({ variant = 'primary', size = 'md', className, ...pro
 
 export function Card({ className, children, ...props }: ComponentProps<'section'>) {
   return (
-    <section className={cx('rounded-[var(--radius-card)] border border-line bg-surface p-5 shadow-[inset_0_1px_0_rgb(255_255_255/0.04)] transition-colors duration-300 sm:p-6', className)} {...props}>
+    <section className={cx('rounded-[var(--radius-card)] bg-surface p-5 shadow-[0_1px_2px_rgb(15_26_20/0.04),0_10px_28px_-16px_rgb(15_26_20/0.18)] ring-1 ring-line/60 transition-colors duration-300 sm:p-6', className)} {...props}>
       {children}
     </section>
   );
@@ -45,7 +45,7 @@ export function CardTitle({ children, kicker, action }: { children: ReactNode; k
   return (
     <div className="mb-4 flex items-start justify-between gap-4">
       <div>
-        {kicker && <p className="mb-1 text-[13px] font-semibold text-brass">{kicker}</p>}
+        {kicker && <p className="kicker mb-2">{kicker}</p>}
         <h2 className="font-display text-[22px] font-bold uppercase leading-none text-paper">{children}</h2>
       </div>
       {action}
@@ -69,13 +69,24 @@ export function Badge({ tone = 'neutral', children, className }: { tone?: Tone; 
   );
 }
 
-export function PageHeader({ kicker, title, description, action }: { kicker?: string; title: ReactNode; description?: ReactNode; action?: ReactNode }) {
+const STADIUM_PHOTOS = ['/media/club-training-sm.webp', '/media/hero-athletes-sm.webp', '/media/university-campus-sm.webp', '/media/arena-bg-sm.webp', '/media/agent-workspace-sm.webp'];
+
+/** Foto de la banda «Estadio» estable por pantalla (misma pantalla, misma foto). */
+export function stadiumPhoto(seed: string) {
+  let h = 0;
+  for (const ch of seed) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return STADIUM_PHOTOS[h % STADIUM_PHOTOS.length];
+}
+
+/** Cabecera de pantalla v6 «Estadio»: banda verde con foto, etiqueta flúor y titular de marcador. */
+export function PageHeader({ kicker, title, description, action, photo }: { kicker?: string; title: ReactNode; description?: ReactNode; action?: ReactNode; photo?: string }) {
+  const seed = `${kicker ?? ''}${typeof title === 'string' ? title : ''}`;
   return (
-    <header className="mb-10 flex flex-col gap-5 border-b border-line pb-8 sm:flex-row sm:items-end sm:justify-between">
-      <div className="max-w-2xl">
-        {kicker && <p className="eyebrow mb-4 flex items-center gap-3 text-brass"><span aria-hidden className="h-px w-10 bg-brass" />{kicker}</p>}
-        <h1 className="font-display text-[2.6rem] leading-[0.95] text-paper sm:text-6xl">{title}</h1>
-        {description && <p className="mt-3 text-base leading-relaxed text-muted">{description}</p>}
+    <header className="stadium mb-8 flex flex-col gap-5 px-6 py-7 sm:flex-row sm:items-end sm:justify-between sm:px-9 sm:py-9" style={{ ['--stadium-photo' as string]: `url(${photo ?? stadiumPhoto(seed)})` }}>
+      <div className="min-w-0 max-w-4xl">
+        {kicker && <p className="stadium-tag mb-4">{kicker}</p>}
+        <h1 className="font-display text-[2.1rem] leading-[0.95] text-white sm:text-[2.6rem] lg:text-[3rem]">{title}</h1>
+        {description && <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted">{description}</p>}
       </div>
       {action}
     </header>
