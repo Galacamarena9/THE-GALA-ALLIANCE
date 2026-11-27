@@ -1,11 +1,13 @@
 import type { Metadata } from 'next';
 import { GuideIndex } from '@/components/GuideView';
 import { PublicFooter, PublicHeader } from '@/components/PublicShell';
+import { publicMeta } from '@/lib/seo/page-meta';
 
-export const metadata: Metadata = {
+export const metadata: Metadata = publicMeta({
   title: 'Guía: becas deportivas en EE. UU.',
   description: 'Divisiones, requisitos académicos, documentos, visado, coste real y lo que te vas a encontrar. Con fuentes oficiales.',
-};
+  path: '/guia',
+});
 
 export default function PublicGuide() {
   return (

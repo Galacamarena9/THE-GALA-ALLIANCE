@@ -1,5 +1,6 @@
 import { NO_REPLY_DAYS } from './coach-outreach.ts';
 import { formatUsd } from '../i18n/format.ts';
+import { CASE_PHASES } from './agency-cases.ts';
 /**
  * Prompt 5 · Inicio del agente (Command Center). Lógica pura y determinista: prioridades, resumen, pipeline
  * y vista previa de la cartera. Recibe solo la proyección segura (ver AgentHomeInput) y nunca notas
@@ -168,15 +169,9 @@ export function buildAttention(input: AgentHomeInput, now: Date = new Date()): A
 
 /**
  * Pipeline del agente en 5 fases visibles (fase 9): Introducción · Evaluación · Visita o prueba · Oferta · Decisión o colocado.
- * Las 13 fases internas se agrupan; «cerrado» no cuenta. Lo aún sin contactar (investigación, shortlist) vive en Introducción.
+ * Fuente única: `CASE_PHASES` (los 13 pasos internos se agrupan en ellas; «cerrado» no cuenta).
  */
-export const PIPELINE_BUCKETS = [
-  { id: 'introduction', label: 'Introducción', stages: ['research', 'fit_review', 'shortlisted', 'approved_to_contact', 'contacted', 'response_received'] },
-  { id: 'evaluation', label: 'Evaluación', stages: ['active_conversation', 'academic_review'] },
-  { id: 'visit', label: 'Visita o prueba', stages: ['evaluation_visit'] },
-  { id: 'offer', label: 'Oferta', stages: ['offer_discussion'] },
-  { id: 'placed', label: 'Decisión o colocado', stages: ['decision_pending', 'committed'] },
-] as const;
+export const PIPELINE_BUCKETS = CASE_PHASES;
 
 /**
  * Mover una tarjeta del tablero a la fase anterior o siguiente (QA agente, hallazgo 11). Al avanzar se entra por la

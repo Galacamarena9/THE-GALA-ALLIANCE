@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import { ForgotForm } from './ForgotForm';
+import { publicMeta } from '@/lib/seo/page-meta';
 
-export const metadata: Metadata = { title: 'Recuperar contraseña' };
+export const metadata: Metadata = publicMeta({ title: 'Recuperar contraseña', description: 'Recupera el acceso a tu cuenta de The Gala Alliance con tu email.', path: '/forgot-password', robots: { index: false, follow: true } });
 
 export default function ForgotPasswordPage() {
   return (

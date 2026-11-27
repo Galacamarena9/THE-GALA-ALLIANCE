@@ -35,7 +35,7 @@
 | Inicio del agente «Necesita atención» (5 rangos deterministas) | `src/lib/domain/agent-home.ts`, `docs/AGENT-HOME.md` | Sin datos privados en el contrato (probado) |
 | Representación con alcance, permisos y asignaciones | `20261126000200_12a_representation_model.sql`, `docs/REPRESENTATION-ARCHITECTURE.md` | `agent_can()` como cadena de autorización |
 | RLS del agente por representación | `20261127000100_12b_agent_rls.sql`, `docs/AGENT-RLS.md` | Dueño/admin de agencia **no** salta la cadena |
-| Procesos por universidad (13 fases), tareas, actividades | `20261116000700_agency_core.sql` (`recruiting_cases`, `recruiting_case_tasks`, `recruiting_case_activities`) | Solo con representación **activa** |
+| Procesos por universidad (5 fases visibles; 13 pasos internos), tareas, actividades | `20261116000700_agency_core.sql` (`recruiting_cases`, `recruiting_case_tasks`, `recruiting_case_activities`) | Solo con representación **activa** |
 | Contactos de coaches privados de la agencia + import CSV | `agency_contacts`, `src/lib/domain/csv-import.ts` (máx. 500 filas) | Importa **contactos**, no atletas |
 | Buscador de oportunidades por atleta | `20261212000100_agent_opportunity_discovery.sql`, `src/lib/domain/opportunity-discovery.ts` | Vía `agent_discovery_athlete()` |
 | Autoridad para mensajear | `20261213000100_agency_message_authority.sql` | Agencia sin representación vigente no escribe |

@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     locale: 'es_ES',
     title: `${BRAND.name} · ${BRAND.claim}`,
     description: BRAND.secondary,
-    images: [{ url: '/media/hero-bg-poster.jpg', alt: BRAND.network }],
+    images: [{ url: '/media/hero-bg-poster.jpg', alt: 'Deportistas entrenando de noche en una pista urbana iluminada · The Gala Alliance' }],
   },
   twitter: {
     card: 'summary_large_image',

@@ -17,7 +17,7 @@ import type { AgencyPlanStatus } from '@/lib/domain/plan-limits';
 const PREVIEW_INVITES: InviteRow[] = [
   { id: 'i1', full_name: 'Lucía Marín', email: 'lucia@ejemplo.com', sport: 'Baloncesto', graduation_year: 2027, status: 'claimed', expires_at: '2027-01-01', created_at: '2026-11-20' },
   { id: 'i2', full_name: 'Pablo Ruiz', email: null, sport: 'Fútbol', graduation_year: 2027, status: 'opened', expires_at: '2027-01-01', created_at: '2026-11-20' },
-  { id: 'i3', full_name: 'Irene Soler', email: 'irene@ejemplo.com', sport: 'Voleibol', graduation_year: 2028, status: 'sent', expires_at: '2027-01-01', created_at: '2026-11-21' },
+  { id: 'i3', full_name: 'Irene Soler', email: 'irene@ejemplo.com', sport: 'Tenis', graduation_year: 2028, status: 'sent', expires_at: '2027-01-01', created_at: '2026-11-21' },
 ];
 import { DEFAULT_CRM } from '@/lib/domain/athletes-crm';
 import { Athlete360View } from '@/app/app/portfolio/[athleteId]/Athlete360View';
@@ -212,8 +212,8 @@ export default async function PreviewPage({ params, searchParams }: { params: Pr
             {screen === 'athlete-home' && <PlanUnlocks plan="family_core" />}
             {screen === 'coach-home' && (
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {([['Lucía Ferrer', 'basketball', 'ES', 'Base', 2027, 178], ['Marco Sanz', 'soccer', 'IT', 'Delantero', 2028, 183], ['Inés Costa', 'athletics', 'PT', 'Velocista', 2027, 171]] as const).map(([n, sp, cc, pos, gy, h], i) => (
-                  <AthleteCard key={n} a={{ user_id: `demo-${i}`, display_name: n, country: cc, headline: 'Ejemplo ficticio para revisar el diseño.', sport_id: sp, primary_position_id: null, graduation_year: gy, height_cm: h, current_team: 'Club de ejemplo', competitive_level: null, target_divisions: ['ncaa_d1'], open_to_opportunities: true, has_video: i !== 1 }} sportName={sp === 'basketball' ? 'Baloncesto' : sp === 'soccer' ? 'Fútbol' : 'Atletismo'} positionName={pos} />
+                {([['Lucía Ferrer', 'basketball', 'ES', 'Base', 2027, 178], ['Marco Sanz', 'soccer', 'IT', 'Delantero', 2028, 183], ['Inés Costa', 'tennis', 'PT', 'Individual', 2027, 171]] as const).map(([n, sp, cc, pos, gy, h], i) => (
+                  <AthleteCard key={n} a={{ user_id: `demo-${i}`, display_name: n, country: cc, headline: 'Ejemplo ficticio para revisar el diseño.', sport_id: sp, primary_position_id: null, graduation_year: gy, height_cm: h, current_team: 'Club de ejemplo', competitive_level: null, target_divisions: ['ncaa_d1'], open_to_opportunities: true, has_video: i !== 1 }} sportName={sp === 'basketball' ? 'Baloncesto' : sp === 'soccer' ? 'Fútbol' : 'Tenis'} positionName={pos} />
                 ))}
               </div>
             )}

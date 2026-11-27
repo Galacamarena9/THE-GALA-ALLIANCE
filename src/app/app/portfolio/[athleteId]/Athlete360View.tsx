@@ -11,7 +11,7 @@ import { AthleteAvatar, NextStepsList, Panel, StatusPill } from '@/components/po
 import { EndRepresentationForm, NoteBody, NoteComposer } from '@/components/portfolio-client';
 import { DIVISION_LABEL } from '@/lib/domain/labels';
 import { isOverdue, dueText as noteDueText, nextSteps, relativeTime, REP_PERMISSIONS, REP_TYPE_LABEL, repStatusDetail } from '@/lib/domain/portfolio';
-import { isCaseStale, stageLabel } from '@/lib/domain/agency-cases';
+import { isCaseStale, casePhaseLabel } from '@/lib/domain/agency-cases';
 import { PIPELINE_BUCKETS, dueText } from '@/lib/domain/agent-home';
 import { usReadiness, MILESTONE_STATE_LABEL, type MilestoneState } from '@/lib/domain/us-readiness';
 import { A360_TABS, DOC_STATE_LABEL, WAITING_LABEL, a360Href, type A360Tab, type ChecklistRow, type Journey } from '@/lib/domain/athlete-360';
@@ -321,7 +321,7 @@ function RecruitingTab({ data, today }: { data: Athlete360; today: string }) {
               <li key={c.id} className="flex flex-col gap-2 px-2 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
                   <Link href={`/app/pipeline/${c.id}`} className="font-semibold text-paper hover:text-brass">{c.institutionName}</Link>
-                  <p className="text-xs text-muted">{stageLabel(c.stage)} · {c.cycle} · {c.ownerName ?? 'Sin responsable'}</p>
+                  <p className="text-xs text-muted">{casePhaseLabel(c.stage)} · {c.cycle} · {c.ownerName ?? 'Sin responsable'}</p>
                   {c.nextAction && <p className={cx('mt-0.5 text-sm', overdue ? 'text-danger' : 'text-paper')}>{c.nextAction}{c.nextActionDue ? ` · ${dueText(c.nextActionDue, today)}` : ''}</p>}
                 </div>
                 {isCaseStale(c) && <span className="w-fit rounded-full bg-danger/10 px-2 py-0.5 text-xs text-danger">Parado más de 14 días</span>}

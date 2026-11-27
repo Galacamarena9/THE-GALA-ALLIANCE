@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { publicMeta } from '@/lib/seo/page-meta';
 import { notFound } from 'next/navigation';
 import { GUIDE, guideChapter } from '@/content/guide';
 import { GuideArticle } from '@/components/GuideView';
@@ -12,7 +13,8 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const c = guideChapter(slug);
-  return { title: c?.title ?? 'Guía', description: c?.summary };
+  if (!c) return { title: 'Guía', robots: { index: false, follow: true } };
+  return publicMeta({ title: c.title, description: c.summary, path: `/guia/${c.slug}` });
 }
 
 export default async function PublicGuideChapter({ params }: { params: Promise<{ slug: string }> }) {

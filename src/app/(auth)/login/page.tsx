@@ -1,10 +1,12 @@
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { getT } from '@/lib/i18n/server-t';
 import type { Metadata } from 'next';
+import { publicMeta } from '@/lib/seo/page-meta';
 import { LoginForm } from './LoginForm';
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: (await getT())('Entrar') };
+  const tx = await getT();
+  return publicMeta({ title: tx('Entrar'), description: tx('Entra en tu espacio de The Gala Alliance.'), path: '/login', locale: tx.locale, robots: { index: false, follow: true } });
 }
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {

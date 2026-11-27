@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { requireSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
 import { loadAgencyCases } from '@/lib/data/agency-cases';
-import { CASE_STAGES, isCaseStale, cycleOptions, canWrite } from '@/lib/domain/agency-cases';
+import { CASE_PHASES, isCaseStale, cycleOptions, canWrite, stageLabel } from '@/lib/domain/agency-cases';
 import { isOverdue } from '@/lib/domain/portfolio';
 import { OpenCaseForm } from '@/components/agency/CaseForms';
 import { PipelineBoard } from '@/components/agency/PipelineBoard';
@@ -140,12 +140,20 @@ export default async function PipelinePage({ searchParams }: { searchParams: SP 
       )}
 
       <Card className="mt-8">
-        <CardTitle kicker="Las 13 fases">Cómo se mueve un proceso</CardTitle>
-        <ol className="grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
-          {CASE_STAGES.map((s, i) => (
-            <li key={s.id} className="flex gap-2"><span className="font-display font-bold text-brass">{i + 1}</span><span><span className="text-paper">{s.label}.</span> <span className="text-muted">{s.hint}</span></span></li>
+        <CardTitle kicker={tx('Las 5 fases')}>{tx('Cómo se mueve un proceso')}</CardTitle>
+        <p className="mb-4 text-sm text-muted">{tx('El tablero muestra las 5 fases. Dentro de cada una, el proceso avanza por pasos más finos, que cambias desde la ficha del proceso.')}</p>
+        <ol className="grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-5">
+          {CASE_PHASES.map((p, i) => (
+            <li key={p.id}>
+              <p className="flex gap-2"><span className="font-display font-bold text-brass">{i + 1}</span><span className="font-semibold text-paper">{tx(p.label)}</span></p>
+              <p className="mt-1 text-muted">{tx(p.hint)}</p>
+              <ul className="mt-2 space-y-0.5 text-xs text-faint" aria-label={`${tx('Pasos de')} ${tx(p.label)}`}>
+                {p.stages.map((id) => <li key={id}>· {tx(stageLabel(id))}</li>)}
+              </ul>
+            </li>
           ))}
         </ol>
+        <p className="mt-4 text-xs text-faint">{tx('Un proceso cerrado o en pausa sale del tablero y conserva todo su historial.')}</p>
       </Card>
     </>
   );

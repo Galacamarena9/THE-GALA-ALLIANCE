@@ -1,20 +1,22 @@
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { getT } from '@/lib/i18n/server-t';
 import type { Metadata } from 'next';
+import { publicMeta } from '@/lib/seo/page-meta';
 import { ACTORS } from '@/lib/domain/roles';
 import { SignupForm } from './SignupForm';
 import { RefCapture } from '@/components/RefCapture';
 import { afterSignupPath } from '@/lib/domain/safe-path';
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: (await getT())('Crear cuenta') };
+  const tx = await getT();
+  return publicMeta({ title: tx('Crear cuenta'), description: tx('Crea tu cuenta en The Gala Alliance: gratis para atletas, familias y clubes; 30 días gratis para agencias.'), path: '/signup', locale: tx.locale });
 }
 
 /** Lo que cuesta empezar, dicho a cada papel (sin letra pequeña). */
 const TAGLINE: Record<string, string> = {
   athlete: 'Gratis para siempre: tu perfil, las oportunidades y recibir contacto.',
   parent: 'Gratis. Los servicios de acompañamiento son opcionales y de pago único.',
-  agent: 'Empieza gratis con tu agencia. Sin comisiones ni cobro por contactar.',
+  agent: '30 días gratis para tu agencia. Sin comisiones ni cobro por contactar.',
   coach: 'Gratis durante el piloto para clubes y academias.',
   university: 'Gratis durante el piloto para universidades.',
   brand: 'Colaboraciones solo con atletas mayores de edad.',

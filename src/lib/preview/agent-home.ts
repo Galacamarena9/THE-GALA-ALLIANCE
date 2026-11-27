@@ -49,7 +49,8 @@ function buildInput(entries: typeof previewPortfolio.entries, empty: boolean): A
 
 /** «Mis atletas» con datos FICTICIOS: la cartera de ejemplo o `n` atletas generados (prueba de 50/100). */
 export function previewCrmRows(n?: number) {
-  const sports = [['basketball', 'Baloncesto', 'Base'], ['football', 'Fútbol', 'Delantero'], ['volleyball', 'Voleibol', 'Receptora'], ['tennis', 'Tenis', null], ['athletics', 'Atletismo', '400 m']] as const;
+  // Solo deportes del piloto (baloncesto, fútbol y tenis): estos datos salen en la demo pública.
+  const sports = [['basketball', 'Baloncesto', 'Base'], ['football', 'Fútbol', 'Delantero'], ['tennis', 'Tenis', null], ['basketball', 'Baloncesto', 'Alero'], ['football', 'Fútbol', 'Centrocampista']] as const;
   const countries = ['ES', 'AR', 'MX', 'PT', 'FR', 'IT'];
   const firsts = ['Lucía', 'Marcos', 'Sofía', 'Daniel', 'Nora', 'Álex', 'Irene', 'Pablo', 'Carla', 'Hugo'];
   const lasts = ['Martín', 'Kim', 'Vidal', 'Romero', 'Costa', 'Ferrer', 'Jiménez', 'Navarro', 'Ortega', 'Serra'];

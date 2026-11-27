@@ -5,7 +5,7 @@ import { LEGACY_REDIRECTS } from '../src/lib/domain/legacy-routes';
 const PUBLIC = [
   '/', '/oportunidades', '/oportunidades?v=college', '/oportunidades?v=brands', '/seguridad', '/herramientas', '/precios', '/inversores', '/calculadora', '/guia', '/guia/divisiones-y-becas',
   '/login', '/signup', '/forgot-password', '/legal/privacidad', '/legal/terminos', '/legal/aviso-legal',
-  '/para/atletas', '/para/familias', '/para/universidades', '/para/coaches', '/para/agentes', '/para/marcas',
+  '/para/atletas', '/para/familias', '/para/universidades', '/para/coaches', '/para/agentes', '/para/marcas', '/para/clubes', '/demo/agente',
 ];
 // Pantallas internas con datos ficticios (solo existen con ENABLE_PREVIEW=1, nunca en producción).
 const PREVIEW = ['agent-home', 'portfolio', 'athlete-home', 'coach-home', 'pipeline', 'pipeline-table', 'match', 'opportunity', 'passport', 'galamatch', 'command-center', 'athlete-pipeline', 'club-trials', 'trial-club', 'trial-athlete', 'family-trials', 'program-athlete', 'family-home', 'family-costs'];

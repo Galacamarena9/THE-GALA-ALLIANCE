@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { requireSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
 import { loadAgencyCases } from '@/lib/data/agency-cases';
-import { stageLabel, canWrite, CASE_STAGES } from '@/lib/domain/agency-cases';
+import { stageLabel, canWrite, CASE_STAGES, casePhaseLabel } from '@/lib/domain/agency-cases';
 import { dueText, isOverdue, relativeTime } from '@/lib/domain/portfolio';
 import { toggleShare, toggleTask } from '@/app/actions/agency-cases';
 import { UpdateCaseForm, ActivityForm, TaskForm } from '@/components/agency/CaseForms';
@@ -80,7 +80,7 @@ export default async function CasePage({ params }: { params: Promise<{ id: strin
     <>
       <p className="mb-3 text-sm"><Link href="/app/pipeline" className="text-brass hover:underline">← Procesos</Link></p>
       <PageHeader
-        kicker={`${c.cycle} · ${stageLabel(c.stage)}`}
+        kicker={`${c.cycle} · ${casePhaseLabel(c.stage)}${casePhaseLabel(c.stage) === stageLabel(c.stage) ? '' : ` · ${stageLabel(c.stage)}`}`}
         title={`${c.athleteName} · ${c.institutionName}`}
         description={<>Abierto el {c.createdAt.slice(0, 10)}. Responsable: {c.ownerName ?? 'sin asignar'}.{contact ? <> Contacto: {contact.name}{contact.roleTitle ? ` (${contact.roleTitle})` : ''}.</> : null}</>}
       />
@@ -91,7 +91,7 @@ export default async function CasePage({ params }: { params: Promise<{ id: strin
         </div>
       )}
 
-      <ol className="mb-8 flex gap-1 overflow-x-auto pb-1" aria-label="Fases">
+      <ol className="mb-8 flex gap-1 overflow-x-auto pb-1" aria-label="Pasos del proceso">
         {CASE_STAGES.map((s, i) => (
           <li key={s.id} title={s.label} aria-current={s.id === c.stage ? 'step' : undefined}
             className={`h-2 min-w-6 flex-1 rounded-full ${s.id === 'closed' && c.stage === 'closed' ? 'bg-danger' : i <= stageIdx && c.stage !== 'closed' ? 'bg-brass' : 'bg-line'}`} />

@@ -147,7 +147,7 @@ export const PLANS: Plan[] = [
     pitch: 'Para quien trabaja solo y lleva su cartera entre hojas de cálculo y WhatsApp.',
     includes: [
       '1 usuario y hasta 25 atletas con procesos abiertos',
-      'Procesos por universidad: 13 fases, próxima acción, tareas e historial',
+      'Procesos por universidad en 5 fases, con próxima acción, tareas e historial',
       'Contactos de programas privados, importables desde Excel',
       'Vista compartida con el atleta y exportación CSV',
       'Sin comisiones ni cobro por contactar',

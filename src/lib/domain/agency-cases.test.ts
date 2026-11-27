@@ -4,7 +4,7 @@ import {
   CASE_STAGES, stageLabel, isCaseStage, nextStage, groupByStage, casesToCsv, csvCell, isCaseStale, AGENCY_ROLES, canWrite, cycleOptions,
 } from './agency-cases.ts';
 
-test('hay 13 fases en el orden de la especificación', () => {
+test('hay 13 pasos internos en el orden de la especificación', () => {
   assert.equal(CASE_STAGES.length, 13);
   assert.equal(CASE_STAGES[0].id, 'research');
   assert.equal(CASE_STAGES.at(-1)?.id, 'closed');
@@ -80,4 +80,19 @@ test('caseAgenda: primero vencidas, luego por fecha, luego paradas sin acción; 
   assert.deepEqual(agenda.map((a) => [a.id, a.reason]), [
     ['overdue', 'overdue'], ['soon', 'due'], ['later', 'due'], ['stale', 'stale'],
   ]);
+});
+
+test('vocabulario único: 5 fases visibles que agrupan los 13 pasos internos (salvo «cerrado»)', async () => {
+  const { CASE_PHASES, CASE_STAGES, casePhaseOf, casePhaseLabel } = await import('./agency-cases.ts');
+  const { PIPELINE_BUCKETS } = await import('./agent-home.ts');
+  assert.equal(CASE_PHASES.length, 5);
+  assert.equal(CASE_STAGES.length, 13);
+  assert.equal(PIPELINE_BUCKETS, CASE_PHASES);
+  for (const s of CASE_STAGES) {
+    const n = CASE_PHASES.filter((p) => (p.stages as readonly string[]).includes(s.id)).length;
+    assert.equal(n, s.id === 'closed' ? 0 : 1, s.id);
+  }
+  assert.equal(casePhaseOf('research')?.label, 'Introducción');
+  assert.equal(casePhaseLabel('committed'), 'Decisión o colocado');
+  assert.equal(casePhaseLabel('closed'), 'Cerrado o en pausa');
 });

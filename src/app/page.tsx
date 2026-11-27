@@ -1,4 +1,6 @@
+import type { Metadata } from 'next';
 import { I18nProvider } from '@/lib/i18n/client';
+import { publicMeta } from '@/lib/seo/page-meta';
 import { getT } from '@/lib/i18n/server-t';
 import Link from 'next/link';
 import { ArrowRight, ArrowUpRight, BadgeCheck, HeartHandshake, Lock } from 'lucide-react';
@@ -24,14 +26,14 @@ import { MotionToggle } from '@/components/landing/bridge/MotionToggle';
 const ROLES = [
   { key: 'atleta', name: 'Atleta', kicker: 'Gratis siempre', promise: 'Un Passport verificado que abre puertas a este lado del Atlántico y al otro.', cta: 'Crear mi perfil', href: '/signup?role=athlete' },
   { key: 'familia', name: 'Familia', kicker: 'Con tu firma', promise: 'El coste real de cada opción y nada sin vuestro permiso.', cta: 'Entrar como familia', href: '/signup?role=parent' },
-  { key: 'club', name: 'Club', kicker: 'Clubes y academias', promise: 'Confirma los datos de tus jugadores y lleva sus pruebas.', cta: 'Registrar mi club', href: '/para/coaches' },
+  { key: 'club', name: 'Club', kicker: 'Clubes y academias', promise: 'Confirma los datos de tus jugadores y lleva sus pruebas.', cta: 'Registrar mi club', href: '/para/clubes' },
   { key: 'universidad', name: 'Universidad', kicker: 'Programas NCAA', promise: 'Talento europeo con datos comprobables y una agencia verificada al otro lado.', cta: 'Registrar mi universidad', href: '/para/universidades' },
 ];
 
 const AGENT_POINTS = [
   { n: '01', title: '¿Para quién buscas?', text: 'Eliges al atleta y ves las becas y pruebas que encajan, por qué encajan y qué falta saber.' },
-  { n: '02', title: 'Cada proceso, en 5 fases', text: 'De la introducción a la firma. Cada tarjeta dice qué toca, a quién le toca y para cuándo.' },
-  { n: '03', title: 'Una bandeja con contexto', text: 'Atleta, familia y universidad en un mismo hilo, con la fase y los documentos al lado.' },
+  { n: '02', title: 'Cada proceso, en 5 fases', text: 'Introducción, evaluación, visita o prueba, oferta y decisión. Cada tarjeta dice qué toca, a quién le toca y para cuándo.' },
+  { n: '03', title: 'Una bandeja con contexto', text: 'Cada atleta y, si es menor, su familia en el mismo hilo, con la fase y los documentos al lado.' },
   { n: '04', title: 'Papeles sin sustos', text: 'Expediente traducido, inglés, elegibilidad y visado: qué falta y para qué proceso.' },
 ];
 
@@ -68,6 +70,16 @@ const FAQ: [string, string][] = [
   ['¿Garantizáis una beca o un contrato?', 'No, y desconfía de quien lo haga. Organizamos la información y el proceso; la decisión es de la organización y de la familia.'],
   ['¿Es seguro para menores?', 'Sí, por diseño: perfiles privados, contacto solo de organizaciones verificadas, la familia siempre en el circuito y sin publicidad perfilada.'],
 ];
+
+/** Fuente pública de las cifras de la NCAA (QA web #15: cifra con fuente, fuente enlazada). */
+const NCAA_SOURCE = 'https://www.ncaa.org/news/2025/3/18/media-center-march-madness-across-the-world-ncaa-basketballs-global-impact.aspx';
+
+export const metadata: Metadata = publicMeta({
+  title: BRAND.metaTitle,
+  description: BRAND.metaDescription,
+  path: '/',
+  absolute: true,
+});
 
 /** Precio de lista y precio fundador de un plan de agente, leídos del catálogo por su nombre interno (en castellano, nunca traducido). */
 function agentPrices(name: string) {
@@ -118,8 +130,8 @@ export default async function Home() {
                     {tx('El marketplace que conecta a atletas europeos con universidades de EE. UU., con agencias y familias en el mismo equipo.')}
                   </p>
                   <div className="mt-7 flex flex-wrap gap-3">
-                    <Link href="/signup?role=athlete" className="inline-flex min-h-[52px] items-center rounded-full bg-lime px-6 text-[15px] font-extrabold text-night transition-transform hover:-translate-y-0.5">{tx('Soy atleta')}</Link>
-                    <Link href="/para/agentes" className="inline-flex min-h-[52px] items-center rounded-full bg-white px-6 text-[15px] font-extrabold text-night transition-transform hover:-translate-y-0.5">{tx('Soy agencia')}</Link>
+                    <Link href="/para/agentes" className="inline-flex min-h-[52px] items-center rounded-full bg-lime px-6 text-[15px] font-extrabold text-night transition-transform hover:-translate-y-0.5">{tx('Soy agencia')}</Link>
+                    <Link href="/signup?role=athlete" className="inline-flex min-h-[52px] items-center rounded-full bg-white px-6 text-[15px] font-extrabold text-night transition-transform hover:-translate-y-0.5">{tx('Soy atleta · gratis')}</Link>
                     <Link href="/demo/agente" className="group inline-flex min-h-[52px] items-center gap-2 rounded-full border-[1.5px] border-white/50 px-5 text-[15px] font-bold text-white transition-colors hover:border-white">
                       {tx('Ver la demo')} <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden />
                     </Link>
@@ -210,7 +222,7 @@ export default async function Home() {
               <li><Rise delay={0.1}><p className="font-display text-[clamp(5rem,10vw,8rem)] leading-none text-brass"><span aria-hidden>×3</span><span className="sr-only">{tx('El triple')}</span></p><p className="mt-3 max-w-[26ch] text-sm text-muted">{tx('que en 2009-10, cuando eran 291')}</p></Rise></li>
               <li><Rise delay={0.2}><p className="font-display text-[clamp(5rem,10vw,8rem)] leading-none text-paper">1.ª</p><p className="mt-3 max-w-[26ch] text-sm text-muted">{tx('Europa es la región fuera de EE. UU. que más jugadores aporta al baloncesto de División I')}</p></Rise></li>
             </ul>
-            <p className="mt-10 text-xs text-faint">{tx('Fuente: NCAA, «March Madness across the world: NCAA basketball’s global impact» (18 de marzo de 2025).')}</p>
+            <p className="mt-10 text-xs text-faint">{tx('Fuente:')}{' '}<a href={NCAA_SOURCE} className="underline underline-offset-2 hover:text-paper" rel="noopener" target="_blank">{tx('NCAA, «March Madness across the world: NCAA basketball’s global impact» (18 de marzo de 2025)')}</a>.</p>
           </section>
 
           {/* 4 · La alianza: todos conectados alrededor del atleta */}
@@ -266,8 +278,8 @@ export default async function Home() {
                     {p.price.list !== null ? <p className="mt-1 text-sm text-faint"><s>{p.price.list} €</s> {tx('precio de lista')}</p> : null}
                   </div>
                 ))}
-                <Link href="/demo/agente" className="btn-sweep group inline-flex min-h-14 items-center gap-3 rounded-full bg-pop px-8 text-[15px] font-bold text-paper">
-                  <span className="relative z-10">{tx('Ver la demo')}</span><ArrowRight className="relative z-10 h-4 w-4" aria-hidden />
+                <Link href="/signup?role=agent&plan=agent_solo" className="btn-sweep group inline-flex min-h-14 items-center gap-3 rounded-full bg-pop px-8 text-[15px] font-bold text-paper">
+                  <span className="relative z-10">{tx('Probar 30 días gratis')}</span><ArrowRight className="relative z-10 h-4 w-4" aria-hidden />
                 </Link>
               </div>
             </div>

@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { siteUrl } from '@/lib/env';
-import { ACTORS } from '@/lib/domain/roles';
+import { AUDIENCES } from '@/content/audiences';
 import { LEGAL } from '@/content/legal';
 import { GUIDE } from '@/content/guide';
 import { publishedOpportunities } from '@/lib/data/public-seo';
@@ -14,7 +14,7 @@ export const revalidate = 3600;
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = siteUrl();
   const main = ['', '/oportunidades', '/herramientas', '/test-opciones', '/seguridad', '/precios', '/guia', '/calculadora', '/inversores', '/signup'].map((p) => ({ url: `${base}${p}`, changeFrequency: 'weekly' as const, priority: p === '' ? 1 : 0.8 }));
-  const roles = ACTORS.map((a) => ({ url: `${base}/para/${a.slug}`, changeFrequency: 'monthly' as const, priority: 0.7 }));
+  const roles = AUDIENCES.map((a) => ({ url: `${base}/para/${a.slug}`, changeFrequency: 'monthly' as const, priority: 0.7 }));
   const guide = GUIDE.map((c) => ({ url: `${base}/guia/${c.slug}`, changeFrequency: 'monthly' as const, priority: 0.7 }));
   const legal = LEGAL.map((d) => ({ url: `${base}/legal/${d.slug}`, changeFrequency: 'yearly' as const, priority: 0.3 }));
   const opps = await publishedOpportunities();

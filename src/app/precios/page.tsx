@@ -2,6 +2,7 @@ import { I18nProvider } from '@/lib/i18n/client';
 import { getT } from '@/lib/i18n/server-t';
 import { founderSeats } from '@/lib/domain/fee-attestation';
 import type { Metadata } from 'next';
+import { publicMeta } from '@/lib/seo/page-meta';
 import Link from 'next/link';
 import { PublicFooter, PublicHeader } from '@/components/PublicShell';
 import { ButtonLink } from '@/components/ui';
@@ -20,10 +21,12 @@ const signupHref = (p: Plan, withNext = false) =>
 
 export async function generateMetadata(): Promise<Metadata> {
   const tx = await getT();
-  return {
+  return publicMeta({
     title: tx('Planes y precios'),
-    description: tx('Gratis para atletas, para siempre. Servicios de pago único para familias y planes para organizaciones verificadas.'),
-  };
+    description: tx('Planes para agencias desde 79 €/mes con 30 días gratis y sin comisiones. Gratis para atletas, para siempre, y servicios opcionales de pago único para familias.'),
+    path: '/precios',
+    locale: tx.locale,
+  });
 }
 
 /** Agencias primero: es quien paga (QA web-admin #6). */
@@ -134,7 +137,7 @@ export default async function PricingPage() {
           </ul>
         </section>
       </main>
-      <PublicFooter locale={tx.locale} />
+      <PublicFooter locale={tx.locale} audience="agent" />
     </div>
     </I18nProvider>
   );

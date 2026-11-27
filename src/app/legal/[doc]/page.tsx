@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { publicMeta } from '@/lib/seo/page-meta';
 import { notFound } from 'next/navigation';
 import { LEGAL, legalDoc } from '@/content/legal';
 import { PublicFooter, PublicHeader } from '@/components/PublicShell';
@@ -9,7 +10,9 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: { params: Promise<{ doc: string }> }): Promise<Metadata> {
   const { doc } = await params;
-  return { title: legalDoc(doc)?.title ?? 'Legal' };
+  const d = legalDoc(doc);
+  if (!d) return { title: 'Legal', robots: { index: false, follow: true } };
+  return publicMeta({ title: d.title, description: `${d.title} de The Gala Alliance: qué hacemos, con qué base y cómo ejercer tus derechos.`, path: `/legal/${d.slug}` });
 }
 
 export default async function LegalPage({ params }: { params: Promise<{ doc: string }> }) {

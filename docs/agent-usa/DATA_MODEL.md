@@ -34,7 +34,7 @@
 | `recruiting_needs` | `recruiting_needs` | Existe | Falta temporada/plazas (`NCAA-1-AUDIT` §C) |
 | `opportunities` | `opportunities` + `opportunity_*` (requisitos, costes, detalles) | Existe | 58 columnas |
 | `talent_records` (CRM privado) | Universidad: `org_candidates`; Agencia: **solo vía `agent_representations` activa** | **Parcial** | **No hay registro privado de atleta «no reclamado»** → hueco de E1 |
-| `pipeline_stages` / `pipeline_entries` | `recruiting_cases.stage` (13 fases fijas), `org_candidates.internal_stage`, `pipeline_*` | Existe | Fases no configurables por organización |
+| `pipeline_stages` / `pipeline_entries` | `recruiting_cases.stage` (13 pasos fijos, agrupados en 5 fases), `org_candidates.internal_stage`, `pipeline_*` | Existe | Fases no configurables por organización |
 | `lists` / `list_members` | `org_shortlists`, `org_shortlist_members`, `saved_athletes`, `saved_items` | Existe | |
 | `evaluations` / `evaluation_templates` | — (notas libres `org_notes`, `agency_athlete_notes`) | **Falta** | Rúbricas estructuradas |
 | `tasks` | `recruiting_case_tasks`, `org_tasks`, `pipeline_tasks`, `athlete_task_state` | Existe | Tres tablas |
@@ -62,7 +62,7 @@
 | Verificación de organización | draft→submitted→under_review→verified/rejected/suspended | unverified→submitted→verified/rejected | Sin `suspended` a nivel de organización (existe suspensión de miembro: `org_suspend_member`) |
 | Invitación | created→sent→opened→accepted/declined/expired/revoked | Varía por tabla | Unificar vocabulario solo en las nuevas |
 | Relación | proposed→accepted→verified/... | requested→(pending_guardian)→(pending_review)→active→expired/revoked/terminated (+declined, suspended, disputed) | Repo más completo |
-| Proceso de agencia | — | 13 fases (`recruiting_cases.stage`) | UI agrupa en 5 (#96) |
+| Proceso de agencia | — | 13 pasos internos (`recruiting_cases.stage`) | 5 fases visibles: `CASE_PHASES` en `src/lib/domain/agency-cases.ts` |
 
 ## 6. Huecos priorizados (migraciones aditivas propuestas, no aplicadas)
 

@@ -3,7 +3,7 @@ import { ArrowRight, BadgeCheck, ChevronDown, Lock, ShieldCheck } from 'lucide-r
 import { Logo } from '@/components/Logo';
 import { ButtonLink } from '@/components/ui';
 import { MobileMenu } from '@/components/PublicMobileMenu';
-import { ACTORS } from '@/lib/domain/roles';
+import { AUDIENCES, type FooterAudience } from '@/content/audiences';
 import { BRAND } from '@/content/brand';
 import { ScrollSolid } from '@/components/landing/elite/Motion';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
@@ -47,11 +47,11 @@ export function PublicHeader({ overlay = false, locale }: { overlay?: boolean; l
                 {/* Desplegable accesible con ratón y teclado (focus-within), sin JavaScript. */}
                 <div className="invisible absolute left-1/2 top-full z-50 w-[520px] -translate-x-1/2 pt-2 opacity-0 transition-all duration-200 group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100">
                   <ul className="grid grid-cols-2 gap-1 rounded-2xl border border-line-strong bg-surface p-2 shadow-[var(--shadow-premium)]">
-                    {ACTORS.map((a) => (
-                      <li key={a.role}>
+                    {AUDIENCES.map((a) => (
+                      <li key={a.slug}>
                         <Link href={`/para/${a.slug}`} className="block rounded-xl px-3 py-2.5 transition-colors hover:bg-brass/10">
-                          <span className="block text-sm font-semibold text-paper">{tx(a.plural)}</span>
-                          <span className="line-clamp-1 block text-xs text-muted">{tx(a.promise)}</span>
+                          <span className="block text-sm font-semibold text-paper">{tx(a.nav)}</span>
+                          <span className="line-clamp-1 block text-xs text-muted">{tx(a.lead)}</span>
                         </Link>
                       </li>
                     ))}
@@ -72,7 +72,7 @@ export function PublicHeader({ overlay = false, locale }: { overlay?: boolean; l
             <ButtonLink href="/#para-quien" className="h-10 whitespace-nowrap rounded-full !bg-night px-5 text-[13px] font-bold !text-white hover:!bg-brass-soft">{tx('Empezar gratis')}</ButtonLink>
           </div>
           {locale && <LanguageSwitcher current={locale} />}
-          <MobileMenu items={[...NAV.map((n) => ({ ...n, label: tx(n.label) })), { href: '/inversores', label: tx('Inversores') }, ...ACTORS.map((a) => ({ href: `/para/${a.slug}`, label: locale === 'en' ? `For ${tx(a.plural).toLowerCase()}` : `Para ${a.plural.toLowerCase()}` }))]} />
+          <MobileMenu items={[...NAV.map((n) => ({ ...n, label: tx(n.label) })), { href: '/inversores', label: tx('Inversores') }, ...AUDIENCES.map((a) => ({ href: `/para/${a.slug}`, label: locale === 'en' ? `For ${tx(a.nav).toLowerCase()}` : `Para ${a.nav.toLowerCase()}` }))]} />
         </div>
       </ScrollSolid>
       {overlay ? null : <div className="h-16" aria-hidden />}
@@ -80,13 +80,18 @@ export function PublicHeader({ overlay = false, locale }: { overlay?: boolean; l
   );
 }
 
-/** Llamada final del pie según quién lee la página: en las páginas de agencias no se invita a crear un Passport de atleta. */
-const FOOTER_CTA = {
+/** Llamada final del pie según quién lee la página: cada audiencia, su alta (en las de agencias no se invita a crear un Passport). */
+const FOOTER_CTA: Record<FooterAudience, { title: string; text: string; href: string; label: string }> = {
   athlete: { title: 'Empieza hoy, es gratis para atletas', text: 'Tu Passport en minutos. La visibilidad nunca se paga.', href: '/signup?role=athlete', label: 'Crear mi Passport' },
   agent: { title: 'Lleva tu agencia con un solo sistema', text: '30 días gratis. Sin comisión por atleta ni por contactar. Cancelas cuando quieras.', href: '/signup?role=agent&plan=agent_solo', label: 'Probar 30 días gratis' },
-} as const;
+  family: { title: 'Acompaña el proceso con la información a la vista', text: 'Crear la cuenta de familia es gratis. Nada se comparte sin vuestro permiso.', href: '/signup?role=parent', label: 'Crear cuenta de familia' },
+  club: { title: 'Da visibilidad a tus jugadores', text: 'Gratis durante el piloto para clubes y academias.', href: '/signup?role=coach', label: 'Registrar mi club' },
+  university: { title: 'Talento europeo con datos comprobables', text: 'Gratis durante el piloto para universidades.', href: '/signup?role=university', label: 'Registrar mi universidad' },
+  coach: { title: 'Encuentra talento con datos comparables', text: 'Gratis durante el piloto para coaches y scouts.', href: '/signup?role=coach', label: 'Crear cuenta de coach' },
+  brand: { title: 'Colabora con atletas mayores de edad', text: 'Condiciones claras y revisión legal antes de cualquier campaña de pago.', href: '/signup?role=brand', label: 'Crear cuenta de marca' },
+};
 
-export function PublicFooter({ locale, audience = 'athlete' }: { locale?: Locale; audience?: keyof typeof FOOTER_CTA } = {}) {
+export function PublicFooter({ locale, audience = 'athlete' }: { locale?: Locale; audience?: FooterAudience } = {}) {
   const tx = makeT(locale ?? 'es');
   const cta = FOOTER_CTA[audience];
   return (
@@ -111,8 +116,8 @@ export function PublicFooter({ locale, audience = 'athlete' }: { locale?: Locale
         <nav aria-label={tx('Para quién')}>
           <h4 className="mb-5 text-xs font-bold uppercase tracking-[0.2em] text-paper">{tx('Para')}</h4>
           <ul className="space-y-2.5 text-sm">
-            {ACTORS.map((a) => (
-              <li key={a.role}><Link href={`/para/${a.slug}`} className="inline-block py-1 text-muted transition-colors hover:text-brass">{tx(a.plural)}</Link></li>
+            {AUDIENCES.map((a) => (
+              <li key={a.slug}><Link href={`/para/${a.slug}`} className="inline-block py-1 text-muted transition-colors hover:text-brass">{tx(a.nav)}</Link></li>
             ))}
           </ul>
         </nav>

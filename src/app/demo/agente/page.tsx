@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { publicMeta } from '@/lib/seo/page-meta';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { PublicFooter, PublicHeader } from '@/components/PublicShell';
@@ -10,19 +11,22 @@ import { PLANS } from '@/content/plans';
 import { PipelineBoard } from '@/components/agency/PipelineBoard';
 import { previewCases, previewSports } from '@/lib/preview/fixtures';
 import { previewPipelineActions } from '@/lib/preview/pipeline';
+import { getT } from '@/lib/i18n/server-t';
 
-export const metadata: Metadata = {
-  title: 'Demo para agentes',
-  description: 'Prueba el espacio de trabajo de la agencia con datos de ejemplo, sin registrarte.',
-  // follow:false: la demo contiene enlaces de la app real (/app/*, /athletes/a1…) que fuera de una sesión no llevan a nada.
+export const metadata: Metadata = publicMeta({
+  title: 'Demo para agencias',
+  description: 'Mira el espacio de trabajo de una agencia con datos de ejemplo, sin registrarte: tareas del día, procesos en 5 fases y cartera de atletas.',
+  path: '/demo/agente',
+  // follow:false: la demo contiene enlaces de la app real (/app/*) que fuera de una sesión no llevan a nada.
   robots: { index: false, follow: false },
-};
+});
 
 /**
  * Demo pública del espacio del agente (cliente que paga): la pantalla real «Hoy» y la cartera,
  * con datos FICTICIOS y sin base de datos. Sirve para que una agencia vea el producto antes de registrarse.
  */
-export default function AgentDemoPage() {
+export default async function AgentDemoPage() {
+  const tx = await getT();
   const solo = PLANS.find((p) => p.code === 'agent_solo');
   return (
     <div className="bg-ink">
@@ -44,7 +48,7 @@ export default function AgentDemoPage() {
           <section aria-labelledby="demo-procesos">
             <p className="eyebrow text-gold">Procesos</p>
             <h2 id="demo-procesos" className="mt-2 text-3xl text-paper">Cada atleta con cada universidad, en <em>5 fases</em></h2>
-            <p className="mt-2 max-w-2xl text-muted">Cada tarjeta dice qué toca, a quién le toca y para cuándo. Lo bloqueado y lo vencido salen primero.</p>
+            <p className="mt-2 max-w-2xl text-muted">{tx('Introducción, evaluación, visita o prueba, oferta y decisión. Cada tarjeta dice qué toca, a quién le toca y para cuándo. Lo bloqueado y lo vencido salen primero.')}</p>
             <div className="mt-6"><PipelineBoard cases={previewCases} view="board" sportName={new Map(previewSports.map((s) => [s.id, s.name_es]))} actions={previewPipelineActions()} /></div>
           </section>
           <section aria-labelledby="demo-cartera">
