@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { PageHeader } from '@/components/ui';
 import { GuideIndex } from '@/components/GuideView';
 import { PublicFooter, PublicHeader } from '@/components/PublicShell';
 
@@ -12,9 +13,8 @@ export default function PublicGuide() {
     <>
       <PublicHeader />
       <main id="main-content" className="mx-auto max-w-6xl px-5 py-14 sm:px-8">
-        <p className="text-[13px] font-semibold text-brass">Centro de información · gratis</p>
-        <h1 className="mt-3 max-w-3xl text-5xl text-paper">Todo lo que una familia necesita saber, sin letra pequeña</h1>
-        <p className="mb-10 mt-4 max-w-2xl text-muted">Cada capítulo enlaza a su fuente oficial (NCAA, NAIA, Departamento de Estado de EE. UU.) y se revisa cada temporada.</p>
+        <PageHeader kicker="Centro de información · gratis" title={<>Todo lo que una familia necesita saber, <em>sin letra pequeña</em></>} photo="/media/university-campus-sm.webp"
+          description="Cada capítulo enlaza a su fuente oficial (NCAA, NAIA, Departamento de Estado de EE. UU.) y se revisa cada temporada." />
         <GuideIndex base="/guia" />
       </main>
       <PublicFooter />

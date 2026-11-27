@@ -44,7 +44,7 @@ export function DiscoveryView(p: DiscoveryViewProps) {
       )}
 
       {p.state === 'pick' && (
-        <p className="mt-8 rounded-2xl border border-dashed border-line-strong px-6 py-10 text-center text-muted">Elige un atleta para ver sus oportunidades.</p>
+        <div className="mt-8"><EmptyState title="Elige un atleta para ver sus oportunidades." photo="/media/hero-athletes-sm.webp" /></div>
       )}
       {p.state === 'forbidden' && (
         <div className="mt-8"><EmptyState title="Sin acceso a este perfil" action={<ButtonLink href={BASE} variant="secondary">Elegir otro atleta</ButtonLink>}>

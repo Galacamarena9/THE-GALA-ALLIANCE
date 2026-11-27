@@ -86,7 +86,7 @@ export default async function UniversityPage({ params, searchParams }: { params:
             <p className="mt-2 text-sm text-white/75">{[inst.city, STATE_NAME(inst.state)].filter(Boolean).join(', ')}</p>
             <ul className="mt-3 flex flex-wrap gap-1.5">
               {[...new Set((programs ?? []).map((p) => p.sport_id))].map((s) => <li key={s} className="rounded-full border border-white/20 px-3 py-1 text-xs text-white/90">{sportName(s)}</li>)}
-              {active.length > 0 && <li className="rounded-full bg-lime px-3 py-1 text-xs font-bold text-[#0a0a0c]">{active.length} oportunidad{active.length > 1 ? 'es' : ''} activa{active.length > 1 ? 's' : ''}</li>}
+              {active.length > 0 && <li className="rounded-full bg-lime px-3 py-1 text-xs font-bold text-night">{active.length} oportunidad{active.length > 1 ? 'es' : ''} activa{active.length > 1 ? 's' : ''}</li>}
               {(orgs ?? []).length > 0 && <li className="inline-flex items-center gap-1 rounded-full border border-lime/40 px-3 py-1 text-xs text-lime"><BadgeCheck className="h-3.5 w-3.5" aria-hidden />Cuenta verificada</li>}
             </ul>
           </div>
@@ -98,7 +98,7 @@ export default async function UniversityPage({ params, searchParams }: { params:
           )}
         </div>
         <div className="mt-6 flex flex-wrap gap-2">
-          {active.length > 0 && <Link href="?tab=oportunidades" className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-lime px-4 text-sm font-bold text-[#0a0a0c]">Ver oportunidades<ArrowRight className="h-4 w-4" aria-hidden /></Link>}
+          {active.length > 0 && <Link href="?tab=oportunidades" className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-lime px-4 text-sm font-bold text-night">Ver oportunidades<ArrowRight className="h-4 w-4" aria-hidden /></Link>}
           {match && <SaveButton kind="institution" id={id} saved={match.saved} score={match.m.score} />}
           <Link href={`/app/universities/compare?ids=${id}`} className="inline-flex min-h-10 items-center gap-1.5 rounded-full px-4 text-sm text-white ring-1 ring-white/25 hover:bg-white/10"><Scale className="h-4 w-4" aria-hidden />Comparar</Link>
           {inst.website_url && <a href={inst.website_url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 items-center gap-1.5 rounded-full px-4 text-sm text-white ring-1 ring-white/25 hover:bg-white/10">Web oficial<ExternalLink className="h-4 w-4" aria-hidden /></a>}

@@ -44,7 +44,7 @@ export default async function MatchDetailPage({ params }: { params: Promise<{ ki
         </div>
         <div className="mt-6 flex flex-wrap gap-2">
           <SaveButton kind={r.kind} id={id} saved={r.saved} score={r.m.score} />
-          {r.kind === 'opportunity' && <Link href={`/app/opportunities/${id}`} className="inline-flex min-h-10 items-center rounded-full bg-lime px-4 text-sm font-bold text-[#0a0a0c]">Ver oportunidad</Link>}
+          {r.kind === 'opportunity' && <Link href={`/app/opportunities/${id}`} className="inline-flex min-h-10 items-center rounded-full bg-lime px-4 text-sm font-bold text-night">Ver oportunidad</Link>}
           {r.inst && <Link href={`/app/universities/${r.inst.id}`} className="inline-flex min-h-10 items-center rounded-full px-4 text-sm text-white ring-1 ring-white/25 hover:bg-white/10">Ver universidad</Link>}
           <HideButton kind={r.kind} id={id} score={r.m.score} hidden={r.hidden} />
         </div>

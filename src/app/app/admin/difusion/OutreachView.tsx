@@ -45,10 +45,10 @@ export function OutreachView({ rows, filters, aviso, emailReady, demo = false }:
           {[
             ['En la lista', counts.total], ['Listas para invitar', counts.ready], ['Esperando respuesta', counts.waiting],
             ['Quieren probarla', counts.interested], ['Ya dentro', counts.inside],
-          ].map(([k, v]) => (
-            <div key={k} className="rounded-[var(--radius-card)] border border-line bg-surface p-3">
-              <dt className="text-xs text-faint">{k}</dt>
-              <dd className="mt-1 font-display text-2xl font-bold tabular-nums text-paper">{v}</dd>
+          ].map(([k, v], i) => (
+            <div key={k} className={cx('stat-tile flex flex-col', i === 0 && 'is-hero')}>
+              <dt className="stat-tile-label !mt-0 mb-1.5">{k}</dt>
+              <dd className="stat-tile-value">{v}</dd>
             </div>
           ))}
         </dl>
@@ -85,7 +85,7 @@ export function OutreachView({ rows, filters, aviso, emailReady, demo = false }:
 
           {rows.length === 0 ? (
             <div className="flex flex-col items-center gap-3 px-4 py-10 text-center" data-empty>
-              <p className="font-semibold text-paper">La lista está vacía</p>
+              <p className="font-display text-[22px] uppercase text-paper">La lista está vacía</p>
               <p className="max-w-md text-sm text-muted">Carga la lista inicial del informe (16 agencias y federaciones, cada una con su fuente pública) o añade organizaciones a mano.</p>
               <form action={act(importOutreachSeed)}><SubmitButton pendingText="Cargando…">Cargar lista inicial</SubmitButton></form>
             </div>
@@ -95,7 +95,7 @@ export function OutreachView({ rows, filters, aviso, emailReady, demo = false }:
             <>
               <form id="invite-form" action={act(sendOutreachInvites)} />
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[760px] text-sm">
+                <table className="data-table w-full min-w-[760px] text-sm">
                   <caption className="sr-only">Organizaciones de la lista de difusión</caption>
                   <thead>
                     <tr className="border-b border-line text-left text-xs text-faint">

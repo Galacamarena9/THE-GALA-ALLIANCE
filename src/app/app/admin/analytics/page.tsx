@@ -74,14 +74,14 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
         <Card>
           <CardTitle kicker="Marketplace">Oferta y demanda por deporte</CardTitle>
           {m.supply_demand.length ? (
-            <table className="w-full text-sm"><thead><tr className="text-left text-faint"><th className="py-1 font-normal">Deporte</th><th className="font-normal">Atletas</th><th className="font-normal">Oportunidades</th></tr></thead>
+            <table className="data-table w-full text-sm"><thead><tr className="text-left text-faint"><th className="py-1 font-normal">Deporte</th><th className="font-normal">Atletas</th><th className="font-normal">Oportunidades</th></tr></thead>
               <tbody>{m.supply_demand.map((r) => <tr key={r.sport} className="border-t border-line"><td className="py-1.5 text-paper">{r.sport}</td><td className="tabular-nums">{r.athletes}</td><td className={`tabular-nums ${r.opportunities === 0 ? 'text-warn' : ''}`}>{r.opportunities}</td></tr>)}</tbody></table>
           ) : <p className="text-sm text-muted">Aún no hay deportes con 5 atletas o más (los grupos pequeños se ocultan).</p>}
         </Card>
         <Card>
           <CardTitle kicker="Retención">Cohortes semanales</CardTitle>
           {m.retention.length ? (
-            <table className="w-full text-sm"><thead><tr className="text-left text-faint"><th className="py-1 font-normal">Semana</th><th className="font-normal">Altas</th><th className="font-normal">S1</th><th className="font-normal">S2</th><th className="font-normal">S4</th></tr></thead>
+            <table className="data-table w-full text-sm"><thead><tr className="text-left text-faint"><th className="py-1 font-normal">Semana</th><th className="font-normal">Altas</th><th className="font-normal">S1</th><th className="font-normal">S2</th><th className="font-normal">S4</th></tr></thead>
               <tbody>{m.retention.map((r) => <tr key={r.cohort} className="border-t border-line"><td className="py-1.5 text-paper">{r.cohort}</td><td>{r.size}</td><td>{r.w1} %</td><td>{r.w2} %</td><td>{r.w4} %</td></tr>)}</tbody></table>
           ) : <p className="text-sm text-muted">Cohortes con menos de 5 altas ocultas.</p>}
         </Card>

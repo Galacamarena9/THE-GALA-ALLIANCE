@@ -201,7 +201,7 @@ export default async function AdminPanelPage({ searchParams }: { searchParams: P
         <p className="mb-3 text-sm text-muted">Demanda = oportunidades publicadas + búsquedas guardadas con alertas. Un ratio alto indica posiciones donde faltan atletas: ahí conviene captar academias y clubes.</p>
         {liquidity?.length ? (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="data-table w-full text-sm">
               <thead><tr className="text-left text-xs text-faint"><th className="py-2">Deporte</th><th>Posición</th><th className="text-right">Atletas</th><th className="text-right">Demanda</th><th className="text-right">Ratio</th></tr></thead>
               <tbody>
                 {liquidity.map((r: { sport_id: string; position_id: number; position_name: string; supply: number; demand: number }) => {
@@ -254,7 +254,7 @@ export default async function AdminPanelPage({ searchParams }: { searchParams: P
         <Card>
           <CardTitle kicker={`Últimos ${days} días`}>Eventos del embudo</CardTitle>
           {eventRows.length ? (
-            <table className="w-full text-sm">
+            <table className="data-table w-full text-sm">
               <thead><tr className="text-left text-xs text-faint"><th className="py-1.5 font-normal">Evento</th><th className="text-right font-normal">Personas</th><th className="text-right font-normal">Veces</th></tr></thead>
               <tbody className="divide-y divide-line">
                 {eventRows.map((e) => <tr key={e.event}><td className="py-1.5 text-paper">{e.event}</td><td className="text-right tabular-nums text-muted">{e.users}</td><td className="text-right tabular-nums text-muted">{e.total}</td></tr>)}

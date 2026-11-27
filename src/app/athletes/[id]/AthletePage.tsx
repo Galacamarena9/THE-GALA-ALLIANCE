@@ -78,7 +78,7 @@ export async function AthletePassportPage({ id }: { id: string }) {
   const actions = (
     <div className="flex flex-wrap items-start gap-2">
       <Link href={`/athletes/${id}/cv`} className="inline-flex h-11 items-center rounded-full px-5 text-sm font-semibold text-white ring-1 ring-white/25 hover:bg-white/10">CV deportivo (PDF)</Link>
-      {isOwner && <Link href="/app/athlete/passport" className="inline-flex h-11 items-center rounded-full bg-lime px-5 text-sm font-bold text-[#0a0a0c]">Editar mi Passport</Link>}
+      {isOwner && <Link href="/app/athlete/passport" className="inline-flex h-11 items-center rounded-full bg-lime px-5 text-sm font-bold text-night">Editar mi Passport</Link>}
       {session && !isOwner && canSave && (
         <form action={saveAthlete}><input type="hidden" name="athlete_id" value={id} /><button className="inline-flex h-11 items-center rounded-full px-5 text-sm font-semibold text-white ring-1 ring-white/25 hover:bg-white/10">Guardar en una lista</button></form>
       )}

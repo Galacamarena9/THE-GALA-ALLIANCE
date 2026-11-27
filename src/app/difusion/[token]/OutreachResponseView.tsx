@@ -21,18 +21,20 @@ export function OutreachResponseView({ token, preview, ask, done, demo = false }
     <div className="paper-grain min-h-dvh">
       <header className="px-5 py-6 sm:px-8"><Logo /></header>
       <main className="mx-auto max-w-lg px-5 pt-8" id="main-content">
-        <Card>
-          <p className="text-[13px] font-semibold text-brass">Invitación a probar The Gala Alliance</p>
+        <Card className="overflow-hidden">
+          <div className="stadium -mx-5 -mt-5 mb-5 !rounded-none px-6 pb-10 pt-8 sm:-mx-6 sm:-mt-6" style={{ ['--stadium-photo' as string]: 'url(/media/arena-bg-sm.webp)' }}>
+            <p className="stadium-tag">Invitación a probar The Gala Alliance</p>
+          </div>
           {done ? (
             <div role="status" className="mt-3">
-              <h1 className="text-2xl text-paper">{done === 'accepted' ? '¡Gracias!' : done === 'invalid' || done === 'expired' ? 'Enlace no disponible' : 'Hecho'}</h1>
+              <h1 className="text-3xl text-paper">{done === 'accepted' ? '¡Gracias!' : done === 'invalid' || done === 'expired' ? 'Enlace no disponible' : 'Hecho'}</h1>
               <p className="mt-3 text-sm text-muted">{DONE[done] ?? DONE.invalid}</p>
             </div>
           ) : !token || !preview ? (
             <Notice tone="danger">Este enlace no es válido.</Notice>
           ) : (
             <>
-              <h1 className="mt-2 text-2xl text-paper">{preview.organizationName}</h1>
+              <h1 className="mt-2 text-3xl text-paper">{preview.organizationName}</h1>
               {!preview.valid && <Notice tone="warn">Esta invitación ya se respondió o ha caducado. Aún podéis daros de baja.</Notice>}
               <p className="mt-3 text-sm text-muted">{RESPONSE_COPY[ask ?? 'accept'].ask}</p>
               <div className="mt-6 flex flex-wrap gap-2">

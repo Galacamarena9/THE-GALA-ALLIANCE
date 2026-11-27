@@ -102,7 +102,7 @@ export default async function OffersPage({ searchParams }: { searchParams: Promi
           <Card>
             <CardTitle kicker="Comparación">Coste neto por año</CardTitle>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[520px] text-sm">
+              <table className="data-table w-full min-w-[520px] text-sm">
                 <thead><tr className="text-left text-xs text-faint"><th className="py-2 pr-3 font-normal">Oferta</th><th className="pr-3 text-right font-normal">Coste</th><th className="pr-3 text-right font-normal">Ayuda</th><th className="pr-3 text-right font-normal">Neto</th><th className="text-right font-normal">4 años</th></tr></thead>
                 <tbody className="divide-y divide-line">
                   {selected.map((o) => (

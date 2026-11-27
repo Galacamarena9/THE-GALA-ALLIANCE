@@ -59,8 +59,8 @@ export function OnboardingForm({
             <label
               key={a.role}
               className={cx(
-                'flex cursor-pointer flex-col rounded-[var(--radius-card)] border bg-surface p-4 transition-colors',
-                role === a.role ? 'border-brass' : 'border-line hover:border-line-strong',
+                'flex cursor-pointer flex-col rounded-[var(--radius-card)] border p-4 transition-all',
+                role === a.role ? 'night-scope border-lime bg-night shadow-[var(--shadow-gold)] ring-2 ring-lime/60' : 'border-transparent bg-surface shadow-[0_10px_28px_-18px_rgb(15_26_20/0.35)] hover:-translate-y-0.5',
               )}
             >
               <span className="flex items-center gap-3">
@@ -77,7 +77,7 @@ export function OnboardingForm({
       </fieldset>
 
       {role && (
-        <div className="space-y-5 rounded-[var(--radius-card)] border border-line bg-surface p-6">
+        <div className="space-y-5 rounded-[var(--radius-card)] bg-surface p-6 shadow-[var(--shadow-elevated)] ring-1 ring-line/60">
           <Field label={t.country} htmlFor="country" hint={t.countryHint} error={fe.country}>
             <input id="country" name="country" defaultValue={locale === 'en' ? 'US' : 'ES'} maxLength={2} required className={cx(inputClass, 'uppercase')} />
           </Field>

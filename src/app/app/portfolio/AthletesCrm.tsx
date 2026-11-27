@@ -121,7 +121,7 @@ export function AthletesCrm({ rows, initial, agency, partial = [], importPanel =
                 {/* Escritorio y tablet: tabla con semántica completa (caption, th scope, aria-sort).
                     Fase 8 (U8): a 1024 px no desborda; «Recorrido» solo desde xl (sigue en la ficha y en el filtro). */}
                 <div className="hidden lg:block">
-                  <table className="w-full text-left text-sm">
+                  <table className="data-table w-full text-left text-sm">
                     <caption className="sr-only">Mis atletas · {CRM_VIEWS.find((v) => v.id === f.view)?.label} · ordenado por {CRM_SORT_LABEL[f.sort]}</caption>
                     <thead className="border-y border-line text-xs text-muted">
                       <tr>

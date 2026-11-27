@@ -6,7 +6,7 @@ import {
   MoreHorizontal, RotateCcw, Search, ShieldCheck, StickyNote, Trash2, Video,
 } from 'lucide-react';
 import { deleteAgencyNote, toggleFollowUp } from '@/app/actions/portfolio';
-import { ButtonLink, Notice, buttonClass, cx } from '@/components/ui';
+import { ButtonLink, Notice, buttonClass, cx, stadiumPhoto } from '@/components/ui';
 import { AthleteAvatar, NextStepsList, Panel, StatusPill } from '@/components/portfolio';
 import { EndRepresentationForm, NoteBody, NoteComposer } from '@/components/portfolio-client';
 import { DIVISION_LABEL } from '@/lib/domain/labels';
@@ -67,15 +67,15 @@ export function Athlete360View({ data, tab, userId, now = new Date(), tx = (s: s
       )}
 
       {/* Cabecera: identidad pública y estado de la ficha */}
-      <header className="rounded-[var(--radius-card)] border border-line bg-surface p-4 sm:p-5" data-a360="header">
+      <header className="stadium stadium-open p-5 sm:p-8" style={{ ['--stadium-photo' as string]: `url(${stadiumPhoto(e.sportName ?? e.athleteId)})` }} data-a360="header">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-          <AthleteAvatar name={e.name} src={e.avatarUrl} sport={e.sportName ?? e.sportId} size="xl" className="h-16 w-16 shrink-0 sm:h-20 sm:w-20" />
+          <AthleteAvatar name={e.name} src={e.avatarUrl} sport={e.sportName ?? e.sportId} size="xl" className="h-16 w-16 shrink-0 ring-4 ring-lime/80 sm:h-24 sm:w-24" />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="truncate font-display text-2xl font-bold uppercase text-paper sm:text-3xl">{e.name}</h1>
+              <h1 className="min-w-0 break-words font-display text-3xl font-bold uppercase text-white sm:truncate sm:text-5xl">{e.name}</h1>
               <StatusPill status={e.status} />
             </div>
-            <p className="mt-1 text-sm text-muted">
+            <p className="mt-2 text-sm font-semibold text-lime">
               {[e.sportName, e.positionName, e.country && `${flag(e.country)} ${e.country}`, e.graduationYear && `Promoción ${e.graduationYear}`].filter(Boolean).join(' · ') || 'Sin datos deportivos compartidos'}
             </p>
             <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">

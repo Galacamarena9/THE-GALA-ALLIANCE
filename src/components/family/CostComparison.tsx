@@ -39,7 +39,7 @@ export async function CostComparison({ scenarios, budget, canDelete = true }: {
           const r = summaries[i];
           const fit = FIT[budgetFit(r, budget)];
           return (
-            <li key={s.id} className="rounded-xl border border-line bg-ink/40 p-3">
+            <li key={s.id} className="rounded-2xl bg-surface p-4 shadow-[var(--shadow-elevated)]">
               <p className="font-semibold text-paper">{s.label}</p>
               <p className={`mt-1 text-sm ${r.status === 'complete' ? 'font-semibold text-paper' : 'text-warn'}`}>{r.headline}</p>
               <Badge tone={fit.tone} className="mt-2">{tx(fit.label)}</Badge>
@@ -58,18 +58,18 @@ export async function CostComparison({ scenarios, budget, canDelete = true }: {
         })}
       </ul>
       <div className="hidden overflow-x-auto sm:block">
-      <table className="w-full min-w-[520px] text-sm">
+      <table className="data-table w-full min-w-[520px] overflow-hidden rounded-xl text-sm">
         <caption className="sr-only">{tx('Comparación de coste anual por opción')}</caption>
         <thead>
           <tr className="text-left text-xs text-faint">
-            <th scope="col" className="py-2 font-normal">{tx('Concepto')}</th>
-            {scenarios.map((s) => <th key={s.id} scope="col" className="px-2 font-semibold text-paper">{s.label}</th>)}
+            <th scope="col" className="px-3 py-2.5">{tx('Concepto')}</th>
+            {scenarios.map((s) => <th key={s.id} scope="col" className="px-2 py-2.5">{s.label}</th>)}
           </tr>
         </thead>
         <tbody className="divide-y divide-line">
           {(Object.entries(COST_LABEL) as [CostKey, string][]).map(([k, label]) => (
             <tr key={k}>
-              <th scope="row" className="py-2 text-left font-normal text-muted">{tx(label)}</th>
+              <th scope="row" className="px-3 py-2 text-left font-normal text-muted">{tx(label)}</th>
               {scenarios.map((s) => (
                 <td key={s.id} className="px-2">
                   {k === 'housing' ? housing(s) : cell(s[k], s.currency)}
@@ -79,12 +79,12 @@ export async function CostComparison({ scenarios, budget, canDelete = true }: {
           ))}
           {(Object.entries(AID_LABEL) as [AidKey, string][]).map(([k, label]) => (
             <tr key={k}>
-              <th scope="row" className="py-2 text-left font-normal text-muted">{tx(label)}</th>
+              <th scope="row" className="px-3 py-2 text-left font-normal text-muted">{tx(label)}</th>
               {scenarios.map((s) => <td key={s.id} className="px-2">{cell(s[k], s.currency, 'Sin confirmar')}</td>)}
             </tr>
           ))}
-          <tr>
-            <th scope="row" className="py-3 text-left font-semibold text-paper">{tx('Coste para la familia')}</th>
+          <tr className="bg-brass/5">
+            <th scope="row" className="px-3 py-3 text-left font-display text-base text-brass">{tx('Coste para la familia')}</th>
             {summaries.map((r, i) => (
               <td key={scenarios[i].id} className="px-2 py-3 align-top">
                 <p className={r.status === 'complete' ? 'font-semibold text-paper' : 'text-warn'}>{r.headline}</p>
@@ -93,7 +93,7 @@ export async function CostComparison({ scenarios, budget, canDelete = true }: {
             ))}
           </tr>
           <tr>
-            <th scope="row" className="py-2 text-left text-xs font-normal text-faint">{tx('Fuente')}</th>
+            <th scope="row" className="px-3 py-2 text-left text-xs font-normal text-faint">{tx('Fuente')}</th>
             {scenarios.map((s) => (
               <td key={s.id} className="px-2 py-2 text-xs text-faint">
                 {s.source_note ?? '—'}

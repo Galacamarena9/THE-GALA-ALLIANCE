@@ -135,7 +135,7 @@ export function AthletesPreview({ rows, total, today, className }: { rows: Athle
         <h2 id="ath-h" className="font-display text-xl text-paper">Mis atletas</h2>
         <Link href="/app/portfolio" className="inline-flex items-center gap-1 text-sm font-semibold text-brass hover:underline">Ver los {total} <ArrowRight className="h-4 w-4" aria-hidden /></Link>
       </div>
-      <table className="w-full text-left text-sm">
+      <table className="data-table w-full text-left text-sm">
         <caption className="sr-only">Tus atletas representados, primero los que necesitan atención</caption>
         <thead className="hidden text-xs text-muted lg:table-header-group">
           <tr className="border-b border-line">

@@ -54,7 +54,7 @@ export default async function PassportEditPage({ searchParams }: { searchParams:
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Link href="/app/athlete/passport/preview" className="inline-flex h-11 items-center gap-2 rounded-full bg-lime px-5 text-sm font-bold text-[#0a0a0c]"><Eye className="h-4 w-4" aria-hidden />Ver mi Passport</Link>
+            <Link href="/app/athlete/passport/preview" className="inline-flex h-11 items-center gap-2 rounded-full bg-lime px-5 text-sm font-bold text-night"><Eye className="h-4 w-4" aria-hidden />Ver mi Passport</Link>
             <Link href="?s=compartir" className="inline-flex h-11 items-center rounded-full px-5 text-sm font-semibold text-white ring-1 ring-white/25 hover:bg-white/10">Compartir</Link>
           </div>
         </div>

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { PageHeader } from '@/components/ui';
 import { NetCostCalculator } from '@/components/NetCostCalculator';
 import { PublicFooter, PublicHeader } from '@/components/PublicShell';
 
@@ -12,8 +13,7 @@ export default function PublicCalculator() {
     <>
       <PublicHeader />
       <main id="main-content" className="mx-auto max-w-6xl px-5 py-14 sm:px-8">
-        <p className="text-[13px] font-semibold text-brass">Calculadora · gratis, sin registro</p>
-        <h1 className="mb-8 mt-3 text-5xl text-paper">¿Cuánto vais a pagar de verdad?</h1>
+        <PageHeader kicker="Calculadora · gratis, sin registro" title={<>¿Cuánto vais a pagar <em>de verdad?</em></>} photo="/media/founder-entrance-sm.webp" />
         <NetCostCalculator />
       </main>
       <PublicFooter />

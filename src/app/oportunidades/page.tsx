@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { PageHeader } from '@/components/ui';
 import Link from 'next/link';
 import { ArrowRight, BadgeCheck, Lock, ShieldCheck } from 'lucide-react';
 import { PublicFooter, PublicHeader } from '@/components/PublicShell';
@@ -62,13 +63,8 @@ export default async function PublicOpportunitiesPage({ searchParams }: { search
       <PublicHeader />
       <main id="main-content" className="px-6 pb-24 pt-14">
         <div className="mx-auto max-w-7xl">
-          <header className="max-w-3xl">
-            <p className="mb-3 text-sm font-semibold text-brass">Marketplace · {BRAND.network}</p>
-            <h1 className="font-display text-5xl font-bold uppercase leading-[0.92] text-paper md:text-6xl">Oportunidades reales, de organizaciones verificadas</h1>
-            <p className="mt-4 text-base leading-relaxed text-muted">
-              Cada oportunidad muestra su organización, su sello de confianza y el coste neto cuando está documentado. Tu encaje explicado aparece al crear tu {BRAND.passport}.
-            </p>
-          </header>
+          <PageHeader kicker={`Marketplace · ${BRAND.network}`} title={<>Oportunidades reales, de <em>organizaciones verificadas</em></>} photo="/media/university-campus-sm.webp"
+            description={`Cada oportunidad muestra su organización, su sello de confianza y el coste neto cuando está documentado. Tu encaje explicado aparece al crear tu ${BRAND.passport}.`} />
 
           <nav aria-label="Tipos de oportunidad" className="mt-8 flex flex-wrap gap-2">
             {[{ key: null, name: 'Todas' }, ...VERTICALS].map((v) => {
