@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { requireSession } from '@/lib/session';
 import { currentRecruitOrg, loadCoachHome } from '@/lib/data/recruit';
 import { coachActions, funnel } from '@/lib/domain/recruit';
+import { activeFilterCount, activityLine } from '@/lib/domain/recruit-search';
+import { deleteOrgSearch, runOrgSearch } from '@/app/actions/saved-searches';
 import { logEvent } from '@/lib/events';
 import { Badge, ButtonLink, Card, CardTitle, PageHeader } from '@/components/ui';
 import { RecruitShell } from '@/components/recruit/RecruitShell';
@@ -113,6 +115,27 @@ export default async function RecruitHome({ searchParams }: { searchParams: Prom
               </div>
 
               <aside className="space-y-6" aria-label={tx('Actividad')}>
+                {org.caps.has('discover') && (
+                  <Card>
+                    <CardTitle kicker={tx('Buscar')} action={<Link href="/app/recruit/discover" className="text-sm font-semibold text-brass">{tx('Nueva')}</Link>}>{tx('Búsquedas guardadas')}</CardTitle>
+                    {home.savedSearches.length ? (
+                      <ul className="divide-y divide-line text-sm" data-testid="saved-searches">
+                        {home.savedSearches.map((s) => (
+                          <li key={s.id} className="flex items-center justify-between gap-2 py-2">
+                            <form action={runOrgSearch} className="min-w-0 flex-1">
+                              <input type="hidden" name="id" value={s.id} />
+                              <button className="block w-full truncate text-left font-semibold text-paper hover:text-brass">{s.name}</button>
+                              <span className="block text-xs text-faint">{activeFilterCount(s.filters) + (s.need_id ? 1 : 0)} {tx('filtros')} · {tx(s.visibility === 'team' ? 'Staff' : 'Privada')}</span>
+                            </form>
+                            {s.created_by === session.userId && (
+                              <form action={deleteOrgSearch}><input type="hidden" name="id" value={s.id} /><button aria-label={`${tx('Archivar búsqueda')} ${s.name}`} className="min-h-11 px-2 text-xs text-muted hover:text-danger">×</button></form>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : <p className="text-sm text-muted">{tx('Guarda una búsqueda desde «Descubrir atletas» y lánzala desde aquí con un clic.')}</p>}
+                  </Card>
+                )}
                 {home.expiring.length > 0 && (
                   <Card>
                     <CardTitle kicker={tx('Plazos')}>{tx('Oportunidades que caducan')}</CardTitle>
@@ -121,14 +144,18 @@ export default async function RecruitHome({ searchParams }: { searchParams: Prom
                 )}
                 <Card>
                   <CardTitle kicker={tx('Historial')}>{tx('Actividad reciente del equipo')}</CardTitle>
-                  {home.activity.length ? (
+                  {home.activityNamed.length ? (
                     <ul className="space-y-2 text-sm">
-                      {home.activity.map((a) => (
+                      {home.activityNamed.map((a) => {
+                        // Qué atleta y quién: «Marta añadió una nota sobre Lucía». Si el atleta ya no es visible, solo el tipo.
+                        const line = activityLine(a.kind, a.actor, a.athlete, tx) ?? `${tx(ACTIVITY[a.kind] ?? a.kind)}${a.actor ? ` · ${a.actor}` : ''}`;
+                        return (
                         <li key={a.id}>
-                          {a.athlete_id ? <Link href={`/app/recruit/candidates/${a.athlete_id}`} className="text-paper hover:text-brass">{tx(ACTIVITY[a.kind] ?? a.kind)}</Link> : <span className="text-paper">{tx(ACTIVITY[a.kind] ?? a.kind)}</span>}
+                          {a.athlete_id ? <Link href={`/app/recruit/candidates/${a.athlete_id}`} className="text-paper hover:text-brass">{line}</Link> : <span className="text-paper">{line}</span>}
                           <span className="block text-xs text-faint">{new Date(a.created_at).toLocaleString(dateLocale(tx.locale), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
                         </li>
-                      ))}
+                        );
+                      })}
                     </ul>
                   ) : <p className="text-sm text-muted">{tx('Aquí verás lo que hace tu equipo: revisiones, notas, asignaciones y cambios de etapa.')}</p>}
                 </Card>

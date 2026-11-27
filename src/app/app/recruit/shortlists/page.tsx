@@ -4,10 +4,11 @@ import Link from 'next/link';
 import { requireSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
 import { currentRecruitOrg } from '@/lib/data/recruit';
-import { Card, EmptyState, Notice, PageHeader } from '@/components/ui';
+import { Card, EmptyState, Notice, PageHeader, inputClass } from '@/components/ui';
 import { RecruitShell } from '@/components/recruit/RecruitShell';
 import { ShortlistCreateForm } from '@/components/recruit/RecruitForms';
 import { archiveShortlist } from '@/app/actions/recruit';
+import { importPersonalLists } from '@/app/actions/saved-searches';
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getT())('Shortlists') };
@@ -31,6 +32,8 @@ export default async function ShortlistsPage({ searchParams }: { searchParams: P
     supabase.from('org_programs').select('id, name').eq('organization_id', org.id).is('archived_at', null),
     supabase.from('recruiting_needs').select('id, title').eq('organization_id', org.id).eq('status', 'active'),
   ]) : [{ data: [] }, { data: [] }, { data: [] }, { data: [] }, { data: [] }];
+  // Listas personales antiguas (saved_athletes): no se borran; se pueden copiar a una shortlist del equipo.
+  const { count: personal } = org ? await supabase.from('saved_athletes').select('athlete_id', { count: 'exact', head: true }).eq('owner_id', session.userId) : { count: 0 };
   const active = new Set((cands ?? []).filter((c) => ['contact', 'call', 'active', 'offer'].includes(c.internal_stage)).map((c) => c.athlete_id));
   const filter = sp.f === 'mine' || sp.f === 'shared' || sp.f === 'archived' ? sp.f : 'all';
   const shown = (lists ?? []).filter((l) => (filter === 'archived' ? l.archived_at : !l.archived_at) && (filter === 'mine' ? l.owner_id === session.userId : filter === 'shared' ? l.owner_id !== session.userId || l.visibility !== 'private' : true));
@@ -41,6 +44,18 @@ export default async function ShortlistsPage({ searchParams }: { searchParams: P
       <RecruitShell org={org} orgs={orgs} active="/app/recruit/shortlists">
         {org && !org.caps.has('shortlist') ? <Notice tone="warn">{tx('Tu rol o el estado de verificación no permite usar shortlists.')}</Notice> : org && (
           <div className="space-y-5">
+            {(personal ?? 0) > 0 && org.caps.has('shortlist') && (lists ?? []).some((l) => !l.archived_at) && (
+              <Card>
+                <p className="text-sm font-semibold text-paper">{tx('Tienes atletas guardados en tus listas personales')} ({personal})</p>
+                <p className="mt-1 text-xs text-muted">{tx('Ahora tu organización trabaja con un solo sistema de listas: las shortlists del equipo. Cópialos a una para que el staff los vea; tus listas personales no se borran.')}</p>
+                <form action={importPersonalLists} className="mt-3 flex flex-wrap items-end gap-2">
+                  <label className="text-xs text-muted">{tx('Copiar a')}
+                    <select name="list" className={inputClass}>{(lists ?? []).filter((l) => !l.archived_at).map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}</select>
+                  </label>
+                  <button className="min-h-11 rounded-full bg-brass px-5 text-sm font-semibold text-ink">{tx('Copiar a la shortlist')}</button>
+                </form>
+              </Card>
+            )}
             <nav aria-label={tx('Filtrar shortlists')} className="flex gap-2 text-xs">
               {[['all', tx('Todas')], ['mine', tx('Mías')], ['shared', tx('De equipo')], ['archived', tx('Archivadas')]].map(([k, l]) => (
                 <Link key={k} href={`/app/recruit/shortlists${k === 'all' ? '' : `?f=${k}`}`} aria-current={filter === k ? 'page' : undefined} className={`inline-flex min-h-9 items-center rounded-full border px-3 ${filter === k ? 'border-brass text-brass' : 'border-line text-muted'}`}>{l}</Link>

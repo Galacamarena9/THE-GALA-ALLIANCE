@@ -24,16 +24,30 @@ export const publishedOpportunities = cache(async (limit = 2000): Promise<Public
   } catch { return []; }
 });
 
-export interface PublicOrg { id: string; name: string; type: string; website: string | null; country: string | null; city: string | null; division: string | null }
+export interface PublicOrg {
+  id: string; name: string; type: string; website: string | null; country: string | null; city: string | null; division: string | null;
+  state: string | null; conference: string | null; description: string | null; international_support: string | null; sport_ids: string[] | null;
+  logo_url: string | null; verified_at: string | null; sports: string[];
+}
 
-export const publicOrganization = cache(async (id: string): Promise<{ org: PublicOrg; opportunities: PublicOppRow[] } | null> => {
+export const publicOrganization = cache(async (id: string, locale: 'es' | 'en' = 'es'): Promise<{ org: PublicOrg; opportunities: PublicOppRow[] } | null> => {
   if (!/^[0-9a-f-]{36}$/.test(id) || !isSupabaseConfigured()) return null;
   try {
     const db = anon();
-    const { data: org } = await db.from('organizations').select('id, name, type, website, country, city, division, verification_status, org_status')
-      .eq('id', id).eq('verification_status', 'verified').eq('org_status', 'active').maybeSingle();
-    if (!org) return null;
-    const { data: opps } = await db.from('opportunities').select(OPP_COLS).eq('organization_id', id).eq('status', 'published').order('deadline', { ascending: true }).limit(100);
-    return { org: org as unknown as PublicOrg, opportunities: (opps ?? []) as unknown as PublicOppRow[] };
+    // Solo columnas abiertas a anónimos (fase 8). «Activa» lo responde organization_is_public: org_status no es legible
+    // por anon y pedirlo hacía fallar la consulta (la página daba 404 siempre).
+    const [{ data: org }, { data: isPublic }] = await Promise.all([
+      db.from('organizations').select('id, name, type, website, country, city, state, division, conference, description, international_support, sport_ids, logo_url, verified_at')
+        .eq('id', id).eq('verification_status', 'verified').maybeSingle(),
+      db.rpc('organization_is_public', { p_org: id }),
+    ]);
+    if (!org || isPublic !== true) return null;
+    const ids = ((org.sport_ids as string[] | null) ?? []).slice(0, 30);
+    const [{ data: opps }, { data: sports }] = await Promise.all([
+      db.from('opportunities').select(OPP_COLS).eq('organization_id', id).eq('status', 'published').order('deadline', { ascending: true }).limit(100),
+      ids.length ? db.from('sports').select('id, name_es, name_en').in('id', ids) : Promise.resolve({ data: [] as { id: string; name_es: string; name_en: string | null }[] }),
+    ]);
+    const sportNames = (sports ?? []).map((s) => (locale === 'en' ? s.name_en ?? s.name_es : s.name_es));
+    return { org: { ...(org as unknown as Omit<PublicOrg, 'sports'>), sports: sportNames }, opportunities: (opps ?? []) as unknown as PublicOppRow[] };
   } catch { return null; }
 });

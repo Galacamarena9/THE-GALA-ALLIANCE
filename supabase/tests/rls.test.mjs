@@ -2104,6 +2104,72 @@ try {
     eq((await as(u.uni, `select count(*)::int n from org_saved_searches where name = 'PG 2027'`)).rows[0].n, 0, 'privada');
     eq((await as(otherUni, `select count(*)::int n from org_saved_searches`)).rows[0].n, 0);
   });
+  results.push('\nCoach & club pro: filtros nuevos de Discovery, orden y búsquedas guardadas');
+  const dids = async (who, org, filters) => (await as(who, `select user_id from discover_athlete_ids($1, $2::jsonb)`, [org, JSON.stringify({ sport: 'basketball', ...filters })])).rows.map((r) => r.user_id);
+  await check('CC-1 GPA mínimo: solo si el académico es visible y filtrable; un menor nunca entra por nota', async () => {
+    await as(u.adult, `insert into athlete_academics (athlete_id, gpa, gpa_scale, english_test, english_score) values ($1, 8.5, 10, 'toefl', '95')
+      on conflict (athlete_id) do update set gpa = 8.5, gpa_scale = 10, english_test = 'toefl', english_score = '95'`, [u.adult]);
+    await as(u.adult, `update athlete_profiles set academics_visibility = 'private' where user_id = $1`, [u.adult]);
+    eq((await dids(u.coach, uniId, { min_gpa: 3 })).includes(u.adult), false, 'académico privado');
+    await as(u.adult, `update athlete_profiles set academics_visibility = 'members' where user_id = $1`, [u.adult]);
+    eq((await dids(u.coach, uniId, { min_gpa: 3 })).includes(u.adult), true, '8.5/10 ≈ 3.4');
+    eq((await dids(u.coach, uniId, { min_gpa: 3.5 })).includes(u.adult), false);
+    eq((await dids(u.coach, uniId, { english_test: true })).includes(u.adult), true, 'TOEFL');
+    eq((await dids(u.coach, uniId, { min_gpa: 3 })).includes(u.minor), false, 'menor: académico no filtrable');
+    await as(u.adult, `insert into passport_field_policies (athlete_id, field_group, allow_filter, allow_match, allow_compare, allow_export) values ($1, 'academics', false, true, true, false)`, [u.adult]);
+    eq((await dids(u.coach, uniId, { min_gpa: 3 })).includes(u.adult), false, 'el atleta no deja filtrar su académico');
+    await as(u.adult, `delete from passport_field_policies where athlete_id = $1`, [u.adult]);
+    await expectError(() => dids(u.coach, uniId, { min_gpa: 5 }), /invalid_filter/);
+  });
+  await check('CC-2 inglés, división objetivo, incorporación y «abierto a ofertas»', async () => {
+    await as(u.adult, `insert into athlete_languages (athlete_id, language_code, level) values ($1, 'en', 'c1') on conflict do nothing`, [u.adult]);
+    eq((await dids(u.coach, uniId, { english: 'b2' })).includes(u.adult), true);
+    eq((await dids(u.coach, uniId, { english: 'c2' })).includes(u.adult), false);
+    await as(u.adult, `update athlete_profiles set target_divisions = '{ncaa_d2}' where user_id = $1`, [u.adult]);
+    await as(u.adult, `insert into athlete_goals (athlete_id, pathways, start_term) values ($1, '{ncaa_d2}', '2027-08')
+      on conflict (athlete_id) do update set pathways = '{ncaa_d2}', start_term = '2027-08'`, [u.adult]);
+    eq((await dids(u.coach, uniId, { division: 'ncaa_d2' })).includes(u.adult), true);
+    eq((await dids(u.coach, uniId, { division: 'ncaa_d1' })).includes(u.adult), false);
+    eq((await dids(u.coach, uniId, { start: '2027-fall' })).includes(u.adult), true);
+    eq((await dids(u.coach, uniId, { start: '2028-spring' })).includes(u.adult), false);
+    eq((await dids(u.coach, uniId, { open: true })).includes(u.adult), true, 'ruta universitaria');
+    await as(u.adult, `update athlete_profiles set goals_visibility = 'private' where user_id = $1`, [u.adult]);
+    eq((await dids(u.coach, uniId, { division: 'ncaa_d2' })).includes(u.adult), false, 'objetivos privados: no filtrables');
+    eq((await dids(u.coach, uniId, { open: true })).includes(u.adult), false);
+    await as(u.adult, `update athlete_profiles set goals_visibility = 'verified_orgs' where user_id = $1`, [u.adult]);
+    await expectError(() => dids(u.coach, uniId, { start: '2027-08' }), /invalid_filter/);
+    await expectError(() => dids(u.coach, uniId, { budget: 10000 }), /invalid_filter/, 'nunca hay filtro de presupuesto');
+  });
+  await check('CC-3 orden: promoción y encaje (solo con una necesidad de la propia organización)', async () => {
+    eq((await dids(u.coach, uniId, { sort: 'grad' })).includes(u.adult), true);
+    await expectError(() => dids(u.coach, uniId, { sort: 'fit' }), /invalid_filter/, 'encaje sin necesidad');
+    const needId = (await as(u.coach, `insert into recruiting_needs (organization_id, title, sport_id, class_years) values ($1, 'Bases 2027', 'basketball', '{2027}') returning id`, [uniId])).rows[0].id;
+    eq((await dids(u.coach, uniId, { sort: 'fit', need: needId }))[0] !== undefined, true);
+    const other = (await db.query(`insert into recruiting_needs (organization_id, title, sport_id) values ((select id from organizations where id <> $1 limit 1), 'Ajena', 'basketball') returning id`, [uniId])).rows[0].id;
+    await expectError(() => dids(u.coach, uniId, { sort: 'fit', need: other }), /invalid_filter/, 'necesidad de otra organización');
+  });
+  await check('CC-4 ventana NCAA: «contactable» excluye a quien la universidad D-I aún no puede contactar', async () => {
+    eq((await dids(u.coach, uniId, { contactable: true })).includes(u.adult), true, 'promoción 2027: abierta');
+    await as(u.adult, `update athlete_profiles set graduation_year = 2030 where user_id = $1`, [u.adult]);
+    eq((await dids(u.coach, uniId, { contactable: true })).includes(u.adult), false, 'promoción 2030: cerrada');
+    eq((await dids(u.coach, uniId, { grad: 2030 })).includes(u.adult), true, 'sin el filtro sí aparece');
+    await as(u.adult, `update athlete_profiles set graduation_year = 2027 where user_id = $1`, [u.adult]);
+  });
+  await check('CC-5 búsquedas guardadas: claves nuevas sí, desconocidas no; equipo ve las de equipo; otra organización nada', async () => {
+    await as(u.coach, `insert into org_saved_searches (organization_id, created_by, name, filters, visibility) values ($1, $2, 'Bases B2+', '{"sport":"basketball","english":"b2","min_gpa":3,"open":true,"sort":"grad"}', 'team')`, [uniId, u.coach]);
+    await expectError(() => as(u.coach, `insert into org_saved_searches (organization_id, created_by, name, filters) values ($1, $2, 'X', '{"sport":"basketball","budget":1}')`, [uniId, u.coach]));
+    await expectError(() => as(u.coach, `insert into org_saved_searches (organization_id, created_by, name, filters) values ($1, $2, 'X', '{"sport":"basketball"}')`, [uniId, u.uni]), /row-level security/, 'en nombre de otro');
+    eq((await as(u.uni, `select count(*)::int n from org_saved_searches where name = 'Bases B2+'`)).rows[0].n, 1, 'de equipo');
+    eq((await as(otherUni, `select count(*)::int n from org_saved_searches where name = 'Bases B2+'`)).rows[0].n, 0);
+    eq((await as(null, `select count(*)::int n from org_saved_searches`).catch(() => ({ rows: [{ n: 0 }] }))).rows[0].n, 0, 'anónimo');
+    eq((await as(u.uni, `update org_saved_searches set name = 'Mía' where name = 'Bases B2+' returning id`)).rowCount, 0, 'solo su autor la edita');
+  });
+  await check('CC-6 organización pública: verificada y activa, sin abrir org_status a anónimos', async () => {
+    eq((await as(null, `select organization_is_public($1) ok`, [uniId])).rows[0].ok, true);
+    await expectError(() => as(null, `select org_status from organizations where id = $1`, [uniId]), /permission denied/);
+    const unv = (await as(u.uni, `insert into organizations (name, type, created_by) values ('Not Yet U', 'university', $1) returning id`, [u.uni])).rows[0].id;
+    eq((await as(null, `select organization_is_public($1) ok`, [unv])).rows[0].ok, false);
+  });
   let sl7;
   await check('7B shortlists: compartida con personas concretas; «viewer» lee pero no añade; revocar quita el acceso', async () => {
     sl7 = (await as(u.coach, `insert into org_shortlists (organization_id, name, visibility, owner_id, sport_id, recruiting_class) values ($1, 'Bases 2027', 'shared', $2, 'basketball', 2027) returning id`, [uniId, u.coach])).rows[0].id;

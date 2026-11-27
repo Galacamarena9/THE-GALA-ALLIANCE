@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { formatHeight } from '@/lib/i18n/format';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { loadRecruitOrgs } from '@/lib/data/recruit';
 import { Bell, Bookmark, Search, Trash2 } from 'lucide-react';
 import { requireSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
@@ -28,6 +30,9 @@ function href(list: string | null, extra: Record<string, string | null> = {}) {
 
 export default async function ListsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const session = await requireSession(['university', 'coach', 'agent', 'brand']);
+  // Un solo sistema de listas para la organización: manda el del equipo (shortlists). Las listas personales no se
+  // borran: desde las shortlists se pueden copiar a una lista del equipo. Agentes y marcas siguen aquí.
+  if (!session.roles.some((r) => r === 'agent' || r === 'brand') && (await loadRecruitOrgs(session.userId)).length) redirect('/app/recruit/shortlists');
   const supabase = await createClient();
   const [catalog, savedRes, searchesRes] = await Promise.all([
     loadCatalog(),

@@ -152,6 +152,18 @@ Pendiente de Gala / compliance: validar con el abogado NCAA la regla tryout y la
 ### Pendiente / decisión de Gala (L5)
 - Edad mínima de alta (13) y consentimiento parental por país (RGPD art. 8): sin cambios.
 
+## [QA coach-club] 2026-11-27 · Encontrar talento rápido: buscador pro, búsquedas guardadas, comparar con valores, un solo buscador y listas, organización pública
+Origen: QA coach NCAA / club europeo (`/tmp/qa/coach-club.md`, hallazgos 7, 9, 11, 12, 14 y 15). GALA MONSTER OS: 05 Engineering, revisa 06 QA. Riesgo L3 (fuera de producción); migración aditiva `20261227000100_coach_discover_pro.sql` (ROLLBACK en cabecera).
+Cambios (rama `feat/coach-club-pro`):
+- Discover (`/app/recruit/discover`): filtros de GPA mínimo (estimado 4.0), nivel de inglés (B1…C2), test de inglés, división objetivo, incorporación (Fall/Spring), «abierto a ofertas como las vuestras» y «contacto NCAA ya abierto»; orden por encaje (con necesidad), promoción o actividad reciente. Promoción −3…+5 (graduados europeos de 19-20). Badge «Contacto disponible / desde <fecha>» en cada tarjeta. Todo en `discover_athlete_ids` (security definer, lista cerrada, cada filtro solo sobre atletas que permiten filtrar ese bloque con `athlete_field_allows`; menores no filtrables por nota; nunca presupuesto familiar). El orden por encaje replica `needFit` en SQL con los permisos de «match».
+- Búsquedas guardadas: la tabla `org_saved_searches` (ya existía, RLS deny-by-default por organización) acepta las claves nuevas; «Guardar esta búsqueda» (privada o de staff) y tarjeta «Búsquedas guardadas» en Hoy del recruiting para relanzarlas. Sin emails.
+- Comparar: valores reales lado a lado (posición, promoción, altura, país, nivel, nota original + GPA est., inglés con test y nivel, ▶ highlight, estadísticas con ✓ de club, verificación), respetando `allow_compare`; `?org` respetado; tabla en escritorio y tarjetas en móvil.
+- Un solo buscador y un solo sistema de listas: para miembros de universidad/college/club/academia, `/app/discover` → `/app/recruit/discover` y `/app/lists` → `/app/recruit/shortlists` (agentes y marcas siguen igual). La ficha pública guarda en las shortlists del equipo. Las listas personales no se borran: se pueden copiar a una shortlist. «Listas personales» sale del menú de la organización.
+- `/organizaciones/[id]`: estilo Estadio (PageHeader) con tipo, división, conferencia, deportes, ubicación, descripción, apoyo internacional, oportunidades, verificación y CTA de staff, en ES/EN. Arreglo: la página daba 404 siempre porque pedía `org_status`, que anon no puede leer desde la fase 8; ahora usa `organization_is_public(id)`.
+- Actividad del panel: «Marta añadió una nota sobre Lucía» (quién y qué atleta).
+Pruebas: unit 335/335 (nuevo `recruit-search.test.ts`); RLS 474/474 (nuevas CC-1…CC-6); tsc OK; build OK; e2e `coach-club.spec.ts` 10/10 + navigation/smoke/discovery/phase4/phase9 299 OK.
+Pendiente de Gala (L5): emails/alertas de búsquedas guardadas; si «abierto a ofertas» debe usar también el estado «comprometido» del atleta (hoy no se expone a organizaciones).
+
 ## [Fase 8 auditoría] 2026-11-25 · Mínimo privilegio y pulido
 Origen: auditoría integral (hallazgos S7, U5–U8). GALA MONSTER OS: 05 Engineering, 06 QA, 03 Design consultado. Riesgo L4 (privilegios) en staging.
 Cambios:

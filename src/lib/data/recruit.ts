@@ -1,6 +1,7 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
 import type { Division } from '@/lib/types';
+import { rpcFilters, type SearchFilters } from '@/lib/domain/recruit-search';
 import { ROLE_CAPS, UNVERIFIED_CAPS, needFit, type AthleteFacts, type Cap, type NeedCriteria, type NeedFit, type OrgRole } from '@/lib/domain/recruit';
 
 /**
@@ -47,7 +48,7 @@ export async function loadCoachHome(org: RecruitOrg) {
     supabase.from('org_tasks').select('id, title, due_date, priority, assignee_id, athlete_id').eq('organization_id', org.id).eq('status', 'open').order('due_date', { ascending: true, nullsFirst: false }).limit(50),
     supabase.from('org_programs').select('id', { count: 'exact', head: true }).eq('organization_id', org.id).is('archived_at', null),
     supabase.from('organization_members').select('user_id', { count: 'exact', head: true }).eq('organization_id', org.id),
-    supabase.from('org_activity').select('id, kind, athlete_id, detail, created_at').eq('organization_id', org.id).order('created_at', { ascending: false }).limit(12),
+    supabase.from('org_activity').select('id, kind, athlete_id, actor_id, detail, created_at').eq('organization_id', org.id).order('created_at', { ascending: false }).limit(12),
     supabase.from('info_requests').select('id', { count: 'exact', head: true }).eq('organization_id', org.id).eq('status', 'shared').gte('responded_at', new Date(Date.now() - 7 * 86400000).toISOString()),
   ]);
   const oppRows = opps.data ?? [];
@@ -82,7 +83,22 @@ export async function loadCoachHome(org: RecruitOrg) {
       }
     }
   }
+  // Actividad con nombres: quién (miembro del staff) y sobre qué atleta (solo si sigue visible para vosotros).
+  const actRows = activity.data ?? [];
+  const actorIds = [...new Set(actRows.map((a) => a.actor_id as string | null).filter((x): x is string => !!x))];
+  const athleteIds = [...new Set(actRows.map((a) => a.athlete_id as string | null).filter((x): x is string => !!x))];
+  const [staffNames, athleteNames, saved] = await Promise.all([
+    actorIds.length ? supabase.from('organization_members').select('user_id, profiles(display_name)').eq('organization_id', org.id).in('user_id', actorIds) : Promise.resolve({ data: [] }),
+    athleteIds.length ? supabase.from('athlete_directory').select('user_id, display_name').in('user_id', athleteIds) : Promise.resolve({ data: [] }),
+    org.caps.has('discover')
+      ? supabase.from('org_saved_searches').select('id, name, filters, need_id, visibility, created_by, last_executed_at').eq('organization_id', org.id).eq('status', 'active').order('updated_at', { ascending: false }).limit(8)
+      : Promise.resolve({ data: [] }),
+  ]);
+  const actorName = new Map((staffNames.data ?? []).map((m) => [m.user_id as string, (m.profiles as unknown as { display_name: string } | null)?.display_name ?? null]));
+  const athleteName = new Map((athleteNames.data ?? []).map((a) => [a.user_id as string, a.display_name as string]));
   return {
+    activityNamed: actRows.map((a) => ({ ...a, actor: a.actor_id ? actorName.get(a.actor_id as string) ?? null : null, athlete: a.athlete_id ? athleteName.get(a.athlete_id as string) ?? null : null })),
+    savedSearches: (saved.data ?? []) as { id: string; name: string; filters: Record<string, unknown>; need_id: string | null; visibility: string; created_by: string | null; last_executed_at: string | null }[],
     trialApplications,
     upcomingTrial,
     activeOpportunities: oppRows.filter((o) => o.status === 'published').length,
@@ -103,10 +119,8 @@ export async function loadCoachHome(org: RecruitOrg) {
 }
 
 /* ------------------------------------------------------------------ Descubrimiento */
-export interface DiscoverFilters {
-  sport?: string; position?: number; grad?: number; country?: string; minHeight?: number; video?: boolean;
-  academics?: boolean; verifiedStats?: boolean; q?: string; page: number;
-}
+/** Filtros del buscador (ver src/lib/domain/recruit-search.ts) + página. */
+export type DiscoverFilters = SearchFilters & { page: number };
 export interface DiscoverRow {
   user_id: string; display_name: string; avatar_url: string | null; country: string | null; headline: string | null;
   sport_id: string | null; primary_position_id: number | null; secondary_position_id: number | null; graduation_year: number | null;
@@ -115,22 +129,15 @@ export interface DiscoverRow {
 }
 export const PAGE_SIZE = 20;
 
-export async function discoverAthletes(f: DiscoverFilters, need: NeedCriteria | null, orgId?: string) {
+export async function discoverAthletes(f: DiscoverFilters, need: NeedCriteria | null, orgId?: string, needId?: string | null) {
   const supabase = await createClient();
   const sport = f.sport ?? need?.sport_id;
   // Sin deporte no se busca: impide listar toda la base de atletas (anti-enumeración).
   if (!sport || !orgId) return { rows: [] as DiscoverRow[], total: 0, needsSport: !sport };
   // La búsqueda se hace en la base de datos con la política de cada atleta: Discovery activado, bloques filtrables
   // y organización verificada con permiso. Aquí solo llegan identificadores autorizados.
-  const filters: Record<string, string | number | boolean> = { sport };
-  if (f.position) filters.position = f.position;
-  if (f.grad) filters.grad = f.grad;
-  if (f.country && /^[A-Z]{2}$/.test(f.country)) filters.country = f.country;
-  if (f.minHeight) filters.min_height = f.minHeight;
-  if (f.video) filters.video = true;
-  if (f.academics) filters.academics = true;
-  if (f.verifiedStats) filters.verified_stats = true;
-  if (f.q) filters.q = f.q.slice(0, 60);
+  // Cada filtro lo vuelve a validar la RPC (lista cerrada; sin presupuesto familiar). Ordenar por encaje exige una necesidad.
+  const filters = rpcFilters(f, sport, needId ?? null);
   const { data: hits, error: hitErr } = await supabase.rpc('discover_athlete_ids', { p_org: orgId, p_filters: filters, p_page: Math.min(f.page, 20), p_page_size: PAGE_SIZE });
   // La cuota diaria la aplica la propia RPC (no se puede saltar llamándola directamente).
   if (hitErr) throw new Error(hitErr.message.includes('rate_limited') ? 'discover_quota' : 'discover_unavailable');

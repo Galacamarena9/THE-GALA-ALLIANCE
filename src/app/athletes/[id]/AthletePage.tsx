@@ -19,6 +19,8 @@ import { loadInvitableTrials } from '@/lib/data/trials';
 import { eventWhen } from '@/lib/domain/trials';
 import { InviteToTrialButton } from '@/components/trials/TrialApply';
 import { BRAND } from '@/content/brand';
+import { loadRecruitOrgs } from '@/lib/data/recruit';
+import { AddToShortlist } from '@/components/recruit/RecruitForms';
 
 export async function athleteMetadata(id: string): Promise<Metadata> {
   if (!/^[0-9a-f-]{36}$/.test(id)) return { title: 'Atleta', robots: { index: false, follow: false } };
@@ -69,6 +71,10 @@ export async function AthletePassportPage({ id }: { id: string }) {
   const ncaaBlocked = verifiedAll.map((o) => ({ name: o.name, w: ncaaFor(o) })).filter((x) => !x.w.open);
   const agencies = orgs.filter((o) => o.type === 'agency' && o.verification_status === 'verified').map((o) => ({ id: o.id, name: o.name }));
   const canSave = session?.roles.some((r) => ['university', 'coach', 'agent', 'brand'].includes(r));
+  // Un solo sistema de listas para universidades y clubes: se guarda en las shortlists del equipo (no en listas personales).
+  const recruitOrgs = session && !isOwner && !session.roles.some((r) => r === 'agent' || r === 'brand') ? await loadRecruitOrgs(session.userId) : [];
+  const recruitOrg = recruitOrgs.find((o) => o.caps.has('shortlist')) ?? null;
+  const { data: orgLists } = recruitOrg ? await supabase.from('org_shortlists').select('id, name').eq('organization_id', recruitOrg.id).is('archived_at', null).order('updated_at', { ascending: false }) : { data: null };
   const { data: minorFlag } = session ? await supabase.rpc('viewer_is_minor', { p_user: id }) : { data: true };
   const isMinor = Boolean(minorFlag);
   // «Invitar a prueba»: solo staff de clubes y academias verificados (nunca universidades/colleges).
@@ -79,7 +85,8 @@ export async function AthletePassportPage({ id }: { id: string }) {
     <div className="flex flex-wrap items-start gap-2">
       <Link href={`/athletes/${id}/cv`} className="inline-flex h-11 items-center rounded-full px-5 text-sm font-semibold text-white ring-1 ring-white/25 hover:bg-white/10">CV deportivo (PDF)</Link>
       {isOwner && <Link href="/app/athlete/passport" className="inline-flex h-11 items-center rounded-full bg-lime px-5 text-sm font-bold text-[#0a0a0c]">Editar mi Passport</Link>}
-      {session && !isOwner && canSave && (
+      {recruitOrg && <AddToShortlist athlete={id} lists={(orgLists ?? []).map((l) => ({ id: l.id as string, name: l.name as string }))} />}
+      {session && !isOwner && canSave && !recruitOrgs.length && (
         <form action={saveAthlete}><input type="hidden" name="athlete_id" value={id} /><button className="inline-flex h-11 items-center rounded-full px-5 text-sm font-semibold text-white ring-1 ring-white/25 hover:bg-white/10">Guardar en una lista</button></form>
       )}
     </div>
@@ -93,7 +100,7 @@ export async function AthletePassportPage({ id }: { id: string }) {
           {session ? (
             <div className="flex flex-wrap items-center gap-2">
               <PrintButton label="Imprimir ficha" />
-              <ButtonLink href="/app/discover" variant="ghost">← Escaparate</ButtonLink>
+              <ButtonLink href={recruitOrgs.length ? '/app/recruit/discover' : '/app/discover'} variant="ghost">← Escaparate</ButtonLink>
             </div>
           ) : <ButtonLink href="/signup">Crear mi Passport</ButtonLink>}
         </div>

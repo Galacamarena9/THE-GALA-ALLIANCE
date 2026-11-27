@@ -8,9 +8,15 @@ import { createClient } from '@/lib/supabase/server';
 import { loadCatalog } from '@/lib/data/athlete';
 import { currentRecruitOrg, discoverAthletes, PAGE_SIZE, type DiscoverFilters } from '@/lib/data/recruit';
 import type { NeedCriteria } from '@/lib/domain/recruit';
-import { ISO_COUNTRIES } from '@/lib/domain/passport';
+import { COUNTRY_NAME } from '@/lib/domain/passport';
+import { DIVISION_LABEL } from '@/lib/domain/labels';
+import { ENGLISH_LABEL, SORT_LABEL, activeFilterCount, parseSearch, termLabel, type DiscoverSort } from '@/lib/domain/recruit-search';
+import { effectiveNcaaDivision, ncaaWindow, needsDivision } from '@/lib/domain/ncaa';
+import { dateLocale } from '@/lib/i18n/t';
 import { logEvent } from '@/lib/events';
-import { Card, EmptyState, Notice, PageHeader, inputClass } from '@/components/ui';
+import { Badge, Card, EmptyState, Notice, PageHeader } from '@/components/ui';
+import { DiscoverFilters as FiltersForm } from '@/components/recruit/DiscoverFilters';
+import { SaveOrgSearch } from '@/components/recruit/SaveOrgSearch';
 import { RecruitShell } from '@/components/recruit/RecruitShell';
 import { AddToShortlist } from '@/components/recruit/RecruitForms';
 import { QuickViewButton, QuickViewProvider, ScrollMemory } from '@/components/recruit/QuickView';
@@ -20,7 +26,8 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getT())('Descubrir atletas') };
 }
 
-type SP = { org?: string; need?: string; sport?: string; position?: string; grad?: string; country?: string; h?: string; video?: string; acad?: string; vstats?: string; q?: string; page?: string };
+type SP = Record<string, string | undefined>;
+const clean = (o: Record<string, string | undefined>) => Object.entries(o).filter((e): e is [string, string] => !!e[1]);
 const CONF = { high: 'Confianza alta', medium: 'Confianza media', low: 'Confianza baja' } as const;
 
 export default async function DiscoverPage({ searchParams }: { searchParams: Promise<SP> }) {
@@ -40,16 +47,14 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
   const members = (staff ?? []).map((m) => ({ id: m.user_id as string, name: (m.profiles as unknown as { display_name: string } | null)?.display_name ?? tx('Miembro') }));
   const need = (needs ?? []).find((n) => n.id === sp.need) as (NeedCriteria & { id: string; title: string }) | undefined;
 
-  const f: DiscoverFilters = {
-    sport: sp.sport || undefined, position: /^\d+$/.test(sp.position ?? '') ? Number(sp.position) : undefined,
-    grad: /^\d{4}$/.test(sp.grad ?? '') ? Number(sp.grad) : undefined, country: sp.country || undefined,
-    minHeight: /^\d{3}$/.test(sp.h ?? '') ? Number(sp.h) : undefined, video: sp.video === '1', academics: sp.acad === '1', verifiedStats: sp.vstats === '1',
-    q: sp.q || undefined, page: Math.max(1, Number(sp.page) || 1),
-  };
+  const parsed = parseSearch(sp);
+  // Con una necesidad, por defecto se ordena por encaje (compatibilidad con sus criterios, no talento).
+  const sort: DiscoverSort = parsed.sort === 'fit' && !need ? 'recent' : parsed.sort ?? (need ? 'fit' : 'recent');
+  const f: DiscoverFilters = { ...parsed, sort, page: Math.max(1, Number(sp.page) || 1) };
   let result: Awaited<ReturnType<typeof discoverAthletes>> | null = null;
   let failed = false;
   if (canDiscover) {
-    try { result = await discoverAthletes(f, need ?? null, org?.id); } catch { failed = true; }
+    try { result = await discoverAthletes(f, need ?? null, org?.id, need?.id ?? null); } catch { failed = true; }
     if (result && f.page === 1) {
       void logEvent('athlete_discovered', { filters: Object.values(f).filter(Boolean).length, need: !!need });
       if (/Mobi|Android/i.test((await headers()).get('user-agent') ?? '')) void logEvent('mobile_discovery_search', { filters: Object.values(f).filter(Boolean).length });
@@ -59,20 +64,31 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
   const positions = catalog.positions.filter((p) => !sport || p.sport_id === sport);
   const posName = new Map(catalog.positions.map((p) => [p.id, p.name_es]));
   const qs = (patch: Partial<SP>) => {
-    const next = new URLSearchParams(Object.entries({ ...sp, page: undefined, ...patch }).filter(([, v]) => v) as [string, string][]);
+    const next = new URLSearchParams(clean({ ...sp, page: undefined, ...patch }));
     return `/app/recruit/discover?${next.toString()}`;
   };
+  const fmtDay = new Intl.DateTimeFormat(dateLocale(tx.locale), { day: 'numeric', month: 'short', year: 'numeric' });
   const chips = [
-    sp.sport && { k: 'sport', label: catalog.sports.find((s) => s.id === sp.sport)?.name_es ?? sp.sport },
-    sp.position && { k: 'position', label: posName.get(Number(sp.position)) ?? tx('Posición') },
-    sp.grad && { k: 'grad', label: `${tx('Clase')} ${sp.grad}` },
-    sp.country && { k: 'country', label: sp.country },
-    sp.h && { k: 'h', label: `≥ ${(Number(sp.h) / 100).toFixed(2)} m` },
-    sp.video && { k: 'video', label: tx('Con vídeo') },
-    sp.acad && { k: 'acad', label: tx('Académico documentado') },
-    sp.vstats && { k: 'vstats', label: tx('Estadísticas verificadas') },
-  ].filter(Boolean) as { k: keyof SP; label: string }[];
-  const rows = need && result ? [...result.rows].sort((a, b) => Number(b.fit?.blocked === false) - Number(a.fit?.blocked === false)) : result?.rows ?? [];
+    f.sport && { k: 'sport', label: catalog.sports.find((s) => s.id === f.sport)?.name_es ?? f.sport },
+    f.position && { k: 'position', label: posName.get(f.position) ?? tx('Posición') },
+    f.grad && { k: 'grad', label: `${tx('Promoción')} ${f.grad}` },
+    f.country && { k: 'country', label: COUNTRY_NAME[f.country] ?? f.country },
+    f.min_height && { k: 'h', label: `≥ ${formatHeight(f.min_height, tx.locale)}` },
+    f.video && { k: 'video', label: tx('Con vídeo') },
+    f.academics && { k: 'acad', label: tx('Académico documentado') },
+    f.verified_stats && { k: 'vstats', label: tx('Estadísticas verificadas') },
+    f.min_gpa && { k: 'gpa', label: `GPA ≥ ${f.min_gpa}` },
+    f.english && { k: 'eng', label: `${tx('Inglés')} ${tx(ENGLISH_LABEL[f.english])}` },
+    f.english_test && { k: 'etest', label: tx('Con test de inglés') },
+    f.division && { k: 'div', label: DIVISION_LABEL[f.division] },
+    f.start && { k: 'start', label: `${tx('Incorporación')} ${termLabel(f.start)}` },
+    f.open && { k: 'open', label: tx('Abierto a ofertas') },
+    f.contactable && { k: 'ncaa', label: tx('Contacto NCAA abierto') },
+  ].filter(Boolean) as { k: string; label: string }[];
+  const isCollege = !!org && needsDivision(org.type);
+  const division = org ? effectiveNcaaDivision(org.type, org.division) : null;
+  const filterQuery = new URLSearchParams(clean({ ...sp, page: undefined, org: undefined, need: undefined })).toString();
+  const rows = result?.rows ?? [];
   const totalPages = result ? Math.min(20, Math.max(1, Math.ceil(result.total / PAGE_SIZE))) : 1;
   const listOpts = (lists ?? []).map((l) => ({ id: l.id, name: l.name }));
 
@@ -92,35 +108,17 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
               </nav>
             )}
 
-            <form method="get" className="space-y-3">
-              {sp.org && <input type="hidden" name="org" value={sp.org} />}
-              {need && <input type="hidden" name="need" value={need.id} />}
-              <label htmlFor="dq" className="sr-only">{tx('Buscar por nombre')}</label>
-              <input id="dq" name="q" defaultValue={sp.q} placeholder={tx('Nombre…')} className={inputClass} />
-              <details className="rounded-2xl border border-line bg-surface p-3" open={!chips.length}>
-                <summary className="cursor-pointer text-sm font-semibold text-paper">Filtros{chips.length ? ` (${chips.length})` : ''}</summary>
-                <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                  {!need && <label className="text-xs text-muted">{tx('Deporte')}<select name="sport" defaultValue={sp.sport ?? ''} className={inputClass}><option value="">{tx('Todos')}</option>{catalog.sports.map((s) => <option key={s.id} value={s.id}>{s.name_es}</option>)}</select></label>}
-                  <label className="text-xs text-muted">{tx('Posición')}{sport ? '' : ` (${tx('elige deporte')})`}<select name="position" defaultValue={sp.position ?? ''} disabled={!sport} className={inputClass}><option value="">{tx('Todas')}</option>{positions.map((p) => <option key={p.id} value={p.id}>{p.name_es}</option>)}</select></label>
-                  <label className="text-xs text-muted">{tx('Clase')}<select name="grad" defaultValue={sp.grad ?? ''} className={inputClass}><option value="">{tx('Todas')}</option>{Array.from({ length: 6 }, (_, i) => new Date().getFullYear() + i).map((y) => <option key={y} value={y}>{y}</option>)}</select></label>
-                  <label className="text-xs text-muted">{tx('País')}<select name="country" defaultValue={sp.country ?? ''} className={inputClass}><option value="">{tx('Todos')}</option>{ISO_COUNTRIES.map(([code, name]) => <option key={code} value={code}>{name}</option>)}</select></label>
-                  <label className="text-xs text-muted">{tx('Altura mínima (cm)')}<input name="h" type="number" min={140} max={230} defaultValue={sp.h} className={inputClass} /></label>
-                  <label className="flex min-h-11 items-center gap-2 text-sm text-paper"><input type="checkbox" name="video" value="1" defaultChecked={sp.video === '1'} className="h-4 w-4" />{tx('Con vídeo')}</label>
-                  <label className="flex min-h-11 items-center gap-2 text-sm text-paper"><input type="checkbox" name="acad" value="1" defaultChecked={sp.acad === '1'} className="h-4 w-4" />{tx('Académico documentado')}</label>
-                  <label className="flex min-h-11 items-center gap-2 text-sm text-paper"><input type="checkbox" name="vstats" value="1" defaultChecked={sp.vstats === '1'} className="h-4 w-4" />{tx('Estadísticas verificadas')}</label>
-                </div>
-                <div className="sticky bottom-0 mt-3 flex items-center gap-3 bg-surface py-2">
-                  <button className="min-h-11 flex-1 rounded-full bg-brass px-5 text-sm font-semibold text-ink sm:flex-none">{tx('Aplicar filtros')}</button>
-                  <Link href={qs({ sport: undefined, position: undefined, grad: undefined, country: undefined, h: undefined, video: undefined, acad: undefined, vstats: undefined, q: undefined })} className="text-sm text-muted underline">{tx('Borrar todo')}</Link>
-                </div>
-              </details>
-            </form>
+            <FiltersForm tx={tx} sp={sp} sports={catalog.sports.map((x) => ({ id: x.id, name: x.name_es }))} positions={positions.map((p) => ({ id: p.id, name: p.name_es }))}
+              sport={sport} hasNeed={!!need} isCollege={isCollege} count={chips.length}
+              clearHref={qs(Object.fromEntries(['sport', 'position', 'grad', 'country', 'h', 'video', 'acad', 'vstats', 'q', 'gpa', 'eng', 'etest', 'div', 'start', 'open', 'ncaa', 'sort'].map((k) => [k, undefined])))} />
 
             <div className="flex flex-wrap items-center gap-2" aria-live="polite">
               <span className="text-sm font-semibold text-paper">{result ? tx(`${result.total} atleta${result.total === 1 ? '' : 's'}`) : '—'}</span>
-              {chips.map((c) => <Link key={c.k} href={qs({ [c.k]: undefined })} className="inline-flex min-h-9 items-center gap-1 rounded-full border border-brass/40 bg-brass/10 px-3 text-xs text-brass" aria-label={`Quitar filtro ${c.label}`}>{c.label} ×</Link>)}
+              {chips.map((c) => <Link key={c.k} href={qs({ [c.k]: undefined })} className="inline-flex min-h-9 items-center gap-1 rounded-full border border-brass/40 bg-brass/10 px-3 text-xs text-brass" aria-label={`${tx('Quitar filtro')} ${c.label}`}>{c.label} ×</Link>)}
+              {result && <span className="text-xs text-muted">· {tx('Orden:')} {tx(SORT_LABEL[sort])}</span>}
+              {result && (f.sport || need) && activeFilterCount(f) + (need ? 1 : 0) > 0 && <span className="ml-auto"><SaveOrgSearch org={org.id} need={need?.id ?? null} query={filterQuery} /></span>}
             </div>
-            {need && <p className="text-xs text-muted">El % es compatibilidad con los criterios de «{need.title}», no una valoración del talento. Los datos que el atleta no comparte no penalizan: bajan la confianza.</p>}
+            {need && <p className="text-xs text-muted">{tx('El % es compatibilidad con los criterios de la necesidad, no una valoración del talento. Los datos que el atleta no comparte no penalizan: bajan la confianza.')}</p>}
 
             {failed ? <Notice tone="danger">{tx('No se ha podido cargar la búsqueda.')}{' '}<Link href={qs({})} className="underline">{tx('Reintentar')}</Link></Notice>
           : result?.needsSport ? <EmptyState title={tx('Elige un deporte para buscar')}>{tx('Para proteger a los atletas, Discovery no lista toda la base: empieza por un deporte (o una necesidad de recruiting).')}</EmptyState>
@@ -128,7 +126,7 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
             : (
               <QuickViewProvider org={org.id} lists={listOpts} members={org.caps.has('tasks') ? members : []} rows={rows.map((r) => ({
                 user_id: r.user_id, display_name: r.display_name, avatar_url: r.avatar_url, height_cm: r.height_cm, has_video: r.has_video, verified_stats: r.verified_stats, fit: r.fit,
-                meta: [r.primary_position_id && posName.get(r.primary_position_id), r.graduation_year && `${tx('Clase')} ${r.graduation_year}`, r.country].filter(Boolean).join(' · '),
+                meta: [r.primary_position_id && posName.get(r.primary_position_id), r.graduation_year && `${tx('Promoción')} ${r.graduation_year}`, r.country].filter(Boolean).join(' · '),
               }))}>
               <ScrollMemory storageKey={qs({})} />
               <ul className="grid gap-3 lg:grid-cols-2">
@@ -142,13 +140,17 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
                         ) : <span className="grid h-12 w-12 place-items-center rounded-xl bg-brass/15 font-display font-bold text-brass" aria-hidden>{r.display_name.slice(0, 1)}</span>}
                         <div className="min-w-0 flex-1">
                           <Link href={`/app/recruit/candidates/${r.user_id}`} className="font-display text-lg font-bold uppercase leading-tight text-paper hover:text-brass">{r.display_name}</Link>
-                          <p className="text-xs text-muted">{[r.primary_position_id && posName.get(r.primary_position_id), r.graduation_year && `${tx('Clase')} ${r.graduation_year}`, r.country].filter(Boolean).join(' · ') || tx('Datos deportivos no compartidos')}</p>
+                          <p className="text-xs text-muted">{[r.primary_position_id && posName.get(r.primary_position_id), r.graduation_year && `${tx('Promoción')} ${r.graduation_year}`, r.country].filter(Boolean).join(' · ') || tx('Datos deportivos no compartidos')}</p>
                           <p className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-paper">
                             {r.height_cm && <span>{formatHeight(r.height_cm, tx.locale)}</span>}
                             <span>{r.has_video ? tx('Vídeo ✓') : tx('Sin vídeo visible')}</span>
                             {r.academics_documented != null && <span>{r.academics_documented ? tx('Académico documentado') : tx('Académico declarado')}</span>}
                             {r.verified_stats ? <span>{tx('Estadísticas verificadas ✓')}</span> : null}
                           </p>
+                          {isCollege && (() => {
+                            const w = ncaaWindow(r.graduation_year, division, r.sport_id);
+                            return <p className="mt-1">{w.open ? <Badge tone="ok">{tx('Contacto disponible')}</Badge> : <Badge tone="warn">{tx('Contacto desde')} {fmtDay.format(new Date(`${w.opensOn}T12:00:00Z`))}</Badge>}</p>;
+                          })()}
                         </div>
                         {r.fit && (
                           <div className="text-right">
@@ -182,7 +184,7 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
             {totalPages > 1 && (
               <nav aria-label={tx('Paginación')} className="flex items-center justify-center gap-4 text-sm">
                 {f.page > 1 && <Link href={qs({ page: String(f.page - 1) })} className="text-brass">{tx('← Anterior')}</Link>}
-                <span className="text-muted">Página {f.page} de {totalPages}</span>
+                <span className="text-muted">{tx('Página')} {f.page} / {totalPages}</span>
                 {f.page < totalPages && <Link href={qs({ page: String(f.page + 1) })} className="text-brass">{tx('Siguiente →')}</Link>}
               </nav>
             )}

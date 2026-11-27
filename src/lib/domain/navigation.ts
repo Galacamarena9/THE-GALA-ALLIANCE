@@ -87,7 +87,6 @@ export const PERSONAL_SERVICES: Record<AppRole, NavItem[]> = {
     { href: '/app/opportunities?view=mine', label: 'Nuestras becas', icon: 'trophy', desc: 'Gestiona vuestras becas publicadas y quién se ha apuntado.' },
     { href: '/app/opportunities/new', label: 'Publicar una beca', icon: 'megaphone', desc: 'Sale al momento si pasa los controles automáticos.', more: true },
     { href: '/app/applications', label: 'Candidaturas (vista clásica)', icon: 'inbox', desc: 'Candidaturas recibidas por oportunidad.', more: true },
-    { href: '/app/lists', label: 'Listas personales', icon: 'list', desc: 'Atletas guardados y búsquedas con alertas.', more: true },
     { href: '/app/organization', label: 'Perfil y equipo', icon: 'building', desc: 'Datos de la universidad, verificación y miembros.', more: true },
   ],
   coach: [
@@ -95,7 +94,6 @@ export const PERSONAL_SERVICES: Record<AppRole, NavItem[]> = {
     { href: '/app/recruit/discover', label: 'Descubrir atletas', icon: 'compass', desc: 'Búsqueda que respeta la privacidad, con encaje con tus necesidades.' },
     { href: '/app/recruit/shortlists', label: 'Listas de seguimiento', icon: 'list', desc: 'Listas privadas o de equipo, con revisión, asignación y notas internas.' },
     { href: '/app/recruit/candidates', label: 'Procesos', icon: 'pipeline', desc: 'Candidatos por etapa interna, asignados y con historial.' },
-    { href: '/app/lists', label: 'Listas personales', icon: 'list', desc: 'Atletas guardados y búsquedas con alertas.', more: true },
     { href: '/app/applications', label: 'Candidaturas (vista clásica)', icon: 'inbox', desc: 'Candidaturas recibidas por oportunidad.', more: true },
     { href: '/app/organization', label: 'Mi universidad o club', icon: 'building', desc: 'Datos de la organización, verificación y equipo.', more: true },
     { href: '/app/verify', label: 'Mi verificación', icon: 'shield', desc: 'Correo institucional, afiliación, programa y cargo: qué está verificado y qué falta.', more: true },
@@ -326,7 +324,6 @@ function universityMode(club: boolean, isCoach: boolean): NavMode {
     children: [
       it('/app/recruit/discover', 'Descubrir atletas', 'search', 'Búsqueda que respeta la privacidad, con encaje.'),
       it('/app/recruit/shortlists', 'Listas de seguimiento', 'list', 'Listas privadas o de equipo, con revisión y notas.'),
-      it('/app/lists', 'Listas personales', 'list', 'Atletas guardados y búsquedas con alertas.'),
       it('/app/recruit/compare', 'Comparar', 'compare', 'Candidatos lado a lado.'),
       it('/app/recruit/needs', 'Necesidades', 'chart', 'Plazas por posición, temporada y promoción.'),
     ],

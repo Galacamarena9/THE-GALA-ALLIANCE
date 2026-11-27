@@ -9,6 +9,12 @@ import { CoachOutreach, type OutreachRow } from '@/components/agency/CoachOutrea
 import { coachEmailDraft } from '@/lib/domain/coach-outreach';
 import { PlanUsage } from '@/components/agency/PlanUsage';
 import { RecruitShell } from '@/components/recruit/RecruitShell';
+import { DiscoverFilters } from '@/components/recruit/DiscoverFilters';
+import { CompareTable } from '@/components/recruit/CompareTable';
+import { OrganizationPublicView } from '@/components/OrganizationPublicView';
+import { compareRows } from '@/lib/domain/recruit-search';
+import { previewCompare, previewOrg, previewOrgOpps } from '@/lib/preview/coach-club';
+import { getT } from '@/lib/i18n/server-t';
 import { GuardianVerification } from '@/components/family/GuardianVerification';
 import { GuardianReviewQueue } from '@/components/safety/GuardianReviewQueue';
 import type { Cap } from '@/lib/domain/recruit';
@@ -102,7 +108,7 @@ const demoPublicOpp: PublicOpportunity = {
  */
 export const metadata: Metadata = { title: 'Probador interno', robots: { index: false, follow: false } };
 
-const SCREENS = ['agent-inbox', 'agent-thread', 'agent-thread-revoked', 'agent-discovery', 'agent-discovery-eligible', 'agent-discovery-empty', 'agent-discovery-forbidden', 'agent-discovery-error', 'agent-discovery-pick', 'admin-difusion', 'admin-difusion-empty', 'difusion-respuesta', 'difusion-hecho', 'athlete-360', 'athlete-360-empty', 'athlete-360-viewer', 'athlete-360-locked', 'portfolio-100', 'portfolio-empty', 'agent-home', 'agent-home-empty', 'agent-home-partial', 'agent-home-no-agency', 'agent-home-error', 'portfolio', 'athlete-home', 'coach-home', 'pipeline', 'pipeline-table', 'coach-outreach', 'plan-trial', 'plan-full', 'plan-none', 'recruit-shell', 'guardian-verify', 'guardian-pending', 'guardian-queue', 'match', 'opportunity', 'passport', 'galamatch', 'command-center', 'athlete-pipeline', 'club-trials', 'trial-club', 'trial-athlete', 'family-trials', 'program-athlete', 'family-home', 'family-costs', 'family-welcome', 'shell-agent', 'shell-athlete', 'shell-university', 'shell-operations'] as const;
+const SCREENS = ['agent-inbox', 'agent-thread', 'agent-thread-revoked', 'agent-discovery', 'agent-discovery-eligible', 'agent-discovery-empty', 'agent-discovery-forbidden', 'agent-discovery-error', 'agent-discovery-pick', 'admin-difusion', 'admin-difusion-empty', 'difusion-respuesta', 'difusion-hecho', 'athlete-360', 'athlete-360-empty', 'athlete-360-viewer', 'athlete-360-locked', 'portfolio-100', 'portfolio-empty', 'agent-home', 'agent-home-empty', 'agent-home-partial', 'agent-home-no-agency', 'agent-home-error', 'portfolio', 'athlete-home', 'coach-home', 'pipeline', 'pipeline-table', 'coach-outreach', 'plan-trial', 'plan-full', 'plan-none', 'recruit-shell', 'guardian-verify', 'guardian-pending', 'guardian-queue', 'match', 'opportunity', 'passport', 'galamatch', 'command-center', 'athlete-pipeline', 'club-trials', 'trial-club', 'trial-athlete', 'family-trials', 'program-athlete', 'family-home', 'family-costs', 'family-welcome', 'shell-agent', 'shell-athlete', 'shell-university', 'shell-operations', 'recruit-discover', 'recruit-compare', 'org-public'] as const;
 
 // Gala Match con el motor real y datos ficticios: un Passport completo y otro con muchos datos ausentes.
 const demoOpp = { sport_id: 'basketball', position_ids: [1], graduation_years: [2027], division: 'ncaa_d2' as const, min_gpa_4: 2.5, english_required: 'TOEFL 80', annual_cost_usd: 40000, aid_amount_usd: 30000 };
@@ -114,6 +120,7 @@ export default async function PreviewPage({ params, searchParams }: { params: Pr
   const { screen } = await params;
   if (!(SCREENS as readonly string[]).includes(screen)) notFound();
   const d = previewPortfolio;
+  const tx = await getT();
   if (screen.startsWith('shell-')) {
     const role = ({ 'shell-agent': 'agent', 'shell-athlete': 'athlete', 'shell-university': 'university', 'shell-operations': 'admin' } as const)[screen as 'shell-agent'];
     const people = role === 'agent' ? [...new Map(d.entries.map((e) => [e.athleteId, e])).values()].map((e) => ({ href: `/app/portfolio/${e.athleteId}`, label: e.name, kind: 'Atleta', desc: e.sportName ?? '' })) : [];
@@ -161,6 +168,12 @@ export default async function PreviewPage({ params, searchParams }: { params: Pr
             ]} />
           </div>
         )}
+        {screen === 'recruit-discover' && (
+          <DiscoverFilters tx={tx} sp={{ sport: 'basketball' }} sports={[{ id: 'basketball', name: 'Baloncesto' }, { id: 'soccer', name: 'Fútbol' }]}
+            positions={[{ id: 1, name: 'Base' }, { id: 2, name: 'Escolta' }]} sport="basketball" hasNeed={false} isCollege count={0} clearHref="/preview/recruit-discover" action="/preview/recruit-discover" />
+        )}
+        {screen === 'recruit-compare' && <CompareTable people={previewCompare} rows={compareRows(previewCompare, tx)} caption={tx('Comparación de atletas')} />}
+        {screen === 'org-public' && <OrganizationPublicView org={previewOrg} opportunities={previewOrgOpps} tx={tx} locale={tx.locale} />}
         {screen === 'recruit-shell' && (
           <RecruitShell
             active="/app/recruit/discover"

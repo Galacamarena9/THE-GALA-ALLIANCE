@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { formatHeight } from '@/lib/i18n/format';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { loadRecruitOrgs } from '@/lib/data/recruit';
 import { LayoutGrid, Rows3, SlidersHorizontal, X } from 'lucide-react';
 import { requireSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
@@ -28,6 +30,9 @@ type Raw = Record<string, string | string[] | undefined>;
 
 export default async function DiscoverPage({ searchParams }: { searchParams: Promise<Raw> }) {
   const session = await requireSession();
+  // Un solo buscador para universidades, colleges, clubes y academias: el del recruiting (privacidad por bloque,
+  // encaje con necesidades, listas del equipo). /app/discover sigue para agentes y marcas.
+  if (!session.roles.some((r) => r === 'agent' || r === 'brand') && (await loadRecruitOrgs(session.userId)).length) redirect('/app/recruit/discover');
   const canSave = session.roles.some((r) => ['university', 'coach', 'agent', 'brand', 'admin'].includes(r));
   const raw = await searchParams;
   const f = parseTalentFilters(raw, DIRECTORY_DIVISIONS);
