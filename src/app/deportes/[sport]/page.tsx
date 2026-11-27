@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { publicMeta } from '@/lib/seo/page-meta';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { PublicFooter, PublicHeader } from '@/components/PublicShell';
@@ -30,7 +31,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!d) return { title: 'Deporte', robots: { index: false, follow: false } };
   const title = `Becas y oportunidades de ${d.name.toLowerCase()} en EE. UU. y Europa`;
   const description = `${d.opps.length} oportunidad${d.opps.length === 1 ? '' : 'es'} de ${d.name.toLowerCase()} publicada${d.opps.length === 1 ? '' : 's'} por organizaciones verificadas: becas, pruebas, campus y academias.`;
-  return { title, description, alternates: { canonical: `/deportes/${sport}` }, robots: d.opps.length ? { index: true, follow: true } : { index: false, follow: true } };
+  return publicMeta({ title, description, path: `/deportes/${sport}`, robots: d.opps.length ? { index: true, follow: true } : { index: false, follow: true } });
 }
 
 export default async function SportPage({ params }: Props) {

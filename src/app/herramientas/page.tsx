@@ -5,12 +5,13 @@ import {
 } from 'lucide-react';
 import { PublicFooter, PublicHeader } from '@/components/PublicShell';
 import { BRAND } from '@/content/brand';
+import { publicMeta } from '@/lib/seo/page-meta';
 
-export const metadata: Metadata = {
+export const metadata: Metadata = publicMeta({
   title: 'Herramientas gratuitas de recruiting deportivo',
   description: 'Test de opciones, calculadora del coste real de una beca, guía oficial del proceso y explorador de oportunidades. Gratis y sin registro.',
-  alternates: { canonical: '/herramientas' },
-};
+  path: '/herramientas',
+});
 
 /**
  * Hub de herramientas. Regla: solo herramientas que EXISTEN y funcionan hoy.

@@ -84,7 +84,7 @@ export function PipelineBoard({ cases, view, sportName, actions, today = new Dat
                         <div className="min-w-0">
                           <Link href={`/app/pipeline/${c.id}`} className="block truncate font-semibold text-paper hover:text-brass">{c.athleteName}</Link>
                           <p className="truncate text-sm text-muted">{c.institutionName}</p>
-                          <p className="text-xs text-faint">{[c.cycle, c.sportId ? sportName.get(c.sportId) : null, stageLabel(c.stage)].filter(Boolean).join(' · ')}</p>
+                          <p className="text-xs text-faint">{[c.cycle, c.sportId ? sportName.get(c.sportId) : null].filter(Boolean).join(' · ')}</p>
                         </div>
                       </div>
                       <div className="mt-3 flex flex-wrap items-center gap-1.5">

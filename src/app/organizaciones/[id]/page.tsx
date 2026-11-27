@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { publicMeta } from '@/lib/seo/page-meta';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { BadgeCheck, ExternalLink } from 'lucide-react';
@@ -19,12 +20,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!r) return { title: 'Organización', robots: { index: false, follow: false } };
   const title = `${r.org.name} · oportunidades verificadas`;
   const description = `${ORG_TYPE_LABEL[r.org.type as OrgType] ?? 'Organización'} verificada${r.org.city ? ` en ${r.org.city}` : ''}. ${r.opportunities.length} oportunidad${r.opportunities.length === 1 ? '' : 'es'} abierta${r.opportunities.length === 1 ? '' : 's'} en The Gala Alliance.`;
-  return {
-    title, description,
-    alternates: { canonical: `/organizaciones/${id}` },
-    robots: r.opportunities.length ? { index: true, follow: true } : { index: false, follow: true },
-    openGraph: { type: 'website', title, description },
-  };
+  return publicMeta({ title, description, path: `/organizaciones/${id}`, robots: r.opportunities.length ? { index: true, follow: true } : { index: false, follow: true } });
 }
 
 export default async function PublicOrganizationPage({ params }: Props) {

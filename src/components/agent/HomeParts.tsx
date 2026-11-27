@@ -96,7 +96,7 @@ function AttentionRow({ i, today, lead }: { i: AttentionItem; today: string; lea
   );
 }
 
-/** Pipeline en 6 fases; cada fase lleva al tablero de procesos. */
+/** Pipeline en las 5 fases visibles (CASE_PHASES); cada fase lleva al tablero de procesos. */
 export function PipelineStrip({ stages, className }: { stages: { id: string; label: string; count: number }[]; className?: string }) {
   const max = Math.max(1, ...stages.map((s) => s.count));
   const total = stages.reduce((n, s) => n + s.count, 0);

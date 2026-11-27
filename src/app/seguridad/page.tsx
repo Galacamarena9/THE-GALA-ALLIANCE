@@ -3,12 +3,13 @@ import Link from 'next/link';
 import { ArrowRight, BadgeCheck, Ban, Download, Eye, FileCheck2, Gavel, Lock, Scale, ShieldCheck, Sparkles, UserCheck, Users } from 'lucide-react';
 import { PublicFooter, PublicHeader } from '@/components/PublicShell';
 import { BRAND } from '@/content/brand';
+import { publicMeta } from '@/lib/seo/page-meta';
 
-export const metadata: Metadata = {
+export const metadata: Metadata = publicMeta({
   title: 'Seguridad y confianza',
   description: 'Cómo protege The Gala Alliance a menores, familias y datos: verificación de organizaciones, privacidad por defecto, matching explicado y control de tus datos.',
-  alternates: { canonical: '/seguridad' },
-};
+  path: '/seguridad',
+});
 
 /**
  * Centro de confianza. Regla: cada compromiso describe algo que la plataforma ya hace (código o base de datos),

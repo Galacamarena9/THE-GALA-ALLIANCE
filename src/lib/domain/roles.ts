@@ -53,7 +53,7 @@ export const ACTORS: {
     intent: 'Soy coach o scout y busco talento',
     label: 'Coach',
     plural: 'Coaches',
-    promise: 'Encuentra talento con datos comparables, sin depender de quién tiene mejor agente.',
+    promise: 'Encuentra talento europeo con datos comparables y el origen de cada dato.',
     home: '/app/recruit/discover',
     adultsOnly: true,
     services: ['Búsqueda avanzada por deporte, posición, año, nota…', 'Shortlists privadas con notas', 'Pipeline de tu universidad o club', 'Gala IA: búsqueda en lenguaje natural'],
@@ -101,7 +101,7 @@ export const ACTOR_EN: Record<ActorRole, { intent: string; promise: string }> = 
   athlete: { intent: "I'm an athlete looking for a US scholarship", promise: 'One Passport for verified universities, clubs and brands, whatever league you play in.' },
   parent: { intent: "I'm supporting an athlete (family or legal guardian)", promise: 'The process, the deadlines and the real cost of each option, in one place.' },
   university: { intent: 'I run recruiting for a university or college', promise: 'Post scholarships, receive matching candidates and manage your international recruits.' },
-  coach: { intent: "I'm a coach or scout looking for talent", promise: 'Find talent with comparable data, without depending on who has the best agent.' },
+  coach: { intent: "I'm a coach or scout looking for talent", promise: 'Find European talent with comparable data and the source of every data point.' },
   agent: { intent: "I'm an agent or an agency", promise: 'Track every athlete with every university in one place, as a team and with their permission.' },
   brand: { intent: 'I represent a brand', promise: 'Post offers and sign adult athletes to promote your brand.' },
 };

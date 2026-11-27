@@ -3,7 +3,7 @@
 import { useActionState, useRef, useEffect } from 'react';
 import type { FormState } from '@/app/actions/auth';
 import { openCase, updateCase, logActivity, addTask, addContact, importContacts } from '@/app/actions/agency-cases';
-import { CASE_STAGES } from '@/lib/domain/agency-cases';
+import { CASE_PHASES, CASE_STAGES, stageLabel } from '@/lib/domain/agency-cases';
 import { Field, inputClass } from '@/components/ui';
 import { SubmitButton } from '@/components/SubmitButton';
 
@@ -52,7 +52,7 @@ export function OpenCaseForm({ agencies, athletes, contacts, sports, cycles }: {
       <Field label="Temporada de llegada" htmlFor="oc-cycle">
         <select id="oc-cycle" name="cycle" className={inputClass} defaultValue={cycles[1]}>{cycles.map((c) => <option key={c}>{c}</option>)}</select>
       </Field>
-      <Field label="Fase inicial" htmlFor="oc-stage">
+      <Field label="Paso inicial (fase Introducción)" htmlFor="oc-stage">
         <select id="oc-stage" name="stage" className={inputClass} defaultValue="research">
           {CASE_STAGES.slice(0, 5).map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
         </select>
@@ -86,9 +86,15 @@ export function UpdateCaseForm({ c, members, contacts, disabled }: {
     <form action={action} className="grid gap-3 sm:grid-cols-2">
       <input type="hidden" name="id" value={c.id} />
       <fieldset disabled={disabled} className="contents">
-        <Field label="Fase" htmlFor="uc-stage">
+        <Field label="Paso del proceso" htmlFor="uc-stage">
+          {/* Los 13 pasos internos, agrupados en las 5 fases visibles del tablero (vocabulario único). */}
           <select id="uc-stage" name="stage" defaultValue={c.stage} className={inputClass}>
-            {CASE_STAGES.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+            {CASE_PHASES.map((p) => (
+              <optgroup key={p.id} label={`Fase: ${p.label}`}>
+                {p.stages.map((id) => <option key={id} value={id}>{stageLabel(id)}</option>)}
+              </optgroup>
+            ))}
+            <option value="closed">{stageLabel('closed')}</option>
           </select>
         </Field>
         <Field label="Responsable" htmlFor="uc-owner">

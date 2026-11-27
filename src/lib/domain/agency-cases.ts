@@ -7,7 +7,11 @@ export type CaseStageId =
 
 export interface CaseStage { id: CaseStageId; label: string; hint: string }
 
-/** Las 13 fases de la especificación, en orden. */
+/**
+ * Vocabulario canónico (QA agente #14): lo que ve el agente, la web y el atleta son las **5 fases** de `CASE_PHASES`.
+ * Los 13 elementos de `CASE_STAGES` son **pasos** internos dentro de esas fases (lo que se guarda en la base de datos);
+ * en el copy se llaman «pasos», nunca «13 fases».
+ */
 export const CASE_STAGES: CaseStage[] = [
   { id: 'research', label: 'Investigación', hint: 'Buscando información del programa.' },
   { id: 'fit_review', label: 'Revisión de encaje', hint: 'Comprobando nivel, académico y coste.' },
@@ -25,6 +29,28 @@ export const CASE_STAGES: CaseStage[] = [
 ];
 
 const BY_ID = new Map(CASE_STAGES.map((s) => [s.id, s]));
+
+/**
+ * Las 5 fases visibles: Introducción · Evaluación · Visita o prueba · Oferta · Decisión o colocado.
+ * Lo aún sin contactar (investigación, preselección) vive en Introducción. «Cerrado o en pausa» es una salida, no una fase.
+ */
+export const CASE_PHASES = [
+  { id: 'introduction', label: 'Introducción', hint: 'De la investigación al primer contacto y su respuesta.', stages: ['research', 'fit_review', 'shortlisted', 'approved_to_contact', 'contacted', 'response_received'] },
+  { id: 'evaluation', label: 'Evaluación', hint: 'Conversación con el programa y revisión académica.', stages: ['active_conversation', 'academic_review'] },
+  { id: 'visit', label: 'Visita o prueba', hint: 'Vídeo revisado, llamada, visita o prueba.', stages: ['evaluation_visit'] },
+  { id: 'offer', label: 'Oferta', hint: 'Se habla de beca o ayuda.', stages: ['offer_discussion'] },
+  { id: 'placed', label: 'Decisión o colocado', hint: 'Decisión pendiente o compromiso confirmado.', stages: ['decision_pending', 'committed'] },
+] as const;
+export type CasePhaseId = (typeof CASE_PHASES)[number]['id'];
+
+/** Fase visible de un paso interno; null si está cerrado o el paso no existe. */
+export function casePhaseOf(stage: string) {
+  return CASE_PHASES.find((p) => (p.stages as readonly string[]).includes(stage)) ?? null;
+}
+/** Nombre de la fase visible de un paso (para un proceso cerrado, «Cerrado o en pausa»). */
+export function casePhaseLabel(stage: string): string {
+  return casePhaseOf(stage)?.label ?? stageLabel(stage);
+}
 export const FINAL_STAGES: CaseStageId[] = ['committed', 'closed'];
 
 export function isCaseStage(v: unknown): v is CaseStageId {

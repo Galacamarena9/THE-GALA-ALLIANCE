@@ -18,11 +18,11 @@ const base = { agencyId: 'org-1', agencyName: 'Norte Sports Management', agentId
 
 export const previewEntries: PortfolioEntry[] = [
   { ...base, repId: 'r1', athleteId: 'a1', status: 'active', createdAt: ago(60), respondedAt: ago(58), name: 'Marcos Jiménez', country: 'ES', sportId: 'basketball', sportName: 'Baloncesto', positionName: 'Base', graduationYear: 2027, currentTeam: 'Valencia U18', lastNoteAt: ago(1) },
-  { ...base, repId: 'r2', athleteId: 'a2', status: 'active', createdAt: ago(45), respondedAt: ago(40), name: 'Sofía Martín', country: 'ES', sportId: 'volleyball', sportName: 'Voleibol', positionName: 'Receptora', graduationYear: 2026, currentTeam: 'CV Castellón' },
+  { ...base, repId: 'r2', athleteId: 'a2', status: 'active', createdAt: ago(45), respondedAt: ago(40), name: 'Sofía Martín', country: 'ES', sportId: 'football', sportName: 'Fútbol', positionName: 'Centrocampista', graduationYear: 2026, currentTeam: 'Castellón Femenino' },
   { ...base, repId: 'r3', athleteId: 'a3', status: 'ended', createdAt: ago(31), respondedAt: ago(29), endedAt: ago(2), name: 'Daniel Kim', country: 'KR', sportId: 'football', sportName: 'Fútbol', positionName: 'Mediocentro', graduationYear: 2027, currentTeam: 'Levante Juvenil', hasVideo: false },
   { ...base, repId: 'r4', athleteId: 'a4', status: 'requested', createdAt: ago(2), respondedAt: null, name: 'Lucía Ferrer', country: 'ES', sportId: 'tennis', sportName: 'Tenis', positionName: null, graduationYear: 2027, currentTeam: null },
-  { ...base, repId: 'r5', athleteId: 'a5', status: 'requested', createdAt: ago(6), respondedAt: null, name: 'Álex Romero', country: 'AR', sportId: 'athletics', sportName: 'Atletismo', positionName: '400 m', graduationYear: 2026, currentTeam: 'CA Buenos Aires' },
-  { ...base, repId: 'r6', athleteId: 'a6', status: 'declined', createdAt: ago(20), respondedAt: ago(18), name: 'Nora Vidal', country: 'ES', sportId: 'swimming', sportName: 'Natación', positionName: 'Mariposa', graduationYear: 2026, currentTeam: null },
+  { ...base, repId: 'r5', athleteId: 'a5', status: 'requested', createdAt: ago(6), respondedAt: null, name: 'Álex Romero', country: 'AR', sportId: 'tennis', sportName: 'Tenis', positionName: null, graduationYear: 2026, currentTeam: 'Club de tenis de ejemplo' },
+  { ...base, repId: 'r6', athleteId: 'a6', status: 'declined', createdAt: ago(20), respondedAt: ago(18), name: 'Nora Vidal', country: 'ES', sportId: 'basketball', sportName: 'Baloncesto', positionName: 'Alero', graduationYear: 2026, currentTeam: null },
 ];
 
 const note = (id: string, athlete: string, kind: AgencyNote['kind'], body: string, created: number, due: string | null = null, done = false): AgencyNote => ({
@@ -44,8 +44,8 @@ export const previewPortfolio = {
 };
 
 export const previewSports = [
-  { id: 'basketball', name_es: 'Baloncesto' }, { id: 'football', name_es: 'Fútbol' }, { id: 'volleyball', name_es: 'Voleibol' },
-  { id: 'tennis', name_es: 'Tenis' }, { id: 'athletics', name_es: 'Atletismo' }, { id: 'swimming', name_es: 'Natación' },
+  // Solo los deportes del piloto (baloncesto, fútbol y tenis): la demo pública usa estos datos.
+  { id: 'basketball', name_es: 'Baloncesto' }, { id: 'football', name_es: 'Fútbol' }, { id: 'tennis', name_es: 'Tenis' },
 ];
 
 /** Procesos ficticios del probador (universidades inventadas: nunca se muestran en producción). */
@@ -57,8 +57,8 @@ const pc = (id: string, athleteId: string, athleteName: string, institutionName:
 export const previewCases: CaseRow[] = [
   pc('c1', 'a1', 'Marcos Jiménez', 'Northfield University', 'basketball', 'contacted', 2, { nextAction: 'Enviar vídeo de la temporada', nextActionDue: inDays(3), sharedWithAthlete: true }),
   pc('c2', 'a1', 'Marcos Jiménez', 'Lakeshore College', 'basketball', 'active_conversation', 5, { nextAction: 'Llamada con el assistant coach', nextActionDue: inDays(-1) }),
-  pc('c3', 'a2', 'Sofía Martín', 'Westbrook State', 'volleyball', 'evaluation_visit', 3, { ownerName: 'Ana Gil', sharedWithAthlete: true }),
+  pc('c3', 'a2', 'Sofía Martín', 'Westbrook State', 'football', 'evaluation_visit', 3, { ownerName: 'Ana Gil', sharedWithAthlete: true }),
   pc('c4', 'a3', 'Daniel Kim', 'Pinecrest University', 'football', 'research', 20),
-  pc('c5', 'a2', 'Sofía Martín', 'Harbor Tech', 'volleyball', 'offer_discussion', 8, { nextAction: 'Revisar coste neto' }),
+  pc('c5', 'a2', 'Sofía Martín', 'Harbor Tech', 'football', 'offer_discussion', 8, { nextAction: 'Revisar coste neto' }),
   pc('c6', 'a3', 'Daniel Kim', 'Ridgeview College', 'football', 'closed', 30, { outcomeReason: 'Plantilla completa en su posición' }),
 ];

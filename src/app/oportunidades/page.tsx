@@ -7,12 +7,13 @@ import { ButtonLink, EmptyState, cx } from '@/components/ui';
 import { createClient } from '@/lib/supabase/server';
 import { isSupabaseConfigured } from '@/lib/env';
 import { BRAND, VERTICALS, VERTICAL_STATUS_LABEL, VERTICAL_TYPES, type VerticalKey } from '@/content/brand';
+import { publicMeta } from '@/lib/seo/page-meta';
 
-export const metadata: Metadata = {
+export const metadata: Metadata = publicMeta({
   title: 'Oportunidades deportivas verificadas',
   description: 'Becas en EE. UU., pruebas en clubes, academias y showcases publicados por organizaciones verificadas, con coste neto y sello de confianza.',
-  alternates: { canonical: '/oportunidades' },
-};
+  path: '/oportunidades',
+});
 
 const SELECT =
   'id, title, type, division, location, deadline, annual_cost_usd, aid_amount_usd, status, description, financial_source, is_reviewed, updated_at, organizations!inner(name, verification_status, website, type)';

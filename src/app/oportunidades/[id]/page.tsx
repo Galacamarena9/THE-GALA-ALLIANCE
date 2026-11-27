@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
+import { publicMeta } from '@/lib/seo/page-meta';
 import { notFound } from 'next/navigation';
 import { PublicFooter, PublicHeader } from '@/components/PublicShell';
 import { ButtonLink, EmptyState } from '@/components/ui';
 import { loadCatalog } from '@/lib/data/athlete';
 import { loadPublicOpportunity } from '@/lib/data/public-opportunity';
 import { DIVISION_LABEL, OPPORTUNITY_TYPE_LABEL } from '@/lib/domain/labels';
-import { BRAND } from '@/content/brand';
 import { PublicOpportunityView } from './View';
 
 type Props = { params: Promise<{ id: string }> };
@@ -17,13 +17,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const o = r.opp;
   const title = `${o.title} · ${o.organizations.name}`;
   const description = [OPPORTUNITY_TYPE_LABEL[o.type], o.division ? DIVISION_LABEL[o.division] : null, o.location, o.deadline ? `Plazo: ${o.deadline}` : null].filter(Boolean).join(' · ');
-  return {
-    title,
-    description,
-    alternates: { canonical: `/oportunidades/${o.id}` },
-    openGraph: { type: 'website', title, description, siteName: BRAND.name, images: [{ url: '/media/hero-bg-poster.jpg', alt: BRAND.network }] },
-    twitter: { card: 'summary_large_image', title, description },
-  };
+  return publicMeta({ title, description, path: `/oportunidades/${o.id}` });
 }
 
 export default async function PublicOpportunityPage({ params }: Props) {

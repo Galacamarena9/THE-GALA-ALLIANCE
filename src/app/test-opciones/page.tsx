@@ -2,12 +2,13 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { PublicFooter, PublicHeader } from '@/components/PublicShell';
 import { OptionsQuiz } from '@/components/landing/OptionsQuiz';
+import { publicMeta } from '@/lib/seo/page-meta';
 
-export const metadata: Metadata = {
+export const metadata: Metadata = publicMeta({
   title: 'Test de opciones: ¿tengo opciones de beca en EE. UU.?',
   description: 'Cuatro preguntas para ver dónde encajarías (NCAA, NAIA, JUCO), qué te haría subir de nivel y tu roadmap. Gratis y sin registro.',
-  alternates: { canonical: '/test-opciones' },
-};
+  path: '/test-opciones',
+});
 
 /** Test de opciones (herramienta gratuita sin registro). Antes el enlace apuntaba a `/#test`, que no existía. */
 export default function OptionsTestPage() {

@@ -1,11 +1,13 @@
 import type { Metadata } from 'next';
 import { NetCostCalculator } from '@/components/NetCostCalculator';
 import { PublicFooter, PublicHeader } from '@/components/PublicShell';
+import { publicMeta } from '@/lib/seo/page-meta';
 
-export const metadata: Metadata = {
+export const metadata: Metadata = publicMeta({
   title: 'Calculadora de becas deportivas',
   description: 'Calcula el coste neto real de estudiar y competir en EE. UU. y compara hasta 5 ofertas.',
-};
+  path: '/calculadora',
+});
 
 export default function PublicCalculator() {
   return (

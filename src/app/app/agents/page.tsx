@@ -8,7 +8,7 @@ import { StatusPill } from '@/components/portfolio';
 import { REP_PERMISSIONS, REP_TYPE_LABEL, repStatusDetail, toRepStatus } from '@/lib/domain/portfolio';
 import { RepPermissionsForm } from '@/components/agency/RepPermissionsForm';
 import { InviteAgencyForm } from '@/components/agency/InviteAgencyForm';
-import { CASE_STAGES, stageLabel } from '@/lib/domain/agency-cases';
+import { CASE_PHASES, casePhaseLabel, casePhaseOf, stageLabel } from '@/lib/domain/agency-cases';
 import { ReportButton } from '@/components/forms';
 import { AGENT_REPORT_REASONS } from '@/lib/domain/reports';
 
@@ -117,14 +117,15 @@ export default async function AthleteAgentsPage() {
           <p className="mb-4 text-sm text-muted">Lo que tu agencia ha decidido compartir contigo: universidad, temporada, fase y cada cambio con su fecha. Si echas en falta algo, pregúntale a tu agente.</p>
           <ul className="space-y-3">
             {(cases ?? []).map((c) => {
-              const idx = CASE_STAGES.findIndex((s) => s.id === c.stage);
+              const phase = casePhaseOf(c.stage);
+              const idx = phase ? CASE_PHASES.findIndex((p) => p.id === phase.id) : -1;
               const history = (changes ?? []).filter((h) => h.case_id === c.id);
               return (
                 <li key={c.id}>
                   <Card>
-                    <CardTitle kicker={c.cycle} action={<Badge tone={c.stage === 'committed' ? 'ok' : c.stage === 'closed' ? 'danger' : 'neutral'}>{stageLabel(c.stage)}</Badge>}>{c.institution_name}</CardTitle>
+                    <CardTitle kicker={c.cycle} action={<Badge tone={c.stage === 'committed' ? 'ok' : c.stage === 'closed' ? 'danger' : 'neutral'}>{casePhaseLabel(c.stage)}</Badge>}>{c.institution_name}</CardTitle>
                     <div className="mb-3 flex gap-1" aria-hidden>
-                      {CASE_STAGES.map((s, i) => <span key={s.id} className={`h-1.5 flex-1 rounded-full ${i <= idx && c.stage !== 'closed' ? 'bg-brass' : 'bg-line'}`} />)}
+                      {CASE_PHASES.map((s, i) => <span key={s.id} className={`h-1.5 flex-1 rounded-full ${i <= idx && c.stage !== 'closed' ? 'bg-brass' : 'bg-line'}`} />)}
                     </div>
                     <ul className="space-y-1 text-xs text-muted">
                       {history.slice(0, 5).map((h, i) => (

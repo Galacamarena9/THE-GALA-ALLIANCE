@@ -79,6 +79,26 @@ Cambios (rama `fix/agente-flujos`):
 Pruebas: unit 306/306; RLS 455/455 (nueva: marcas de lectura); tsc OK; build OK.
 Pendiente de Gala (L5): claves Stripe live; si quiere envío real de invitaciones por email (Resend) y que reclamar la invitación acepte la representación.
 
+## [QA web · mensaje] 2026-11-27 · Marketing honesto, una propuesta por audiencia y un solo vocabulario de fases
+
+### Hecho
+- **Afirmaciones sin respaldo fuera** (QA web #10/#14/#15): /inversores sin «Opera sola… coste marginal tiende a cero»,
+  sin «Un LinkedIn del deporte», sin «Pagos automáticos integrados» ni «Ingresos desde el primer día con Stripe»
+  (el cobro online depende de los textos legales), sin «efecto red» ni «IA sin coste humano». La automatización que se
+  cita es la que existe en `20261113000800_autonomous_operations.sql`. La cifra NCAA de la portada enlaza a su fuente.
+- **Agencias = cliente**: /inversores y /para/familias ya no culpan a «agencias que cobran miles de euros»; la tesis es
+  «el sistema de trabajo de las agencias que llevan talento europeo a la NCAA» y el modelo dice «La agencia paga».
+- **Una página y un CTA por audiencia** (`src/content/audiences.ts`): /para/agentes, atletas, familias, **clubes** (nueva),
+  universidades, coaches y marcas, cada una con su alta con rol, su línea de precio y su CTA en el pie. Cabecera, pie,
+  menú móvil y sitemap usan esa lista (agencias primero). Portada: el botón destacado del hero es «Soy agencia».
+- **Demo y fixtures**: solo deportes del piloto (baloncesto, fútbol, tenis); Sofía Martín pasa de voleibol a fútbol.
+- **Fases**: canónico `CASE_PHASES` en `src/lib/domain/agency-cases.ts` (5 fases visibles); los 13 valores de
+  `CASE_STAGES` son «pasos» internos. `PIPELINE_BUCKETS` reutiliza `CASE_PHASES`. Precios, tablero, ficha 360, ficha del
+  proceso, formulario (pasos agrupados por fase) y vista del atleta dicen lo mismo. Sin cambios de BD.
+- **SEO**: `publicMeta()` (`src/lib/seo/page-meta.ts`) da title, description, canonical y og/twitter únicos con imagen y
+  alt a todas las páginas públicas; 404 con su título.
+- e2e nuevo `e2e/web-mensaje.spec.ts`; smoke incluye /para/clubes y /demo/agente.
+
 ## [QA web-admin] 2026-11-26 · Menú móvil, MFA en todo el admin, dominio de organizaciones y camino de compra de agencias
 
 ### Hecho
