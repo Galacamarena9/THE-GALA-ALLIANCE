@@ -36,11 +36,11 @@ function Item({ item, active, exact = true, sub, compact, onNavigate }: { item: 
         className={cx(
           'group relative flex items-center rounded-xl transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass',
           compact ? 'h-11 w-11 justify-center' : sub ? 'gap-2.5 py-1.5 pl-10 pr-3 text-[13px]' : 'gap-3 px-3 py-2 text-sm',
-          active ? 'bg-brass/10 font-semibold text-brass' : 'text-muted hover:bg-ink hover:text-paper',
+          active ? 'bg-lime font-bold text-night' : 'text-muted hover:bg-surface hover:text-paper',
         )}
       >
-        {active && !sub && <span className="absolute inset-y-1.5 left-0 w-[3px] rounded-full bg-brass" aria-hidden />}
-        {!sub && <span className={cx('transition-colors', active ? 'text-brass' : 'text-faint group-hover:text-brass')}><NavIcon name={item.icon} /></span>}
+        
+        {!sub && <span className={cx('transition-colors', active ? 'text-night' : 'text-faint group-hover:text-brass')}><NavIcon name={item.icon} /></span>}
         {!compact && item.label}
       </Link>
     </li>

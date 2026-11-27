@@ -67,10 +67,10 @@ export function PipelineBoard({ cases, view, sportName, actions, today = new Dat
     <>
       <div tabIndex={0} role="region" aria-label="Fases de los procesos (desplazable)" className="grid min-w-0 snap-x auto-cols-[minmax(260px,1fr)] grid-flow-col gap-4 overflow-x-auto pb-4 focus-visible:outline-2 focus-visible:outline-brass xl:grid-flow-row xl:grid-cols-5">
         {columns.map((col, ci) => (
-          <section key={col.id} aria-labelledby={`ph-${col.id}`} data-testid={`phase-${col.id}`} className="flex min-w-0 snap-start flex-col border-t border-line pt-4">
-            <header className="mb-4 flex items-end justify-between gap-2">
-              <h2 id={`ph-${col.id}`} className="flex items-baseline gap-2 text-xl text-paper"><span aria-hidden className="font-sans text-[11px] font-semibold tabular-nums text-brass">{String(ci + 1).padStart(2, '0')}</span>{col.label}</h2>
-              <span className="font-display text-3xl leading-none tabular-nums text-paper/60" aria-label={`${col.items.length} procesos`} role="img"><span aria-hidden>{col.items.length}</span></span>
+          <section key={col.id} aria-labelledby={`ph-${col.id}`} data-testid={`phase-${col.id}`} className="flex min-w-0 snap-start flex-col">
+            <header className="night-scope mb-3 flex min-h-[56px] items-center justify-between gap-2 rounded-[14px] bg-night px-3.5 py-2.5">
+              <h2 id={`ph-${col.id}`} className="flex min-w-0 items-baseline gap-2 text-[15px] leading-tight text-white"><span aria-hidden className="font-sans text-[11px] font-bold not-italic tabular-nums text-lime">{String(ci + 1).padStart(2, '0')}</span>{col.label}</h2>
+              <span className="shrink-0 -skew-x-[10deg] bg-lime px-2 py-0.5 font-display text-lg leading-none tabular-nums text-night" aria-label={`${col.items.length} procesos`} role="img"><span aria-hidden>{col.items.length}</span></span>
             </header>
             {col.items.length ? (
               <ul className="space-y-3">

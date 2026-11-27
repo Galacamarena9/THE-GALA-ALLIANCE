@@ -28,7 +28,7 @@ export function MobileNav({ mode }: { mode: NavMode }) {
 
   return (
     <div className="md:hidden">
-      <nav aria-label="Accesos rápidos" className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-ink/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl">
+      <nav aria-label="Accesos rápidos" className="night-scope fixed inset-x-0 bottom-0 z-40 bg-night pb-[env(safe-area-inset-bottom)]">
         <ul className="grid grid-cols-5">
           {tabs.map((t) => {
             // Activa si la página actual es la pestaña o una de sus vistas contextuales.
@@ -36,7 +36,7 @@ export function MobileNav({ mode }: { mode: NavMode }) {
             const active = activeHref === t.href || !!top?.children?.some((c) => c.href === activeHref);
             return (
               <li key={t.href}>
-                <Link href={t.href} className={cx('flex min-h-[52px] flex-col items-center justify-center gap-1 py-2 text-xs', active ? 'font-semibold text-brass' : 'text-muted')} aria-current={active ? 'page' : undefined}>
+                <Link href={t.href} className={cx('flex min-h-[52px] flex-col items-center justify-center gap-1 py-2 text-xs', active ? 'font-bold text-lime' : 'text-muted')} aria-current={active ? 'page' : undefined}>
                   <NavIcon name={t.icon} className="h-5 w-5" />
                   {t.label}
                 </Link>
@@ -54,7 +54,7 @@ export function MobileNav({ mode }: { mode: NavMode }) {
       {open && (
         <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Todas las funciones">
           <button className="absolute inset-0 bg-black/60 backdrop-blur-sm" aria-label="Cerrar menú" onClick={() => setOpen(false)} />
-          <div id="mobile-sidebar" className="absolute inset-y-0 left-0 w-[86%] max-w-sm overflow-y-auto border-r border-line bg-ink p-4">
+          <div id="mobile-sidebar" className="night-scope absolute inset-y-0 left-0 w-[86%] max-w-sm overflow-y-auto bg-night p-4">
             <div className="mb-4 flex items-center justify-between">
               <p className="font-display text-lg font-bold text-paper">{mode.label}</p>
               <button onClick={() => setOpen(false)} className="rounded-lg p-2 text-muted hover:bg-surface" aria-label="Cerrar"><X className="h-5 w-5" /></button>

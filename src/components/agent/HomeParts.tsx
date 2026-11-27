@@ -22,11 +22,11 @@ export function SummaryStrip({ s, className }: { s: AgentHomeSummary; className?
     { label: 'Plazos hoy', value: s.deadlinesToday, note: s.deadlinesToday ? 'vencen hoy' : 'ninguno hoy', href: '#hoy', alert: s.deadlinesToday > 0 },
   ];
   return (
-    <section aria-label="Resumen" className={cx('grid grid-cols-2 overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface sm:grid-cols-5', className)}>
+    <section aria-label="Resumen" className={cx('grid grid-cols-2 gap-3 sm:grid-cols-5', className)}>
       {items.map((i, n) => (
-        <Link key={i.label} href={i.href} className={cx('group min-w-0 border-line px-5 py-5 transition-colors hover:bg-ink focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brass', n > 0 && 'sm:border-l', n % 2 === 1 && 'border-l sm:border-l', n >= 2 && 'border-t sm:border-t-0', n === 4 && 'col-span-2 sm:col-span-1')}>
-          <span className="flex flex-wrap items-center gap-x-2 break-words text-[11px] font-semibold uppercase tracking-[0.12em] text-muted"><i aria-hidden className="not-italic tabular-nums text-brass">{String(n + 1).padStart(2, '0')}</i>{i.label}</span>
-          <span className={cx('mt-3 block font-display text-[48px] leading-none tabular-nums transition-colors', i.alert ? 'text-danger' : 'text-paper group-hover:text-brass')}>{i.value}</span>
+        <Link key={i.label} href={i.href} className={cx('group min-w-0 rounded-[18px] px-5 py-5 shadow-[0_10px_28px_-18px_rgb(15_26_20/0.35)] transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass', i.alert ? 'night-scope bg-night' : 'bg-surface ring-1 ring-line/60', n === 4 && 'col-span-2 sm:col-span-1')}>
+          <span className="flex flex-wrap items-center gap-x-2 break-words text-[11px] font-bold uppercase tracking-[0.12em] text-muted"><i aria-hidden className="not-italic tabular-nums text-brass">{String(n + 1).padStart(2, '0')}</i>{i.label}</span>
+          <span className={cx('mt-3 block font-display text-[48px] leading-none tabular-nums transition-colors', i.alert ? 'text-lime' : 'text-paper group-hover:text-brass')}>{i.value}</span>
           <span className="mt-1 block break-words text-xs text-faint">{i.note}</span>
         </Link>
       ))}

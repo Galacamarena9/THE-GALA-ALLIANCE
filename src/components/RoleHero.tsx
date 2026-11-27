@@ -51,9 +51,8 @@ export function RoleHero({ role, firstName, status, next, stats }: { role: AppRo
   const hour = new Date().getHours();
   const greeting = hour < 13 ? 'Buenos días' : hour < 20 ? 'Buenas tardes' : 'Buenas noches';
   return (
-    <section className="rise-in relative overflow-hidden rounded-[var(--radius-card)] bg-night text-white">
+    <section className="stadium rise-in text-white" style={{ ['--stadium-photo' as string]: 'url(/media/hero-athletes-sm.webp)' }}>
       <div className="court-lines absolute inset-0 opacity-[0.07]" aria-hidden />
-      <div className="absolute inset-0 bg-[radial-gradient(55%_90%_at_90%_10%,rgb(201_162_74/0.22),transparent_70%)]" aria-hidden />
       <div className="grain absolute inset-0" aria-hidden />
       <div className="relative p-6 sm:p-8 lg:p-10">
         <p className="mb-3 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-lavender backdrop-blur">
