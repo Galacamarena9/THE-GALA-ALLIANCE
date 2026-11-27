@@ -48,12 +48,12 @@ function Readiness({ value }: { value: number }) {
 export function GalaPassport({ className = '', caption = true }: { className?: string; caption?: boolean }) {
   return (
     <figure className={className}>
-      <div className="passport p-5 sm:p-6">
+      <div className="passport night-scope p-5 sm:p-6">
         <div className="court-lines pointer-events-none absolute inset-0 -z-10 opacity-[0.07]" aria-hidden />
         {/* Cabecera */}
         <div className="flex items-center justify-between">
           <span className="eyebrow text-[10px] text-white/60">Gala Passport</span>
-          <span className="inline-flex items-center gap-1 rounded-full bg-lime px-2.5 py-1 text-[11px] font-bold text-[#0a0a0c]"><BadgeCheck className="h-3.5 w-3.5" aria-hidden />Verificado</span>
+          <span className="inline-flex items-center gap-1 rounded-full bg-lime px-2.5 py-1 text-[11px] font-bold text-night"><BadgeCheck className="h-3.5 w-3.5" aria-hidden />Verificado</span>
         </div>
 
         {/* Identidad */}
@@ -72,7 +72,7 @@ export function GalaPassport({ className = '', caption = true }: { className?: s
         {/* Datos con procedencia */}
         <dl className="mt-6 grid grid-cols-4 gap-px overflow-hidden rounded-2xl bg-white/10">
           {STATS.map((s) => (
-            <div key={s.label} className="flex flex-col bg-[#121216] px-2 py-3 text-center">
+            <div key={s.label} className="flex flex-col bg-surface px-2 py-3 text-center">
               <dt className="order-2 mt-1 flex items-center justify-center gap-1 text-[10px] leading-tight text-white/65"><ProvenanceMark source={s.source} />{s.label}</dt>
               <dd className="font-display text-2xl font-bold leading-none tabular-nums sm:text-[1.7rem]">{s.value}{s.unit ? <span className="ml-0.5 text-sm text-white/60">{s.unit}</span> : null}</dd>
             </div>

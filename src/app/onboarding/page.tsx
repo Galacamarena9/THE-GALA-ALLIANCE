@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { afterSignupPath } from '@/lib/domain/safe-path';
 import { Logo } from '@/components/Logo';
+import { PageHeader } from '@/components/ui';
 import { getSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
 import { roleHome } from '@/lib/domain/roles';
@@ -35,10 +36,8 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
         <Logo href="/onboarding" />
         <LanguageSwitcher current={locale} />
       </header>
-      <main id="main-content" className="mx-auto max-w-3xl px-5 pb-20 pt-4 sm:px-8">
-        <p className="text-[13px] font-semibold text-brass">{t.hello(session.displayName)}</p>
-        <h1 className="mt-2 text-4xl text-paper">{add === '1' ? t.titleAdd : t.title}</h1>
-        <p className="mt-3 text-muted">{t.intro}</p>
+      <main id="main-content" className="mx-auto max-w-4xl px-5 pb-20 pt-4 sm:px-8">
+        <PageHeader kicker={t.hello(session.displayName)} title={add === '1' ? t.titleAdd : t.title} description={t.intro} photo="/media/hero-athletes-sm.webp" />
         <OnboardingForm
           locale={locale}
           initialRole={role}

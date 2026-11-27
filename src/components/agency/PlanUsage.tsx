@@ -12,12 +12,12 @@ export function PlanUsage({ status, now }: { status: AgencyPlanStatus; now?: Dat
     <div className="mt-3 space-y-2" data-testid="plan-status">
       <Notice tone={summary.tone}>{summary.text}</Notice>
       <dl className="grid gap-2 text-sm sm:grid-cols-2">
-        {rows.map(([label, used, limit]) => (
-          <div key={label} className="rounded-xl border border-line p-3">
-            <dt className="text-muted">{label}</dt>
-            <dd className="mt-1 font-semibold text-paper">{usageLabel(used, limit)}</dd>
-            <div className="mt-2 h-1.5 rounded-full bg-line" role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(usageRatio(used, limit) * 100)}>
-              <div className="h-1.5 rounded-full bg-brass" style={{ width: `${Math.round(usageRatio(used, limit) * 100)}%` }} />
+        {rows.map(([label, used, limit], i) => (
+          <div key={label} className={`stat-tile flex flex-col ${i === 0 ? 'is-hero' : ''}`}>
+            <dt className="stat-tile-label !mt-0 mb-2">{label}</dt>
+            <dd className="stat-tile-value text-[1.9rem]">{usageLabel(used, limit)}</dd>
+            <div className={`mt-3 h-2 rounded-full ${i === 0 ? 'bg-white/15' : 'bg-line'}`} role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(usageRatio(used, limit) * 100)}>
+              <div className={`h-2 rounded-full ${i === 0 ? 'bg-lime' : 'bg-brass'}`} style={{ width: `${Math.round(usageRatio(used, limit) * 100)}%` }} />
             </div>
           </div>
         ))}

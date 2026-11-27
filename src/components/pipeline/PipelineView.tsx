@@ -141,7 +141,7 @@ export function PipelineView({ rows, f, athlete, params, editable }: { rows: Pro
       ) : (
         <Card className="p-0">
           {list.length ? (
-            <table className="w-full text-left text-sm">
+            <table className="data-table w-full text-left text-sm">
               <caption className="sr-only">Procesos de recruiting</caption>
               <thead className="border-b border-line text-xs text-faint">
                 <tr><th scope="col" className="p-3">Proceso</th><th scope="col" className="hidden p-3 sm:table-cell">Etapa</th><th scope="col" className="hidden p-3 md:table-cell">Siguiente paso</th><th scope="col" className="p-3">Estado</th><th scope="col" className="p-3"><span className="sr-only">Acciones</span></th></tr>

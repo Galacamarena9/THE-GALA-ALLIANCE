@@ -79,6 +79,19 @@ Cambios (rama `fix/agente-flujos`):
 Pruebas: unit 306/306; RLS 455/455 (nueva: marcas de lectura); tsc OK; build OK.
 Pendiente de Gala (L5): claves Stripe live; si quiere envío real de invitaciones por email (Resend) y que reclamar la invitación acepte la representación.
 
+## [Diseño «Estadio» en todas las pantallas] 2026-11-27 · Bandas verdes con foto, fichas de cifras y tablas claras
+
+### Hecho
+- **Acceso** (/login, /signup, /forgot-password): en escritorio, panel «Estadio» con foto propia, titular de marca y chips; en móvil, igual que antes.
+- **Webs públicas**: /para/*, /precios, /oportunidades, /guia y /calculadora abren con la banda verde con foto (`PageHeader`).
+- **Passport y ficha pública**: sin negros fijos (#0a0a0c, #121216): tiles con tokens (`bg-surface`, `text-night`), cabecera con foto de estadio y la cifra principal destacada en flúor. `.passport` pasa a degradado verde (tarjeta del command center).
+- **Ficha 360**: cabecera en banda «Estadio» (`.stadium-open` para no recortar el menú «Más»).
+- **Fichas de cifras** (`.stat-tile`, `.is-hero`): uso del plan, difusión y trials (confirmados en verde con número flúor).
+- **Tablas**: clase `.data-table` (cabecera verde suave en mayúsculas) en las tablas de la app y la calculadora.
+- **Estados vacíos**: `EmptyState` con franja de foto propia y acción clara (afecta a todas las pantallas que lo usan).
+- **Bandeja/conversación**, **coste real**, **bienvenida de familia**, **alta (onboarding)**, **respuesta a la difusión** y **protección de menores** con bandas y tarjetas sin borde.
+- Sin migraciones ni cambios de lógica; solo fotos de `/public/media`. Comparativa: `/tmp/qa/diseno/comparativa.html`.
+
 ## [QA web-admin] 2026-11-26 · Menú móvil, MFA en todo el admin, dominio de organizaciones y camino de compra de agencias
 
 ### Hecho

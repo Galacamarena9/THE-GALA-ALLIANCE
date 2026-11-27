@@ -123,12 +123,12 @@ export function PassportView({ d, actions, mode = 'public' }: { d: PassportViewD
   return (
     <div className="carbon overflow-hidden rounded-[28px]">
       {/* ===== CABECERA: identidad deportiva ===== */}
-      <header className="relative overflow-hidden px-5 pb-8 pt-6 sm:px-8 sm:pt-8">
+      <header className="stadium relative overflow-hidden !rounded-none px-5 pb-8 pt-6 sm:px-8 sm:pt-8" style={{ ['--stadium-photo' as string]: 'url(/media/arena-bg-sm.webp)' }}>
         <div className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full glow-trust opacity-40" aria-hidden />
         <div className="relative flex items-center justify-between gap-3">
           <span className="eyebrow text-[10px] text-white/60">Gala Passport</span>
           {verifiedCount > 0
-            ? <span className="inline-flex items-center gap-1 rounded-full bg-lime px-2.5 py-1 text-[11px] font-bold text-[#0a0a0c]"><BadgeCheck className="h-3.5 w-3.5" aria-hidden />{verifiedCount} {verifiedCount === 1 ? 'dato verificado' : 'datos verificados'}</span>
+            ? <span className="inline-flex items-center gap-1 rounded-full bg-lime px-2.5 py-1 text-[11px] font-bold text-night"><BadgeCheck className="h-3.5 w-3.5" aria-hidden />{verifiedCount} {verifiedCount === 1 ? 'dato verificado' : 'datos verificados'}</span>
             : <span className="rounded-full border border-white/15 px-2.5 py-1 text-[11px] text-white/70">Datos declarados por el atleta</span>}
         </div>
 
@@ -159,9 +159,9 @@ export function PassportView({ d, actions, mode = 'public' }: { d: PassportViewD
         {p.headline && <p className="relative mt-6 max-w-3xl text-lg leading-snug text-white">{p.headline}</p>}
 
         {facts.some(([, v]) => v) && (
-          <dl className="relative mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-2xl bg-white/10 sm:grid-cols-4">
+          <dl className="relative mt-6 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
             {facts.filter(([, v]) => v).map(([k, v]) => (
-              <div key={k} className="flex flex-col bg-[#121216] px-4 py-3">
+              <div key={k} className="flex flex-col rounded-2xl bg-surface/90 px-4 py-3 ring-1 ring-line backdrop-blur-sm">
                 <dt className="order-2 mt-1 flex items-center gap-1.5 text-[11px] text-white/65">{v && <Prov source="self_reported" />}{k}</dt>
                 <dd className="font-display text-2xl font-bold leading-none text-white">{v ?? '—'}</dd>
               </div>
@@ -207,11 +207,11 @@ export function PassportView({ d, actions, mode = 'public' }: { d: PassportViewD
         <Section id="estadisticas" eyebrow="Rendimiento" title="Estadísticas" aside={latestSeason && <span className="text-sm text-white/60">{latestSeason}</span>}>
           {d.stats.length ? (
             <>
-              <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl bg-white/10 sm:grid-cols-4">
-                {keyStats.map((s) => (
-                  <div key={s.id} className="flex flex-col bg-[#121216] px-4 py-5">
+              <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {keyStats.map((s, i) => (
+                  <div key={s.id} className={`flex flex-col rounded-2xl px-4 py-5 ${i === 0 ? 'bg-brass-deep/15 ring-2 ring-lime/70' : 'bg-surface ring-1 ring-line'}`}>
                     <dt className="order-2 mt-2 flex items-center gap-1.5 text-xs text-white/70"><Prov source={s.source} />{s.sport_stat_definitions?.label_es}</dt>
-                    <dd className="font-display text-5xl font-bold leading-none tabular-nums text-white">{String(s.value).replace('.', ',')}<span className="ml-1 text-base text-white/60">{s.sport_stat_definitions?.unit === '%' ? '%' : ''}</span></dd>
+                    <dd className={`font-display text-5xl font-bold leading-none tabular-nums ${i === 0 ? 'text-lime' : 'text-white'}`}>{String(s.value).replace('.', ',')}<span className="ml-1 text-base text-white/60">{s.sport_stat_definitions?.unit === '%' ? '%' : ''}</span></dd>
                   </div>
                 ))}
               </dl>
@@ -254,7 +254,7 @@ export function PassportView({ d, actions, mode = 'public' }: { d: PassportViewD
                 )}
                 {d.career.map((c) => (
                   <li key={c.id} className="relative">
-                    <span className="absolute -left-[28px] top-1.5 h-2.5 w-2.5 rounded-full border border-white/50 bg-[#0a0a0c]" aria-hidden />
+                    <span className="absolute -left-[28px] top-1.5 h-2.5 w-2.5 rounded-full border border-white/50 bg-ink" aria-hidden />
                     <p className="font-semibold text-white">{c.team}</p>
                     <p className="text-sm text-white/65">{[c.league, c.country && (COUNTRY_NAME[c.country] ?? c.country), `${c.season_from}${c.season_to ? ` → ${c.season_to}` : ''}`, c.role].filter(Boolean).join(' · ')}</p>
                   </li>
@@ -288,23 +288,23 @@ export function PassportView({ d, actions, mode = 'public' }: { d: PassportViewD
         {/* ===== ACADÉMICO ===== */}
         <Section id="academico" eyebrow="Académico" title="Estudios">
           {a ? (
-            <div className="grid gap-px overflow-hidden rounded-2xl bg-white/10 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="bg-[#121216] p-5">
+            <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-2xl bg-surface p-5 ring-1 ring-line">
                 <p className="text-xs text-white/65">Centro</p>
                 <p className="mt-1 font-semibold text-white">{a.school_name ?? '—'}</p>
                 <p className="text-xs text-white/60">{a.education_system ? EDUCATION_SYSTEM_LABEL[a.education_system as keyof typeof EDUCATION_SYSTEM_LABEL] : 'Sistema no indicado'}</p>
               </div>
-              <div className="bg-[#121216] p-5">
+              <div className="rounded-2xl bg-surface p-5 ring-1 ring-line">
                 <p className="flex items-center gap-1.5 text-xs text-white/65">{(a.gpa != null || a.grade_display) && <Prov source={a.gpa_source ?? 'self_reported'} />}Nota media</p>
                 {/* Se muestra en su sistema original: no convertimos notas internacionales a GPA sin un método fiable. */}
                 <p className="mt-1 font-display text-3xl font-bold text-white">{a.grade_display ?? (a.gpa != null ? `${String(a.gpa).replace('.', ',')} / ${a.gpa_scale}` : '—')}</p>
               </div>
-              <div className="bg-[#121216] p-5">
+              <div className="rounded-2xl bg-surface p-5 ring-1 ring-line">
                 <p className="flex items-center gap-1.5 text-xs text-white/65">{english.length > 0 && <Prov source={a.english_source ?? 'self_reported'} />}Inglés</p>
                 <p className="mt-1 font-display text-3xl font-bold text-white">{english[0] ?? '—'}</p>
                 {english.length > 1 && <p className="text-xs text-white/60">{english.slice(1).join(' · ')}</p>}
               </div>
-              <div className="bg-[#121216] p-5">
+              <div className="rounded-2xl bg-surface p-5 ring-1 ring-line">
                 <p className="flex items-center gap-1.5 text-xs text-white/65">{(a.sat_score != null || a.act_score != null) && <Prov source={a.tests_source ?? 'self_reported'} />}Exámenes EE. UU.</p>
                 <p className="mt-1 font-display text-3xl font-bold text-white">{[a.sat_score != null && `SAT ${a.sat_score}`, a.act_score != null && `ACT ${a.act_score}`].filter(Boolean).join(' · ') || '—'}</p>
               </div>
@@ -325,7 +325,7 @@ export function PassportView({ d, actions, mode = 'public' }: { d: PassportViewD
           {d.goals ? (
             <div className="grid gap-4 md:grid-cols-[1.2fr_1fr]">
               <div>
-                <ul className="flex flex-wrap gap-2">{d.goals.pathways.map((x) => <li key={x} className="rounded-full bg-lime px-3 py-1.5 text-xs font-semibold text-[#0a0a0c]">{PATHWAY_LABEL[x] ?? x}</li>)}</ul>
+                <ul className="flex flex-wrap gap-2">{d.goals.pathways.map((x) => <li key={x} className="rounded-full bg-lime px-3 py-1.5 text-xs font-semibold text-night">{PATHWAY_LABEL[x] ?? x}</li>)}</ul>
                 {d.goals.intended_majors.length > 0 && <p className="mt-4 text-sm text-white/80"><Target className="mr-1.5 inline h-4 w-4 text-lime" aria-hidden />Quiere estudiar: <span className="text-white">{d.goals.intended_majors.join(', ')}</span></p>}
               </div>
               <dl className="grid grid-cols-2 gap-3 text-sm">
@@ -347,9 +347,9 @@ export function PassportView({ d, actions, mode = 'public' }: { d: PassportViewD
 
         {/* ===== VERIFICACIÓN ===== */}
         <Section id="verificacion" eyebrow="Confianza" title="Qué está verificado">
-          <ul className="grid gap-px overflow-hidden rounded-2xl bg-white/10 sm:grid-cols-3">
+          <ul className="grid gap-2.5 sm:grid-cols-3">
             {(['club_verified', 'documented', 'self_reported'] as DataSource[]).map((s) => (
-              <li key={s} className="bg-[#121216] p-5">
+              <li key={s} className="rounded-2xl bg-surface p-5 ring-1 ring-line">
                 <p className="flex items-center gap-2 text-sm font-semibold text-white"><span className={`prov h-3.5 w-3.5 ${PROV_CLS[s]}`} aria-hidden />{s === 'club_verified' ? 'Verificado' : PROVENANCE_LABEL[s].short}</p>
                 <p className="mt-2 font-display text-4xl font-bold text-white">{count(s)}</p>
                 <p className="mt-1 text-xs text-white/65">{PROVENANCE_LABEL[s].who}</p>

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { PageHeader } from '@/components/ui';
 import { notFound } from 'next/navigation';
 import { ACTORS, actorBySlug } from '@/lib/domain/roles';
 import { ButtonLink } from '@/components/ui';
@@ -13,6 +14,12 @@ const PAIN: Record<string, { problem: string; answer: string }> = {
   coaches: { problem: 'Horas viendo vídeos sueltos sin contexto académico ni económico.', answer: 'Búsqueda por deporte, posición, año, nota y vídeo, shortlists privadas y Gala IA para buscar en lenguaje natural.' },
   agentes: { problem: 'Llevas cada atleta y cada universidad entre hojas de cálculo, emails y WhatsApp, y los procesos se olvidan.', answer: 'Un tablero con cada proceso, quién lo lleva y qué toca hacer, compartido con tu equipo y, si quieres, con el atleta. Con agencia verificada y siempre con su consentimiento.' },
   marcas: { problem: 'Encontrar atletas auténticos con los que colaborar de forma transparente es caro y lento.', answer: 'Publica ofertas con condiciones claras y recibe candidaturas de atletas mayores de edad.' },
+};
+
+/** Foto de la banda «Estadio» por público (solo fotos propias de /public/media). */
+const PARA_PHOTO: Record<string, string> = {
+  atletas: '/media/hero-athletes-sm.webp', familias: '/media/founder-entrance-sm.webp', universidades: '/media/university-campus-sm.webp',
+  coaches: '/media/club-training-sm.webp', agentes: '/media/agent-workspace-sm.webp', marcas: '/media/arena-bg-sm.webp',
 };
 
 export function generateStaticParams() {
@@ -35,9 +42,8 @@ export default async function ForActorPage({ params }: { params: Promise<{ slug:
     <>
       <PublicHeader />
       <main id="main-content" className="mx-auto max-w-6xl px-5 py-16 sm:px-8">
-        <p className="text-[13px] font-semibold text-brass">Para {a.plural.toLowerCase()}</p>
-        <h1 className="mt-3 max-w-4xl text-[40px] leading-tight text-paper sm:text-6xl">{a.promise}</h1>
-        <div className="mt-12 grid gap-px overflow-hidden rounded-[var(--radius-card)] border border-line bg-line sm:grid-cols-2">
+        <PageHeader kicker={`Para ${a.plural.toLowerCase()}`} title={a.promise} photo={PARA_PHOTO[slug] ?? '/media/hero-athletes-sm.webp'} />
+        <div className="mt-4 grid gap-px overflow-hidden rounded-[var(--radius-card)] border border-line bg-line sm:grid-cols-2">
           <div className="bg-ink p-7"><p className="text-xs uppercase tracking-wide text-faint">Hoy</p><p className="mt-2 text-lg text-muted">{pain.problem}</p></div>
           <div className="bg-surface p-7"><p className="text-xs uppercase tracking-wide text-brass">Con The Gala Alliance</p><p className="mt-2 text-lg text-paper">{pain.answer}</p></div>
         </div>

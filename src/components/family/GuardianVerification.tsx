@@ -15,8 +15,8 @@ export function GuardianVerification({ linkId, athleteId, athleteName, state, no
   }
   return (
     <Card data-testid="guardian-verification">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brass">Protección de menores</p>
-      <h2 className="mt-1 text-xl text-paper">{copy.title}</h2>
+      <p className="kicker">Protección de menores</p>
+      <h2 className="mt-2 font-display text-2xl text-paper">{copy.title}</h2>
       <p className="mt-2 max-w-2xl text-sm text-muted">{copy.body}</p>
       {notice === 'enviada' && <div className="mt-3"><Notice tone="ok">Declaración recibida. Te avisaremos cuando la revisemos.</Notice></div>}
       {notice === 'error' && <div className="mt-3"><Notice tone="danger">No se ha podido registrar la declaración. Inténtalo de nuevo o escríbenos desde Ayuda.</Notice></div>}

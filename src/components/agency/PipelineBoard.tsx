@@ -39,7 +39,7 @@ export function PipelineBoard({ cases, view, sportName, actions, today = new Dat
   if (view === 'table') {
     return (
       <Card className="overflow-x-auto p-0">
-        <table className="w-full min-w-[820px] text-left text-sm">
+        <table className="data-table w-full min-w-[820px] text-left text-sm">
           <thead className="border-b border-line text-xs text-faint">
             <tr>{['Atleta', 'Organización', 'Fase', 'Siguiente acción', 'Quién', 'Plazo'].map((h) => <th key={h} scope="col" className="px-4 py-3 font-medium">{h}</th>)}</tr>
           </thead>

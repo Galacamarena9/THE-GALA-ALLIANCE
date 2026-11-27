@@ -19,10 +19,10 @@ export function AgentInboxView({ groups, today = new Date().toISOString().slice(
       ) : (
         <ul className="space-y-4" aria-label="Conversaciones por atleta">
           {groups.map((g) => (
-            <li key={g.athleteId} data-testid="inbox-group" className="rounded-[var(--radius-card)] border border-line bg-surface">
-              <div className="flex flex-wrap items-start justify-between gap-3 border-b border-line px-5 py-4">
+            <li key={g.athleteId} data-testid="inbox-group" className="overflow-hidden rounded-[var(--radius-card)] bg-surface shadow-[var(--shadow-elevated)]">
+              <div className="night-scope flex flex-wrap items-start justify-between gap-3 bg-ink px-5 py-4">
                 <div className="min-w-0">
-                  <h2 className="text-2xl text-paper">{g.athleteName}</h2>
+                  <h2 className="text-2xl text-white">{g.athleteName}</h2>
                   {g.isMinor && <p className="mt-1 inline-flex items-center gap-1 text-xs text-muted"><ShieldCheck className="h-3.5 w-3.5 text-brass" aria-hidden />Menor: la familia ve la conversación</p>}
                   {g.awaiting > 0 && <p className="mt-1 text-xs font-semibold text-warn">{tx(g.awaiting === 1 ? '1 conversación espera tu respuesta' : `${g.awaiting} conversaciones esperan tu respuesta`)}</p>}
                 </div>
@@ -81,10 +81,10 @@ export interface ThreadContextData {
 /** Panel de contexto de una conversación del agente: fase, siguiente acción, oportunidades, proceso y documentos. */
 export function ThreadContext({ d, today = new Date().toISOString().slice(0, 10) }: { d: ThreadContextData; today?: string }) {
   return (
-    <aside aria-label="Contexto de la conversación" data-testid="thread-context" className="space-y-5 rounded-[var(--radius-card)] border border-line bg-surface p-5">
-      <div>
-        <p className="text-xs uppercase tracking-[0.2em] text-brass">Contexto</p>
-        <p className="mt-1 text-xl text-paper">{d.athleteName}</p>
+    <aside aria-label="Contexto de la conversación" data-testid="thread-context" className="space-y-5 overflow-hidden rounded-[var(--radius-card)] bg-surface p-5 shadow-[var(--shadow-elevated)]">
+      <div className="stadium -mx-5 -mt-5 !rounded-none px-5 py-5" style={{ ['--stadium-photo' as string]: 'url(/media/club-training-sm.webp)' }}>
+        <p className="stadium-tag">Contexto</p>
+        <p className="mt-3 font-display text-2xl text-white">{d.athleteName}</p>
       </div>
       {!d.canMessage && d.canMessageReason && <p role="status" className="rounded-xl border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">{d.canMessageReason}</p>}
       <section aria-labelledby="ctx-proc">

@@ -224,16 +224,16 @@ export function FamilyWelcome() {
 export function FamilyOnboarding({ name, scopes }: { name: string; scopes: GuardianLink['scopes'] }) {
   const can = SCOPES.filter(([k]) => scopes[k]).map(([, l]) => l.toLowerCase());
   return (
-    <section aria-labelledby="family-welcome" className="mb-5 rounded-2xl border border-brass/40 bg-brass/5 p-5">
-      <h2 id="family-welcome" className="text-lg font-semibold text-paper">Ya estáis vinculados</h2>
-      <ol className="mt-3 grid gap-3 text-sm text-muted sm:grid-cols-2">
-        <li><span className="font-semibold text-paper">1 · Con quién:</span> {name}.</li>
-        <li><span className="font-semibold text-paper">2 · Qué puedes ver:</span> {can.length ? can.join(', ') : 'nada todavía'}. {name} puede cambiarlo cuando quiera.</li>
-        <li><span className="font-semibold text-paper">3 · Qué necesita tu aprobación:</span> si es menor, los contactos de organizaciones, los documentos que pidan y la participación en trials.</li>
-        <li><span className="font-semibold text-paper">4 · Cómo se protege:</span> ninguna organización ve un documento sin vuestro permiso, y el presupuesto familiar nunca se enseña a nadie.</li>
+    <section aria-labelledby="family-welcome" className="stadium mb-5 p-6 sm:p-8" style={{ ['--stadium-photo' as string]: 'url(/media/founder-entrance-sm.webp)' }}>
+      <h2 id="family-welcome" className="font-display text-3xl text-white sm:text-4xl">Ya estáis vinculados</h2>
+      <ol className="mt-5 grid gap-3 text-sm text-muted sm:grid-cols-2">
+        <li className="rounded-xl bg-ink/60 p-3.5 backdrop-blur-sm"><span className="font-semibold text-lime">1 · Con quién:</span> {name}.</li>
+        <li className="rounded-xl bg-ink/60 p-3.5 backdrop-blur-sm"><span className="font-semibold text-lime">2 · Qué puedes ver:</span> {can.length ? can.join(', ') : 'nada todavía'}. {name} puede cambiarlo cuando quiera.</li>
+        <li className="rounded-xl bg-ink/60 p-3.5 backdrop-blur-sm"><span className="font-semibold text-lime">3 · Qué necesita tu aprobación:</span> si es menor, los contactos de organizaciones, los documentos que pidan y la participación en trials.</li>
+        <li className="rounded-xl bg-ink/60 p-3.5 backdrop-blur-sm"><span className="font-semibold text-lime">4 · Cómo se protege:</span> ninguna organización ve un documento sin vuestro permiso, y el presupuesto familiar nunca se enseña a nadie.</li>
       </ol>
       <div className="mt-4 flex flex-wrap gap-3 text-sm">
-        <Link href="/app/notifications" className="inline-flex min-h-11 items-center rounded-full border border-line px-4 text-paper hover:border-brass">Elegir qué avisos recibir</Link>
+        <Link href="/app/notifications" className="inline-flex min-h-11 items-center rounded-full border border-line-strong bg-ink/40 px-4 text-paper hover:border-brass">Elegir qué avisos recibir</Link>
         <Link href="/app/family" className="inline-flex min-h-11 items-center rounded-full bg-brass px-4 font-semibold text-ink">Ir al panel</Link>
       </div>
     </section>

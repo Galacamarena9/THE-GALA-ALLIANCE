@@ -106,7 +106,7 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
             <p className="text-sm text-muted">Aún no hay atletas. Crea un enlace de roster y compártelo en el grupo del equipo.</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="data-table w-full text-sm">
                 <thead><tr className="text-left text-xs text-faint"><th className="py-2 pr-3 font-normal">Atleta</th><th className="pr-3 font-normal">Promoción</th><th className="pr-3 font-normal">Candidaturas</th><th className="font-normal">Mejor estado</th></tr></thead>
                 <tbody className="divide-y divide-line">
                   {rows.map((r) => (

@@ -1,4 +1,5 @@
 import { I18nProvider } from '@/lib/i18n/client';
+import { PageHeader } from '@/components/ui';
 import { getT } from '@/lib/i18n/server-t';
 import { founderSeats } from '@/lib/domain/fee-attestation';
 import type { Metadata } from 'next';
@@ -55,9 +56,7 @@ export default async function PricingPage() {
     <div className="relative" lang={tx.locale}>
       <PublicHeader locale={tx.locale} />
       <main id="main-content" className="mx-auto max-w-6xl px-5 py-14 sm:px-8">
-        <p className="text-xs font-medium uppercase tracking-[0.22em] text-brass">{tx('Planes y servicios')}</p>
-        <h1 className="mt-3 max-w-3xl text-4xl text-paper sm:text-5xl">{tx('Pagas por ayuda experta, nunca por que te vean')}</h1>
-        <p className="mt-5 max-w-2xl text-lg text-muted">{tx(VISIBILITY_PROMISE)}</p>
+        <PageHeader kicker={tx('Planes y servicios')} title={tx('Pagas por ayuda experta, nunca por que te vean')} description={tx(VISIBILITY_PROMISE)} photo="/media/arena-bg-sm.webp" />
 
         {GROUPS.map((g) => {
           const plans = PLANS.filter((p) => g.audiences.includes(p.audience));

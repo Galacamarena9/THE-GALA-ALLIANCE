@@ -117,7 +117,7 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
           ) : (
             <>
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[600px] text-sm">
+                <table className="data-table w-full min-w-[600px] text-sm">
                   <thead><tr className="text-left text-xs text-faint"><th className="py-2 pr-3 font-normal">Universidad</th><th className="pr-3 font-normal">División</th><th className="pr-3 text-right font-normal">Coste oficial/año</th><th className="pr-3 text-right font-normal">SAT medio</th><th className="font-normal">Encaje</th></tr></thead>
                   <tbody className="divide-y divide-line">
                     {shortlist.map((u) => (

@@ -100,7 +100,7 @@ export default async function CompareUniversitiesPage({ searchParams }: { search
         <Card>
           <CardTitle kicker={`${insts.length} de ${MAX}`}>Comparación</CardTitle>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-sm">
+            <table className="data-table w-full min-w-[640px] text-sm">
               <thead>
                 <tr>
                   <th className="w-44 py-2 text-left text-xs font-normal text-faint" scope="col"><span className="sr-only">Dato</span></th>

@@ -17,7 +17,7 @@ export function VideoFacade({ url, title, label, className = '' }: { url: string
     return (
       <a href={url} target="_blank" rel="noopener noreferrer nofollow" className={`${frame} group flex items-center justify-center court-lines`}>
         <span className="flex flex-col items-center gap-3 text-white">
-          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-lime text-[#0a0a0c] transition-transform group-hover:scale-105"><Play className="h-7 w-7 translate-x-0.5" aria-hidden /></span>
+          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-lime text-night transition-transform group-hover:scale-105"><Play className="h-7 w-7 translate-x-0.5" aria-hidden /></span>
           <span className="text-sm font-semibold">Ver {label ?? 'vídeo'} en {e.host || 'la web'} ↗</span>
         </span>
       </a>
@@ -34,7 +34,7 @@ export function VideoFacade({ url, title, label, className = '' }: { url: string
     <button type="button" onClick={() => setPlay(true)} className={`${frame} group flex items-center justify-center court-lines text-white`} aria-label={`Reproducir ${title}`}>
       <span className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" aria-hidden />
       <span className="relative flex flex-col items-center gap-3">
-        <span className="flex h-16 w-16 items-center justify-center rounded-full bg-lime text-[#0a0a0c] shadow-lg transition-transform group-hover:scale-110"><Play className="h-7 w-7 translate-x-0.5" aria-hidden /></span>
+        <span className="flex h-16 w-16 items-center justify-center rounded-full bg-lime text-night shadow-lg transition-transform group-hover:scale-110"><Play className="h-7 w-7 translate-x-0.5" aria-hidden /></span>
         <span className="text-sm font-semibold">{label ?? 'Reproducir'}</span>
         <span className="text-[11px] text-white/70">Se cargará desde {e.provider === 'youtube' ? 'YouTube' : 'Vimeo'}</span>
       </span>

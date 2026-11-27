@@ -100,8 +100,8 @@ export function AthleteCommandCenter({ d, firstName, isMinor }: { d: AthleteDash
               <p className="mt-5 flex items-center gap-2 text-sm text-paper"><CheckCircle2 className="h-5 w-5 text-brass" aria-hidden /> Estás al día. Cuando haya algo que hacer, aparecerá aquí.</p>
             )}
           </div>
-          {/* Passport snapshot: tarjeta oscura de marca, con texto claro y contraste AA. */}
-          <div className="passport p-5">
+          {/* Passport snapshot: tarjeta verde de marca, con texto claro y contraste AA. */}
+          <div className="passport ring-1 ring-lime/30 p-5">
             <div className="flex items-center gap-3">
               {d.photo ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -115,7 +115,7 @@ export function AthleteCommandCenter({ d, firstName, isMinor }: { d: AthleteDash
               </div>
             </div>
             <div className="mt-5">
-              <div className="flex items-baseline justify-between text-xs text-white/70"><span>Recruiting Readiness</span><span className="font-display text-2xl font-bold text-white">{r.score}<span className="text-sm text-white/60">/100</span></span></div>
+              <div className="flex items-baseline justify-between text-xs text-white/70"><span>Recruiting Readiness</span><span className="font-display text-3xl font-bold text-lime">{r.score}<span className="text-sm text-white/60">/100</span></span></div>
               <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-white/10" role="progressbar" aria-valuenow={r.score} aria-valuemin={0} aria-valuemax={100} aria-label="Recruiting Readiness">
                 <div className="h-full rounded-full bg-lime" style={{ width: `${Math.max(2, Math.min(100, r.score))}%` }} />
               </div>

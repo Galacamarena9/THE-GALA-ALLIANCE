@@ -17,23 +17,25 @@ export function TrialsBoard({ trials, past = false }: { trials: TrialSummary[]; 
   return (
     <ul className="space-y-3">
       {trials.map((t) => (
-        <li key={t.id} className="rounded-[var(--radius-card)] border border-line bg-surface p-4">
-          <div className="flex items-start justify-between gap-2">
+        <li key={t.id} className="overflow-hidden rounded-[var(--radius-card)] bg-surface shadow-[var(--shadow-elevated)]">
+          <div className="stadium !rounded-none px-4 pb-4 pt-4" style={{ ['--stadium-photo' as string]: 'url(/media/club-training-sm.webp)' }}>
             <div className="min-w-0">
-              <p className="text-[11px] uppercase tracking-wide text-faint">{TYPE[t.type] ?? t.type}{t.status !== 'published' ? ` · ${STATUS[t.status] ?? t.status}` : ''}</p>
-              <p className="font-display text-lg font-bold uppercase leading-tight text-paper">{t.title}</p>
-              <p className="mt-0.5 text-xs text-muted">{eventWhen(t.start_at, t.timezone)}{t.place ? ` · ${t.place}` : ''}</p>
+              <p className="stadium-tag">{TYPE[t.type] ?? t.type}{t.status !== 'published' ? ` · ${STATUS[t.status] ?? t.status}` : ''}</p>
+              <p className="mt-3 font-display text-xl font-bold uppercase leading-tight text-white">{t.title}</p>
+              <p className="mt-1 text-xs text-muted">{eventWhen(t.start_at, t.timezone)}{t.place ? ` · ${t.place}` : ''}</p>
             </div>
           </div>
+          <div className="p-4 pt-3">
           <dl className="mt-3 grid grid-cols-3 gap-2 text-center">
-            <div className="rounded-xl bg-ink/40 p-2"><dt className="text-[10px] text-faint">Confirmados</dt><dd className="font-display text-xl font-bold text-paper">{t.confirmed}</dd></div>
-            <div className="rounded-xl bg-ink/40 p-2"><dt className="text-[10px] text-faint">Pendientes</dt><dd className="font-display text-xl font-bold text-paper">{t.pending}</dd></div>
-            <div className="rounded-xl bg-ink/40 p-2"><dt className="text-[10px] text-faint">{past ? 'Lista de espera' : 'Docs. pendientes'}</dt><dd className={`font-display text-xl font-bold ${!past && t.missingDocs ? 'text-warn' : 'text-paper'}`}>{past ? t.waitlist : t.missingDocs}</dd></div>
+            <div className="rounded-xl bg-night p-2"><dt className="text-[10px] font-semibold uppercase text-[#cfe3d9]">Confirmados</dt><dd className="font-display text-2xl font-bold text-lime">{t.confirmed}</dd></div>
+            <div className="rounded-xl bg-surface-2 p-2"><dt className="text-[10px] font-semibold uppercase text-muted">Pendientes</dt><dd className="font-display text-2xl font-bold text-paper">{t.pending}</dd></div>
+            <div className="rounded-xl bg-surface-2 p-2"><dt className="text-[10px] font-semibold uppercase text-muted">{past ? 'Lista de espera' : 'Docs. pendientes'}</dt><dd className={`font-display text-2xl font-bold ${!past && t.missingDocs ? 'text-warn' : 'text-paper'}`}>{past ? t.waitlist : t.missingDocs}</dd></div>
           </dl>
           {t.toReview > 0 && <p className="mt-2 text-xs font-semibold text-brass">{t.toReview} candidatura{t.toReview === 1 ? '' : 's'} sin revisar</p>}
           <Link href={`/app/opportunities/${t.id}${t.toReview > 0 ? '#candidaturas' : '#participantes'}`} className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-full bg-brass px-4 text-sm font-semibold text-ink">
             {past ? 'Ver seguimiento' : t.toReview > 0 ? 'Revisar candidaturas' : 'Abrir trial'}
           </Link>
+          </div>
         </li>
       ))}
     </ul>

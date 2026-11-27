@@ -81,7 +81,7 @@ export function NetCostCalculator() {
               <div className="rounded-xl bg-ink/50 p-4"><dt className="text-xs text-faint">Ayuda confirmada</dt><dd className="font-display text-2xl tabular-nums text-ok">{usd(r.confirmed)}</dd></div>
               <div className="col-span-2 rounded-xl border border-brass/40 bg-ink/50 p-4"><dt className="text-xs text-brass">Aportación familiar estimada / año</dt><dd className="font-display text-4xl tabular-nums text-paper">{usd(r.familyFirstYear)}</dd><dd className="text-xs text-faint">≈ {usd(r.monthly)} al mes</dd></div>
             </dl>
-            <table className="mt-5 w-full text-sm">
+            <table className="data-table mt-5 w-full text-sm">
               <thead className="text-left text-xs text-faint"><tr><th className="font-normal">Escenario</th><th className="text-right font-normal">1.er año</th><th className="text-right font-normal">Total {offer.years} años</th></tr></thead>
               <tbody className="divide-y divide-line">
                 {([['Prudente', r.conservative, 'Solo ayuda confirmada y costes +10 %'], ['Esperado', r.expected, 'Confirmada + mitad de la estimada'], ['Optimista', r.optimistic, 'Confirmada + toda la estimada']] as const).map(([n, s, hint]) => (
@@ -95,7 +95,7 @@ export function NetCostCalculator() {
           {offers.length > 1 && (
             <Card>
               <CardTitle kicker="Comparador">Tus opciones lado a lado</CardTitle>
-              <table className="w-full text-sm">
+              <table className="data-table w-full text-sm">
                 <thead className="text-left text-xs text-faint"><tr><th className="font-normal">Opción</th><th className="text-right font-normal">Bruto</th><th className="text-right font-normal">Familia/año</th><th className="text-right font-normal">Total prudente</th></tr></thead>
                 <tbody className="divide-y divide-line">
                   {offers.map((o, i) => {

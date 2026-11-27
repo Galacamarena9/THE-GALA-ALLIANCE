@@ -109,12 +109,18 @@ export function Field({ label, hint, error, children, htmlFor }: { label: string
 export const inputClass =
   'w-full rounded-xl border border-line-strong bg-ink/60 px-3 py-2.5 text-sm text-paper placeholder:text-faint transition-all duration-200 hover:border-faint focus:border-brass/60 focus:outline-none focus:ring-2 focus:ring-brass/20';
 
-export function EmptyState({ title, children, action }: { title: string; children?: ReactNode; action?: ReactNode }) {
+/** Estado vacío «Estadio»: franja verde con foto propia arriba, titular de marcador y una acción clara. */
+export function EmptyState({ title, children, action, photo }: { title: string; children?: ReactNode; action?: ReactNode; photo?: string }) {
   return (
-    <div className="flex flex-col items-center rounded-[var(--radius-card)] border border-dashed border-line-strong px-6 py-12 text-center">
-      <p className="font-display text-[22px] font-bold uppercase leading-none text-paper">{title}</p>
-      {children && <div className="mt-2 max-w-md text-sm text-muted">{children}</div>}
-      {action && <div className="mt-5">{action}</div>}
+    <div className="overflow-hidden rounded-[var(--radius-card)] bg-surface text-center shadow-[0_1px_2px_rgb(15_26_20/0.04),0_10px_28px_-16px_rgb(15_26_20/0.18)] ring-1 ring-line/60">
+      <div className="stadium flex h-24 items-center justify-center !rounded-none" style={{ ['--stadium-photo' as string]: `url(${photo ?? stadiumPhoto(title)})` }} aria-hidden>
+        <span className="block h-4 w-12 -skew-x-12 bg-lime" />
+      </div>
+      <div className="flex flex-col items-center px-6 pb-10 pt-7">
+        <p className="font-display text-[22px] font-bold uppercase leading-none text-paper">{title}</p>
+        {children && <div className="mt-2 max-w-md text-sm text-muted">{children}</div>}
+        {action && <div className="mt-5">{action}</div>}
+      </div>
     </div>
   );
 }

@@ -242,7 +242,7 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
             </EmptyState>
           ) : view === 'table' ? (
             <div className="overflow-x-auto rounded-[var(--radius-card)] border border-line bg-surface">
-              <table className="w-full min-w-[860px] text-left text-sm">
+              <table className="data-table w-full min-w-[860px] text-left text-sm">
                 <caption className="sr-only">Atletas que cumplen los filtros</caption>
                 <thead className="border-b border-line text-xs text-faint">
                   <tr>

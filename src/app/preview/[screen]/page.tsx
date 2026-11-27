@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { ShellPreview } from '../ShellPreview';
+import { PageHeader } from '@/components/ui';
 import { previewAgentHome, previewCrmRows } from '@/lib/preview/agent-home';
 import { AgentHomeView } from '@/app/app/AgentHome';
 import { AthletesCrm } from '@/app/app/portfolio/AthletesCrm';
@@ -128,7 +129,7 @@ export default async function PreviewPage({ params, searchParams }: { params: Pr
         {screen === 'agent-inbox' && <AgentInboxView groups={previewInbox()} />}
         {(screen === 'agent-thread' || screen === 'agent-thread-revoked') && (
           <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-            <div><h1 className="text-4xl text-paper">Norte Sports Management</h1><p className="mt-2 text-sm text-muted">Conversación de ejemplo (probador).</p>
+            <div><PageHeader kicker="Conversación" title="Norte Sports Management" description="Conversación de ejemplo (probador)." />
               {screen === 'agent-thread-revoked' ? <p className="mt-6 text-sm text-muted" data-testid="composer-locked">No puedes escribir en esta conversación: la representación ya no está activa.</p> : <p className="mt-6 text-sm text-muted" data-testid="composer">Escribe un mensaje…</p>}
             </div>
             <ThreadContext d={previewThreadContext(screen === 'agent-thread-revoked' ? 'revoked' : 'ok')} />
@@ -155,6 +156,7 @@ export default async function PreviewPage({ params, searchParams }: { params: Pr
         )}
         {screen === 'guardian-queue' && (
           <div className="mx-auto max-w-3xl">
+            <PageHeader kicker="Admin" title="Trust & Safety" />
             <GuardianReviewQueue rows={[
               { link_id: '00000000-0000-4000-8000-000000000011', parent_name: 'Marta G. (ficticia)', athlete_name: 'Lucía (ficticia)', relationship: 'mother', attested_at: new Date().toISOString(), auto_checks_ok: true },
               { link_id: '00000000-0000-4000-8000-000000000012', parent_name: 'Álex R. (ficticio)', athlete_name: 'Hugo (ficticio)', relationship: 'legal_guardian', attested_at: new Date().toISOString(), auto_checks_ok: false },
@@ -177,7 +179,7 @@ export default async function PreviewPage({ params, searchParams }: { params: Pr
             'plan-full': { source: 'subscription', plan_code: 'agent_solo', trial_ends_at: null, athletes_limit: 25, athletes_used: 25, seats_limit: 1, seats_used: 1 },
             'plan-none': { source: 'none', plan_code: null, trial_ends_at: new Date(now.getTime() - 3 * 864e5).toISOString(), athletes_limit: 0, athletes_used: 7, seats_limit: 0, seats_used: 2 },
           };
-          return <div className="mx-auto max-w-2xl"><PlanUsage status={plan[screen]} now={now} /></div>;
+          return <div className="mx-auto max-w-2xl"><PageHeader kicker="Cuenta" title="Facturación" /><PlanUsage status={plan[screen]} now={now} /></div>;
         })()}
         {screen === 'coach-outreach' && (() => {
           const ago = (d: number) => new Date(Date.now() - d * 864e5).toISOString();
@@ -194,6 +196,7 @@ export default async function PreviewPage({ params, searchParams }: { params: Pr
             </div>
           );
         })()}
+        {(screen === 'pipeline' || screen === 'pipeline-table') && <PageHeader kicker="Agencia" title="Procesos" description="Cada atleta con cada universidad, en un solo sitio." />}
         {(screen === 'pipeline' || screen === 'pipeline-table') && (
           <PipelineBoard cases={previewCases} view={screen === 'pipeline' ? 'board' : 'table'} sportName={new Map(previewSports.map((s) => [s.id, s.name_es]))} actions={previewPipelineActions()} canMove={new Set(previewCases.map((c) => c.agencyId))} />
         )}
@@ -219,6 +222,7 @@ export default async function PreviewPage({ params, searchParams }: { params: Pr
             )}
           </div>
         )}
+        {screen === 'athlete-pipeline' && <PageHeader kicker="Recruiting" title="Mi pipeline" />}
         {screen === 'athlete-pipeline' && <PipelineView rows={previewPipeline} f={{ view: 'board', sort: 'urgency' }} athlete="" params={{}} editable />}
         {screen === 'command-center' && <AthleteCommandCenter d={previewCommandCenter} firstName="Lucía" isMinor={false} />}
         {screen === 'passport' && <PassportView d={demoPassport} mode="owner" />}
@@ -229,7 +233,7 @@ export default async function PreviewPage({ params, searchParams }: { params: Pr
           );
           return (<div className="space-y-6"><div className="flex items-center gap-4"><MatchScore m={m} size="lg" /><div><p className="font-display text-3xl font-bold uppercase text-paper">Universidad Ficticia</p><ConfidenceBadge m={m} /><div className="mt-2"><DimensionChips m={m} /></div></div></div><MatchBreakdownV2 m={m} /></div>);
         })()}
-        {screen === 'club-trials' && <div className="mx-auto max-w-xl"><TrialsBoard trials={previewTrials} /></div>}
+        {screen === 'club-trials' && <div className="mx-auto max-w-xl"><PageHeader kicker="Recruiting" title="Trials" description="Próximos trials, candidaturas por revisar y seguimiento después de cada prueba." /><TrialsBoard trials={previewTrials} /></div>}
         {screen === 'trial-club' && <div className="mx-auto max-w-xl space-y-4"><TrialPanel {...previewTrialPanel} me={null} asClub asFamily={false} preview={false} filterHref={(f) => `/preview/trial-club?pf=${f}`} /></div>}
         {screen === 'trial-athlete' && <div className="mx-auto max-w-xl space-y-4"><TrialPanel {...previewTrialPanel} me="00000000-0000-0000-0000-00000000a001" registrations={[]} applications={[]} asClub={false} asFamily={false} preview={false} /></div>}
         {screen === 'program-athlete' && <div className="mx-auto max-w-xl space-y-4"><ProgramPanel {...previewProgram} me="00000000-0000-0000-0000-00000000a001" applications={[]} asClub={false} asFamily /></div>}
@@ -240,6 +244,7 @@ export default async function PreviewPage({ params, searchParams }: { params: Pr
             action={familyNextAction({ today: previewFamilyToday, approvals: previewFamilyChild.approvals, deadlines: previewFamilyChild.deadlines, offers: [], incompleteCosts: 1, missingDocuments: 2, hasAthlete: true })}
             switchHref={(id) => `/preview/family-home?child=${id}`} />
         )}
+        {screen === 'family-costs' && <PageHeader kicker="Coste real" title="¿Cuánto nos costaría de verdad?" description="Coste publicado, ayuda confirmada y lo que todavía no se sabe, opción por opción. Preferimos decir «falta información» a darte una cifra falsa." />}
         {screen === 'family-costs' && <CostComparison scenarios={previewScenarios} budget={{ amount: 15000, currency: 'USD' }} canDelete={false} />}
         {screen === 'opportunity' && <PublicOpportunityView o={demoPublicOpp} sport="Baloncesto" positions={['Base', 'Escolta']} />}
         {screen === 'match' && (
