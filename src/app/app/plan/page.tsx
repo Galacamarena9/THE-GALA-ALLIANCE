@@ -1,3 +1,5 @@
+import { getT } from '@/lib/i18n/server-t';
+import { READINESS_LABEL } from '@/lib/domain/readiness';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { requireSession } from '@/lib/session';
@@ -57,6 +59,7 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
     supabase.from('athlete_documents').select('title, due_date, storage_path').eq('athlete_id', athlete.id).is('storage_path', null)
       .not('due_date', 'is', null).order('due_date').limit(8),
   ]);
+  const tx = await getT();
   const pending = passport.readiness.items.filter((i) => !i.done).sort((a, b) => b.weight - a.weight);
   const nextSat = SAT_DATES.filter((d) => daysUntil(d.deadline) >= 0).slice(0, 3);
 
@@ -81,7 +84,7 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
       <div className="grid gap-5 lg:grid-cols-2">
         <Card>
           <CardTitle kicker="1 · Informe del Passport" action={<span className="font-display text-3xl tabular-nums text-paper">{passport.readiness.score}%</span>}>Mejoras por impacto</CardTitle>
-          <Meter value={passport.readiness.score} label="Passport listo para enviar" />
+          <Meter value={passport.readiness.score} label={tx(READINESS_LABEL)} />
           {core ? (
             pending.length ? (
               <ol className="mt-4 space-y-2 text-sm">

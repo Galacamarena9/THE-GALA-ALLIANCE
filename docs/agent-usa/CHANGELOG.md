@@ -152,6 +152,29 @@ Pendiente de Gala / compliance: validar con el abogado NCAA la regla tryout y la
 ### Pendiente / decisión de Gala (L5)
 - Edad mínima de alta (13) y consentimiento parental por país (RGPD art. 8): sin cambios.
 
+## [QA familia] 2026-11-27 · Avisos del vínculo, conversaciones en pausa, «Esto me incomoda», coste real en euros y a 4 años, informe propio
+
+### Hecho
+- **Avisos del vínculo familiar** (migración `20261227000200_family_trust_notices.sql`, trigger `family_link_notify_change`):
+  aviso in-app (`public.notify`, categoría esencial) cuando el tutor renuncia, soporte pausa/retira, el atleta adulto
+  pausa/retira, se reanuda o el atleta confirma tras cumplir 18. Tarea diaria `family_notify_lapsed_access` (pg_cron,
+  idempotente) cuando la revisión de los 18 vence sin respuesta. Nunca se avisa a quien actúa.
+- **Conversaciones congeladas**: un menor sin tutor adulto activo no recibe ni envía mensajes nuevos con organizaciones
+  (trigger `guard_contact_frozen` con error `conversation_frozen_no_guardian` + condición en la policy `cmsg_insert`).
+  `contact_thread_frozen()` solo responde a participantes. Aviso a la organización (sin datos de la familia) al pausar y
+  al reanudar. La conversación explica el motivo a cada lado.
+- **«Esto me incomoda»** en las conversaciones del atleta menor (`contact_flag_discomfort`): denuncia `child_safety`
+  (prioridad 0 en la cola de moderación) y aviso a sus tutores activos; una sola vez mientras siga abierta; no desvincula.
+- **Coste real**: seguro médico y viajes son esenciales (vacío = «Sin dato»; sin ellos, «coste mínimo conocido» con todo lo
+  que falta), total a 4 años y euros con el tipo de cambio que indica la familia (`family_cost_settings`: tipo, fecha y
+  fuente; sin valor por defecto → solo USD con aviso). Presupuesto y tipo siguen invisibles para clubes/agentes/universidades.
+- **/print/informe-familia** para tutor activo y atleta (sin agente): aprobaciones pendientes, plazos, ofertas, coste real,
+  quién tiene acceso a documentos y quién contacta, según sus permisos (RLS). Sin presupuesto.
+- **Un solo nombre** para el % de perfil: «Passport listo» (`READINESS_LABEL`), en %, en todas las pantallas del atleta y la familia.
+
+### Pruebas ejecutadas
+- RLS 475/475 (7 nuevas FT-1…FT-7), unit 334/334, tsc, next build, e2e family + smoke (239 + 20 + 9 OK).
+
 ## [Fase 8 auditoría] 2026-11-25 · Mínimo privilegio y pulido
 Origen: auditoría integral (hallazgos S7, U5–U8). GALA MONSTER OS: 05 Engineering, 06 QA, 03 Design consultado. Riesgo L4 (privilegios) en staging.
 Cambios:

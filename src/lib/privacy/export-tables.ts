@@ -34,6 +34,7 @@ export const EXPORT_SOURCES: ExportSource[] = [
   { key: 'guardian_attestations', table: 'guardian_attestations', select: 'id, link_id, parent_id, athlete_id, statement_version, relationship, created_at', either: ['parent_id', 'athlete_id'] },
   { key: 'family_notes', table: 'family_notes', column: 'author_id' },
   { key: 'family_cost_scenarios', table: 'family_cost_scenarios', column: 'athlete_id' },
+  { key: 'family_cost_settings', table: 'family_cost_settings', column: 'athlete_id' },
   { key: 'consents', table: 'consents' },
   { key: 'data_requests', table: 'data_subject_requests' },
   // Passport

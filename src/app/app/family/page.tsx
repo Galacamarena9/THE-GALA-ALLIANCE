@@ -1,4 +1,6 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
+import { getT } from '@/lib/i18n/server-t';
 import { requireSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
 import { ATHLETE_STATUS_LABEL, usd } from '@/lib/domain/labels';
@@ -87,11 +89,18 @@ export default async function FamilyPage({ searchParams }: { searchParams: Promi
   ].filter((x): x is FamilyTrialItem => !!x)
    .sort((a, b) => Number(b.familyAction) - Number(a.familyAction) || (a.startAt ?? '9').localeCompare(b.startAt ?? '9'));
 
+  const tx = await getT();
   return (
     <>
       {header}
       {sp.bienvenida && <FamilyOnboarding name={current.name} scopes={current.scopes} />}
       <FamilyHome links={links} current={current} home={home} action={action} today={today} switchHref={(id) => `/app/family?child=${id}`} verificationNotice={sp.verificacion ?? (sp.verificar ? 'requerida' : undefined)} />
+      {current.active && (
+        <p className="mt-5 text-sm text-muted">
+          <Link href={`/print/informe-familia?a=${current.athleteId}`} className="font-semibold text-brass hover:underline">{tx('Generar nuestro informe (PDF)')}</Link>
+          {' · '}{tx('Lo que espera vuestra aprobación, plazos, ofertas, coste real y quién tiene acceso a sus documentos. No hace falta agente.')}
+        </p>
+      )}
       {trialItems.length > 0 && <div className="mt-5"><FamilyTrialCenter items={trialItems} /></div>}
       {apps !== null && (
         <Card className="mt-5">

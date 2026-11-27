@@ -1,12 +1,9 @@
 import { Badge } from '@/components/ui';
-import { AID_LABEL, COST_LABEL, budgetFit, familyCost, type AidKey, type CostKey, type CostScenario } from '@/lib/domain/family-cost';
+import { AID_LABEL, COST_LABEL, budgetFit, dual, familyCost, fourYearLine, type AidKey, type CostKey, type CostScenario, type FxRate } from '@/lib/domain/family-cost';
 import { deleteCostScenario } from '@/app/actions/family';
 import { getT } from '@/lib/i18n/server-t';
 
 export type ScenarioRow = CostScenario & { id: string; label: string; source_note: string | null };
-
-const money = (n: number, c: CostScenario['currency']) =>
-  new Intl.NumberFormat('es-ES', { style: 'currency', currency: c, maximumFractionDigits: 0 }).format(n);
 
 const FIT = { within: { label: 'Dentro del presupuesto', tone: 'ok' as const }, over: { label: 'Por encima del presupuesto', tone: 'danger' as const },
   unknown: { label: 'Aún no se puede saber', tone: 'neutral' as const } };
@@ -15,15 +12,26 @@ const FIT = { within: { label: 'Dentro del presupuesto', tone: 'ok' as const }, 
  * Comparación lado a lado. Lo que destaca es lo que falta, no el número más bajo:
  * una opción incompleta nunca aparece como «la más barata».
  */
-export async function CostComparison({ scenarios, budget, canDelete = true }: {
+export async function CostComparison({ scenarios, budget, fx = null, canDelete = true }: {
   scenarios: ScenarioRow[];
   budget: { amount: number | null; currency: CostScenario['currency'] } | null;
+  /** Tipo de cambio indicado por la familia (fecha y fuente). Sin él, solo la moneda de la fuente. */
+  fx?: FxRate | null;
   canDelete?: boolean;
 }) {
   const tx = await getT();
-  const summaries = scenarios.map((s) => familyCost(s));
-  const cell = (v: number | null, c: CostScenario['currency'], unknown = 'Desconocido') =>
-    v == null ? <span className="text-warn">{tx(unknown)}</span> : <span className="tabular-nums text-paper">{money(v, c)}</span>;
+  const lang = tx.locale === 'en' ? 'en' : 'es';
+  const summaries = scenarios.map((s) => familyCost(s, lang));
+  // Vacío = «Sin dato» (nunca 0). Con tipo de cambio, también el importe en la otra moneda (USD ↔ EUR).
+  const cell = (v: number | null, c: CostScenario['currency'], unknown = 'Sin dato') => {
+    if (v == null) return <span className="text-warn">{tx(unknown)}</span>;
+    const d = dual(v, c, fx, lang);
+    return <span className="tabular-nums text-paper">{d.primary}{d.secondary && <span className="block text-xs text-faint">≈ {d.secondary}</span>}</span>;
+  };
+  const yearsLine = (i: number) => {
+    const line = fourYearLine(summaries[i], fx, lang);
+    return line ? <p className="mt-1 text-sm tabular-nums text-paper">{line}</p> : null;
+  };
   const housing = (s: ScenarioRow) => (s.housing == null && s.housing_included ? <span className="text-paper">{tx('Incluido')}</span> : cell(s.housing, s.currency));
   const remove = (s: ScenarioRow) => canDelete && (
     <form action={deleteCostScenario} className="mt-1">
@@ -37,11 +45,12 @@ export async function CostComparison({ scenarios, budget, canDelete = true }: {
       <ul className="space-y-3 sm:hidden" aria-label={tx('Comparación de coste anual por opción')}>
         {scenarios.map((s, i) => {
           const r = summaries[i];
-          const fit = FIT[budgetFit(r, budget)];
+          const fit = FIT[budgetFit(r, budget, fx)];
           return (
             <li key={s.id} className="rounded-xl border border-line bg-ink/40 p-3">
               <p className="font-semibold text-paper">{s.label}</p>
               <p className={`mt-1 text-sm ${r.status === 'complete' ? 'font-semibold text-paper' : 'text-warn'}`}>{r.headline}</p>
+              {yearsLine(i)}
               <Badge tone={fit.tone} className="mt-2">{tx(fit.label)}</Badge>
               <dl className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1 text-sm">
                 {(Object.entries(COST_LABEL) as [CostKey, string][]).map(([k, label]) => (
@@ -88,7 +97,8 @@ export async function CostComparison({ scenarios, budget, canDelete = true }: {
             {summaries.map((r, i) => (
               <td key={scenarios[i].id} className="px-2 py-3 align-top">
                 <p className={r.status === 'complete' ? 'font-semibold text-paper' : 'text-warn'}>{r.headline}</p>
-                <Badge tone={FIT[budgetFit(r, budget)].tone} className="mt-2">{tx(FIT[budgetFit(r, budget)].label)}</Badge>
+                {yearsLine(i)}
+                <Badge tone={FIT[budgetFit(r, budget, fx)].tone} className="mt-2">{tx(FIT[budgetFit(r, budget, fx)].label)}</Badge>
               </td>
             ))}
           </tr>
@@ -105,7 +115,11 @@ export async function CostComparison({ scenarios, budget, canDelete = true }: {
       </table>
       </div>
       <p className="mt-3 text-xs text-faint">
-        {tx('Importes en la moneda de la fuente; no convertimos sin un tipo de cambio documentado. «Aún no se puede saber» no descarta una opción: solo dice que falta información.')}
+        {fx
+          ? `${tx('Tipo de cambio indicado por la familia')}: 1 US$ = ${fx.eurPerUsd.toLocaleString(lang === 'en' ? 'en-US' : 'es-ES', { maximumFractionDigits: 4 })} € · ${new Date(`${fx.date}T12:00:00`).toLocaleDateString(lang === 'en' ? 'en-US' : 'es-ES')} · ${tx('Fuente')}: ${fx.source}. ${tx('Las cifras en la otra moneda son aproximadas.')}`
+          : tx('Sin tipo de cambio: los importes se muestran solo en la moneda de la fuente (normalmente dólares). Indica un tipo con su fecha y su fuente para verlos también en euros.')}
+        {' '}{tx('A 4 años = el coste de un año multiplicado por 4, sin subidas ni ayudas que no estén por escrito.')}
+        {' '}{tx('«Aún no se puede saber» no descarta una opción: solo dice que falta información.')}
       </p>
     </div>
   );

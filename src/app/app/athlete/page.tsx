@@ -1,3 +1,5 @@
+import { getT } from '@/lib/i18n/server-t';
+import { READINESS_LABEL } from '@/lib/domain/readiness';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { requireSession } from '@/lib/session';
@@ -17,6 +19,7 @@ export default async function MyPathPage() {
   const supabase = await createClient();
   const passport = await loadPassport(session.userId);
   const { profile, academics, readiness } = passport;
+  const tx = await getT();
 
   const [{ data: opps }, { data: apps }] = await Promise.all([
     supabase
@@ -52,7 +55,7 @@ export default async function MyPathPage() {
 
       <div className="grid gap-5 lg:grid-cols-[1.35fr_1fr]">
         <Card className="paper-grain">
-          <CardTitle kicker="Opportunity readiness">Tu Passport está al {readiness.score}%</CardTitle>
+          <CardTitle kicker={tx(READINESS_LABEL)}>{readiness.score} %</CardTitle>
           <p className="-mt-2 mb-5 text-sm text-muted">Mide lo preparado que está tu perfil para que un coach pueda evaluarte. No es una nota de talento ni una probabilidad de beca.</p>
           {readiness.nextAction ? (
             <div className="rounded-xl border border-brass/40 bg-ink/60 p-5">

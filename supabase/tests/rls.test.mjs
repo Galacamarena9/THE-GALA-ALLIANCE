@@ -4518,6 +4518,129 @@ try {
     });
   }
 
+  results.push('\nFamilia: avisos del vínculo, conversaciones congeladas, «Esto me incomoda» y tipo de cambio');
+  {
+    const mk = async (name, role, age) => {
+      const id = randomUUID();
+      await db.query(`insert into auth.users (id, email, raw_user_meta_data, email_confirmed_at) values ($1, $2, $3, now())`, [id, `${name}-${id.slice(0, 6)}@ft.test`, { display_name: `${name} Test` }]);
+      await db.query(`insert into private_profile_data (user_id, date_of_birth) values ($1, current_date - make_interval(years => $2))`, [id, age]);
+      await db.query(`insert into user_roles (user_id, role) values ($1, $2)`, [id, role]);
+      if (role === 'athlete') await db.query(`insert into athlete_profiles (user_id, sport_id, graduation_year, profile_visibility) values ($1, 'basketball', 2028, 'members')`, [id]);
+      return id;
+    };
+    const link = async (parent, kid) => {
+      const tk = (await as(parent, `insert into parent_athlete_links (parent_id, invited_by) values ($1, $1) returning invitation_token`, [parent])).rows[0].invitation_token;
+      await as(kid, `select accept_family_invitation($1)`, [tk]);
+      const id = (await db.query(`select id from parent_athlete_links where parent_id = $1 and athlete_id = $2`, [parent, kid])).rows[0].id;
+      await db.query(`update parent_athlete_links set relationship = 'mother' where id = $1 and relationship not in ('parent', 'mother', 'father', 'legal_guardian')`, [id]);
+      const st = (await as(parent, `select guardian_attest($1, guardian_statement_version()) s`, [id]).catch(() => ({ rows: [{ s: null }] }))).rows[0].s;
+      if (st !== 'verified') await as(u.admin, `select guardian_review($1, true, 'Comprobado en las pruebas FT')`, [id]).catch(() => null);
+      return id;
+    };
+    const openThread = async (kid, parent) => {
+      const id = (await as(u.coach, `insert into contact_requests (organization_id, requested_by, athlete_id, message)
+        values ($1, $2, $3, 'Hola, nos interesa tu perfil para la temporada 2028.') returning id`, [uniId, u.coach, kid])).rows[0].id;
+      await as(parent, `update contact_requests set status = 'pending' where id = $1`, [id]);
+      await as(kid, `update contact_requests set status = 'accepted' where id = $1`, [id]);
+      return id;
+    };
+    const notes = async (who, kind) => (await db.query(`select title, body, link from notifications where user_id = $1 and kind = $2 order by id`, [who, kind])).rows;
+    const kid = await mk('ft-kid', 'athlete', 16);
+    const mom = await mk('ft-mom', 'parent', 45);
+    const momLink = await link(mom, kid);
+    const thread = await openThread(kid, mom);
+    await as(u.coach, `insert into contact_messages (request_id, sender_id, body) values ($1, $2, 'Te mandamos el calendario de visitas')`, [thread, u.coach]);
+
+    await check('FT-1 el tutor renuncia: avisan al menor y a la organización (sin datos de la familia); no al que actúa', async () => {
+      await as(mom, `update parent_athlete_links set status = 'revoked' where id = $1`, [momLink]);
+      const k = await notes(kid, 'family.link_changed');
+      eq(k.length, 1, 'aviso al menor');
+      if (!/ya no tiene acceso/.test(k[0].body) || !/conversaciones con organizaciones quedan en pausa/.test(k[0].body)) throw new Error(k[0].body);
+      eq((await notes(mom, 'family.link_changed')).length, 0, 'quien renuncia no recibe aviso');
+      const org = await notes(u.coach, 'contact.paused');
+      eq(org.filter((n) => n.link === `/app/inbox/${thread}`).length, 1, 'aviso a la organización');
+      if (/familia de|mamá|ft-mom/i.test(org[0].body.replace('la familia del atleta', ''))) throw new Error('el aviso a la organización no da datos de la familia');
+    });
+    await check('FT-2 menor sin tutor activo: la conversación queda congelada para la organización y el menor (deny by default)', async () => {
+      await expectError(() => as(u.coach, `insert into contact_messages (request_id, sender_id, body) values ($1, $2, '¿Seguimos hablando?')`, [thread, u.coach]), /conversation_frozen_no_guardian/);
+      await expectError(() => as(kid, `insert into contact_messages (request_id, sender_id, body) values ($1, $2, 'Hola')`, [thread, kid]), /conversation_frozen_no_guardian/);
+      eq((await as(u.coach, `select contact_thread_frozen($1) f`, [thread])).rows[0].f, true, 'la organización lo sabe (para explicarlo)');
+      eq((await as(kid, `select contact_thread_frozen($1) f`, [thread])).rows[0].f, true, 'el menor también');
+      eq((await as(await mk('ft-otra', 'athlete', 17), `select contact_thread_frozen($1) f`, [thread])).rows[0].f, false, 'un tercero no averigua nada');
+      eq((await as(u.coach, `select count(*)::int n from contact_messages where request_id = $1`, [thread])).rows[0].n, 1, 'el historial sigue legible');
+      // Aunque se saltara el trigger, la policy también lo deniega.
+      await db.query(`alter table public.contact_messages disable trigger guard_contact_frozen`);
+      try {
+        await expectError(() => as(u.coach, `insert into contact_messages (request_id, sender_id, body) values ($1, $2, 'Probando la policy')`, [thread, u.coach]), /row-level security/);
+      } finally { await db.query(`alter table public.contact_messages enable trigger guard_contact_frozen`); }
+    });
+    let dadLink; const dad = await mk('ft-dad', 'parent', 48);
+    await check('FT-3 vuelve a haber tutor activo: la conversación se reanuda y se avisa a la organización', async () => {
+      dadLink = await link(dad, kid);
+      eq((await as(u.coach, `select contact_thread_frozen($1) f`, [thread])).rows[0].f, false);
+      await as(u.coach, `insert into contact_messages (request_id, sender_id, body) values ($1, $2, 'Gracias, seguimos por aquí')`, [thread, u.coach]);
+      eq((await notes(u.coach, 'contact.resumed')).filter((n) => n.link === `/app/inbox/${thread}`).length, 1, 'aviso de reanudación');
+    });
+    await check('FT-4 soporte pausa y reanuda: avisan al tutor y al menor; la conversación se congela mientras', async () => {
+      await as(u.admin, `select family_link_restrict($1, true, 'revisión')`, [dadLink]);
+      const d = await notes(dad, 'family.link_changed');
+      eq(d.length, 1); eq(d[0].title, 'Tu acceso familiar está en pausa'); eq(d[0].link, '/app/support');
+      eq((await notes(kid, 'family.link_changed')).filter((n) => n.title === 'El acceso de un familiar está en pausa').length, 1, 'aviso al menor');
+      await expectError(() => as(u.coach, `insert into contact_messages (request_id, sender_id, body) values ($1, $2, 'Hola')`, [thread, u.coach]), /conversation_frozen_no_guardian/);
+      await as(u.admin, `select family_link_restrict($1, false)`, [dadLink]);
+      eq((await notes(dad, 'family.link_changed')).filter((n) => n.title === 'Tu acceso familiar vuelve a estar activo').length, 1, 'reanudado: tutor');
+      eq((await notes(kid, 'family.link_changed')).filter((n) => /vuelve a acompañar tu cuenta\. Tus conversaciones/.test(n.body)).length, 1, 'reanudado: menor');
+      await as(u.coach, `insert into contact_messages (request_id, sender_id, body) values ($1, $2, 'Seguimos')`, [thread, u.coach]);
+    });
+    await check('FT-5 «Esto me incomoda»: solo el atleta; denuncia de seguridad infantil y aviso a la familia, sin desvincular a nadie', async () => {
+      await expectError(() => as(u.coach, `select contact_flag_discomfort($1)`, [thread]), /not_allowed/);
+      await expectError(() => as(dad, `select contact_flag_discomfort($1)`, [thread]), /not_allowed/);
+      eq((await as(kid, `select contact_flag_discomfort($1, 'Me pide fotos') n`, [thread])).rows[0].n, 1, 'una familiar avisada');
+      const rep = (await db.query(`select reason, priority, reporter_id, status from content_reports where entity_type = 'contact_request' and entity_id = $1`, [thread])).rows;
+      eq(rep.length, 1); eq(rep[0].reason, 'child_safety'); eq(rep[0].priority, 0, 'primera de la cola'); eq(rep[0].reporter_id, kid);
+      const f = await notes(dad, 'family.safety');
+      eq(f.length, 1); eq(f[0].link, `/app/inbox/${thread}`);
+      eq((await db.query(`select status from parent_athlete_links where id = $1`, [dadLink])).rows[0].status, 'approved', 'nadie se desvincula');
+      eq((await as(kid, `select contact_flag_discomfort($1) n`, [thread])).rows[0].n, -1, 'pulsar otra vez no duplica');
+      eq((await notes(dad, 'family.safety')).length, 1);
+      eq((await as(u.coach, `select count(*)::int n from content_reports where entity_id = $1`, [thread])).rows[0].n, 0, 'la organización no ve la denuncia');
+    });
+    await check('FT-6 mayor de edad: confirmar el acceso avisa al tutor; la revisión vencida avisa una sola vez', async () => {
+      const grown = await mk('ft-grown', 'athlete', 18);
+      const pa = await mk('ft-pa', 'parent', 50);
+      const l = (await db.query(`insert into parent_athlete_links (parent_id, athlete_id, invited_by, status, approved_at, relationship, guardian_consent_given)
+        values ($1, $2, $2, 'approved', now() - interval '2 years', 'mother', true) returning id`, [pa, grown])).rows[0].id;
+      await as(grown, `select family_link_review($1, true)`, [l]);
+      eq((await notes(pa, 'family.link_changed')).filter((n) => n.title === 'Tu acceso familiar sigue activo').length, 1);
+      const late = await mk('ft-late', 'athlete', 19);
+      const pb = await mk('ft-pb', 'parent', 52);
+      await db.query(`insert into parent_athlete_links (parent_id, athlete_id, invited_by, status, approved_at, relationship, guardian_consent_given)
+        values ($1, $2, $2, 'approved', now() - interval '3 years', 'father', true)`, [pb, late]);
+      const n1 = (await db.query(`select family_notify_lapsed_access() n`)).rows[0].n;
+      if (n1 < 1) throw new Error('sin avisos de revisión vencida');
+      eq((await notes(pb, 'family.link_changed')).filter((n) => n.title === 'Tu acceso familiar está en pausa').length, 1, 'tutor');
+      eq((await notes(late, 'family.link_changed')).length, 1, 'atleta');
+      await db.query(`select family_notify_lapsed_access()`);
+      eq((await notes(pb, 'family.link_changed')).length, 1, 'idempotente');
+    });
+    await check('FT-7 tipo de cambio: atleta y familia con costes; nunca clubes, universidades, agentes ni marcas; sin tipo a medias', async () => {
+      await as(kid, `update parent_athlete_links set can_view_costs = true where id = $1`, [dadLink]);
+      await expectError(() => as(kid, `insert into family_cost_settings (athlete_id, eur_per_usd, rate_date) values ($1, 0.92, current_date)`, [kid]), /family_fx_complete/);
+      await expectError(() => as(kid, `insert into family_cost_settings (athlete_id, eur_per_usd, rate_date, rate_source) values ($1, 0.92, current_date + 3, 'BCE')`, [kid]), /fx_date_in_future/);
+      await as(kid, `insert into family_cost_settings (athlete_id, eur_per_usd, rate_date, rate_source) values ($1, 0.92, current_date, 'BCE, tipo de referencia')`, [kid]);
+      eq((await as(dad, `select count(*)::int n from family_cost_settings where athlete_id = $1`, [kid])).rows[0].n, 1, 'familia con costes');
+      eq((await as(dad, `update family_cost_settings set eur_per_usd = 0.93 where athlete_id = $1`, [kid])).rowCount, 1, 'la familia lo actualiza');
+      eq((await db.query(`select updated_by from family_cost_settings where athlete_id = $1`, [kid])).rows[0].updated_by, dad, 'queda quién');
+      for (const who of [u.coach, u.coach2, u.agent, u.brand, u.uni, null]) {
+        const r = await as(who, `select count(*)::int n from family_cost_settings`).then((x) => x.rows[0].n, (e) => (/permission denied/.test(e.message) ? 0 : Promise.reject(e)));
+        eq(r, 0, `ajeno ${who}`);
+      }
+      await expectError(() => as(u.coach, `insert into family_cost_settings (athlete_id) values ($1)`, [u.adult]), /row-level security/);
+      await as(kid, `update parent_athlete_links set can_view_costs = false where id = $1`, [dadLink]);
+      eq((await as(dad, `select count(*)::int n from family_cost_settings where athlete_id = $1`, [kid])).rows[0].n, 0, 'sin permiso de costes, no');
+    });
+  }
+
   results.push('\nFase 8: mínimo privilegio (con los privilegios por defecto de Supabase)');
   await check('MP-1 la API no hereda privilegios por defecto: tablas nuevas cerradas, token_hash y registros de cookies ilegibles', async () => {
     await db.query(`create table public.f8_probe (id int primary key)`);

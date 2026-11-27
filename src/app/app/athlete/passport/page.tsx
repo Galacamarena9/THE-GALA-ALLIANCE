@@ -1,3 +1,5 @@
+import { getT } from '@/lib/i18n/server-t';
+import { READINESS_LABEL } from '@/lib/domain/readiness';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowRight, Eye } from 'lucide-react';
@@ -30,6 +32,7 @@ export default async function PassportEditPage({ searchParams }: { searchParams:
   const section: SectionKey = (SECTIONS.find(([k]) => k === s)?.[0] ?? 'identidad');
   const [passport, catalog] = await Promise.all([loadPassport(session.userId), loadCatalog()]);
   const r = passport.readiness;
+  const tx = await getT();
 
   if (!passport.profile) return <Notice tone="warn">Aún no tienes Passport. Completa el registro de atleta.</Notice>;
   const profile = passport.profile;
@@ -40,15 +43,15 @@ export default async function PassportEditPage({ searchParams }: { searchParams:
       <section aria-labelledby="readiness-t" className="carbon mb-6 overflow-hidden rounded-[28px] p-5 sm:p-8">
         <div className="flex flex-wrap items-start justify-between gap-6">
           <div className="flex items-center gap-5">
-            <div className="relative h-24 w-24 shrink-0" role="img" aria-label={`Recruiting Readiness ${r.score} de 100`}>
+            <div className="relative h-24 w-24 shrink-0" role="img" aria-label={`${tx(READINESS_LABEL)}: ${r.score} %`}>
               <svg viewBox="0 0 36 36" className="h-full w-full -rotate-90" aria-hidden>
                 <circle cx="18" cy="18" r="15.9155" fill="none" stroke="rgb(255 255 255 / 0.12)" strokeWidth="2.6" />
                 <circle cx="18" cy="18" r="15.9155" fill="none" stroke="var(--color-lime)" strokeWidth="2.6" strokeLinecap="round" strokeDasharray="100" className="ring-fill" style={{ ['--ring-offset' as string]: 100 - r.score, strokeDashoffset: 100 - r.score }} />
               </svg>
-              <span className="absolute inset-0 flex flex-col items-center justify-center" aria-hidden><span className="font-display text-3xl font-bold leading-none text-white">{r.score}</span><span className="text-[10px] text-white/60">/ 100</span></span>
+              <span className="absolute inset-0 flex flex-col items-center justify-center" aria-hidden><span className="font-display text-3xl font-bold leading-none text-white">{r.score}</span><span className="text-[10px] text-white/60">%</span></span>
             </div>
             <div>
-              <p className="eyebrow text-lime">Recruiting Readiness</p>
+              <p className="eyebrow text-lime">{tx(READINESS_LABEL)}</p>
               <h1 id="readiness-t" className="mt-1 font-display text-3xl font-bold uppercase leading-none text-white sm:text-4xl">Tu Gala Passport</h1>
               <p className="mt-2 max-w-md text-sm text-white/70">Mide lo preparado que está tu perfil para un proceso de recruiting. No es una nota de talento.</p>
             </div>

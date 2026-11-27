@@ -6,8 +6,9 @@ import { loadAthlete360 } from '@/lib/data/athlete-360';
 import { buildMonthlyReport, isMonth } from '@/lib/domain/agent-report';
 import { usd } from '@/lib/domain/labels';
 import { PrintButton } from '@/components/autonomy';
+import { FamilyOwnReport } from './FamilyOwnReport';
 
-export const metadata: Metadata = { title: 'Informe mensual para la familia' };
+export const metadata: Metadata = { title: 'Informe para la familia' };
 
 /**
  * Informe mensual que el agente entrega a la familia (imprimir o guardar en PDF).
@@ -15,8 +16,13 @@ export const metadata: Metadata = { title: 'Informe mensual para la familia' };
  * las notas internas de la agencia nunca aparecen.
  */
 export default async function FamilyReportPage({ searchParams }: { searchParams: Promise<{ a?: string; m?: string }> }) {
-  const session = await requireSession(['agent']);
+  const session = await requireSession(['agent', 'parent', 'athlete']);
   const sp = await searchParams;
+  // QA familia (hallazgo 15): la familia y el atleta generan su propio informe, sin depender del agente.
+  if (session.roles.includes('parent') || session.roles.includes('athlete') || !session.roles.includes('agent')) {
+    if (sp.a && !z.string().uuid().safeParse(sp.a).success) notFound();
+    return <FamilyOwnReport session={session} athleteParam={sp.a} />;
+  }
   if (!z.string().uuid().safeParse(sp.a).success) notFound();
   const month = isMonth(sp.m) ? sp.m : new Date().toISOString().slice(0, 7);
   const data = await loadAthlete360(session.userId, sp.a as string);

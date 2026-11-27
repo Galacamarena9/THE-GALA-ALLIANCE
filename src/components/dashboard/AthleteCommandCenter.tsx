@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import { getT } from '@/lib/i18n/server-t';
+import { READINESS_LABEL } from '@/lib/domain/readiness';
 import { ArrowRight, CalendarClock, CheckCircle2, Eye, Sparkles } from 'lucide-react';
 import { Badge, ButtonLink, Card, CardTitle } from '@/components/ui';
 import { InstitutionCard } from '@/components/match/InstitutionCard';
@@ -65,7 +67,8 @@ function TaskControls({ a, compact = false }: { a: ActionItem; compact?: boolean
   );
 }
 
-export function AthleteCommandCenter({ d, firstName, isMinor }: { d: AthleteDashboard; firstName: string; isMinor: boolean }) {
+export async function AthleteCommandCenter({ d, firstName, isMinor }: { d: AthleteDashboard; firstName: string; isMinor: boolean }) {
+  const tx = await getT();
   const nba = d.actions[0];
   const rest = d.actions.slice(1, 8);
   const r = d.passport.readiness;
@@ -115,8 +118,8 @@ export function AthleteCommandCenter({ d, firstName, isMinor }: { d: AthleteDash
               </div>
             </div>
             <div className="mt-5">
-              <div className="flex items-baseline justify-between text-xs text-white/70"><span>Recruiting Readiness</span><span className="font-display text-2xl font-bold text-white">{r.score}<span className="text-sm text-white/60">/100</span></span></div>
-              <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-white/10" role="progressbar" aria-valuenow={r.score} aria-valuemin={0} aria-valuemax={100} aria-label="Recruiting Readiness">
+              <div className="flex items-baseline justify-between text-xs text-white/70"><span>{tx(READINESS_LABEL)}</span><span className="font-display text-2xl font-bold text-white">{r.score}<span className="text-sm text-white/60"> %</span></span></div>
+              <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-white/10" role="progressbar" aria-valuenow={r.score} aria-valuemin={0} aria-valuemax={100} aria-label={tx(READINESS_LABEL)}>
                 <div className="h-full rounded-full bg-lime" style={{ width: `${Math.max(2, Math.min(100, r.score))}%` }} />
               </div>
             </div>

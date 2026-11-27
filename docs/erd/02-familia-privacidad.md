@@ -1,7 +1,7 @@
 <!-- Generado por scripts/erd/generate.mjs a partir de las migraciones. No editar a mano: `npm run erd`. -->
 # 02 · Familia, consentimiento y privacidad
 
-Tablas: **8** · RLS activada en 8/8.
+Tablas: **9** · RLS activada en 9/9.
 Se relaciona con: `athlete_offers` (08), `athlete_profiles` (03), `institutions` (05), `opportunities` (07), `organizations` (05), `profiles` (01).
 
 ## AS-IS · Modelo actual
@@ -18,6 +18,8 @@ erDiagram
   INSTITUTIONS |o--o{ FAMILY_COST_SCENARIOS : "institution_id"
   ATHLETE_OFFERS |o--o{ FAMILY_COST_SCENARIOS : "offer_id"
   OPPORTUNITIES |o--o{ FAMILY_COST_SCENARIOS : "opportunity_id"
+  ATHLETE_PROFILES ||--o{ FAMILY_COST_SETTINGS : "athlete_id"
+  PROFILES |o--o{ FAMILY_COST_SETTINGS : "updated_by"
   ATHLETE_PROFILES ||--o{ FAMILY_NOTES : "athlete_id"
   PROFILES ||--o{ FAMILY_NOTES : "author_id"
   PROFILES ||--o{ GUARDIAN_ATTESTATIONS : "athlete_id"
@@ -86,6 +88,14 @@ erDiagram
     timestamptz created_at
     timestamptz updated_at
   }
+  FAMILY_COST_SETTINGS {
+    uuid athlete_id PK,FK
+    numeric eur_per_usd
+    date rate_date
+    text rate_source
+    uuid updated_by FK
+    timestamptz updated_at
+  }
   FAMILY_NOTES {
     uuid id PK
     uuid athlete_id FK
@@ -149,12 +159,14 @@ erDiagram
 | `cookie_consent_logs` | Personal | — | persona (user_id) → se anonimiza | Inmutable; se anonimiza al borrar la cuenta | No: Registro técnico de cookies del navegador; solo lectura de Gala | KEEP |
 | `data_subject_requests` | Personal | — | persona (user_id) → se borra | Mientras exista la cuenta | Sí | KEEP |
 | `family_cost_scenarios` | Sensible | Sí | atleta (athlete_id) → se borra<br>persona (created_by) → se anonimiza | Mientras exista la cuenta | Sí | KEEP |
+| `family_cost_settings` | Sensible | Sí | atleta (athlete_id) → se borra<br>persona (updated_by) → se anonimiza | Mientras exista la cuenta | Sí | KEEP |
 | `family_notes` | Sensible | Sí | atleta (athlete_id) → se borra<br>persona (author_id) → se borra | Mientras exista la cuenta | Sí | KEEP |
 | `family_policies` | Interna | — | No depende de personas | Mientras exista la organización | — | KEEP |
 | `guardian_attestations` | Sensible | Sí | persona (athlete_id) → se borra<br>persona (parent_id) → se borra | Mientras exista la cuenta | Sí | KEEP |
 | `parent_athlete_links` | Sensible | Sí | persona (athlete_id) → se borra<br>persona (invited_by) → se borra<br>persona (parent_id) → se borra<br>persona (verified_by) → se anonimiza | Invitaciones pendientes: 90 días tras caducar | Sí | KEEP |
 
 - `family_cost_scenarios`: Cálculo privado de coste por opción; NULL = desconocido.
+- `family_cost_settings`: Tipo de cambio que indica la familia (fecha y fuente); sin valor por defecto.
 - `family_notes`: Notas privadas de la familia; nunca visibles para organizaciones.
 - `family_policies`: Política familiar configurable por jurisdicción (ventana de revisión al cumplir 18).
 - `guardian_attestations`: Declaración firmada del tutor (versionada, solo añadir); prueba para decidir por un menor.

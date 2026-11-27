@@ -4,7 +4,8 @@ import { ActionForm } from '@/components/ActionForm';
 import { formatUsd } from '@/lib/i18n/format';
 import { SubmitButton } from '@/components/SubmitButton';
 import { inputClass } from '@/components/ui';
-import { addFamilyNote, addFamilyTask, deleteFamilyNote, saveCostScenario, saveFamilyBudget } from '@/app/actions/family';
+import { addFamilyNote, addFamilyTask, deleteFamilyNote, saveCostScenario, saveFamilyBudget, saveFamilyFx } from '@/app/actions/family';
+import { useT } from '@/lib/i18n/client';
 import { AID_LABEL, COST_LABEL, type AidKey, type CostKey } from '@/lib/domain/family-cost';
 import type { FamilyNote } from '@/lib/data/family-home';
 
@@ -108,7 +109,7 @@ export function CostScenarioForm({ athleteId, offers }: { athleteId: string; off
           <fieldset className="grid gap-3 sm:grid-cols-4">
             <legend className="mb-1 text-sm font-medium text-paper">Costes anuales publicados</legend>
             {COSTS.map(([k, label]) => (
-              <label key={k} className="grid gap-1 text-xs text-muted">{label}<input name={k} inputMode="numeric" pattern="\d*" placeholder="Desconocido" className={inputClass} /></label>
+              <label key={k} className="grid gap-1 text-xs text-muted">{label}<input name={k} inputMode="numeric" pattern="\d*" placeholder="Sin dato" className={inputClass} /></label>
             ))}
             <label className="grid gap-1 text-xs text-muted">
               Alojamiento incluido
@@ -122,7 +123,7 @@ export function CostScenarioForm({ athleteId, offers }: { athleteId: string; off
             ))}
           </fieldset>
           <label className="grid gap-1 text-xs text-muted">Fuente (opcional)<input name="source_note" maxLength={500} placeholder="Web oficial de la universidad, carta de oferta…" className={inputClass} /></label>
-          <p className="text-xs text-faint">Deja en blanco lo que no sepas: contará como «desconocido», nunca como 0. Solo la familia y el atleta ven esto.</p>
+          <p className="text-xs text-faint">Deja en blanco lo que no sepas: contará como «sin dato», nunca como 0. Seguro médico y viajes (vuelos, visitas) son parte del coste real: si aún no los sabes, déjalos en blanco y la cifra se mostrará como «coste mínimo conocido». Solo la familia y el atleta ven esto.</p>
           <SubmitButton pendingText="Guardando…">Guardar opción</SubmitButton>
         </>
       )}
@@ -148,6 +149,26 @@ export function BudgetForm({ athleteId, amount, mode, canEdit }: { athleteId: st
             </select>
           </label>
           <SubmitButton pendingText="Guardando…">Guardar</SubmitButton>
+        </>
+      )}
+    </ActionForm>
+  );
+}
+
+/** Tipo de cambio de la familia: los tres datos o ninguno. Sin tipo, todo se ve solo en la moneda de la fuente. */
+export function FxForm({ athleteId, fx }: { athleteId: string; fx: { eurPerUsd: number; date: string; source: string } | null }) {
+  const tx = useT();
+  const today = new Date().toISOString().slice(0, 10);
+  return (
+    <ActionForm action={saveFamilyFx} className="grid gap-3 sm:grid-cols-[1fr_1fr_2fr_auto] sm:items-end">
+      {() => (
+        <>
+          <input type="hidden" name="athlete" value={athleteId} />
+          <label className="grid gap-1 text-xs text-muted">{tx('1 US$ = … €')}<input name="rate" inputMode="decimal" defaultValue={fx ? String(fx.eurPerUsd).replace('.', ',') : ''} placeholder={tx('Sin tipo')} className={inputClass} /></label>
+          <label className="grid gap-1 text-xs text-muted">{tx('Fecha del tipo')}<input name="date" type="date" max={today} defaultValue={fx?.date ?? ''} className={inputClass} /></label>
+          <label className="grid gap-1 text-xs text-muted">{tx('Fuente')}<input name="source" maxLength={200} defaultValue={fx?.source ?? ''} placeholder={tx('BCE, tu banco…')} className={inputClass} /></label>
+          <SubmitButton pendingText={tx('Guardando…')}>{tx('Guardar')}</SubmitButton>
+          <p className="text-xs text-faint sm:col-span-4">{tx('No proponemos ningún tipo: copia el de una fuente que conozcas, con su fecha. Deja los tres campos vacíos para quitarlo.')}</p>
         </>
       )}
     </ActionForm>

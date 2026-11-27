@@ -5,7 +5,9 @@ import { createClient } from '@/lib/supabase/server';
 import { guardianLinks } from '@/lib/data/family-home';
 import { Card, CardTitle, EmptyState, Notice, PageHeader } from '@/components/ui';
 import { CostComparison, type ScenarioRow } from '@/components/family/CostComparison';
-import { BudgetForm, CostScenarioForm } from '@/components/family/FamilyForms';
+import { BudgetForm, CostScenarioForm, FxForm } from '@/components/family/FamilyForms';
+import { convert, money, validFx, type FxRate } from '@/lib/domain/family-cost';
+import { getT } from '@/lib/i18n/server-t';
 
 export const metadata: Metadata = { title: 'Coste real' };
 
@@ -54,11 +56,17 @@ export default async function FamilyCostsPage({ searchParams }: { searchParams: 
     );
   }
 
-  const [{ data: scenarios }, { data: fin }, { data: offers }] = await Promise.all([
+  const tx = await getT();
+  const lang = tx.locale === 'en' ? 'en' : 'es';
+  const [{ data: scenarios }, { data: fin }, { data: offers }, { data: fxRow }] = await Promise.all([
     supabase.from('family_cost_scenarios').select(SCENARIO_COLS).eq('athlete_id', athleteId).order('updated_at', { ascending: false }).limit(12),
     supabase.from('athlete_finances').select('annual_budget_usd, budget_mode').eq('athlete_id', athleteId).maybeSingle(),
     supabase.from('athlete_offers').select('id, university_name, status').eq('athlete_id', athleteId).in('status', ['pending', 'accepted']).limit(20),
+    supabase.from('family_cost_settings').select('eur_per_usd, rate_date, rate_source').eq('athlete_id', athleteId).maybeSingle(),
   ]);
+  // Tipo de cambio de la familia: sin valor por defecto. Incompleto o ausente = solo la moneda de la fuente.
+  const fxCandidate = fxRow ? { eurPerUsd: Number(fxRow.eur_per_usd), date: fxRow.rate_date as string, source: fxRow.rate_source as string } : null;
+  const fx: FxRate | null = validFx(fxCandidate) ? fxCandidate : null;
   const rows = (scenarios ?? []) as unknown as ScenarioRow[];
   const budget = { amount: (fin?.annual_budget_usd as number | null) ?? null, currency: 'USD' as const };
 
@@ -73,11 +81,12 @@ export default async function FamilyCostsPage({ searchParams }: { searchParams: 
           ))}
         </nav>
       )}
+      <p className="mb-4 text-sm"><Link href={`/print/informe-familia?a=${athleteId}`} className="font-semibold text-brass hover:underline">{tx('Generar nuestro informe (PDF)')}</Link></p>
       <div className="space-y-5">
         <Card>
           <CardTitle kicker="Comparación">{rows.length ? `${rows.length} opción(es)` : `Opciones para ${name}`}</CardTitle>
           {rows.length ? (
-            <CostComparison scenarios={rows.slice(0, 4)} budget={budget} />
+            <CostComparison scenarios={rows.slice(0, 4)} budget={budget} fx={fx} />
           ) : (
             <p className="text-sm text-muted">Añade la primera opción abajo. Con dos o más verás la comparación lado a lado, con lo que falta bien a la vista.</p>
           )}
@@ -92,6 +101,19 @@ export default async function FamilyCostsPage({ searchParams }: { searchParams: 
               ? <BudgetForm athleteId={athleteId} amount={budget.amount} mode={(fin?.budget_mode as 'preference' | 'hard_limit' | undefined) ?? 'preference'} canEdit={canEditBudget} />
               : <p className="text-sm text-muted">{name} no comparte el presupuesto familiar contigo. La comparación de costes sigue disponible, sin el encaje con el presupuesto.</p>}
           </div>
+        </Card>
+
+        <Card>
+          <CardTitle kicker={tx('Privado')}>{tx('Ver en euros')}</CardTitle>
+          {fx ? (
+            <p className="mb-3 text-sm text-muted">
+              {tx('Con el tipo indicado se muestran también los euros.')}
+              {canSeeBudget && budget.amount != null && <> {tx('Vuestro presupuesto')}: {money(budget.amount, 'USD', lang)} ≈ {money(convert(budget.amount, 'USD', 'EUR', fx) ?? 0, 'EUR', lang)} {tx('al año')}.</>}
+            </p>
+          ) : (
+            <div className="mb-3"><Notice tone="warn">{tx('Sin tipo de cambio: mostramos solo dólares (US$). No usamos ningún tipo por defecto; si queréis ver euros, indicad uno con su fecha y su fuente.')}</Notice></div>
+          )}
+          <FxForm athleteId={athleteId} fx={fx} />
         </Card>
 
         <Card>

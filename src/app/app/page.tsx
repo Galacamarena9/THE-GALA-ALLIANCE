@@ -1,3 +1,5 @@
+import { getT } from '@/lib/i18n/server-t';
+import { READINESS_LABEL } from '@/lib/domain/readiness';
 import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -122,6 +124,7 @@ export default async function HomePage() {
     }
   }
   const supabase = await createClient();
+  const tx = await getT();
   const [{ steps, score }, plan, { data: activity }, { count: unreadCount }, signal] = await Promise.all([
     stepsFor(session),
     session.roles.some((r) => r === 'athlete' || r === 'parent') ? familyPlan([session.userId]) : Promise.resolve(null),
@@ -146,7 +149,7 @@ export default async function HomePage() {
         status={done === steps.length ? 'Todo al día' : `${steps.length - done} paso${steps.length - done > 1 ? 's' : ''} por completar`}
         next={signal && signal.value > 0 ? { label: signal.cta(signal.value), href: signal.href } : nextStep ? { label: nextStep.label, href: nextStep.href } : primary ? { label: 'Ir a mi espacio', href: roleHome(primary) } : undefined}
         stats={[
-          ...(score != null ? [{ label: 'Passport listo', value: score, suffix: '%' }] : []),
+          ...(score != null ? [{ label: tx(READINESS_LABEL), value: score, suffix: '%' }] : []),
           ...(signal ? [{ label: signal.label, value: signal.value, href: signal.href }] : []),
           { label: 'Primeros pasos', value: done, note: `de ${steps.length}` },
           { label: 'Avisos sin leer', value: unread },

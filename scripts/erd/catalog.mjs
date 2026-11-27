@@ -48,6 +48,7 @@ export const TABLES = {
   family_policies: { domain: '02-familia-privacidad', cls: 'internal', decision: 'KEEP', note: 'Política familiar configurable por jurisdicción (ventana de revisión al cumplir 18).' },
   family_notes: { domain: '02-familia-privacidad', cls: 'sensitive', minors: true, decision: 'KEEP', export: true, note: 'Notas privadas de la familia; nunca visibles para organizaciones.' },
   family_cost_scenarios: { domain: '02-familia-privacidad', cls: 'sensitive', minors: true, decision: 'KEEP', export: true, note: 'Cálculo privado de coste por opción; NULL = desconocido.' },
+  family_cost_settings: { domain: '02-familia-privacidad', cls: 'sensitive', minors: true, decision: 'KEEP', export: true, note: 'Tipo de cambio que indica la familia (fecha y fuente); sin valor por defecto.' },
   parent_athlete_links: { domain: '02-familia-privacidad', cls: 'sensitive', minors: true, decision: 'KEEP', export: true, retention: 'Invitaciones pendientes: 90 días tras caducar' },
   consents: { domain: '02-familia-privacidad', cls: 'sensitive', minors: true, decision: 'KEEP', export: true, retention: 'Inmutable; se borra con la persona, el tutor se anonimiza' },
   cookie_consent_logs: { domain: '02-familia-privacidad', cls: 'personal', decision: 'KEEP', noExport: 'Registro técnico de cookies del navegador; solo lectura de Gala', retention: 'Inmutable; se anonimiza al borrar la cuenta' },

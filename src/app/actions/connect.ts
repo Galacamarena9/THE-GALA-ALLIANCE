@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { requireSession } from '@/lib/session';
 import type { FormState } from './auth';
+import { getT } from '@/lib/i18n/server-t';
 
 const ERRORS: Record<string, string> = {
   verified_organization_required: 'Tu organización debe estar verificada para contactar atletas.',
@@ -14,6 +15,7 @@ const ERRORS: Record<string, string> = {
   rate_limited: 'Has alcanzado el límite diario. Inténtalo mañana.',
   contact_data_not_allowed_with_minors: 'Con menores no se pueden compartir emails, teléfonos ni redes sociales. Todo queda dentro de la plataforma.',
   conversation_not_open: 'La conversación aún no está abierta.',
+  conversation_frozen_no_guardian: 'Conversación en pausa: el atleta es menor y ahora mismo no tiene un tutor activo. Se reanudará cuando su familia vuelva a estar activa.',
   ncaa_contact_window_closed: 'Normas NCAA: vuestra universidad aún no puede iniciar contacto con este atleta por su curso. Guárdalo en una lista y escríbele cuando se abra la ventana.',
 };
 const friendly = (msg: string, fallback: string) => Object.entries(ERRORS).find(([k]) => msg.includes(k))?.[1] ?? fallback;
@@ -54,9 +56,34 @@ export async function sendMessage(_prev: FormState, formData: FormData): Promise
   if (!parsed.success) return { error: 'Mensaje no válido.' };
   const supabase = await createClient();
   const { error } = await supabase.from('contact_messages').insert(parsed.data);
-  if (error) return { error: friendly(error.message, 'No se ha podido enviar el mensaje.') };
+  if (error) {
+    const tx = await getT();
+    return { error: tx(friendly(error.message, 'No se ha podido enviar el mensaje.')) };
+  }
   revalidatePath(`/app/inbox/${parsed.data.request_id}`);
   return { ok: true };
+}
+
+/**
+ * «Esto me incomoda» (QA familia, idea 5): el atleta marca la conversación. La base de datos crea una denuncia de
+ * seguridad (prioridad máxima si es menor) y avisa a sus tutores activos. No desvincula ni bloquea a nadie.
+ */
+export async function flagDiscomfort(_prev: FormState, formData: FormData): Promise<FormState> {
+  await requireSession(['athlete']);
+  const tx = await getT();
+  const parsed = z.object({ request_id: z.string().uuid(), note: z.string().trim().max(500).optional() })
+    .safeParse({ request_id: formData.get('request_id'), note: formData.get('note') || undefined });
+  if (!parsed.success) return { error: tx('No se ha podido enviar el aviso.') };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('contact_flag_discomfort', { p_request: parsed.data.request_id, p_note: parsed.data.note });
+  if (error) return { error: tx('No se ha podido enviar el aviso. Si hay un riesgo inmediato, llama al 112.') };
+  const n = Number(data ?? 0);
+  return {
+    ok: true,
+    message: n === -1 ? tx('Ya nos lo habías dicho: el equipo de seguridad lo está revisando.')
+      : n > 0 ? tx('Gracias por decirlo. Hemos avisado a tu familia y al equipo de seguridad de Gala.')
+      : tx('Gracias por decirlo. El equipo de seguridad de Gala lo revisará con prioridad.'),
+  };
 }
 
 const REASONS = ['child_safety', 'harassment', 'fake_or_misleading', 'spam', 'illegal_content', 'privacy', 'other',

@@ -28,7 +28,7 @@ export const previewFamilyChild: FamilyChildHome = {
 };
 
 export const previewScenarios: ScenarioRow[] = [
-  { id: 's1', label: 'Universidad A', currency: 'USD', tuition: 30000, fees: 1200, housing: 11000, meals: 5000, insurance: null, travel: null, other_costs: null,
+  { id: 's1', label: 'Universidad A', currency: 'USD', tuition: 30000, fees: 1200, housing: 11000, meals: 5000, insurance: 2500, travel: 1800, other_costs: null,
     athletic_aid: 18000, academic_aid: 5000, other_aid: null, housing_included: false, source_note: 'Web oficial y carta de oferta' },
   { id: 's2', label: 'Universidad B', currency: 'USD', tuition: 27000, fees: null, housing: null, meals: null, insurance: null, travel: null, other_costs: null,
     athletic_aid: 12000, academic_aid: null, other_aid: null, housing_included: null, source_note: 'Web oficial' },

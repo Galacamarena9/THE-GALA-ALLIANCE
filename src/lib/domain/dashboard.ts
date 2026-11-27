@@ -107,7 +107,7 @@ export function prioritize(i: DashboardInput): ActionItem[] {
   // 4. Passport muy incompleto.
   if (i.readiness.score < 60 && i.readiness.plan[0]) {
     const p = i.readiness.plan[0];
-    out.push({ key: `passport:${p.key}`, group: 'passport', href: p.href, cta: 'Completar', title: p.action, reason: `Tu Recruiting Readiness es ${i.readiness.score}/100. Es la acción que más suma (+${p.points}).`, priority: 'important', weight: 70 + p.points });
+    out.push({ key: `passport:${p.key}`, group: 'passport', href: p.href, cta: 'Completar', title: p.action, reason: `Tu Passport está listo al ${i.readiness.score} %. Es la acción que más suma (+${p.points}).`, priority: 'important', weight: 70 + p.points });
   }
   // 5. Oportunidad activa con encaje alto.
   if (i.seeksUSCollege && i.highMatchOpportunities > 0) {
@@ -124,7 +124,7 @@ export function prioritize(i: DashboardInput): ActionItem[] {
   // 8. Resto del Passport (las tres acciones de más impacto).
   for (const p of i.readiness.plan) {
     if (out.some((x) => x.key === `passport:${p.key}`)) continue;
-    out.push({ key: `passport:${p.key}`, group: 'passport', href: p.href, cta: 'Completar', title: p.action, reason: `+${p.points} en tu Recruiting Readiness.`, priority: p.points >= 6 ? 'important' : 'recommended', weight: 30 + p.points });
+    out.push({ key: `passport:${p.key}`, group: 'passport', href: p.href, cta: 'Completar', title: p.action, reason: `+${p.points} en «Passport listo».`, priority: p.points >= 6 ? 'important' : 'recommended', weight: 30 + p.points });
   }
   // 9. Menores: familia vinculada.
   const fam = i.readiness.items.find((x) => x.key === 'family');

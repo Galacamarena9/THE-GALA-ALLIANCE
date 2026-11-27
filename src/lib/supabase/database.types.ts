@@ -3418,6 +3418,33 @@ export type Database = {
           },
         ]
       }
+      family_cost_settings: {
+        Row: {
+          athlete_id: string
+          eur_per_usd: number | null
+          rate_date: string | null
+          rate_source: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          athlete_id: string
+          eur_per_usd?: number | null
+          rate_date?: string | null
+          rate_source?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          athlete_id?: string
+          eur_per_usd?: number | null
+          rate_date?: string | null
+          rate_source?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       family_notes: {
         Row: {
           athlete_id: string
@@ -10143,9 +10170,17 @@ export type Database = {
         Args: { p_org: string; p_days: number; p_reason: string }
         Returns: string
       }
+      contact_flag_discomfort: {
+        Args: { p_note?: string; p_request: string }
+        Returns: number
+      }
       contact_mark_read: {
         Args: { p_request: string }
         Returns: undefined
+      }
+      contact_thread_frozen: {
+        Args: { p_request: string }
+        Returns: boolean
       }
       agency_plan_status: {
         Args: { p_org: string }

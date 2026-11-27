@@ -7,10 +7,16 @@ import type { AthleteAcademics, AthleteGoals, AthleteProfile, AthleteVideo, Data
  * Seis categorías con un máximo fijo (suman 100):
  *   Perfil 20 · Deportivo 20 · Académico 20 · Vídeo 15 · Verificaciones 15 · Preferencias 10
  */
+/**
+ * Nombre ÚNICO del % de perfil completo en todas las pantallas del atleta y de la familia (QA familia, hallazgo 10):
+ * antes convivían «Recruiting Readiness 45/100», «Opportunity readiness» y «Passport listo 45 %».
+ */
+export const READINESS_LABEL = 'Passport listo';
+
 export type ReadinessCategory = 'profile' | 'sport' | 'academic' | 'video' | 'verification' | 'goals';
 
 export const READINESS_CATEGORIES: { key: ReadinessCategory; label: string; max: number }[] = [
-  { key: 'profile', label: 'Perfil completo', max: 20 },
+  { key: 'profile', label: 'Datos básicos', max: 20 },
   { key: 'sport', label: 'Información deportiva', max: 20 },
   { key: 'academic', label: 'Información académica', max: 20 },
   { key: 'video', label: 'Vídeo', max: 15 },
@@ -65,7 +71,7 @@ export function computeReadiness(input: ReadinessInput) {
   const pathways = g?.pathways?.length ? g.pathways : (p?.target_divisions ?? []);
 
   const raw: Omit<ReadinessItem, 'weight'>[] = [
-    // Perfil completo (20)
+    // Datos básicos (20)
     { key: 'sport', category: 'profile', label: 'Deporte y posición', done: Boolean(p?.sport_id && p?.primary_position_id), points: 5, action: 'Indica tu deporte y posición', href: `${E}?s=identidad` },
     { key: 'photo', category: 'profile', label: 'Foto de perfil', done: Boolean(input.hasAvatar), points: 4, action: 'Añade una foto de perfil', href: '/app/settings#perfil' },
     { key: 'grad', category: 'profile', label: 'Año de graduación', done: Boolean(p?.graduation_year), points: 3, action: 'Añade tu año de graduación', href: `${E}?s=identidad` },

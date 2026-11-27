@@ -5,6 +5,9 @@ import { requireSession } from '@/lib/session';
 import { createClient } from '@/lib/supabase/server';
 import { bestEffort } from '@/lib/supabase/must';
 import { Card, PageHeader, cx } from '@/components/ui';
+import { DiscomfortButton } from '@/components/inbox/DiscomfortButton';
+import { ThreadPausedNotice } from '@/components/inbox/ThreadPausedNotice';
+import { getT } from '@/lib/i18n/server-t';
 import { MessageForm, ReportButton } from '@/components/forms';
 import { BlockButton } from '@/components/BlockButton';
 import { LiveThread } from '@/components/LiveThread';
@@ -33,10 +36,16 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
   // La otra persona de la conversación: para el atleta o su familia, quien la abrió; para la organización, el atleta.
   const onAthleteSide = session.userId === req.athlete_id || session.roles.includes('parent');
   const otherId: string = onAthleteSide ? req.requested_by : req.athlete_id;
-  const [{ data: otherProfile }, { data: blocked }] = await Promise.all([
+  const [{ data: otherProfile }, { data: blocked }, { data: frozenData }, tx] = await Promise.all([
     supabase.from('profiles').select('display_name').eq('id', otherId).maybeSingle(),
     supabase.rpc('has_block_with', { p_other: otherId }),
+    // Menor sin tutor activo: la conversación queda en pausa para todos (lo exige la BD; aquí solo se explica).
+    req.is_minor_at_request ? supabase.rpc('contact_thread_frozen', { p_request: id }) : Promise.resolve({ data: false }),
+    getT(),
   ]);
+  const frozen = frozenData === true;
+  const isAthlete = session.userId === req.athlete_id;
+  const showDiscomfort = isAthlete && (session.isMinor || req.is_minor_at_request);
   const otherName = otherProfile?.display_name ?? (onAthleteSide ? 'esta persona' : 'este atleta');
   // Agente: panel de contexto (fase, siguiente acción, documentos) y la misma regla de permiso que aplica la base de datos.
   const ctx = !onAthleteSide && session.roles.includes('agent')
@@ -49,7 +58,9 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
   return (
     <div className={ctx ? 'grid gap-6 lg:grid-cols-[1fr_320px]' : undefined}>
      <div className="min-w-0">
-      <PageHeader kicker="Conversación" title={org?.name ?? 'Organización'} description={req.is_minor_at_request ? 'Conversación con un menor: la familia vinculada la ve. No se permiten emails, teléfonos ni redes.' : undefined} />
+      <PageHeader kicker="Conversación" title={org?.name ?? 'Organización'} description={req.is_minor_at_request
+        ? frozen ? tx('Conversación con un menor, en pausa: ahora mismo no tiene un tutor activo.') : tx('Conversación con un menor: la familia vinculada la ve. No se permiten emails, teléfonos ni redes.')
+        : undefined} />
       <Card className="mb-4">
         <p className="text-xs text-faint">Mensaje inicial</p>
         <p className="mt-1 text-sm text-muted">{req.message}</p>
@@ -69,12 +80,15 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
           );
         })}
       </ul>
-      {blocked ? (
+      {frozen ? (
+        <ThreadPausedNotice side={isAthlete ? 'athlete' : onAthleteSide ? 'family' : 'organization'} />
+      ) : blocked ? (
         <p className="rounded-xl border border-line bg-surface-2 px-4 py-3 text-sm text-muted">Hay un bloqueo entre vosotros: no se pueden enviar mensajes. Si lo pusiste tú, puedes quitarlo en Ajustes.</p>
       ) : req.status === 'accepted' && canWrite ? <MessageForm requestId={id} isMinor={req.is_minor_at_request} /> : req.status === 'accepted' ? <p className="text-sm text-muted">No puedes escribir en esta conversación: la representación ya no está activa.</p> : <p className="text-sm text-muted">La conversación no está abierta.</p>}
       <div className="mt-6 flex flex-wrap items-start justify-between gap-4">
         <Link href="/app/inbox" className="text-sm text-muted hover:text-paper">← Mensajes</Link>
         <div className="flex flex-wrap items-start gap-4">
+          {showDiscomfort && <DiscomfortButton requestId={id} />}
           {!blocked && otherId !== session.userId && <BlockButton userId={otherId} name={otherName} />}
           <ReportButton entityType="contact_request" entityId={id} label="Denunciar esta conversación" />
         </div>

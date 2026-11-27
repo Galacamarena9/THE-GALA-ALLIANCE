@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/server';
 import { requireSession, getSession } from '@/lib/session';
 import type { FormState } from './auth';
 import { isGuardianChangeError } from '@/lib/domain/minor-guard';
+import { getT } from '@/lib/i18n/server-t';
 
 /** QA menores: un atleta menor no quita a su tutor (lo exige la BD); se explica en pantalla en vez de un error genérico. */
 const GUARDIAN_BLOCKED = '/app/settings?familia=tutor#familia';
@@ -184,6 +185,37 @@ export async function saveFamilyBudget(_prev: FormState, formData: FormData): Pr
   if (error) return { error: 'No tienes permiso para cambiar el presupuesto. Si el atleta es mayor de edad, necesitas además permiso para editar su perfil.' };
   revalidatePath('/app/family/costs');
   return { ok: true, message: 'Presupuesto guardado. Es privado: ninguna universidad ni club lo ve.' };
+}
+
+/**
+ * Tipo de cambio de la familia (1 US$ = X €), siempre con fecha y fuente. Vacío = sin tipo: todo en la moneda de la
+ * fuente. Nunca proponemos un tipo nosotros. Misma regla de acceso que los escenarios (RLS de family_cost_settings).
+ */
+export async function saveFamilyFx(_prev: FormState, formData: FormData): Promise<FormState> {
+  await requireSession(['parent', 'athlete']);
+  const tx = await getT();
+  const raw = { athlete: formData.get('athlete'), rate: String(formData.get('rate') ?? '').trim().replace(',', '.'),
+    date: String(formData.get('date') ?? '').trim(), source: String(formData.get('source') ?? '').trim() };
+  const athlete = z.string().uuid().safeParse(raw.athlete);
+  if (!athlete.success) return { error: tx('No se ha podido guardar el tipo de cambio.') };
+  const supabase = await createClient();
+  if (!raw.rate && !raw.date && !raw.source) {
+    const { error } = await supabase.from('family_cost_settings').delete().eq('athlete_id', athlete.data);
+    if (error) return { error: tx('No se ha podido quitar el tipo de cambio.') };
+    revalidatePath('/app/family/costs');
+    return { ok: true, message: tx('Tipo de cambio quitado: los importes se muestran solo en la moneda de la fuente.') };
+  }
+  const p = z.object({
+    rate: z.coerce.number().gt(0).lt(10),
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((d) => d <= new Date().toISOString().slice(0, 10)),
+    source: z.string().min(3).max(200),
+  }).safeParse(raw);
+  if (!p.success) return { error: tx('Indica el tipo (p. ej., 0,92), la fecha (no futura) y la fuente (p. ej., BCE o tu banco). Los tres datos o ninguno.') };
+  const { error } = await supabase.from('family_cost_settings').upsert(
+    { athlete_id: athlete.data, eur_per_usd: p.data.rate, rate_date: p.data.date, rate_source: p.data.source }, { onConflict: 'athlete_id' });
+  if (error) return { error: tx('No se ha podido guardar. Comprueba que sigues teniendo acceso a los costes.') };
+  revalidatePath('/app/family/costs');
+  return { ok: true, message: tx('Tipo de cambio guardado. Solo lo ve vuestra familia.') };
 }
 
 // ------------------------------------------------------------------ Tareas compartidas (motor central)

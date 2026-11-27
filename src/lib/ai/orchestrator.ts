@@ -92,7 +92,7 @@ async function* fallback(intent: Intent, lang: Lang, q: string, s: SessionContex
     text = r.total != null ? `${es ? 'Procesos en seguimiento' : 'Processes'}: ${r.total} · ${es ? 'activos' : 'active'}: ${r.active} · ${es ? 'vencidos' : 'overdue'}: ${r.overdue}\n${(r.attention ?? []).map((a) => `• ${a.name}: ${a.why}`).join('\n')}` : es ? 'Tu pipeline está vacío.' : 'Your pipeline is empty.';
   } else if (intent === 'passport') {
     const r = (await run('get_passport_gaps')).data as { score?: number; plan?: { action: string; points: number }[] };
-    text = r.score != null ? `Recruiting Readiness: ${r.score}/100\n${(r.plan ?? []).map((p) => `• ${p.action} (+${p.points})`).join('\n')}` : es ? 'Crea tu Passport para ver qué te falta.' : 'Create your Passport first.';
+    text = r.score != null ? `${es ? 'Passport listo' : 'Passport ready'}: ${r.score} %\n${(r.plan ?? []).map((p) => `• ${p.action} (+${p.points})`).join('\n')}` : es ? 'Crea tu Passport para ver qué te falta.' : 'Create your Passport first.';
   } else {
     const r = (await run('search_knowledge', { query: q })).data as { results?: { chapter: string; section: string; text: string; review_pending: boolean }[] };
     const top = r.results?.[0];
